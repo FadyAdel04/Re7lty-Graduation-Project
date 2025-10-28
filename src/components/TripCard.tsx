@@ -1,6 +1,7 @@
 import { MapPin, Calendar, Heart, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Link } from "react-router-dom";
 
 interface TripCardProps {
   id: string;
@@ -14,6 +15,7 @@ interface TripCardProps {
 }
 
 const TripCard = ({ 
+  id,
   title, 
   destination, 
   duration, 
@@ -72,12 +74,14 @@ const TripCard = ({
           </div>
         </div>
 
-        <Button 
-          variant="secondary" 
-          className="w-full mt-4"
-        >
-          عرض التفاصيل
-        </Button>
+        <Link to={`/trips/${id}`}>
+          <Button 
+            variant="secondary" 
+            className="w-full mt-4"
+          >
+            عرض التفاصيل
+          </Button>
+        </Link>
       </CardContent>
     </Card>
   );

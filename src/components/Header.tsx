@@ -1,6 +1,7 @@
 import { Search, MapPin, Menu, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Link } from "react-router-dom";
 
 const Header = () => {
   return (
@@ -8,12 +9,12 @@ const Header = () => {
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between gap-4">
           {/* Logo */}
-          <div className="flex items-center gap-2">
+          <Link to="/" className="flex items-center gap-2">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-hero">
               <Globe className="h-6 w-6 text-primary-foreground" />
             </div>
             <h1 className="text-2xl font-bold text-gradient">رحلتي</h1>
-          </div>
+          </Link>
 
           {/* Search Bar - Hidden on mobile */}
           <div className="hidden md:flex flex-1 max-w-xl">
@@ -32,13 +33,22 @@ const Header = () => {
             <Button variant="ghost" size="icon" className="md:hidden">
               <Search className="h-5 w-5" />
             </Button>
-            <Button variant="outline" className="hidden sm:flex">
-              <MapPin className="h-4 w-4 ml-2" />
-              استكشف الخريطة
-            </Button>
-            <Button variant="default">
-              تسجيل الدخول
-            </Button>
+            <Link to="/templates">
+              <Button variant="ghost" className="hidden md:inline-flex">
+                القوالب
+              </Button>
+            </Link>
+            <Link to="/trips/new">
+              <Button variant="outline" className="hidden sm:flex">
+                <MapPin className="h-4 w-4 ml-2" />
+                أنشئ رحلة
+              </Button>
+            </Link>
+            <Link to="/auth">
+              <Button variant="default">
+                تسجيل الدخول
+              </Button>
+            </Link>
             <Button variant="ghost" size="icon" className="md:hidden">
               <Menu className="h-5 w-5" />
             </Button>
