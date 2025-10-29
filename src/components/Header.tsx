@@ -1,68 +1,66 @@
-import { Search, MapPin, Menu, Globe } from "lucide-react";
+import { Search, MapPin, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
+import logo from "@/assets/logo.png";
 
 const Header = () => {
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto px-4">
-        <div className="flex h-16 items-center justify-between gap-4">
+    <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/80">
+      <div className="container mx-auto px-4 sm:px-6">
+        <div className="flex h-20 items-center justify-between gap-4">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-hero">
-              <Globe className="h-6 w-6 text-primary-foreground" />
-            </div>
-            <h1 className="text-2xl font-bold text-gradient">رحلتي</h1>
+          <Link to="/" className="flex items-center">
+            <img src={logo} alt="رحلتي" className="h-14 w-auto sm:h-16" />
           </Link>
 
           {/* Search Bar - Hidden on mobile */}
-          <div className="hidden md:flex flex-1 max-w-xl">
+          <div className="hidden md:flex flex-1 max-w-2xl">
             <div className="relative w-full">
-              <Search className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+              <Search className="absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
               <Input
                 type="search"
                 placeholder="ابحث عن وجهة، مدينة، أو رحلة..."
-                className="w-full pr-10 rounded-2xl border-2 border-input focus:border-secondary transition-colors"
+                className="w-full pr-12 h-12 rounded-full border border-input bg-muted/30 focus:bg-background focus:border-secondary transition-all"
               />
             </div>
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="md:hidden">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Button variant="ghost" size="icon" className="md:hidden rounded-full">
               <Search className="h-5 w-5" />
             </Button>
-            <Link to="/templates">
-              <Button variant="ghost" className="hidden md:inline-flex">
+            <Link to="/templates" className="hidden lg:block">
+              <Button variant="ghost" className="rounded-full">
                 القوالب
               </Button>
             </Link>
-            <Link to="/trips/new">
-              <Button variant="outline" className="hidden sm:flex">
+            <Link to="/trips/new" className="hidden sm:block">
+              <Button variant="secondary" className="rounded-full">
                 <MapPin className="h-4 w-4 ml-2" />
                 أنشئ رحلة
               </Button>
             </Link>
             <Link to="/auth">
-              <Button variant="default">
+              <Button variant="default" className="rounded-full">
                 تسجيل الدخول
               </Button>
             </Link>
-            <Button variant="ghost" size="icon" className="md:hidden">
+            <Button variant="ghost" size="icon" className="lg:hidden rounded-full">
               <Menu className="h-5 w-5" />
             </Button>
           </div>
         </div>
 
         {/* Mobile Search */}
-        <div className="md:hidden pb-3">
+        <div className="md:hidden pb-4">
           <div className="relative">
-            <Search className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+            <Search className="absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="search"
               placeholder="ابحث عن وجهة..."
-              className="w-full pr-10 rounded-2xl border-2"
+              className="w-full pr-12 h-11 rounded-full border border-input bg-muted/30"
             />
           </div>
         </div>

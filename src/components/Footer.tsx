@@ -1,32 +1,30 @@
-import { Globe, Facebook, Twitter, Instagram, Mail } from "lucide-react";
+import { Facebook, Twitter, Instagram, Mail } from "lucide-react";
+import logo from "@/assets/logo.png";
 
 const Footer = () => {
   return (
-    <footer className="bg-muted/30 border-t border-border mt-20">
-      <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+    <footer className="bg-muted/20 border-t border-border/50 mt-20">
+      <div className="container mx-auto px-4 py-12 sm:py-16">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-12">
           {/* Logo & Description */}
           <div className="col-span-1 md:col-span-2">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-hero">
-                <Globe className="h-6 w-6 text-primary-foreground" />
-              </div>
-              <h3 className="text-2xl font-bold text-gradient">رحلتي</h3>
+            <div className="mb-4">
+              <img src={logo} alt="رحلتي" className="h-16 w-auto" />
             </div>
-            <p className="text-muted-foreground max-w-md">
+            <p className="text-muted-foreground max-w-md leading-relaxed">
               منصة مشاركة تجارب السفر والرحلات. نساعدك على اكتشاف وجهات جديدة وتخطيط رحلاتك بطريقة مميزة.
             </p>
-            <div className="flex gap-4 mt-6">
-              <a href="#" className="text-muted-foreground hover:text-secondary transition-colors">
+            <div className="flex gap-3 mt-6">
+              <a href="#" className="h-10 w-10 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground hover:bg-secondary hover:text-secondary-foreground transition-all">
                 <Facebook className="h-5 w-5" />
               </a>
-              <a href="#" className="text-muted-foreground hover:text-secondary transition-colors">
+              <a href="#" className="h-10 w-10 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground hover:bg-secondary hover:text-secondary-foreground transition-all">
                 <Twitter className="h-5 w-5" />
               </a>
-              <a href="#" className="text-muted-foreground hover:text-secondary transition-colors">
+              <a href="#" className="h-10 w-10 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground hover:bg-secondary hover:text-secondary-foreground transition-all">
                 <Instagram className="h-5 w-5" />
               </a>
-              <a href="#" className="text-muted-foreground hover:text-secondary transition-colors">
+              <a href="#" className="h-10 w-10 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground hover:bg-primary hover:text-primary-foreground transition-all">
                 <Mail className="h-5 w-5" />
               </a>
             </div>
@@ -34,26 +32,26 @@ const Footer = () => {
 
           {/* Quick Links */}
           <div>
-            <h4 className="font-bold mb-4">روابط سريعة</h4>
-            <ul className="space-y-2">
+            <h4 className="font-bold mb-4 text-foreground">روابط سريعة</h4>
+            <ul className="space-y-3">
               <li>
-                <a href="#" className="text-muted-foreground hover:text-secondary transition-colors">
+                <a href="/" className="text-muted-foreground hover:text-primary transition-colors">
                   الرئيسية
                 </a>
               </li>
               <li>
-                <a href="#" className="text-muted-foreground hover:text-secondary transition-colors">
-                  استكشف الرحلات
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-muted-foreground hover:text-secondary transition-colors">
+                <a href="/templates" className="text-muted-foreground hover:text-primary transition-colors">
                   القوالب
                 </a>
               </li>
               <li>
-                <a href="#" className="text-muted-foreground hover:text-secondary transition-colors">
-                  أفضل المسافرين
+                <a href="/trips/new" className="text-muted-foreground hover:text-primary transition-colors">
+                  أنشئ رحلة
+                </a>
+              </li>
+              <li>
+                <a href="/auth" className="text-muted-foreground hover:text-primary transition-colors">
+                  تسجيل الدخول
                 </a>
               </li>
             </ul>
@@ -61,25 +59,25 @@ const Footer = () => {
 
           {/* Support */}
           <div>
-            <h4 className="font-bold mb-4">الدعم</h4>
-            <ul className="space-y-2">
+            <h4 className="font-bold mb-4 text-foreground">الدعم</h4>
+            <ul className="space-y-3">
               <li>
-                <a href="#" className="text-muted-foreground hover:text-secondary transition-colors">
+                <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
                   مركز المساعدة
                 </a>
               </li>
               <li>
-                <a href="#" className="text-muted-foreground hover:text-secondary transition-colors">
+                <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
                   الشروط والأحكام
                 </a>
               </li>
               <li>
-                <a href="#" className="text-muted-foreground hover:text-secondary transition-colors">
+                <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
                   سياسة الخصوصية
                 </a>
               </li>
               <li>
-                <a href="#" className="text-muted-foreground hover:text-secondary transition-colors">
+                <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
                   اتصل بنا
                 </a>
               </li>
@@ -87,7 +85,7 @@ const Footer = () => {
           </div>
         </div>
 
-        <div className="border-t border-border mt-8 pt-8 text-center text-muted-foreground">
+        <div className="border-t border-border/50 mt-10 pt-8 text-center text-sm text-muted-foreground">
           <p>© 2024 رحلتي - Triply. جميع الحقوق محفوظة.</p>
         </div>
       </div>

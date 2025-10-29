@@ -1,61 +1,58 @@
-import { Plane, Compass, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
+import { MapPin, Globe } from "lucide-react";
 
 const Hero = () => {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-secondary-light to-background py-20 md:py-32">
-      {/* Decorative Elements */}
-      <div className="absolute top-10 right-10 opacity-10 animate-float">
-        <Plane className="h-24 w-24 text-primary" />
-      </div>
-      <div className="absolute bottom-20 left-10 opacity-10 animate-float" style={{ animationDelay: '1s' }}>
-        <Compass className="h-32 w-32 text-secondary" />
-      </div>
-
-      <div className="container mx-auto px-4">
-        <div className="mx-auto max-w-3xl text-center animate-slide-up">
-          <h1 className="mb-6 text-4xl font-bold leading-tight md:text-6xl">
-            اكتشف العالم مع
-            <span className="text-gradient"> رحلتي</span>
-          </h1>
-          
-          <p className="mb-8 text-lg text-muted-foreground md:text-xl">
-            شارك تجارب سفرك، اكتشف وجهات جديدة، وخطط لرحلتك القادمة مع مجتمع المسافرين
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
-            <Button variant="default" size="lg" className="min-w-[200px]">
-              ابدأ رحلتك الآن
-            </Button>
-            <Button variant="outline" size="lg" className="min-w-[200px]">
-              استكشف الرحلات
-            </Button>
+    <section className="relative py-16 sm:py-24 lg:py-32 px-4">
+      {/* Subtle Background */}
+      <div className="absolute inset-0 bg-gradient-to-b from-secondary-light/30 via-background to-background -z-10" />
+      
+      <div className="container mx-auto max-w-7xl">
+        <div className="text-center space-y-8 animate-slide-up">
+          <div className="space-y-4">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight tracking-tight">
+              اكتشف جمال
+              <span className="text-gradient block mt-2">مصر الساحر</span>
+            </h1>
+            
+            <p className="text-lg sm:text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto">
+              شارك رحلاتك، استلهم من تجارب الآخرين، وخطط لمغامرتك القادمة
+            </p>
           </div>
-
+          
+          <div className="flex flex-col sm:flex-row gap-3 justify-center items-center pt-4">
+            <Link to="/trips/new">
+              <Button size="lg" className="w-full sm:w-auto min-w-[200px] rounded-full">
+                <MapPin className="ml-2 h-5 w-5" />
+                ابدأ رحلتك
+              </Button>
+            </Link>
+            <Link to="/templates">
+              <Button size="lg" variant="outline" className="w-full sm:w-auto min-w-[200px] rounded-full">
+                <Globe className="ml-2 h-5 w-5" />
+                استعرض الوجهات
+              </Button>
+            </Link>
+          </div>
+          
           {/* Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-16">
-            <div className="p-6 bg-card rounded-2xl shadow-float">
-              <div className="flex items-center justify-center mb-2">
-                <Users className="h-8 w-8 text-primary" />
-              </div>
-              <div className="text-3xl font-bold text-gradient mb-1">10K+</div>
-              <div className="text-sm text-muted-foreground">مسافر نشط</div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 max-w-4xl mx-auto pt-12 sm:pt-16">
+            <div className="space-y-1 p-4 rounded-2xl bg-background/50 backdrop-blur-sm border border-border/50">
+              <div className="text-3xl sm:text-4xl font-bold text-primary">2,500+</div>
+              <div className="text-xs sm:text-sm text-muted-foreground">مسافر</div>
             </div>
-            
-            <div className="p-6 bg-card rounded-2xl shadow-float">
-              <div className="flex items-center justify-center mb-2">
-                <Compass className="h-8 w-8 text-secondary" />
-              </div>
-              <div className="text-3xl font-bold text-gradient mb-1">500+</div>
-              <div className="text-sm text-muted-foreground">وجهة سياحية</div>
+            <div className="space-y-1 p-4 rounded-2xl bg-background/50 backdrop-blur-sm border border-border/50">
+              <div className="text-3xl sm:text-4xl font-bold text-secondary">8</div>
+              <div className="text-xs sm:text-sm text-muted-foreground">وجهات</div>
             </div>
-            
-            <div className="p-6 bg-card rounded-2xl shadow-float">
-              <div className="flex items-center justify-center mb-2">
-                <Plane className="h-8 w-8 text-primary" />
-              </div>
-              <div className="text-3xl font-bold text-gradient mb-1">2K+</div>
-              <div className="text-sm text-muted-foreground">رحلة مشتركة</div>
+            <div className="space-y-1 p-4 rounded-2xl bg-background/50 backdrop-blur-sm border border-border/50">
+              <div className="text-3xl sm:text-4xl font-bold text-primary">5,000+</div>
+              <div className="text-xs sm:text-sm text-muted-foreground">رحلة</div>
+            </div>
+            <div className="space-y-1 p-4 rounded-2xl bg-background/50 backdrop-blur-sm border border-border/50">
+              <div className="text-3xl sm:text-4xl font-bold text-secondary">98%</div>
+              <div className="text-xs sm:text-sm text-muted-foreground">رضا</div>
             </div>
           </div>
         </div>

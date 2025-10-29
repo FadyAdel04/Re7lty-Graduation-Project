@@ -14,18 +14,20 @@ import { Slider } from "@/components/ui/slider";
 
 const FilterSection = () => {
   return (
-    <div className="container mx-auto px-4 py-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Filter className="h-5 w-5 text-primary" />
-          <h3 className="text-lg font-bold">تصفية النتائج</h3>
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+            <Filter className="h-5 w-5 text-primary" />
+          </div>
+          <h3 className="text-xl font-bold">استكشف الرحلات</h3>
         </div>
         
         <Sheet>
           <SheetTrigger asChild>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" className="rounded-full">
               <SlidersHorizontal className="h-4 w-4 ml-2" />
-              خيارات متقدمة
+              فلاتر
             </Button>
           </SheetTrigger>
           <SheetContent side="right" className="w-[400px] sm:w-[540px]">
@@ -104,7 +106,7 @@ const FilterSection = () => {
                 </Select>
               </div>
 
-              <Button className="w-full" size="lg">
+              <Button className="w-full rounded-full" size="lg">
                 تطبيق الفلاتر
               </Button>
             </div>
@@ -113,21 +115,21 @@ const FilterSection = () => {
       </div>
 
       {/* Quick Filters */}
-      <div className="flex flex-wrap gap-2 mt-4">
-        <Button variant="outline" size="sm" className="rounded-full">
-          ساحلية
+      <div className="flex flex-wrap gap-2">
+        <Button variant="outline" size="sm" className="rounded-full hover:bg-primary hover:text-primary-foreground hover:border-primary">
+          🏖️ ساحلية
         </Button>
-        <Button variant="outline" size="sm" className="rounded-full">
-          تاريخية
+        <Button variant="outline" size="sm" className="rounded-full hover:bg-primary hover:text-primary-foreground hover:border-primary">
+          🏛️ تاريخية
         </Button>
-        <Button variant="outline" size="sm" className="rounded-full">
-          مغامرات
+        <Button variant="outline" size="sm" className="rounded-full hover:bg-secondary hover:text-secondary-foreground hover:border-secondary">
+          🏔️ مغامرات
         </Button>
-        <Button variant="outline" size="sm" className="rounded-full">
-          استرخاء
+        <Button variant="outline" size="sm" className="rounded-full hover:bg-secondary hover:text-secondary-foreground hover:border-secondary">
+          🧘 استرخاء
         </Button>
-        <Button variant="outline" size="sm" className="rounded-full">
-          غوص
+        <Button variant="outline" size="sm" className="rounded-full hover:bg-secondary hover:text-secondary-foreground hover:border-secondary">
+          🤿 غوص
         </Button>
       </div>
     </div>
