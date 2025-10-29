@@ -38,15 +38,13 @@ function MapClickHandler({
   route,
   isDrawingRoute 
 }: TripMapEditorProps & { isDrawingRoute: boolean }) {
-  useMapEvents({
+  const map = useMapEvents({
     click(e) {
       const { lat, lng } = e.latlng;
       
       if (isDrawingRoute) {
-        // Add point to route
         onRouteChange([...route, [lat, lng]]);
       } else {
-        // Add location marker
         const newLocation: TripLocation = {
           id: Date.now().toString(),
           coordinates: [lat, lng],
