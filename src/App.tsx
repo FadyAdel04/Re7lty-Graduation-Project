@@ -8,6 +8,7 @@ import TripDetail from "./pages/TripDetail";
 import CreateTrip from "./pages/CreateTrip";
 import Templates from "./pages/Templates";
 import Auth from "./pages/Auth";
+import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
           <Route path="/trips/new" element={<CreateTrip />} />
           <Route path="/templates" element={<Templates />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/profile/:username" element={<Profile />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

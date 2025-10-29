@@ -21,8 +21,8 @@ const TripCard = ({ id, title, destination, duration, rating, image, author, lik
   const [isLiked, setIsLiked] = useState(false);
 
   return (
-    <Link to={`/trips/${id}`}>
-      <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer group border-border/50">
+    <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 group border-border/50">
+      <Link to={`/trips/${id}`}>
         <div className="relative h-56 overflow-hidden">
           <img
             src={image}
@@ -63,23 +63,31 @@ const TripCard = ({ id, title, destination, duration, rating, image, author, lik
               <span className="font-semibold text-foreground">{rating}</span>
             </div>
           </div>
-          
-          <div className="flex items-center justify-between pt-3 border-t border-border/50">
-            <div className="flex items-center gap-2">
-              <Avatar className="h-7 w-7">
-                <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${author}`} />
-                <AvatarFallback>{author[0]}</AvatarFallback>
-              </Avatar>
-              <span className="text-sm font-medium text-muted-foreground">{author}</span>
-            </div>
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <Heart className="h-4 w-4" />
-              <span className="text-sm font-medium">{likes}</span>
-            </div>
-          </div>
         </CardContent>
-      </Card>
-    </Link>
+      </Link>
+      
+      <CardContent className="px-5 pb-5 pt-0">
+        <div className="flex items-center justify-between pt-3 border-t border-border/50">
+          <Link 
+            to={`/profile/${author}`} 
+            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Avatar className="h-7 w-7">
+              <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${author}`} />
+              <AvatarFallback>{author[0]}</AvatarFallback>
+            </Avatar>
+            <span className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+              {author}
+            </span>
+          </Link>
+          <div className="flex items-center gap-1 text-muted-foreground">
+            <Heart className="h-4 w-4" />
+            <span className="text-sm font-medium">{likes}</span>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 
