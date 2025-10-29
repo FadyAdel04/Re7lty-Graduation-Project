@@ -4,7 +4,8 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { MapPin, Navigation, Trash2 } from 'lucide-react';
+import { Switch } from './ui/switch';
+import { MapPin, Navigation, Trash2, Link2 } from 'lucide-react';
 import type { TripLocation } from './TripMapEditor';
 
 interface MapboxTripEditorProps {
@@ -26,6 +27,7 @@ const MapboxTripEditor: React.FC<MapboxTripEditorProps> = ({
 
   const [token, setToken] = useState<string>('pk.eyJ1IjoiZmFzdGZhZHkiLCJhIjoiY2x4cWhwY2FpMDZrdDJxc2VpZWRvMXY2NCJ9.m_3I0BkzuYqJlL9CMyBi9w');
   const [isDrawingRoute, setIsDrawingRoute] = useState(false);
+  const [autoConnect, setAutoConnect] = useState(true);
   const [isAddingManually, setIsAddingManually] = useState(false);
   const [manualCoords, setManualCoords] = useState({ lat: '', lng: '' });
 
@@ -105,6 +107,11 @@ const MapboxTripEditor: React.FC<MapboxTripEditorProps> = ({
           videos: [],
         };
         onLocationsChange([...locations, newLocation]);
+        
+        // Auto-connect: add route point when adding location
+        if (autoConnect) {
+          onRouteChange([...route, [lat, lng]]);
+        }
       }
     };
 
@@ -170,6 +177,12 @@ const MapboxTripEditor: React.FC<MapboxTripEditorProps> = ({
         videos: [],
       };
       onLocationsChange([...locations, newLocation]);
+      
+      // Auto-connect: add route point when adding location
+      if (autoConnect) {
+        onRouteChange([...route, [lat, lng]]);
+      }
+      
       setManualCoords({ lat: '', lng: '' });
       setIsAddingManually(false);
     }
@@ -180,45 +193,63 @@ const MapboxTripEditor: React.FC<MapboxTripEditorProps> = ({
   return (
     <div className="space-y-4">
 
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <Navigation className="h-5 w-5 text-primary" />
-            حدد مسار رحلتك والأماكن
-          </h3>
-          <p className="text-sm text-muted-foreground mt-1">
-            انقر على الخريطة لإضافة مواقع أو فعّل وضع رسم المسار
-          </p>
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          <Button
-            variant={isDrawingRoute ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => {
-              setIsDrawingRoute(!isDrawingRoute);
-              setIsAddingManually(false);
-            }}
-          >
-            <Navigation className="h-4 w-4 ml-2" />
-            {isDrawingRoute ? 'إيقاف رسم المسار' : 'رسم المسار'}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setIsAddingManually(!isAddingManually);
-              setIsDrawingRoute(false);
-            }}
-          >
-            <MapPin className="h-4 w-4 ml-2" />
-            إضافة موقع يدوياً
-          </Button>
-          {route.length > 0 && (
-            <Button variant="outline" size="sm" onClick={clearRoute}>
-              <Trash2 className="h-4 w-4 ml-2 text-destructive" />
-              مسح المسار
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <Navigation className="h-5 w-5 text-primary" />
+              حدد مسار رحلتك والأماكن
+            </h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              انقر على الخريطة لإضافة مواقع - سيتم ربطها تلقائياً
+            </p>
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            <Button
+              variant={isDrawingRoute ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => {
+                setIsDrawingRoute(!isDrawingRoute);
+                setIsAddingManually(false);
+              }}
+            >
+              <Navigation className="h-4 w-4 ml-2" />
+              {isDrawingRoute ? 'إيقاف رسم المسار' : 'رسم مسار يدوي'}
             </Button>
-          )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setIsAddingManually(!isAddingManually);
+                setIsDrawingRoute(false);
+              }}
+            >
+              <MapPin className="h-4 w-4 ml-2" />
+              إضافة موقع يدوياً
+            </Button>
+            {route.length > 0 && (
+              <Button variant="outline" size="sm" onClick={clearRoute}>
+                <Trash2 className="h-4 w-4 ml-2 text-destructive" />
+                مسح المسار
+              </Button>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between p-4 border border-border rounded-xl bg-muted/30">
+          <div className="flex items-center gap-3">
+            <Link2 className="h-5 w-5 text-primary" />
+            <div>
+              <p className="font-medium">ربط المواقع تلقائياً</p>
+              <p className="text-xs text-muted-foreground">
+                {autoConnect ? 'يتم ربط كل موقع جديد بالموقع السابق' : 'أضف المواقع بدون ربط تلقائي'}
+              </p>
+            </div>
+          </div>
+          <Switch
+            checked={autoConnect}
+            onCheckedChange={setAutoConnect}
+          />
         </div>
       </div>
 
