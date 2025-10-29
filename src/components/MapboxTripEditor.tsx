@@ -24,7 +24,7 @@ const MapboxTripEditor: React.FC<MapboxTripEditorProps> = ({
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
 
-  const [token, setToken] = useState<string>('');
+  const [token, setToken] = useState<string>('pk.eyJ1IjoiZmFzdGZhZHkiLCJhIjoiY2x4cWhwY2FpMDZrdDJxc2VpZWRvMXY2NCJ9.m_3I0BkzuYqJlL9CMyBi9w');
   const [isDrawingRoute, setIsDrawingRoute] = useState(false);
   const [isAddingManually, setIsAddingManually] = useState(false);
   const [manualCoords, setManualCoords] = useState({ lat: '', lng: '' });
@@ -179,19 +179,6 @@ const MapboxTripEditor: React.FC<MapboxTripEditorProps> = ({
 
   return (
     <div className="space-y-4">
-      {!token && (
-        <div className="p-4 border border-border rounded-xl bg-muted/30 space-y-2">
-          <Label>أدخل مفتاح Mapbox العام لبدء استخدام الخريطة</Label>
-          <Input
-            placeholder="pk.*********************"
-            value={token}
-            onChange={(e) => setToken(e.target.value)}
-          />
-          <p className="text-xs text-muted-foreground">
-            احصل على المفتاح من حسابك على mapbox.com ثم الصقه هنا
-          </p>
-        </div>
-      )}
 
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
@@ -211,7 +198,6 @@ const MapboxTripEditor: React.FC<MapboxTripEditorProps> = ({
               setIsDrawingRoute(!isDrawingRoute);
               setIsAddingManually(false);
             }}
-            disabled={!token}
           >
             <Navigation className="h-4 w-4 ml-2" />
             {isDrawingRoute ? 'إيقاف رسم المسار' : 'رسم المسار'}
@@ -223,7 +209,6 @@ const MapboxTripEditor: React.FC<MapboxTripEditorProps> = ({
               setIsAddingManually(!isAddingManually);
               setIsDrawingRoute(false);
             }}
-            disabled={!token}
           >
             <MapPin className="h-4 w-4 ml-2" />
             إضافة موقع يدوياً
@@ -261,7 +246,7 @@ const MapboxTripEditor: React.FC<MapboxTripEditorProps> = ({
               />
             </div>
           </div>
-          <Button onClick={addManualLocation} className="w-full" disabled={!token}>
+          <Button onClick={addManualLocation} className="w-full">
             إضافة الموقع
           </Button>
         </div>
@@ -269,11 +254,6 @@ const MapboxTripEditor: React.FC<MapboxTripEditorProps> = ({
 
       <div className="h-[500px] rounded-xl overflow-hidden border-2 border-border shadow-lg relative">
         <div ref={mapContainer} className="absolute inset-0" />
-        {!token && (
-          <div className="absolute inset-0 flex items-center justify-center bg-background/70 backdrop-blur-sm">
-            <p className="text-sm text-muted-foreground">أدخل مفتاح Mapbox لعرض الخريطة</p>
-          </div>
-        )}
       </div>
 
       <div className="flex items-center justify-between text-sm">
