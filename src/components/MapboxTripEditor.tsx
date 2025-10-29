@@ -13,13 +13,27 @@ interface MapboxTripEditorProps {
   route: [number, number][];
   onLocationsChange: (locations: TripLocation[]) => void;
   onRouteChange: (route: [number, number][]) => void;
+  destination?: string;
 }
+
+// City coordinates map
+const cityCoordinates: Record<string, { lng: number; lat: number; zoom: number }> = {
+  alexandria: { lng: 29.9187, lat: 31.2001, zoom: 11 },
+  matrouh: { lng: 27.2373, lat: 31.3543, zoom: 10 },
+  luxor: { lng: 32.6421, lat: 25.6872, zoom: 11 },
+  aswan: { lng: 32.8998, lat: 24.0889, zoom: 11 },
+  hurghada: { lng: 33.8116, lat: 27.2579, zoom: 11 },
+  sharm: { lng: 34.3300, lat: 27.9158, zoom: 11 },
+  dahab: { lng: 34.5197, lat: 28.5021, zoom: 11 },
+  bahariya: { lng: 28.3481, lat: 27.8751, zoom: 10 },
+};
 
 const MapboxTripEditor: React.FC<MapboxTripEditorProps> = ({
   locations,
   route,
   onLocationsChange,
   onRouteChange,
+  destination,
 }) => {
   const mapContainer = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -43,11 +57,18 @@ const MapboxTripEditor: React.FC<MapboxTripEditorProps> = ({
 
     mapboxgl.accessToken = token;
 
+    // Get center based on destination
+    const cityCoords = destination && cityCoordinates[destination];
+    const center: [number, number] = cityCoords 
+      ? [cityCoords.lng, cityCoords.lat]
+      : [30.8025, 26.8206]; // Default: center of Egypt
+    const zoom = cityCoords ? cityCoords.zoom : 5.2;
+
     const map = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/light-v11',
-      center: [30.8025, 26.8206], // [lng, lat] center Egypt
-      zoom: 5.2,
+      center,
+      zoom,
       pitch: 0,
     });
 
@@ -125,7 +146,7 @@ const MapboxTripEditor: React.FC<MapboxTripEditorProps> = ({
       map.remove();
       mapRef.current = null;
     };
-  }, [token]);
+  }, [token, destination]);
 
   // Update route on state change
   useEffect(() => {

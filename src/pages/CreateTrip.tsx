@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MapPin, Calendar, DollarSign, Image as ImageIcon, Plus, Trash2, ArrowRight, ArrowLeft, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +31,48 @@ const CreateTrip = () => {
   // Step 2: Map & Route
   const [locations, setLocations] = useState<TripLocation[]>([]);
   const [route, setRoute] = useState<[number, number][]>([]);
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    const savedData = localStorage.getItem('tripDraft');
+    if (savedData) {
+      try {
+        const parsed = JSON.parse(savedData);
+        setTripData({
+          title: parsed.tripData?.title || "",
+          destination: parsed.tripData?.destination || "",
+          duration: parsed.tripData?.duration || "",
+          budget: parsed.tripData?.budget || "",
+          description: parsed.tripData?.description || "",
+          coverImage: null, // Files can't be saved to localStorage
+        });
+        setActivities(parsed.activities || [""]);
+        setLocations(parsed.locations || []);
+        setRoute(parsed.route || []);
+        setCurrentStep(parsed.currentStep || 1);
+      } catch (error) {
+        console.error('Failed to load draft:', error);
+      }
+    }
+  }, []);
+
+  // Save to localStorage whenever data changes
+  useEffect(() => {
+    const dataToSave = {
+      tripData: {
+        title: tripData.title,
+        destination: tripData.destination,
+        duration: tripData.duration,
+        budget: tripData.budget,
+        description: tripData.description,
+      },
+      activities,
+      locations,
+      route,
+      currentStep,
+    };
+    localStorage.setItem('tripDraft', JSON.stringify(dataToSave));
+  }, [tripData, activities, locations, route, currentStep]);
 
   const addActivity = () => {
     setActivities([...activities, ""]);
@@ -102,6 +144,9 @@ const CreateTrip = () => {
       locations,
       route,
     });
+
+    // Clear localStorage after successful submission
+    localStorage.removeItem('tripDraft');
   };
 
   const steps = [
@@ -340,6 +385,7 @@ const CreateTrip = () => {
                   route={route}
                   onLocationsChange={setLocations}
                   onRouteChange={setRoute}
+                  destination={tripData.destination}
                 />
 
                 {/* Actions */}
