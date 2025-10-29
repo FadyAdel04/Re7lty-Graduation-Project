@@ -51,6 +51,7 @@
     "leaflet": "^1.9.4",
     "leaflet-draw": "^1.0.4",
     "lucide-react": "^0.462.0",
+    "mapbox-gl": "^3.16.0",
     "next-themes": "^0.3.0",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",

@@ -8,7 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import TripMapEditor, { TripLocation } from "@/components/TripMapEditor";
+import MapboxTripEditor from "@/components/MapboxTripEditor";
+import { TripLocation } from "@/components/TripMapEditor";
 import LocationMediaManager from "@/components/LocationMediaManager";
 import { useToast } from "@/hooks/use-toast";
 
@@ -334,7 +335,7 @@ const CreateTrip = () => {
                 <CardTitle>المسار والمواقع</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                <TripMapEditor
+                <MapboxTripEditor
                   locations={locations}
                   route={route}
                   onLocationsChange={setLocations}
