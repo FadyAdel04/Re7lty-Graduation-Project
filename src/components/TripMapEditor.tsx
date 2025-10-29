@@ -1,10 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Polyline, Popup, useMap } from 'react-leaflet';
+import { useRef, useState } from 'react';
+import { MapContainer, TileLayer, Marker, Polyline, Popup, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import 'leaflet-draw/dist/leaflet.draw.css';
-import 'leaflet-draw';
-import { MapPin, Navigation } from 'lucide-react';
+import { MapPin, Navigation, Trash2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -33,69 +31,34 @@ interface TripMapEditorProps {
   onRouteChange: (route: [number, number][]) => void;
 }
 
-function DrawControl({ onLocationsChange, onRouteChange, locations, route }: TripMapEditorProps) {
-  const map = useMap();
-  const drawnItemsRef = useRef<L.FeatureGroup>(new L.FeatureGroup());
-
-  useEffect(() => {
-    const drawnItems = drawnItemsRef.current;
-    map.addLayer(drawnItems);
-
-    const drawControl = new L.Control.Draw({
-      position: 'topright',
-      draw: {
-        polyline: {
-          shapeOptions: {
-            color: '#ff6b35',
-            weight: 4,
-          },
-        },
-        marker: {},
-        polygon: false,
-        circle: false,
-        rectangle: false,
-        circlemarker: false,
-      },
-      edit: {
-        featureGroup: drawnItems,
-        remove: true,
-      },
-    });
-
-    map.addControl(drawControl);
-
-    map.on(L.Draw.Event.CREATED, (e: any) => {
-      const layer = e.layer;
-      drawnItems.addLayer(layer);
-
-      if (e.layerType === 'marker') {
-        const latlng = layer.getLatLng();
+function MapClickHandler({ 
+  onLocationsChange, 
+  onRouteChange, 
+  locations, 
+  route,
+  isDrawingRoute 
+}: TripMapEditorProps & { isDrawingRoute: boolean }) {
+  useMapEvents({
+    click(e) {
+      const { lat, lng } = e.latlng;
+      
+      if (isDrawingRoute) {
+        // Add point to route
+        onRouteChange([...route, [lat, lng]]);
+      } else {
+        // Add location marker
         const newLocation: TripLocation = {
           id: Date.now().toString(),
-          coordinates: [latlng.lat, latlng.lng],
+          coordinates: [lat, lng],
           name: '',
           description: '',
           images: [],
           videos: [],
         };
         onLocationsChange([...locations, newLocation]);
-      } else if (e.layerType === 'polyline') {
-        const latlngs = layer.getLatLngs();
-        const coordinates = latlngs.map((ll: L.LatLng) => [ll.lat, ll.lng] as [number, number]);
-        onRouteChange([...route, ...coordinates]);
       }
-    });
-
-    map.on(L.Draw.Event.DELETED, () => {
-      onLocationsChange([]);
-      onRouteChange([]);
-    });
-
-    return () => {
-      map.removeControl(drawControl);
-      map.removeLayer(drawnItems);
-    };
-  }, [map]);
+    },
+  });
 
   return null;
 }
@@ -103,6 +66,7 @@ function DrawControl({ onLocationsChange, onRouteChange, locations, route }: Tri
 const TripMapEditor = ({ locations, route, onLocationsChange, onRouteChange }: TripMapEditorProps) => {
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
   const [isAddingManually, setIsAddingManually] = useState(false);
+  const [isDrawingRoute, setIsDrawingRoute] = useState(false);
   const [manualCoords, setManualCoords] = useState({ lat: '', lng: '' });
 
   const addManualLocation = () => {
@@ -124,6 +88,14 @@ const TripMapEditor = ({ locations, route, onLocationsChange, onRouteChange }: T
     }
   };
 
+  const removeLocation = (id: string) => {
+    onLocationsChange(locations.filter(loc => loc.id !== id));
+  };
+
+  const clearRoute = () => {
+    onRouteChange([]);
+  };
+
   const updateLocationName = (id: string, name: string) => {
     onLocationsChange(
       locations.map(loc => loc.id === id ? { ...loc, name } : loc)
@@ -132,25 +104,63 @@ const TripMapEditor = ({ locations, route, onLocationsChange, onRouteChange }: T
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h3 className="text-lg font-semibold flex items-center gap-2">
             <Navigation className="h-5 w-5 text-primary" />
             حدد مسار رحلتك والأماكن
           </h3>
           <p className="text-sm text-muted-foreground mt-1">
-            استخدم أدوات الرسم لإضافة المسار والعلامات على الخريطة
+            انقر على الخريطة لإضافة مواقع أو ارسم المسار
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setIsAddingManually(!isAddingManually)}
-        >
-          <MapPin className="h-4 w-4 ml-2" />
-          إضافة موقع يدوياً
-        </Button>
+        <div className="flex gap-2 flex-wrap">
+          <Button
+            variant={isDrawingRoute ? "default" : "outline"}
+            size="sm"
+            onClick={() => {
+              setIsDrawingRoute(!isDrawingRoute);
+              setIsAddingManually(false);
+            }}
+          >
+            <Navigation className="h-4 w-4 ml-2" />
+            {isDrawingRoute ? 'إيقاف رسم المسار' : 'رسم المسار'}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setIsAddingManually(!isAddingManually);
+              setIsDrawingRoute(false);
+            }}
+          >
+            <MapPin className="h-4 w-4 ml-2" />
+            إضافة موقع يدوياً
+          </Button>
+          {route.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={clearRoute}
+            >
+              <Trash2 className="h-4 w-4 ml-2 text-destructive" />
+              مسح المسار
+            </Button>
+          )}
+        </div>
       </div>
+
+      {!isDrawingRoute && !isAddingManually && (
+        <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg text-sm">
+          💡 انقر على الخريطة لإضافة موقع جديد
+        </div>
+      )}
+
+      {isDrawingRoute && (
+        <div className="p-3 bg-secondary/10 border border-secondary/20 rounded-lg text-sm">
+          🗺️ انقر على الخريطة لإضافة نقاط على المسار
+        </div>
+      )}
 
       {isAddingManually && (
         <div className="p-4 border border-border rounded-xl bg-muted/30 space-y-3">
@@ -184,33 +194,32 @@ const TripMapEditor = ({ locations, route, onLocationsChange, onRouteChange }: T
 
       <div className="h-[500px] rounded-xl overflow-hidden border-2 border-border shadow-lg">
         <MapContainer
-          center={[26.8206, 30.8025]} // Center of Egypt
+          center={[26.8206, 30.8025]}
           zoom={6}
           style={{ height: '100%', width: '100%' }}
+          scrollWheelZoom={true}
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
           
-          <DrawControl
+          <MapClickHandler
             locations={locations}
             route={route}
             onLocationsChange={onLocationsChange}
             onRouteChange={onRouteChange}
+            isDrawingRoute={isDrawingRoute}
           />
 
           {route.length > 0 && (
-            <Polyline positions={route} color="#ff6b35" weight={4} />
+            <Polyline positions={route} color="#ff6b35" weight={4} opacity={0.7} />
           )}
 
           {locations.map((location, index) => (
-            <Marker
-              key={location.id}
-              position={location.coordinates}
-            >
+            <Marker key={location.id} position={location.coordinates}>
               <Popup>
-                <div className="p-2 min-w-[200px]">
+                <div className="p-2 min-w-[200px] space-y-2">
                   <Input
                     placeholder={`اسم المكان ${index + 1}`}
                     value={location.name}
@@ -220,6 +229,15 @@ const TripMapEditor = ({ locations, route, onLocationsChange, onRouteChange }: T
                   <p className="text-xs text-muted-foreground">
                     {location.coordinates[0].toFixed(4)}, {location.coordinates[1].toFixed(4)}
                   </p>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => removeLocation(location.id)}
+                  >
+                    <Trash2 className="h-4 w-4 ml-2" />
+                    حذف الموقع
+                  </Button>
                 </div>
               </Popup>
             </Marker>
@@ -227,11 +245,24 @@ const TripMapEditor = ({ locations, route, onLocationsChange, onRouteChange }: T
         </MapContainer>
       </div>
 
-      {locations.length > 0 && (
-        <div className="text-sm text-muted-foreground text-center">
-          ✓ تم إضافة {locations.length} موقع و {route.length > 0 ? 'مسار واحد' : 'لا يوجد مسار'}
+      <div className="flex items-center justify-between text-sm">
+        <div className="text-muted-foreground">
+          {locations.length > 0 && (
+            <span className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-primary" />
+              {locations.length} موقع
+            </span>
+          )}
         </div>
-      )}
+        <div className="text-muted-foreground">
+          {route.length > 0 && (
+            <span className="flex items-center gap-2">
+              <Navigation className="h-4 w-4 text-secondary" />
+              {route.length} نقطة في المسار
+            </span>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
