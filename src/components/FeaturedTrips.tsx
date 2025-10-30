@@ -112,13 +112,29 @@ const FeaturedTrips = ({ searchQuery = "", filters = {} }: FeaturedTripsProps) =
             ))}
           </div>
         ) : (
-          <div className="text-center py-12">
-            <p className="text-lg text-muted-foreground mb-4">
-              لم نجد رحلات تطابق معايير البحث
-            </p>
-            <p className="text-sm text-muted-foreground">
-              جرب تغيير الفلاتر أو البحث بكلمات مختلفة
-            </p>
+          <div className="space-y-8">
+            <div className="text-center py-8">
+              <p className="text-lg text-muted-foreground mb-2">
+                لم نجد رحلات تطابق معايير البحث
+              </p>
+              <p className="text-sm text-muted-foreground">
+                لكن جرب هذه الرحلات المميزة:
+              </p>
+            </div>
+            
+            <div>
+              <h3 className="text-2xl font-bold mb-6 text-center">
+                <span className="text-gradient">رحلات قد تعجبك</span>
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 animate-slide-in">
+                {[...egyptTrips]
+                  .sort((a, b) => b.rating - a.rating || b.likes - a.likes)
+                  .slice(0, 6)
+                  .map((trip) => (
+                    <TripCard key={trip.id} {...trip} />
+                  ))}
+              </div>
+            </div>
           </div>
         )}
       </div>
