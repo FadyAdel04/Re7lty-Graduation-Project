@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { MapPin, Calendar, Heart, Share2, Bookmark, Star, Users, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -5,11 +6,58 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import TripComments from "@/components/TripComments";
 import { egyptTrips } from "@/lib/trips-data";
+import { useToast } from "@/hooks/use-toast";
 
 const TripDetail = () => {
   const { id } = useParams();
   const trip = egyptTrips.find(t => t.id === id);
+  const { toast } = useToast();
+  
+  const [isLiked, setIsLiked] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [likesCount, setLikesCount] = useState(trip?.likes || 0);
+  const [savesCount, setSavesCount] = useState(trip?.saves || 0);
+
+  const handleLike = () => {
+    setIsLiked(!isLiked);
+    setLikesCount(prev => isLiked ? prev - 1 : prev + 1);
+    toast({
+      title: isLiked ? "تم إلغاء الإعجاب" : "تم الإعجاب بالرحلة",
+      description: isLiked ? "" : "يمكنك العثور عليها في قائمة المفضلات"
+    });
+  };
+
+  const handleSave = () => {
+    setIsSaved(!isSaved);
+    setSavesCount(prev => isSaved ? prev - 1 : prev + 1);
+    toast({
+      title: isSaved ? "تم إلغاء الحفظ" : "تم حفظ الرحلة",
+      description: isSaved ? "" : "يمكنك العثور عليها في قائمة المحفوظات"
+    });
+  };
+
+  const handleShare = async () => {
+    const url = window.location.href;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: trip?.title,
+          text: trip?.description,
+          url: url
+        });
+      } catch (err) {
+        console.log('Error sharing:', err);
+      }
+    } else {
+      navigator.clipboard.writeText(url);
+      toast({
+        title: "تم نسخ الرابط",
+        description: "يمكنك مشاركة الرابط الآن"
+      });
+    }
+  };
 
   if (!trip) {
     return (
@@ -40,19 +88,48 @@ const TripDetail = () => {
           
           {/* Floating Actions */}
           <div className="absolute top-6 left-6 z-20 flex gap-2">
-            <Button variant="secondary" size="icon" className="bg-background/80 backdrop-blur">
-              <Heart className="h-5 w-5" />
+            <Button
+              variant="secondary"
+              size="icon"
+              className={`bg-background/80 backdrop-blur ${isLiked ? 'text-primary' : ''}`}
+              onClick={handleLike}
+            >
+              <Heart className={`h-5 w-5 ${isLiked ? 'fill-primary' : ''}`} />
             </Button>
-            <Button variant="secondary" size="icon" className="bg-background/80 backdrop-blur">
+            <Button
+              variant="secondary"
+              size="icon"
+              className="bg-background/80 backdrop-blur"
+              onClick={handleShare}
+            >
               <Share2 className="h-5 w-5" />
             </Button>
-            <Button variant="secondary" size="icon" className="bg-background/80 backdrop-blur">
-              <Bookmark className="h-5 w-5" />
+            <Button
+              variant="secondary"
+              size="icon"
+              className={`bg-background/80 backdrop-blur ${isSaved ? 'text-secondary' : ''}`}
+              onClick={handleSave}
+            >
+              <Bookmark className={`h-5 w-5 ${isSaved ? 'fill-secondary' : ''}`} />
             </Button>
+          </div>
+
+          {/* Stats Badge */}
+          <div className="absolute top-6 right-6 z-20 bg-background/80 backdrop-blur rounded-full px-4 py-2">
+            <div className="flex items-center gap-4 text-sm">
+              <span className="flex items-center gap-1">
+                <Heart className="h-4 w-4 text-primary" />
+                {likesCount}
+              </span>
+              <span className="flex items-center gap-1">
+                <Bookmark className="h-4 w-4 text-secondary" />
+                {savesCount}
+              </span>
+            </div>
           </div>
         </div>
 
-        <div className="container mx-auto px-4 -mt-20 relative z-20">
+        <div className="container mx-auto px-4 -mt-20 relative z-20 space-y-6">
           <Card className="shadow-float-lg animate-slide-up">
             <CardContent className="p-8">
               {/* Title & Rating */}
@@ -78,10 +155,6 @@ const TripDetail = () => {
                     <DollarSign className="h-5 w-5 text-primary" />
                     <span>{trip.budget}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Users className="h-5 w-5 text-secondary" />
-                    <span>{trip.likes} إعجاب</span>
-                  </div>
                 </div>
               </div>
 
@@ -92,7 +165,9 @@ const TripDetail = () => {
                 </div>
                 <div>
                   <p className="font-bold">{trip.author}</p>
-                  <p className="text-sm text-muted-foreground">مسافر خبير</p>
+                  <p className="text-sm text-muted-foreground">
+                    {trip.authorFollowers.toLocaleString('ar-EG')} متابع
+                  </p>
                 </div>
                 <Button variant="outline" className="mr-auto">
                   متابعة
@@ -150,6 +225,9 @@ const TripDetail = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Comments Section */}
+          <TripComments comments={trip.comments} />
         </div>
       </main>
 

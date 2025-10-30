@@ -1,10 +1,22 @@
+import { useState } from "react";
 import { Search, MapPin, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
 import logo from "@/assets/logo.png";
 
-const Header = () => {
+interface HeaderProps {
+  onSearch?: (query: string) => void;
+}
+
+const Header = ({ onSearch }: HeaderProps) => {
+  const [searchValue, setSearchValue] = useState("");
+
+  const handleSearch = (value: string) => {
+    setSearchValue(value);
+    onSearch?.(value);
+  };
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/80">
       <div className="container mx-auto px-4 sm:px-6">
@@ -21,6 +33,8 @@ const Header = () => {
               <Input
                 type="search"
                 placeholder="ابحث عن وجهة، مدينة، أو رحلة..."
+                value={searchValue}
+                onChange={(e) => handleSearch(e.target.value)}
                 className="w-full pr-12 h-12 rounded-full border border-input bg-muted/30 focus:bg-background focus:border-secondary transition-all"
               />
             </div>
@@ -28,9 +42,11 @@ const Header = () => {
 
           {/* Actions */}
           <div className="flex items-center gap-2 sm:gap-3">
-            <Button variant="ghost" size="icon" className="md:hidden rounded-full">
-              <Search className="h-5 w-5" />
-            </Button>
+            <Link to="/leaderboard" className="hidden lg:block">
+              <Button variant="ghost" className="rounded-full">
+                المتصدرين
+              </Button>
+            </Link>
             <Link to="/templates" className="hidden lg:block">
               <Button variant="ghost" className="rounded-full">
                 القوالب
@@ -60,6 +76,8 @@ const Header = () => {
             <Input
               type="search"
               placeholder="ابحث عن وجهة..."
+              value={searchValue}
+              onChange={(e) => handleSearch(e.target.value)}
               className="w-full pr-12 h-11 rounded-full border border-input bg-muted/30"
             />
           </div>
