@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { MapPin, Calendar, Heart, Share2, Bookmark, Star, Users, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -160,15 +160,20 @@ const TripDetail = () => {
 
               {/* Author */}
               <div className="flex items-center gap-4 pb-6 mb-6 border-b border-border">
-                <div className="h-12 w-12 rounded-full bg-gradient-hero flex items-center justify-center text-white font-bold">
-                  {trip.author.charAt(0)}
-                </div>
-                <div>
-                  <p className="font-bold">{trip.author}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {trip.authorFollowers.toLocaleString('ar-EG')} متابع
-                  </p>
-                </div>
+                <Link
+                  to={`/profile/${trip.author.replace(/\s+/g, '-')}`}
+                  className="flex items-center gap-4 hover:opacity-80 transition-opacity"
+                >
+                  <div className="h-12 w-12 rounded-full bg-gradient-hero flex items-center justify-center text-white font-bold">
+                    {trip.author.charAt(0)}
+                  </div>
+                  <div>
+                    <p className="font-bold">{trip.author}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {trip.authorFollowers.toLocaleString('ar-EG')} متابع
+                    </p>
+                  </div>
+                </Link>
                 <Button variant="outline" className="mr-auto">
                   متابعة
                 </Button>
