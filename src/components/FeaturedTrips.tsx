@@ -86,7 +86,7 @@ const FeaturedTrips = ({ searchQuery = "", filters = {} }: FeaturedTripsProps) =
       keywords.some(keyword =>
         trip.title.includes(keyword) ||
         trip.description.includes(keyword) ||
-        trip.activities.some(activity => activity.includes(keyword))
+        trip.activities.some(activity => activity.name.includes(keyword))
       )
     );
   }

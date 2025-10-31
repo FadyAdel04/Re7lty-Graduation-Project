@@ -11,6 +11,8 @@ import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
 import Leaderboard from "./pages/Leaderboard";
 import NotFound from "./pages/NotFound";
+import Timeline from "./pages/Timeline";
+import TripAIChatWidget from "@/components/TripAIChatWidget";
 
 const queryClient = new QueryClient();
 
@@ -22,6 +24,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/timeline" element={<Timeline />} />
           <Route path="/trips/:id" element={<TripDetail />} />
           <Route path="/trips/new" element={<CreateTrip />} />
           <Route path="/templates" element={<Templates />} />
@@ -31,6 +34,8 @@ const App = () => (
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
+        {/* Global AI Chat Widget */}
+        <TripAIChatWidget />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

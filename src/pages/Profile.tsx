@@ -13,8 +13,9 @@ const Profile = () => {
   const { username } = useParams();
   
   // Mock user data
+  const displayName = username || "محمد أحمد";
   const user = {
-    username: username || "محمد أحمد",
+    username: displayName,
     bio: "مسافر شغوف باكتشاف جمال مصر 🇪🇬 | مصور هاوي | محب للمغامرات",
     avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`,
     coverImage: "https://images.unsplash.com/photo-1539768942893-daf53e448371?w=1200&h=400&fit=crop",
@@ -29,8 +30,13 @@ const Profile = () => {
     verified: true
   };
 
-  // Filter user's trips
-  const userTrips = egyptTrips.slice(0, 6);
+  // Filter user's trips:
+  // If trips have .author "محمد أحمد", show them in his profile, and so on.
+  // Assume username param is the display name (spaces, unicode) as in trip.author
+  const authorToMatch = decodeURIComponent(displayName);
+  const userTrips = egyptTrips.filter(
+    (trip) => trip.author.trim() === authorToMatch.trim()
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -126,11 +132,19 @@ const Profile = () => {
             </TabsList>
 
             <TabsContent value="trips" className="mt-8">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {userTrips.map((trip) => (
-                  <TripCard key={trip.id} {...trip} />
-                ))}
-              </div>
+              {userTrips.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {userTrips.map((trip) => (
+                    <TripCard key={trip.id} {...trip} />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-16">
+                  <Calendar className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
+                  <h3 className="text-xl font-semibold mb-2">لا توجد رحلات لهذا المستخدم</h3>
+                  <p className="text-muted-foreground">لم يقم هذا العضو بمشاركة أي رحلات حتى الآن.</p>
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="saved" className="mt-8">

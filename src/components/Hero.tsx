@@ -4,7 +4,10 @@ import { MapPin, Globe } from "lucide-react";
 
 const Hero = () => {
   return (
-    <section className="relative py-16 sm:py-24 lg:py-32 px-4">
+    <section
+      className="relative py-16 sm:py-24 lg:py-32 px-4 bg-cover bg-center"
+      style={{ backgroundImage: `url('/src/assets/background.jpg')` }}
+    >
       {/* Subtle Background */}
       <div className="absolute inset-0 bg-gradient-to-b from-secondary-light/30 via-background to-background -z-10" />
       
@@ -25,7 +28,7 @@ const Hero = () => {
             <Link to="/trips/new">
               <Button size="lg" className="w-full sm:w-auto min-w-[200px] rounded-full">
                 <MapPin className="ml-2 h-5 w-5" />
-                ابدأ رحلتك
+                شارك رحلتك
               </Button>
             </Link>
             <Link to="/templates">

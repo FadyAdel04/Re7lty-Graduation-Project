@@ -12,38 +12,53 @@ import {
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
+import { useEffect } from 'react';
 
 interface FilterSectionProps {
   onFilterChange?: (filters: any) => void;
 }
 
+const defaultFilters = {
+  city: "all",
+  duration: "all",
+  rating: "all",
+  budget: [5000],
+  quickFilter: "",
+};
+
 const FilterSection = ({ onFilterChange }: FilterSectionProps) => {
-  const [city, setCity] = useState("all");
-  const [duration, setDuration] = useState("all");
-  const [rating, setRating] = useState("all");
-  const [budget, setBudget] = useState([5000]);
-  const [quickFilter, setQuickFilter] = useState("");
+  const [city, setCity] = useState(defaultFilters.city);
+  const [duration, setDuration] = useState(defaultFilters.duration);
+  const [rating, setRating] = useState(defaultFilters.rating);
+  const [budget, setBudget] = useState(defaultFilters.budget);
+  const [quickFilter, setQuickFilter] = useState(defaultFilters.quickFilter);
+  const [open, setOpen] = useState(false);
+
+  // Always apply filters if quickFilter changes directly
+  useEffect(() => {
+    onFilterChange?.({ city, duration, rating, budget: budget[0], quickFilter });
+    // eslint-disable-next-line
+  }, [quickFilter]);
 
   const applyFilters = () => {
-    onFilterChange?.({
-      city,
-      duration,
-      rating,
-      budget: budget[0],
-      quickFilter
-    });
+    onFilterChange?.({ city, duration, rating, budget: budget[0], quickFilter });
+    setOpen(false);
+  };
+
+  const resetFilters = () => {
+    setCity(defaultFilters.city);
+    setDuration(defaultFilters.duration);
+    setRating(defaultFilters.rating);
+    setBudget(defaultFilters.budget);
+    setQuickFilter(defaultFilters.quickFilter);
+    onFilterChange?.({ ...defaultFilters, budget: defaultFilters.budget[0] });
+    setOpen(false);
   };
 
   const handleQuickFilter = (filter: string) => {
     const newFilter = quickFilter === filter ? "" : filter;
     setQuickFilter(newFilter);
-    onFilterChange?.({
-      city,
-      duration,
-      rating,
-      budget: budget[0],
-      quickFilter: newFilter
-    });
+    // Rest handled by useEffect
   };
 
   return (
@@ -55,8 +70,7 @@ const FilterSection = ({ onFilterChange }: FilterSectionProps) => {
           </div>
           <h3 className="text-xl font-bold">استكشف الرحلات</h3>
         </div>
-        
-        <Sheet>
+        <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
             <Button variant="outline" size="sm" className="rounded-full">
               <SlidersHorizontal className="h-4 w-4 ml-2" />
@@ -70,7 +84,6 @@ const FilterSection = ({ onFilterChange }: FilterSectionProps) => {
                 اختر المعايير المناسبة لإيجاد رحلتك المثالية
               </SheetDescription>
             </SheetHeader>
-            
             <div className="space-y-6 mt-6">
               {/* المدينة */}
               <div className="space-y-2">
@@ -92,7 +105,6 @@ const FilterSection = ({ onFilterChange }: FilterSectionProps) => {
                   </SelectContent>
                 </Select>
               </div>
-
               {/* المدة */}
               <div className="space-y-2">
                 <Label>مدة الرحلة</Label>
@@ -108,7 +120,6 @@ const FilterSection = ({ onFilterChange }: FilterSectionProps) => {
                   </SelectContent>
                 </Select>
               </div>
-
               {/* الميزانية */}
               <div className="space-y-3">
                 <Label>الميزانية (جنيه مصري)</Label>
@@ -125,7 +136,6 @@ const FilterSection = ({ onFilterChange }: FilterSectionProps) => {
                   <span>١٠٬٠٠٠</span>
                 </div>
               </div>
-
               {/* التقييم */}
               <div className="space-y-2">
                 <Label>التقييم الأدنى</Label>
@@ -141,10 +151,14 @@ const FilterSection = ({ onFilterChange }: FilterSectionProps) => {
                   </SelectContent>
                 </Select>
               </div>
-
-              <Button onClick={applyFilters} className="w-full rounded-full" size="lg">
-                تطبيق الفلاتر
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={applyFilters} className="w-full rounded-full" size="lg">
+                  تطبيق الفلاتر
+                </Button>
+                <Button variant="ghost" onClick={resetFilters} className="w-full rounded-full" size="lg">
+                  إعادة تعيين
+                </Button>
+              </div>
             </div>
           </SheetContent>
         </Sheet>
