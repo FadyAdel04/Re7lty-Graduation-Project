@@ -6,7 +6,7 @@ const Hero = () => {
   return (
     <section
       className="relative py-16 sm:py-24 lg:py-32 px-4 bg-cover bg-center"
-      style={{ backgroundImage: `url('/src/assets/background.jpg')` }}
+      style={{ backgroundImage: `url('/assets/background.jpg')` }}
     >
       {/* Subtle Background */}
       <div className="absolute inset-0 bg-gradient-to-b from-secondary-light/30 via-background to-background -z-10" />
