@@ -9,6 +9,7 @@ import {
   Star,
   Users,
   DollarSign,
+  Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -29,6 +30,13 @@ import {
 import { useEffect } from 'react';
 import L from "leaflet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { SignedIn, SignedOut, SignInButton } from "@clerk/clerk-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 function FitBounds({ positions }: { positions: [number, number][] }) {
   const map = useMap();
@@ -70,6 +78,22 @@ const TripDetail = () => {
     toast({
       title: isSaved ? "تم إلغاء الحفظ" : "تم حفظ الرحلة",
       description: isSaved ? "" : "يمكنك العثور عليها في قائمة المحفوظات",
+    });
+  };
+
+  const handleUnauthenticatedLike = () => {
+    toast({
+      title: "تسجيل الدخول مطلوب",
+      description: "يجب تسجيل الدخول للإعجاب بالرحلات",
+      variant: "destructive",
+    });
+  };
+
+  const handleUnauthenticatedSave = () => {
+    toast({
+      title: "تسجيل الدخول مطلوب",
+      description: "يجب تسجيل الدخول لحفظ الرحلات",
+      variant: "destructive",
     });
   };
 
@@ -124,20 +148,42 @@ const TripDetail = () => {
           {/* Floating Actions */}
           <div className="absolute top-6 left-6 z-20 flex gap-3">
             {/* Like Button */}
-            <Button
-              variant="secondary"
-              size="icon"
-              className={`transition-all duration-300 bg-red-500/80 text-white hover:bg-red-600 shadow-md hover:scale-110 ${
-                isLiked ? "bg-red-600 scale-110" : ""
-              }`}
-              onClick={handleLike}
-            >
-              <Heart
-                className={`h-5 w-5 ${
-                  isLiked ? "fill-white" : "fill-transparent"
+            <SignedIn>
+              <Button
+                variant="secondary"
+                size="icon"
+                className={`transition-all duration-300 bg-red-500/80 text-white hover:bg-red-600 shadow-md hover:scale-110 ${
+                  isLiked ? "bg-red-600 scale-110" : ""
                 }`}
-              />
-            </Button>
+                onClick={handleLike}
+              >
+                <Heart
+                  className={`h-5 w-5 ${
+                    isLiked ? "fill-white" : "fill-transparent"
+                  }`}
+                />
+              </Button>
+            </SignedIn>
+            
+            <SignedOut>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="transition-all duration-300 bg-red-500/80 text-white hover:bg-red-600 shadow-md hover:scale-110"
+                      onClick={handleUnauthenticatedLike}
+                    >
+                      <Heart className="h-5 w-5 fill-transparent" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>تسجيل الدخول مطلوب</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </SignedOut>
 
             {/* Share Button */}
             <Button
@@ -150,20 +196,42 @@ const TripDetail = () => {
             </Button>
 
             {/* Save Button */}
-            <Button
-              variant="secondary"
-              size="icon"
-              className={`transition-all duration-300 bg-purple-500/80 text-white hover:bg-purple-600 shadow-md hover:scale-110 ${
-                isSaved ? "bg-purple-600 scale-110" : ""
-              }`}
-              onClick={handleSave}
-            >
-              <Bookmark
-                className={`h-5 w-5 ${
-                  isSaved ? "fill-white" : "fill-transparent"
+            <SignedIn>
+              <Button
+                variant="secondary"
+                size="icon"
+                className={`transition-all duration-300 bg-purple-500/80 text-white hover:bg-purple-600 shadow-md hover:scale-110 ${
+                  isSaved ? "bg-purple-600 scale-110" : ""
                 }`}
-              />
-            </Button>
+                onClick={handleSave}
+              >
+                <Bookmark
+                  className={`h-5 w-5 ${
+                    isSaved ? "fill-white" : "fill-transparent"
+                  }`}
+                />
+              </Button>
+            </SignedIn>
+            
+            <SignedOut>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="transition-all duration-300 bg-purple-500/80 text-white hover:bg-purple-600 shadow-md hover:scale-110"
+                      onClick={handleUnauthenticatedSave}
+                    >
+                      <Bookmark className="h-5 w-5 fill-transparent" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>تسجيل الدخول مطلوب</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </SignedOut>
           </div>
 
           {/* Stats Badge */}
@@ -457,17 +525,6 @@ const TripDetail = () => {
                           </div>
                           <div className="text-sm text-muted-foreground">
                             {place.description}
-                          </div>
-                          {/* Show on Map Button -> opens modal on click */}
-                          <div className="mt-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="rounded-full mt-2"
-                              onClick={() => setDialogRestaurantIdx(idx)}
-                            >
-                              عرض على الخريطة
-                            </Button>
                           </div>
                         </div>
                       ))}

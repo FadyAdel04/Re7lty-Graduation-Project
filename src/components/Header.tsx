@@ -18,6 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/clerk-react";
 
 interface HeaderProps {
   onSearch?: (query: string) => void;
@@ -31,6 +32,11 @@ const Header = ({ onSearch }: HeaderProps) => {
   const [searchOpen, setSearchOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+
+  const handleUserButtonClick = () => {
+    // Navigate to user profile when clicking on UserButton avatar
+    navigate('/user');
+  };
 
   const handleSearch = (value: string) => {
     setSearchValue(value);
@@ -131,7 +137,7 @@ const Header = ({ onSearch }: HeaderProps) => {
             </Link>
             <Link to="/templates" className="hidden lg:block">
               <Button variant="ghost" className="rounded-full">
-                القوالب
+              رحلات الشركات
               </Button>
             </Link>
             <Link to="/timeline" className="hidden lg:block">
@@ -139,17 +145,26 @@ const Header = ({ onSearch }: HeaderProps) => {
                 استكشف الرحلات
               </Button>
             </Link>
+            <SignedIn>
             <Link to="/trips/new" className="hidden sm:block">
               <Button variant="secondary" className="rounded-full">
                 <MapPin className="h-4 w-4 ml-2" />
                 أنشئ رحلة
               </Button>
             </Link>
-            <Link to="/auth" className="hidden sm:block">
-              <Button variant="default" className="rounded-full">
+            </SignedIn>
+            <SignedOut>
+              <SignInButton mode="modal">
+                <Button variant="default" className="rounded-full hidden sm:block">
                 تسجيل الدخول
               </Button>
-            </Link>
+              </SignInButton>
+            </SignedOut>
+            <SignedIn>
+              <div className="hidden sm:block cursor-pointer" onClick={handleUserButtonClick}>
+                <UserButton />
+              </div>
+            </SignedIn>
 
             {/* Mobile Menu */}
             <Sheet>
@@ -168,13 +183,7 @@ const Header = ({ onSearch }: HeaderProps) => {
                 </SheetHeader>
 
                 <div className="mt-6 space-y-4">
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start rounded-xl"
-                    onClick={() => setSearchOpen(true)}
-                  >
-                    البحث
-                  </Button>
+
                   <Link to="/leaderboard" className="block">
                     <Button
                       variant="ghost"
@@ -199,6 +208,7 @@ const Header = ({ onSearch }: HeaderProps) => {
                       استكشف الرحلات
                     </Button>
                   </Link>
+                  <SignedIn>
                   <Link to="/trips/new" className="block">
                     <Button
                       variant="secondary"
@@ -207,14 +217,35 @@ const Header = ({ onSearch }: HeaderProps) => {
                       <MapPin className="h-4 w-4 ml-2" /> أنشئ رحلة
                     </Button>
                   </Link>
-                  <Link to="/auth" className="block">
+                  </SignedIn>
+                  <SignedOut>
+                    <SignInButton mode="modal">
                     <Button
                       variant="default"
                       className="w-full justify-center rounded-xl"
                     >
                       تسجيل الدخول
                     </Button>
-                  </Link>
+                    </SignInButton>
+                  </SignedOut>
+                  <SignedIn>
+                    <div 
+                      className="w-full flex justify-center cursor-pointer" 
+                      onClick={() => {
+                        navigate('/user');
+                        // Close the mobile menu sheet by finding and clicking close button
+                        const sheet = document.querySelector('[data-state="open"]');
+                        if (sheet) {
+                          const closeButton = sheet.querySelector('button[aria-label="Close"], button:last-child');
+                          if (closeButton) {
+                            (closeButton as HTMLElement).click();
+                          }
+                        }
+                      }}
+                    >
+                      <UserButton />
+                    </div>
+                  </SignedIn>
                 </div>
               </SheetContent>
             </Sheet>

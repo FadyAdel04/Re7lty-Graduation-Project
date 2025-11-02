@@ -2,10 +2,10 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import logo from "@/assets/logo.png";
 import { Link, Navigate } from "react-router-dom";
-import { SignIn, SignUp } from "@clerk/clerk-react";
+import { SignUp } from "@clerk/clerk-react";
 import { SignedIn, SignedOut } from "@clerk/clerk-react";
 
-const Auth = () => {
+const SignUpPage = () => {
   return (
     <>
       <SignedIn>
@@ -35,7 +35,7 @@ const Auth = () => {
               <p className="text-muted-foreground">ابدأ مغامرتك القادمة</p>
             </div>
 
-            <SignIn 
+            <SignUp 
               appearance={{
                 elements: {
                   rootBox: "mx-auto",
@@ -45,8 +45,8 @@ const Auth = () => {
                 }
               }}
               routing="path"
-              path="/auth/sign-in"
-              signUpUrl="/auth/sign-up"
+              path="/auth/sign-up"
+              signInUrl="/auth/sign-in"
             />
           </div>
         </div>
@@ -56,4 +56,6 @@ const Auth = () => {
   );
 };
 
-export default Auth;
+export default SignUpPage;
+
+

@@ -1,8 +1,8 @@
-import { useRef, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Polyline, Popup, useMapEvents } from 'react-leaflet';
+import { useRef, useState, useEffect, useCallback } from 'react';
+import { MapContainer, TileLayer, Marker, Polyline, Popup, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { MapPin, Navigation, Trash2 } from 'lucide-react';
+import { MapPin, Navigation, Trash2, Search, X } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -29,6 +29,22 @@ interface TripMapEditorProps {
   route: [number, number][];
   onLocationsChange: (locations: TripLocation[]) => void;
   onRouteChange: (route: [number, number][]) => void;
+  destination?: string;
+}
+
+interface MapCenterUpdaterProps {
+  center: [number, number];
+  zoom: number;
+}
+
+function MapCenterUpdater({ center, zoom }: MapCenterUpdaterProps) {
+  const map = useMap();
+  
+  useEffect(() => {
+    map.setView(center, zoom);
+  }, [map, center, zoom]);
+
+  return null;
 }
 
 function MapClickHandler({ 
@@ -61,11 +77,45 @@ function MapClickHandler({
   return null;
 }
 
-const TripMapEditor = ({ locations, route, onLocationsChange, onRouteChange }: TripMapEditorProps) => {
+interface GeocodingResult {
+  place_name: string;
+  center: [number, number];
+}
+
+// City coordinates map for centering map
+const cityCoordinates: Record<string, [number, number]> = {
+  alexandria: [31.2001, 29.9187],
+  matrouh: [31.3543, 27.2373],
+  luxor: [25.6872, 32.6421],
+  aswan: [24.0889, 32.8998],
+  hurghada: [27.2579, 33.8116],
+  sharm: [27.9158, 34.3300],
+  dahab: [28.5021, 34.5197],
+  bahariya: [27.8751, 28.3481],
+};
+
+const TripMapEditor = ({ locations, route, onLocationsChange, onRouteChange, destination }: TripMapEditorProps) => {
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
   const [isAddingManually, setIsAddingManually] = useState(false);
   const [isDrawingRoute, setIsDrawingRoute] = useState(false);
   const [manualCoords, setManualCoords] = useState({ lat: '', lng: '' });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<GeocodingResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [mapCenter, setMapCenter] = useState<[number, number]>(
+    destination && cityCoordinates[destination] ? cityCoordinates[destination] : [26.8206, 30.8025]
+  );
+  const [mapZoom, setMapZoom] = useState(destination ? 11 : 6);
+
+  // Update map center when destination changes
+  useEffect(() => {
+    const newCenter: [number, number] = destination && cityCoordinates[destination] 
+      ? cityCoordinates[destination] 
+      : [26.8206, 30.8025];
+    const newZoom = destination ? 11 : 6;
+    setMapCenter(newCenter);
+    setMapZoom(newZoom);
+  }, [destination]);
 
   const addManualLocation = () => {
     const lat = parseFloat(manualCoords.lat);
@@ -98,6 +148,69 @@ const TripMapEditor = ({ locations, route, onLocationsChange, onRouteChange }: T
     onLocationsChange(
       locations.map(loc => loc.id === id ? { ...loc, name } : loc)
     );
+  };
+
+  // Geocoding search function using OpenStreetMap Nominatim (free, no key needed)
+  const searchPlaces = useCallback(async (query: string) => {
+    if (!query.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      // Using OpenStreetMap Nominatim geocoding API
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&accept-language=ar,en`
+      );
+      const data = await response.json();
+      
+      const results: GeocodingResult[] = data.map((item: any) => ({
+        place_name: item.display_name,
+        center: [parseFloat(item.lat), parseFloat(item.lon)] as [number, number],
+      }));
+      
+      setSearchResults(results);
+    } catch (error) {
+      console.error('Geocoding error:', error);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  }, []);
+
+  // Handle search input with debounce
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (searchQuery.trim()) {
+        searchPlaces(searchQuery);
+      } else {
+        setSearchResults([]);
+      }
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery, searchPlaces]);
+
+  // Handle place selection from search results
+  const handleSelectPlace = (result: GeocodingResult) => {
+    const newLocation: TripLocation = {
+      id: Date.now().toString(),
+      coordinates: result.center,
+      name: result.place_name.split(',')[0], // Use first part of name
+      description: '',
+      images: [],
+      videos: [],
+    };
+    onLocationsChange([...locations, newLocation]);
+    
+    // Center map on selected place
+    setMapCenter(result.center);
+    setMapZoom(15);
+    
+    // Clear search
+    setSearchQuery('');
+    setSearchResults([]);
   };
 
   return (
@@ -190,17 +303,78 @@ const TripMapEditor = ({ locations, route, onLocationsChange, onRouteChange }: T
         </div>
       )}
 
-      <div className="h-[500px] rounded-xl overflow-hidden border-2 border-border shadow-lg">
+      {/* Search Bar */}
+      <div className="relative">
+        <div className="relative">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="ابحث عن مكان (مثل: المتحف المصري، الأهرامات، الإسكندرية...)"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pr-10 pl-4"
+            onFocus={() => {
+              if (searchQuery.trim() && searchResults.length === 0) {
+                searchPlaces(searchQuery);
+              }
+            }}
+          />
+          {searchQuery && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute left-2 top-1/2 -translate-y-1/2 h-6 w-6 p-0"
+              onClick={() => {
+                setSearchQuery('');
+                setSearchResults([]);
+              }}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+        
+        {/* Search Results Dropdown */}
+        {searchResults.length > 0 && (
+          <div className="absolute z-50 w-full mt-2 bg-background border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto">
+            {searchResults.map((result, index) => (
+              <button
+                key={index}
+                type="button"
+                onClick={() => handleSelectPlace(result)}
+                className="w-full text-right px-4 py-3 hover:bg-muted/50 transition-colors border-b border-border last:border-b-0"
+              >
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-primary flex-shrink-0" />
+                  <span className="text-sm">{result.place_name}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+        
+        {isSearching && (
+          <div className="absolute z-50 w-full mt-2 bg-background border border-border rounded-lg shadow-lg p-4 text-center text-sm text-muted-foreground">
+            جاري البحث...
+          </div>
+        )}
+      </div>
+
+      <div className="relative h-[500px] rounded-xl overflow-hidden border-2 border-border shadow-lg" style={{ position: 'relative', width: '100%', isolation: 'isolate' }}>
         <MapContainer
-          center={[26.8206, 30.8025]}
-          zoom={6}
-          style={{ height: '100%', width: '100%' }}
+          center={mapCenter}
+          zoom={mapZoom}
+          style={{ height: '100%', width: '100%', position: 'relative', zIndex: 0 }}
           scrollWheelZoom={true}
+          key={destination} // Re-center when destination changes
+          className="!overflow-hidden"
         >
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="https://www.maptiler.com/copyright/">MapTiler</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url="https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=xvqrf2BsXB6Y8siw9uiP"
           />
+          
+          <MapCenterUpdater center={mapCenter} zoom={mapZoom} />
           
           <MapClickHandler
             locations={locations}

@@ -8,12 +8,18 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MapPin, Calendar, Users, Heart, Settings } from "lucide-react";
 import { egyptTrips } from "@/lib/trips-data";
+import { useUser, useAuth } from "@clerk/clerk-react";
+import { Link } from "react-router-dom";
 
 const Profile = () => {
   const { username } = useParams();
+  const { user: clerkUser } = useUser();
+  const { isSignedIn } = useAuth();
   
   // Mock user data
   const displayName = username || "محمد أحمد";
+  const isCurrentUser = clerkUser?.username === username || clerkUser?.primaryEmailAddress?.emailAddress?.includes(username || "");
+  
   const user = {
     username: displayName,
     bio: "مسافر شغوف باكتشاف جمال مصر 🇪🇬 | مصور هاوي | محب للمغامرات",
@@ -77,13 +83,23 @@ const Profile = () => {
                   </div>
                   
                   <div className="flex gap-2">
+                    {isCurrentUser ? (
+                      <>
+                        <Link to="/user">
+                          <Button variant="default" className="rounded-full">
+                            <Settings className="h-4 w-4 ml-2" />
+                            إعدادات
+                          </Button>
+                        </Link>
+                      </>
+                    ) : (
+                      <>
                     <Button variant="default" className="rounded-full">
                       <Users className="h-4 w-4 ml-2" />
                       متابعة
                     </Button>
-                    <Button variant="outline" size="icon" className="rounded-full">
-                      <Settings className="h-4 w-4" />
-                    </Button>
+                      </>
+                    )}
                   </div>
                 </div>
 

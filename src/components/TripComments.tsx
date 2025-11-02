@@ -1,16 +1,20 @@
 import { useState } from "react";
-import { Heart, Send } from "lucide-react";
+import { Heart, Send, Lock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Comment } from "@/lib/trips-data";
+import { SignedIn, SignedOut, SignInButton, useUser } from "@clerk/clerk-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface TripCommentsProps {
   comments: Comment[];
 }
 
 const TripComments = ({ comments }: TripCommentsProps) => {
+  const { user } = useUser();
+  const { toast } = useToast();
   const [commentsList, setCommentsList] = useState(comments);
   const [newComment, setNewComment] = useState("");
   const [likedComments, setLikedComments] = useState<Set<string>>(new Set());
@@ -20,7 +24,7 @@ const TripComments = ({ comments }: TripCommentsProps) => {
 
     const comment: Comment = {
       id: `c${Date.now()}`,
-      author: "أنت",
+      author: user?.fullName || user?.firstName || user?.username || "أنت",
       content: newComment,
       date: "الآن",
       likes: 0
@@ -28,6 +32,11 @@ const TripComments = ({ comments }: TripCommentsProps) => {
 
     setCommentsList([comment, ...commentsList]);
     setNewComment("");
+    
+    toast({
+      title: "تم إضافة التعليق",
+      description: "تم نشر تعليقك بنجاح",
+    });
   };
 
   const handleLikeComment = (commentId: string) => {
@@ -57,23 +66,42 @@ const TripComments = ({ comments }: TripCommentsProps) => {
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Add Comment */}
-        <div className="space-y-3">
-          <Textarea
-            placeholder="شارك رأيك أو تجربتك..."
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            className="resize-none"
-            rows={3}
-          />
-          <Button 
-            onClick={handleAddComment}
-            disabled={!newComment.trim()}
-            className="w-full sm:w-auto"
-          >
-            <Send className="h-4 w-4 ml-2" />
-            إضافة تعليق
-          </Button>
-        </div>
+        <SignedIn>
+          <div className="space-y-3">
+            <Textarea
+              placeholder="شارك رأيك أو تجربتك..."
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              className="resize-none"
+              rows={3}
+            />
+            <Button 
+              onClick={handleAddComment}
+              disabled={!newComment.trim()}
+              className="w-full sm:w-auto"
+            >
+              <Send className="h-4 w-4 ml-2" />
+              إضافة تعليق
+            </Button>
+          </div>
+        </SignedIn>
+        
+        <SignedOut>
+          <div className="border border-dashed border-border rounded-xl p-6 text-center space-y-4">
+            <Lock className="h-12 w-12 mx-auto text-muted-foreground" />
+            <div>
+              <p className="text-lg font-semibold mb-2">تسجيل الدخول مطلوب</p>
+              <p className="text-sm text-muted-foreground mb-4">
+                سجل دخولك للمشاركة بتعليقاتك وآرائك
+              </p>
+              <SignInButton mode="modal">
+                <Button>
+                  تسجيل الدخول
+                </Button>
+              </SignInButton>
+            </div>
+          </div>
+        </SignedOut>
 
         {/* Comments List */}
         <div className="space-y-4">
@@ -95,17 +123,35 @@ const TripComments = ({ comments }: TripCommentsProps) => {
                 </div>
                 <p className="text-foreground mb-3">{comment.content}</p>
                 
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleLikeComment(comment.id)}
-                  className={`gap-2 ${likedComments.has(comment.id) ? 'text-primary' : ''}`}
-                >
-                  <Heart
-                    className={`h-4 w-4 ${likedComments.has(comment.id) ? 'fill-primary' : ''}`}
-                  />
-                  {comment.likes > 0 && <span>{comment.likes}</span>}
-                </Button>
+                <SignedIn>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleLikeComment(comment.id)}
+                    className={`gap-2 ${likedComments.has(comment.id) ? 'text-primary' : ''}`}
+                  >
+                    <Heart
+                      className={`h-4 w-4 ${likedComments.has(comment.id) ? 'fill-primary' : ''}`}
+                    />
+                    {comment.likes > 0 && <span>{comment.likes}</span>}
+                  </Button>
+                </SignedIn>
+                
+                <SignedOut>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="gap-2"
+                    onClick={() => toast({
+                      title: "تسجيل الدخول مطلوب",
+                      description: "يجب تسجيل الدخول للإعجاب بالتعليقات",
+                      variant: "destructive",
+                    })}
+                  >
+                    <Heart className="h-4 w-4" />
+                    {comment.likes > 0 && <span>{comment.likes}</span>}
+                  </Button>
+                </SignedOut>
               </div>
             </div>
           ))}

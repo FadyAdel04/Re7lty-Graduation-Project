@@ -16,7 +16,7 @@ const Hero = () => {
           <div className="space-y-4">
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight tracking-tight">
               اكتشف جمال
-              <span className="text-gradient block mt-2">مصر الساحر</span>
+              <span className="text-secondary block mt-2">مصر الساحر</span>
             </h1>
             
             <p className="text-lg sm:text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto">

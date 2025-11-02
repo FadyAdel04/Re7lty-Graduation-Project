@@ -8,6 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Heart, MessageCircle, Share2, Bookmark, MapPin, Star } from "lucide-react";
 import TripComments from "@/components/TripComments";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { SignedIn, SignedOut } from "@clerk/clerk-react";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 function timeAgo(iso: string): string {
   const now = new Date();
@@ -24,6 +32,7 @@ function timeAgo(iso: string): string {
 }
 
 const Timeline = () => {
+  const { toast } = useToast();
   const [likedIds, setLikedIds] = useState<Record<string, boolean>>({});
   const [savedIds, setSavedIds] = useState<Record<string, boolean>>({});
   const [showHeartByTrip, setShowHeartByTrip] = useState<Record<string, boolean>>({});
@@ -39,6 +48,22 @@ const Timeline = () => {
 
   const handleSave = (id: string) => {
     setSavedIds((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const handleUnauthenticatedLike = () => {
+    toast({
+      title: "تسجيل الدخول مطلوب",
+      description: "يجب تسجيل الدخول للإعجاب بالرحلات",
+      variant: "destructive",
+    });
+  };
+
+  const handleUnauthenticatedSave = () => {
+    toast({
+      title: "تسجيل الدخول مطلوب",
+      description: "يجب تسجيل الدخول لحفظ الرحلات",
+      variant: "destructive",
+    });
   };
 
   const handleDouble = (id: string) => {
@@ -140,10 +165,29 @@ const Timeline = () => {
                   {/* Actions */}
                   <div className="px-3 sm:px-4 pb-3 sm:pb-4 pt-1 sm:pt-2 flex flex-wrap items-center gap-2 justify-between text-sm">
                     <div className="flex items-center gap-1 sm:gap-3 flex-wrap">
+                      <SignedIn>
                       <Button variant="ghost" size="sm" className={`rounded-full px-2 sm:px-3 ${isLiked ? 'text-primary' : ''}`} onClick={() => handleLike(trip.id)}>
                         <Heart className={`h-4 w-4 ${isLiked ? 'fill-primary' : ''}`} />
                         <span className="ml-1 sm:ml-2">{likeCount}</span>
                       </Button>
+                      </SignedIn>
+                      
+                      <SignedOut>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="sm" className="rounded-full px-2 sm:px-3" onClick={handleUnauthenticatedLike}>
+                                <Heart className="h-4 w-4" />
+                                <span className="ml-1 sm:ml-2">{likeCount}</span>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>تسجيل الدخول مطلوب</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </SignedOut>
+                      
                       <Button variant="ghost" size="sm" className="rounded-full px-2 sm:px-3" onClick={() => setOpenCommentsForTrip(trip.id)}>
                         <MessageCircle className="h-4 w-4" />
                         <span className="ml-1 sm:ml-2">{trip.comments.length}</span>
@@ -154,10 +198,29 @@ const Timeline = () => {
                       </Button>
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
+                      <SignedIn>
                       <Button variant={isSaved ? "secondary" : "outline"} size="sm" className="rounded-full px-3" onClick={() => handleSave(trip.id)}>
                         <Bookmark className={`h-4 w-4 ${isSaved ? 'fill-secondary' : ''}`} />
                         <span className="ml-2 hidden xs:inline">{isSaved ? 'محفوظ' : 'حفظ'}</span>
                       </Button>
+                      </SignedIn>
+                      
+                      <SignedOut>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="outline" size="sm" className="rounded-full px-3" onClick={handleUnauthenticatedSave}>
+                                <Bookmark className="h-4 w-4" />
+                                <span className="ml-2 hidden xs:inline">حفظ</span>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>تسجيل الدخول مطلوب</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </SignedOut>
+                      
                       <Link to={`/trips/${trip.id}`}>
                         <Button size="sm" className="rounded-full px-3">التفاصيل</Button>
                       </Link>

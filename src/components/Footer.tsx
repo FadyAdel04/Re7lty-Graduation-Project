@@ -86,7 +86,7 @@ const Footer = () => {
         </div>
 
         <div className="border-t border-border/50 mt-10 pt-8 text-center text-sm text-muted-foreground">
-          <p>© 2024 رحلتي - Triply. جميع الحقوق محفوظة.</p>
+          <p>© 2025-2026 رحلتي - Triply. جميع الحقوق محفوظة.</p>
         </div>
       </div>
     </footer>
