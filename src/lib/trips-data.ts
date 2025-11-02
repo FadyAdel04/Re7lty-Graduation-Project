@@ -135,7 +135,7 @@ export const egyptTrips: Trip[] = [
     city: "مرسى مطروح",
     duration: "٤ أيام",
     rating: 4.9,
-    image: "https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&h=600&fit=crop",
+    image: "https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=800&h=600&fit=crop",
     author: "سارة المسافرة",
     authorFollowers: 3420,
     likes: 198,
@@ -145,10 +145,30 @@ export const egyptTrips: Trip[] = [
     description: "استمتع بأجمل شواطئ مصر وشاهد المياه الفيروزية الصافية",
     budget: "2000 جنيه",
     activities: [
-      { name: "شاطئ عجيبة", coordinates: { lat: 31.3560, lng: 27.2161 }, images: ["https://visitmatrouh.com/assets/img/beaches/ageeba.jpg"], day: 1 },
-      { name: "شاطئ الأبيض", coordinates: { lat: 31.4101, lng: 27.0488 }, images: ["https://marsamatrouh.com/wp-content/uploads/2020/04/White-Beach-1.jpg"], day: 2 },
-      { name: "كهف رومل", coordinates: { lat: 31.3564, lng: 27.2272 }, images: ["https://marsamatrouh.com/wp-content/uploads/2020/04/Rommel-Cave-2.jpg"], day: 2 },
-      { name: "جولة بالقوارب", coordinates: { lat: 31.3460, lng: 27.2110 }, images: ["https://media.istockphoto.com/id/1272075929/photo/fishing-boats-in-the-harbor-in-marsa-matrouh.jpg"], day: 3 },
+      { 
+        name: "شاطئ عجيبة", 
+        coordinates: { lat: 31.3560, lng: 27.2161 }, 
+        images: ["https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&h=600&fit=crop"],
+        day: 1 
+      },
+      { 
+        name: "شاطئ الأبيض", 
+        coordinates: { lat: 31.4101, lng: 27.0488 }, 
+        images: ["https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&h=600&fit=crop"],
+        day: 2 
+      },
+      { 
+        name: "كهف رومل", 
+        coordinates: { lat: 31.3564, lng: 27.2272 }, 
+        images: ["https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=800&h=600&fit=crop"],
+        day: 2 
+      },
+      { 
+        name: "جولة بالقوارب", 
+        coordinates: { lat: 31.3460, lng: 27.2110 }, 
+        images: ["https://images.unsplash.com/photo-1506929562872-bb421503ef21?w=800&h=600&fit=crop"],
+        day: 3 
+      },
     ],
     days: [
       { title: "اليوم الأول", activities: [0] },
@@ -156,7 +176,12 @@ export const egyptTrips: Trip[] = [
       { title: "اليوم الثالث", activities: [3] },
     ],
     foodAndRestaurants: [
-      { name: "مطعم ابو خالد", image: "https://img.3ain.net/medium/9201814194781581.jpg", rating: 4.3, description: "أشهر مطاعم الأسماك الطازجة في مرسى مطروح." }
+      { 
+        name: "مطعم ابو خالد", 
+        image: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&h=600&fit=crop",
+        rating: 4.3, 
+        description: "أشهر مطاعم الأسماك الطازجة في مرسى مطروح." 
+      }
     ],
     comments: [
       { id: "c3", author: "أحمد حسن", content: "مياه صافية جداً والمناظر خيالية!", date: "منذ يوم", likes: 12 },
@@ -171,7 +196,7 @@ export const egyptTrips: Trip[] = [
     city: "الأقصر",
     duration: "٥ أيام",
     rating: 5.0,
-    image: "https://images.unsplash.com/photo-1568322445389-f64ac2515020?w=800&h=600&fit=crop",
+    image: "https://al-rahhala.com/wp-content/uploads/2019/10/%D9%85%D8%AA%D8%AD%D9%81-%D8%A7%D9%84%D8%A7%D9%82%D8%B5%D8%B1.jpg",
     author: "محمد الرحال",
     authorFollowers: 5680,
     likes: 256,
@@ -181,10 +206,18 @@ export const egyptTrips: Trip[] = [
     description: "اكتشف كنوز الحضارة المصرية القديمة في مدينة المائة باب",
     budget: "3500 جنيه",
     activities: [
-      { name: "معبد الكرنك", coordinates: { lat: 25.7188, lng: 32.6573 }, images: ["https://www.egypttoday.com/siteimages/Larg/20210113083802873.jpg"], day: 1 },
-      { name: "وادي الملوك", coordinates: { lat: 25.7402, lng: 32.6014 }, images: ["https://images.memphistours.com/large/5e3cbaa1be30c_wadi_el_muluk.jpg"], day: 2 },
-      { name: "معبد حتشبسوت", coordinates: { lat: 25.7376, lng: 32.6065 }, images: ["https://media.istockphoto.com/id/944071082/photo/hatshepsut-temple-egypt.jpg"], day: 3 },
-      { name: "جولة بالمنطاد", coordinates: { lat: 25.7000, lng: 32.6500 }, images: ["https://images.memphistours.com/large/5e3ddafea32d8_Hot%20Air%20Balloon%20Luxor.jpg"], day: 4 },
+      { 
+        name: "معبد حتشبسوت", 
+        coordinates: { lat: 25.7376, lng: 32.6065 }, 
+        images: ["https://images.unsplash.com/photo-1572252009286-268acec5ca0a?w=800&h=600&fit=crop"],
+        day: 3 
+      },
+      { 
+        name: "جولة بالمنطاد", 
+        coordinates: { lat: 25.7000, lng: 32.6500 }, 
+        images: ["https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=600&fit=crop"],
+        day: 4 
+      },
     ],
     days: [
       { title: "اليوم الأول", activities: [0] },
@@ -193,7 +226,6 @@ export const egyptTrips: Trip[] = [
       { title: "اليوم الرابع", activities: [3] }
     ],
     foodAndRestaurants: [
-      { name: "مطعم الكشري السعيدي", image: "https://img.youm7.com/ArticleImgs/2023/5/16/270752-%D9%83%D8%B4%D8%B1%D9%89-%D8%A7%D9%84%D8%B3%D8%B9%D9%8A%D8%AF%D9%89--%281%29.jpg", rating: 4.5, description: "مطعم شعبي شهير في الأقصر يقدم ألذ كشري في الصعيد." }
     ],
     comments: [
       { id: "c5", author: "فاطمة محمود", content: "تجربة لا تنسى! المعابد مذهلة", date: "منذ ساعتين", likes: 15 },
@@ -208,7 +240,7 @@ export const egyptTrips: Trip[] = [
     city: "أسوان",
     duration: "٤ أيام",
     rating: 4.7,
-    image: "https://images.unsplash.com/photo-1572252009286-268acec5ca0a?w=800&h=600&fit=crop",
+    image: "https://www.civilaviation.gov.eg/cityPhotos/1015c4fb-4575-4694-a655-66974a24fc06/20251006_141148899_6.jpg",
     author: "فاطمة الشمري",
     authorFollowers: 2340,
     likes: 187,
@@ -218,10 +250,30 @@ export const egyptTrips: Trip[] = [
     description: "رحلة نوبية ساحرة على ضفاف النيل مع معابد فرعونية عريقة",
     budget: "2800 جنيه",
     activities: [
-      { name: "معبد فيلة", coordinates: { lat: 24.0262, lng: 32.8872 }, images: ["https://egyptopia.com/upload/Philae-Temple-in-Aswan-Egypt-Thumb.jpg"], day: 1 },
-      { name: "السد العالي", coordinates: { lat: 23.9702, lng: 32.8776 }, images: ["https://www.egypton.com/sites/default/files/styles/large/public/2019-02/nasser-dam.jpg"], day: 2 },
-      { name: "جزيرة الفنتين", coordinates: { lat: 24.0903, lng: 32.8856 }, images: ["https://mediaaws.almasryalyoum.com/news/large/2020/08/15/1260662_0.jpg"], day: 3 },
-      { name: "القرية النوبية", coordinates: { lat: 24.1001, lng: 32.8805 }, images: ["https://www.almrsal.com/wp-content/uploads/2020/03/10-6.jpg"], day: 4 },
+      { 
+        name: "معبد فيلة", 
+        coordinates: { lat: 24.0262, lng: 32.8872 }, 
+        images: ["https://images.unsplash.com/photo-1504851149312-7a075b496cc7?w=800&h=600&fit=crop"],
+        day: 1 
+      },
+      { 
+        name: "السد العالي", 
+        coordinates: { lat: 23.9702, lng: 32.8776 }, 
+        images: ["https://images.unsplash.com/photo-1576675466969-38eeae4b41f6?w=800&h=600&fit=crop"],
+        day: 2 
+      },
+      { 
+        name: "جزيرة الفنتين", 
+        coordinates: { lat: 24.0903, lng: 32.8856 }, 
+        images: ["https://images.unsplash.com/photo-1506929562872-bb421503ef21?w=800&h=600&fit=crop"],
+        day: 3 
+      },
+      { 
+        name: "القرية النوبية", 
+        coordinates: { lat: 24.1001, lng: 32.8805 }, 
+        images: ["https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=800&h=600&fit=crop"],
+        day: 4 
+      },
     ],
     days: [
       { title: "اليوم الأول", activities: [0] },
@@ -230,7 +282,7 @@ export const egyptTrips: Trip[] = [
       { title: "اليوم الرابع", activities: [3] },
     ],
     foodAndRestaurants: [
-      { name: "مطعم الجندي النوبي", image: "https://mediaaws.almasryalyoum.com/news/large/2023/10/07/2199833_0.jpg", rating: 4.7, description: "يقدم الأكلات النوبية والمأكولات البحرية في أسوان." }
+      
     ],
     comments: [
       { id: "c7", author: "ياسمين سعيد", content: "القرية النوبية رائعة والناس طيبين جداً", date: "منذ ٣ أيام", likes: 7 }
@@ -244,7 +296,7 @@ export const egyptTrips: Trip[] = [
     city: "الغردقة",
     duration: "٥ أيام",
     rating: 4.6,
-    image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQprGJgM5n7j-XDgwjQ8jYhPdfpDH-jyugYlA&s",
+    image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&h=600&fit=crop",
     author: "عمر الجوال",
     authorFollowers: 4120,
     likes: 212,
@@ -254,10 +306,30 @@ export const egyptTrips: Trip[] = [
     description: "استكشف الشعاب المرجانية الساحرة في البحر الأحمر",
     budget: "4000 جنيه",
     activities: [
-      { name: "الغوص", coordinates: { lat: 27.2579, lng: 33.8116 }, images: ["https://www.redsea.gov.eg/Images/Inner/Scuba-diving-2.jpg"], day: 1 },
-      { name: "جزيرة جفتون", coordinates: { lat: 27.2089, lng: 33.9640 }, images: ["https://lp-cms-production.imgix.net/image_browser/GiftonIsland-1.jpg"], day: 2 },
-      { name: "رحلة سفاري", coordinates: { lat: 27.0132, lng: 33.8361 }, images: ["https://www.redsea.gov.eg/Images/Inner/safari.jpg"], day: 3 },
-      { name: "السباحة مع الدلافين", coordinates: { lat: 27.2579, lng: 33.8100 }, images: ["https://upload.wikimedia.org/wikipedia/commons/0/04/Fortune_dolphins.jpg"], day: 4 },
+      { 
+        name: "الغوص", 
+        coordinates: { lat: 27.2579, lng: 33.8116 }, 
+        images: ["https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&h=600&fit=crop"],
+        day: 1 
+      },
+      { 
+        name: "جزيرة جفتون", 
+        coordinates: { lat: 27.2089, lng: 33.9640 }, 
+        images: ["https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&h=600&fit=crop"],
+        day: 2 
+      },
+      { 
+        name: "رحلة سفاري", 
+        coordinates: { lat: 27.0132, lng: 33.8361 }, 
+        images: ["https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=600&fit=crop"],
+        day: 3 
+      },
+      { 
+        name: "السباحة مع الدلافين", 
+        coordinates: { lat: 27.2579, lng: 33.8100 }, 
+        images: ["https://images.unsplash.com/photo-1576675466969-38eeae4b41f6?w=800&h=600&fit=crop"],
+        day: 4 
+      },
     ],
     days: [
       { title: "اليوم الأول", activities: [0] },
@@ -266,7 +338,12 @@ export const egyptTrips: Trip[] = [
       { title: "اليوم الرابع", activities: [3] }
     ],
     foodAndRestaurants: [
-      { name: "مطعم حدوتة بحرية", image: "https://media-cdn.tripadvisor.com/media/photo-s/14/d1/38/a4/caption.jpg", rating: 4.7, description: "أفضل مطعم مأكولات بحرية وموقع رائع على البحر." }
+      { 
+        name: "مطعم حدوتة بحرية", 
+        image: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&h=600&fit=crop",
+        rating: 4.7, 
+        description: "أفضل مطعم مأكولات بحرية وموقع رائع على البحر." 
+      }
     ],
     comments: [
       { id: "c8", author: "حسام الدين", content: "الغوص مع الدلافين كان حلم!", date: "منذ ٥ أيام", likes: 9 },
@@ -281,7 +358,7 @@ export const egyptTrips: Trip[] = [
     city: "شرم الشيخ",
     duration: "٤ أيام",
     rating: 4.8,
-    image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&h=600&fit=crop",
+    image: "https://i0.wp.com/egy-visa.com/wp-content/uploads/2024/01/%D8%B4%D8%B1%D9%85-%D8%A7%D9%84%D8%B4%D9%8A%D8%AE.jpg?fit=1000%2C667&ssl=1",
     author: "ليلى الرحالة",
     authorFollowers: 6780,
     likes: 243,
@@ -291,10 +368,24 @@ export const egyptTrips: Trip[] = [
     description: "بين الجبال والبحر، استمتع بجمال سيناء الساحر",
     budget: "3500 جنيه",
     activities: [
-      { name: "خليج نعمة", coordinates: { lat: 27.9158, lng: 34.3300 }, images: ["https://www.memphistours.com/blog/content/images/2020/12/neama-bay-sharm-elsheikh.jpg"], day: 1 },
-      { name: "محمية رأس محمد", coordinates: { lat: 27.7236, lng: 34.2491 }, images: ["https://media.istockphoto.com/id/477996446/photo/ras-mohammed-national-park.jpg"], day: 2 },
-      { name: "دير سانت كاترين", coordinates: { lat: 28.5556, lng: 33.9761 }, images: ["https://www.tripsinegypt.com/wp-content/uploads/2018/08/St.-Catherine-Monastery-Egypt-Trips-In-Egypt.jpg"], day: 3 },
-      { name: "رحلة سفاري", coordinates: { lat: 27.9362, lng: 34.3757 }, images: ["https://sharm-club.com/files/thingstodo/safari2.jpg"], day: 4 },
+      { 
+        name: "خليج نعمة", 
+        coordinates: { lat: 27.9158, lng: 34.3300 }, 
+        images: ["https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&h=600&fit=crop"],
+        day: 1 
+      },
+      { 
+        name: "محمية رأس محمد", 
+        coordinates: { lat: 27.7236, lng: 34.2491 }, 
+        images: ["https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=800&h=600&fit=crop"],
+        day: 2 
+      },
+      { 
+        name: "رحلة سفاري", 
+        coordinates: { lat: 27.9362, lng: 34.3757 }, 
+        images: ["https://images.unsplash.com/photo-1504851149312-7a075b496cc7?w=800&h=600&fit=crop"],
+        day: 4 
+      },
     ],
     days: [
       { title: "اليوم الأول", activities: [0] },
@@ -303,7 +394,6 @@ export const egyptTrips: Trip[] = [
       { title: "اليوم الرابع", activities: [3] }
     ],
     foodAndRestaurants: [
-      { name: "مطعم فارس", image: "https://media-cdn.tripadvisor.com/media/photo-s/06/bd/c2/20/farsha-cafe.jpg", rating: 4.6, description: "مطعم مأكولات بحرية وشاطئية فخم في شرم الشيخ." }
     ],
     comments: [
       { id: "c10", author: "طارق مصطفى", content: "محمية رأس محمد من أجمل الأماكن", date: "منذ ساعة", likes: 18 },
@@ -318,7 +408,7 @@ export const egyptTrips: Trip[] = [
     city: "الواحات البحرية",
     duration: "٣ أيام",
     rating: 4.5,
-    image: "https://images.unsplash.com/photo-1509023464722-18d996393ca8?w=800&h=600&fit=crop",
+    image: "https://upload.wikimedia.org/wikipedia/commons/a/a9/BahriyaSaltLake.jpg",
     author: "يوسف المغامر",
     authorFollowers: 1890,
     likes: 156,
@@ -328,10 +418,24 @@ export const egyptTrips: Trip[] = [
     description: "رحلة صحراوية فريدة مع ينابيع ساخنة وجبال خلابة",
     budget: "2200 جنيه",
     activities: [
-      { name: "الصحراء البيضاء", coordinates: { lat: 27.3800, lng: 28.0800 }, images: ["https://egyptimages.co.uk/wp-content/gallery/white-desert/white-desert-camping-egypt-19.jpg"], day: 1 },
-      { name: "الصحراء السوداء", coordinates: { lat: 27.6470, lng: 28.3485 }, images: ["https://www.egypttoursportal.com/images/2018/12/Black-Desert-Egypt-Tours-Portal.jpg"], day: 2 },
-      { name: "العيون الساخنة", coordinates: { lat: 27.6905, lng: 28.9570 }, images: ["https://www.egypttoday.com/siteimages/Larg/201902/c8d49c50-6337-4e50-800e-41e9ac998b52.jpg"], day: 2 },
-      { name: "التخييم", coordinates: { lat: 27.3905, lng: 28.3920 }, images: ["https://www.egyptoffbeattravel.com/wp-content/gallery/egypt-desert-camping/egypt-white-desert-camp-13.jpg"], day: 3 },
+      { 
+        name: "الصحراء البيضاء", 
+        coordinates: { lat: 27.3800, lng: 28.0800 }, 
+        images: ["https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=600&fit=crop"],
+        day: 1 
+      },
+      { 
+        name: "العيون الساخنة", 
+        coordinates: { lat: 27.6905, lng: 28.9570 }, 
+        images: ["https://images.unsplash.com/photo-1572252009286-268acec5ca0a?w=800&h=600&fit=crop"],
+        day: 2 
+      },
+      { 
+        name: "التخييم", 
+        coordinates: { lat: 27.3905, lng: 28.3920 }, 
+        images: ["https://images.unsplash.com/photo-1506929562872-bb421503ef21?w=800&h=600&fit=crop"],
+        day: 3 
+      },
     ],
     days: [
       { title: "اليوم الأول", activities: [0] },
@@ -339,7 +443,12 @@ export const egyptTrips: Trip[] = [
       { title: "اليوم الثالث", activities: [3] },
     ],
     foodAndRestaurants: [
-      { name: "مطعم الواحة", image: "https://media-cdn.tripadvisor.com/media/photo-s/04/ab/6b/18/restaurant.jpg", rating: 4.1, description: "أفضل مطعم محلي في الواحات البحرية يقدم أطباق البدو." }
+      { 
+        name: "مطعم الواحة", 
+        image: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&h=600&fit=crop",
+        rating: 4.1, 
+        description: "أفضل مطعم محلي في الواحات البحرية يقدم أطباق البدو." 
+      }
     ],
     comments: [
       { id: "c12", author: "عبدالرحمن علي", content: "الصحراء البيضاء تجربة فريدة!", date: "منذ ٦ أيام", likes: 4 }
@@ -353,7 +462,7 @@ export const egyptTrips: Trip[] = [
     city: "دهب",
     duration: "٤ أيام",
     rating: 4.7,
-    image: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&h=600&fit=crop",
+    image: "https://media-cdn.tripadvisor.com/media/photo-s/11/82/18/78/blue-hole.jpg",
     author: "نورا السياحة",
     authorFollowers: 2560,
     likes: 189,
@@ -363,10 +472,30 @@ export const egyptTrips: Trip[] = [
     description: "استرخ في أجواء بدوية هادئة مع أجمل مواقع الغوص",
     budget: "1800 جنيه",
     activities: [
-      { name: "Blue Hole", coordinates: { lat: 28.5721, lng: 34.5362 }, images: ["https://upload.wikimedia.org/wikipedia/commons/4/4b/Blue_Hole_%28Dahab%29_02.jpg"], day: 1 },
-      { name: "الكانيون", coordinates: { lat: 28.5772, lng: 34.5328 }, images: ["https://dynamic-media-cdn.tripadvisor.com/media/photo-o/0d/30/dc/46/canyon-dahab.jpg"], day: 2 },
-      { name: "جبل موسى", coordinates: { lat: 28.5394, lng: 33.9756 }, images: ["https://www.earthtrekkers.com/wp-content/uploads/2020/05/Mount-Sinai-Hike-Egypt.jpg"], day: 3 },
-      { name: "اليوغا على الشاطئ", coordinates: { lat: 28.5094, lng: 34.5089 }, images: ["https://www.memphistours.com/blog/content/images/wordpress/2019/02/yoga-retreat.jpg"], day: 4 },
+      { 
+        name: "Blue Hole", 
+        coordinates: { lat: 28.5721, lng: 34.5362 }, 
+        images: ["https://images.unsplash.com/photo-1568322445389-f64ac2515020?w=800&h=600&fit=crop"],
+        day: 1 
+      },
+      { 
+        name: "الكانيون", 
+        coordinates: { lat: 28.5772, lng: 34.5328 }, 
+        images: ["https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=800&h=600&fit=crop"],
+        day: 2 
+      },
+      { 
+        name: "جبل موسى", 
+        coordinates: { lat: 28.5394, lng: 33.9756 }, 
+        images: ["https://images.unsplash.com/photo-1504851149312-7a075b496cc7?w=800&h=600&fit=crop"],
+        day: 3 
+      },
+      { 
+        name: "اليوغا على الشاطئ", 
+        coordinates: { lat: 28.5094, lng: 34.5089 }, 
+        images: ["https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800&h=600&fit=crop"],
+        day: 4 
+      },
     ],
     days: [
       { title: "اليوم الأول", activities: [0] },
@@ -375,7 +504,7 @@ export const egyptTrips: Trip[] = [
       { title: "اليوم الرابع", activities: [3] },
     ],
     foodAndRestaurants: [
-      { name: "مطعم علي بابا", image: "https://media-cdn.tripadvisor.com/media/photo-s/04/e1/05/f1/photo0jpg.jpg", rating: 4.5, description: "من أفضل الأماكن لتجربة أكلات البحر الأحمر والمأكولات البدوية." }
+
     ],
     comments: [
       { id: "c13", author: "سلمى حسين", content: "دهب مكان مثالي للاسترخاء", date: "منذ ٣ أيام", likes: 14 },
@@ -388,32 +517,32 @@ export const egyptTrips: Trip[] = [
 export const travelTemplates = [
   {
     id: "t1",
-    title: "خطة رحلة ٣ أيام في الإسكندرية",
-    destination: "الإسكندرية",
-    duration: "٣ أيام",
-    budget: "1500 جنيه",
-    image: "https://images.unsplash.com/photo-1572252009286-268acec5ca0a?w=800&h=600&fit=crop",
-    uses: 45,
-    rating: 4.8
-  },
-  {
-    id: "t2",
-    title: "أسبوع كامل في الأقصر وأسوان",
-    destination: "الأقصر وأسوان",
-    duration: "٧ أيام",
-    budget: "5000 جنيه",
-    image: "https://images.unsplash.com/photo-1568322445389-f64ac2515020?w=800&h=600&fit=crop",
-    uses: 78,
-    rating: 4.9
-  },
-  {
-    id: "t3",
     title: "عطلة نهاية أسبوع في الغردقة",
     destination: "الغردقة",
     duration: "يومان",
     budget: "2000 جنيه",
-    image: "https://images.unsplash.com/photo-1583797227936-5bbe7b45a0b3?w=800&h=600&fit=crop",
+    image: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&h=600&fit=crop",
     uses: 92,
     rating: 4.7
+  },
+  {
+    id: "t2",
+    title: "غوص واستجمام في شرم الشيخ",
+    destination: "شرم الشيخ",
+    duration: "٥ أيام",
+    budget: "3500 جنيه",
+    image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&h=600&fit=crop",
+    uses: 88,
+    rating: 4.9
+  },
+  {
+    id: "t3",
+    title: "رحلة ثقافية في القاهرة",
+    destination: "القاهرة",
+    duration: "٤ أيام",
+    budget: "2800 جنيه",
+    image: "https://images.unsplash.com/photo-1572252009286-268acec5ca0a?w=800&h=600&fit=crop",
+    uses: 102,
+    rating: 4.8
   }
 ];

@@ -1,7 +1,8 @@
 import { useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
-import notFoundImage from "/src/assets/logo.png"; // 🖼️ Add a travel image here (place in /public/assets)
+// Using public assets path for proper deployment
+const notFoundImage = "/assets/logo.png";
 
 const NotFound = () => {
   const location = useLocation();

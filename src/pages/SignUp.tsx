@@ -1,6 +1,6 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import logo from "@/assets/logo.png";
+const logo = "/assets/logo.png";
 import { Link, Navigate } from "react-router-dom";
 import { SignUp } from "@clerk/clerk-react";
 import { SignedIn, SignedOut } from "@clerk/clerk-react";

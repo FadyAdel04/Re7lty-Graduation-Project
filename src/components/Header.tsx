@@ -3,7 +3,7 @@ import { Search, MapPin, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link, useNavigate } from "react-router-dom";
-import logo from "@/assets/logo.png";
+const logo = "/assets/logo.png";
 import { egyptTrips } from "@/lib/trips-data";
 import {
   Sheet,
