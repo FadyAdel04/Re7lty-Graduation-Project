@@ -1,112 +1,113 @@
-# Welcome to your Lovable project
+# 🌍 Re7lty – شارك رحلتك | Share Your Journey
 
-## Project info
+## 🧭 نظرة عامة (Overview)
 
-**URL**: https://lovable.dev/projects/ac753516-3aae-47be-a427-f2ca627a014b
+**Re7lty** هو موقع تفاعلي يربط بين عشاق السفر حول العالم، حيث يمكن للمستخدمين مشاركة رحلاتهم بالصور والفيديوهات وتفاصيل المسار على خريطة تفاعلية.  
+كما يمكنهم استكشاف رحلات الآخرين، تعديلها، ومقارنة الخطط، مما يجعل **Re7lty** مزيجًا بين **Social Media** و **Travel Recommendation System**.
 
-## How can I edit this code?
+---
 
-There are several ways of editing your application.
+## ✨ المميزات (Features)
 
-**Use Lovable**
+### 🧳 1. إنشاء رحلة جديدة (Create Trip)
+- إضافة الوجهة (Destination)
+- تحديد مدة الرحلة (Days)
+- كتابة تفاصيل كل يوم (Day 1, Day 2...)
+- تحديد الأماكن (مطاعم، متاحف، شواطئ...)
+- رفع صور وفيديوهات الرحلة  
+📍 يتم عرض كل موقع على الخريطة باستخدام **Marker تفاعلي**.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/ac753516-3aae-47be-a427-f2ca627a014b) and start prompting.
+---
 
-Changes made via Lovable will be committed automatically to this repo.
+### 🗺️ 2. عرض الرحلة على خريطة تفاعلية
+- خريطة تعرض مسار الرحلة من البداية للنهاية.
+- الضغط على أي نقطة يظهر تفاصيل المكان.
+- أنيميشن جميل لمسار الرحلة (Line Tracing Animation).
 
-**Use your preferred IDE**
+---
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### 🧠 3. AI Suggestion Assistant
+- الذكاء الاصطناعي يقترح رحلات بناءً على:
+  - الموقع الحالي 🗺️  
+  - عدد الأيام 🕒  
+  - الميزانية 💰  
+مثال: *“اقتراح رحلة 3 أيام في الإسكندرية تشمل المعالم + مطاعم بحرية.”*
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+---
 
-Follow these steps:
+### 💬 4. التفاعل الاجتماعي (Social Interaction)
+- إعجابات ❤️ وتعليقات 💬 على الرحلات.
+- متابعة المسافرين الآخرين 👥.
+- صفحة “Top Travelers” لعرض أكثر المسافرين نشاطًا وتميّزًا.
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+---
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### 🧭 5. صفحة الاستكشاف (Explore Page)
+- بحث عن الرحلات حسب:
+  - الدولة أو المدينة
+  - نوع الرحلة (مغامرة / استجمام / عائلية / رومانسية)
+  - الميزانية أو المدة
+- خريطة عالمية تفاعلية تحتوي على **نقاط رحلات المستخدمين (Clickable Pins)**.
+- فورم ذكي لتحديد نقطة البداية والنهاية والمدة والميزانية لتوليد ترشيحات مناسبة لك.
 
-# Step 3: Install the necessary dependencies.
-npm i
+---
 
-# Step 4: Set up Clerk authentication
-# Copy the example environment file and add your Clerk Publishable Key
-cp env.example .env
-# Edit .env and add your actual Clerk Publishable Key from https://dashboard.clerk.com
+### 🎞️ 6. قسم الذكريات (Travel Memories)
+- إنشاء فيديو تلقائي من صور الرحلة (Slideshow Generator).
+- إضافة موسيقى، نصوص، وعناوين.
+- تصدير الفيديو كـ **"Travel Memory Clip"**.
 
-# Step 5: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+---
 
-**Edit a file directly in GitHub**
+### 👤 7. صفحة المستخدم (User Profile)
+- عدد الرحلات المنشورة ✈️  
+- الدول التي زارها (مع خريطة صغيرة تظللها 🗺️)  
+- عدد المتابعين 👥  
+- مستوى المستخدم “Explorer Level” حسب نشاطه  
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+---
 
-**Use GitHub Codespaces**
+### 🗓️ 8. إضافات مميزة
+- **تقويم الرحلات** لكل مستخدم 📆  
+- **حساب الميزانية المتوقعة** 🧾  
+- **عرض الطقس المتوقع** أثناء الرحلة 🌦️  
+- **اقتراح وسائل المواصلات المحلية** 🚕  
+- **Story Mode** لعرض الرحلة في شكل Instagram Story 🎬  
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+---
 
-## What technologies are used for this project?
+## 🧩 التقنيات المستخدمة (Tech Stack)
 
-This project is built with:
+| الجزء | التقنية |
+|-------|-----------|
+| **الواجهة الأمامية (Frontend)** | React.js / Next.js + Tailwind CSS + Framer Motion |
+| **الخلفية (Backend)** | Node.js + Express |
+| **قاعدة البيانات (Database)** | MongoDB أو Firebase Firestore |
+| **الخرائط (Maps)** | Google Maps API أو Mapbox |
+| **رفع الوسائط (Uploads)** | Cloudinary أو Firebase Storage |
+| **تسجيل الدخول (Auth)** | Clerk أو Firebase Auth |
+| **الذكاء الاصطناعي (AI)** | OpenAI API أو Gemini API |
+| **الاستضافة (Hosting)** | Vercel (Frontend) + Render أو Railway (Backend) |
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-- Clerk (Authentication)
+---
 
-## Authentication Setup (Clerk)
+## 🌍 أماكن الرحلات في النسخة الأولى
+- مرسى مطروح  
+- الإسكندرية  
+- الساحل الشمالي  
+- الأقصر  
+- أسوان  
+- الغردقة  
+- شرم الشيخ  
 
-This project uses Clerk for authentication. To set up:
+---
 
-1. Create a free account at [https://clerk.com](https://clerk.com)
-2. Create a new application in your Clerk dashboard
-3. Copy your **Publishable Key** from the API Keys page
-4. Create a `.env` file in the root directory (copy from `env.example`)
-5. Add your Clerk Publishable Key to the `.env` file:
+## 🧠 فكرة المشروع (Why It’s Creative)
+Re7lty مش مجرد موقع لحجز أو مدونة سفر،  
+بل هو تجربة اجتماعية تفاعلية تجمع بين:
+- التكنولوجيا الحديثة  
+- الذكاء الاصطناعي  
+- الخرائط  
+- التفاعل البصري  
 
-```env
-VITE_CLERK_PUBLISHABLE_KEY=pk_test_your_actual_key_here
-```
-
-6. Configure your sign-in and sign-up methods in the Clerk dashboard
-7. Run `npm run dev` to start the application
-
-### Protected Routes
-
-The following routes are protected and require authentication:
-- `/trips/new` - Create a new trip (requires sign-in)
-
-### Authentication Pages
-
-- `/auth` or `/auth/sign-in` - Sign in page
-- `/auth/sign-up` - Sign up page
-
-Users can sign in or sign up using:
-- Email and password
-- OAuth providers (Google, GitHub, etc.) - Configure in Clerk dashboard
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/ac753516-3aae-47be-a427-f2ca627a014b) and click on Share -> Publish.
-
-**Note**: Make sure to add your Clerk Publishable Key as an environment variable in your deployment settings.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+---
