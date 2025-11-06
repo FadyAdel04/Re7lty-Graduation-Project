@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { requireAuthStrict } from "../utils/auth";
 import { Trip } from "../models/Trip";
+import { User } from "../models/User";
+import { clerkClient } from "../utils/auth";
 
 const router = Router();
 
@@ -30,6 +32,23 @@ router.get('/:id', async (req, res) => {
 router.post('/', requireAuthStrict, async (req, res) => {
   const userId = req.auth!.userId;
   const created = await Trip.create({ ...req.body, ownerId: userId });
+  // Upsert user and link trip
+  try {
+    const u = await clerkClient.users.getUser(userId!);
+    await User.findOneAndUpdate(
+      { clerkId: userId },
+      {
+        $setOnInsert: {
+          email: u.primaryEmailAddress?.emailAddress,
+          username: u.username,
+          fullName: u.fullName || u.firstName || u.username,
+          imageUrl: u.imageUrl,
+        },
+      },
+      { upsert: true }
+    );
+    await User.updateOne({ clerkId: userId }, { $addToSet: { trips: created._id } });
+  } catch {}
   res.status(201).json(created);
 });
 

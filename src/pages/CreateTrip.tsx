@@ -13,13 +13,15 @@ import TripMapEditor from "@/components/TripMapEditor";
 import { TripLocation } from "@/components/TripMapEditor";
 import LocationMediaManager from "@/components/LocationMediaManager";
 import { useToast } from "@/hooks/use-toast";
-import { useUser } from "@clerk/clerk-react";
+import { useUser, useAuth } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 import { Trip, TripActivity, TripDay, FoodPlace } from "@/lib/trips-data";
+import { createTrip } from "@/lib/api";
 
 const CreateTrip = () => {
   const { toast } = useToast();
   const { user } = useUser();
+  const { getToken } = useAuth();
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   
@@ -256,48 +258,45 @@ const CreateTrip = () => {
       };
     });
 
-    // Create the trip object
-    const newTrip: Trip = {
-      id: `trip_${Date.now()}`,
-      title: tripData.title,
-      destination: tripData.destination,
-      city: tripData.city || destinationMap[tripData.destination] || tripData.destination,
-      duration: tripData.duration,
-      rating: tripData.rating,
-      image: tripData.coverImageUrl || tripData.coverImage ? URL.createObjectURL(tripData.coverImage!) : "",
-      author: user?.fullName || user?.firstName || user?.username || "مستخدم",
-      authorFollowers: 0,
-      likes: 0,
-      weeklyLikes: 0,
-      saves: 0,
-      shares: 0,
-      description: tripData.description,
-      budget: tripData.budget,
-      activities: finalActivities,
-      days: days.map((day, idx) => ({
-        ...day,
-        activities: day.activities.filter(aIdx => aIdx < activities.length),
-      })),
-      foodAndRestaurants: foodPlaces.filter(fp => fp.name && fp.image),
-      comments: [],
-      postedAt: new Date().toISOString(),
-    };
+    try {
+      const token = await getToken();
+      const payload = {
+        title: tripData.title,
+        destination: tripData.destination,
+        city: tripData.city || destinationMap[tripData.destination] || tripData.destination,
+        duration: tripData.duration,
+        rating: tripData.rating,
+        image: tripData.coverImageUrl || "",
+        author: user?.fullName || user?.firstName || user?.username || "مستخدم",
+        description: tripData.description,
+        budget: tripData.budget,
+        activities: finalActivities,
+        days: days.map((day) => ({
+          ...day,
+          activities: day.activities.filter(aIdx => aIdx < activities.length),
+        })),
+        foodAndRestaurants: foodPlaces.filter(fp => fp.name && fp.image),
+      };
+      const created = await createTrip(payload as any, token || undefined);
+      toast({
+        title: "تم إنشاء الرحلة بنجاح!",
+        description: "تم نشر رحلتك",
+      });
+      localStorage.removeItem('tripDraft');
+      setTimeout(() => {
+        if (created?._id) {
+          navigate(`/trips/${created._id}`);
+        } else {
+          navigate(`/timeline`);
+        }
+      }, 800);
+      return;
+    } catch (err: any) {
+      toast({ title: "فشل إنشاء الرحلة", description: err?.message || "", variant: "destructive" });
+      return;
+    }
 
-    // In a real app, you would send this to your backend API
-    console.log("New Trip Created:", newTrip);
-
-    toast({
-      title: "تم إنشاء الرحلة بنجاح!",
-      description: "تمت إضافة رحلتك وسيتم نشرها قريباً",
-    });
-
-    // Clear localStorage
-    localStorage.removeItem('tripDraft');
-
-    // Navigate to the new trip detail page (in real app, use the returned ID)
-    setTimeout(() => {
-      navigate(`/trips/${newTrip.id}`);
-    }, 1500);
+    
   };
 
   const steps = [

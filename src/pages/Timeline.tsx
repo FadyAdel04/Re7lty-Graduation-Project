@@ -1,8 +1,8 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { egyptTrips } from "@/lib/trips-data";
+import { listTrips } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Heart, MessageCircle, Share2, Bookmark, MapPin, Star } from "lucide-react";
@@ -79,7 +79,22 @@ const Timeline = () => {
     lastTapRef.current[id] = now;
   };
 
-  const trips = [...egyptTrips].sort((a, b) => new Date(b.postedAt).getTime() - new Date(a.postedAt).getTime());
+  const [trips, setTrips] = useState<any[]>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const load = async () => {
+      try {
+        const data = await listTrips({ sort: 'recent', limit: 20, page: 1 });
+        if (isMounted) setTrips(data.items || []);
+      } catch (e) {
+        // ignore
+      }
+    };
+    load();
+    const id = setInterval(load, 10000);
+    return () => { isMounted = false; clearInterval(id); };
+  }, []);
 
   const toProfilePath = (author: string) => `/profile/${author.replace(/\s+/g, '-')}`;
 
@@ -94,13 +109,13 @@ const Timeline = () => {
             const isSaved = !!savedIds[trip.id];
             const likeCount = trip.likes + (isLiked ? 1 : 0);
             const thumbnails = [
-              ...trip.activities.flatMap((a) => a.images),
-              ...trip.foodAndRestaurants.map((f) => f.image),
+              ...((trip.activities || []).flatMap((a: any) => a.images || [])),
+              ...((trip.foodAndRestaurants || []).map((f: any) => f.image)),
             ].filter(Boolean).slice(0, 12);
-            const activeSrc = activeImageByTrip[trip.id] || trip.image;
+            const activeSrc = activeImageByTrip[trip._id || trip.id] || trip.image;
 
             return (
-              <Card key={trip.id} className="shadow-float">
+              <Card key={trip._id || trip.id} className="shadow-float">
                 <CardContent className="p-0">
                   {/* Header */}
                   <div className="flex items-center gap-3 p-3 sm:p-4">
@@ -127,9 +142,9 @@ const Timeline = () => {
                   </div>
 
                   {/* Main Image (double-click to like) */}
-                  <div className="relative select-none" onDoubleClick={() => handleDouble(trip.id)} onClick={() => handleDouble(trip.id)}>
+                  <div className="relative select-none" onDoubleClick={() => handleDouble(trip._id || trip.id)} onClick={() => handleDouble(trip._id || trip.id)}>
                     <img src={activeSrc} alt={trip.title} className="w-full aspect-video object-cover" />
-                    {showHeartByTrip[trip.id] && (
+                      {showHeartByTrip[trip._id || trip.id] && (
                       <div className="absolute inset-0 flex items-center justify-center">
                         <Heart className="h-16 w-16 text-red-500 fill-red-500 animate-ping" />
                       </div>
@@ -143,7 +158,7 @@ const Timeline = () => {
                         <button
                           key={idx}
                           className={`relative h-14 w-20 sm:h-16 sm:w-24 flex-shrink-0 overflow-hidden rounded-lg border snap-start ${activeSrc === src ? 'ring-2 ring-primary' : ''}`}
-                          onClick={() => setActiveImageByTrip((prev) => ({ ...prev, [trip.id]: src }))}
+                          onClick={() => setActiveImageByTrip((prev) => ({ ...prev, [trip._id || trip.id]: src }))}
                           aria-label={`عرض الصورة ${idx + 1}`}
                         >
                           <img src={src} alt={`${trip.title}-${idx + 1}`} className="h-full w-full object-cover" />
@@ -154,7 +169,7 @@ const Timeline = () => {
 
                   {/* Body */}
                   <div className="px-3 sm:px-4 pb-2 sm:pb-3 space-y-1.5 sm:space-y-2">
-                    <Link to={`/trips/${trip.id}`} className="block">
+                    <Link to={`/trips/${trip._id || trip.id}`} className="block">
                       <h2 className="text-lg sm:text-xl font-bold hover:underline leading-snug">{trip.title}</h2>
                     </Link>
                     <p className="text-sm text-muted-foreground leading-relaxed line-clamp-4 sm:line-clamp-none">
@@ -166,7 +181,7 @@ const Timeline = () => {
                   <div className="px-3 sm:px-4 pb-3 sm:pb-4 pt-1 sm:pt-2 flex flex-wrap items-center gap-2 justify-between text-sm">
                     <div className="flex items-center gap-1 sm:gap-3 flex-wrap">
                       <SignedIn>
-                      <Button variant="ghost" size="sm" className={`rounded-full px-2 sm:px-3 ${isLiked ? 'text-primary' : ''}`} onClick={() => handleLike(trip.id)}>
+                      <Button variant="ghost" size="sm" className={`rounded-full px-2 sm:px-3 ${isLiked ? 'text-primary' : ''}`} onClick={() => handleLike(trip._id || trip.id)}>
                         <Heart className={`h-4 w-4 ${isLiked ? 'fill-primary' : ''}`} />
                         <span className="ml-1 sm:ml-2">{likeCount}</span>
                       </Button>
@@ -188,7 +203,7 @@ const Timeline = () => {
                         </TooltipProvider>
                       </SignedOut>
                       
-                      <Button variant="ghost" size="sm" className="rounded-full px-2 sm:px-3" onClick={() => setOpenCommentsForTrip(trip.id)}>
+                      <Button variant="ghost" size="sm" className="rounded-full px-2 sm:px-3" onClick={() => setOpenCommentsForTrip(trip._id || trip.id)}>
                         <MessageCircle className="h-4 w-4" />
                         <span className="ml-1 sm:ml-2">{trip.comments.length}</span>
                       </Button>
@@ -221,7 +236,7 @@ const Timeline = () => {
                         </TooltipProvider>
                       </SignedOut>
                       
-                      <Link to={`/trips/${trip.id}`}>
+                      <Link to={`/trips/${trip._id || trip.id}`}>
                         <Button size="sm" className="rounded-full px-3">التفاصيل</Button>
                       </Link>
                     </div>
@@ -239,9 +254,8 @@ const Timeline = () => {
           <DialogHeader>
             <DialogTitle>التعليقات</DialogTitle>
           </DialogHeader>
-          {openCommentsForTrip && (
-            <TripComments comments={egyptTrips.find(t => t.id === openCommentsForTrip)?.comments || []} />
-          )}
+          {/* In dynamic mode, comments are not yet fetched; show empty for now */}
+          <TripComments comments={[]} />
         </DialogContent>
       </Dialog>
 
