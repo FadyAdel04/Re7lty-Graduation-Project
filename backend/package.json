@@ -5,13 +5,15 @@
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "seed": "ts-node-dev --transpile-only src/scripts/seed.ts"
   },
   "dependencies": {
+    "@clerk/clerk-sdk-node": "^5.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
-    "@clerk/clerk-sdk-node": "^5.0.0"
+    "mongoose": "^8.19.3"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
@@ -21,5 +23,3 @@
     "typescript": "^5.6.3"
   }
 }
-
-
