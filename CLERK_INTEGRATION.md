@@ -191,3 +191,4 @@ Current configuration in Auth.tsx applies custom styling:
 - ✅ No linting errors
 
 
+

@@ -210,20 +210,18 @@ export const egyptTrips: Trip[] = [
         name: "معبد حتشبسوت", 
         coordinates: { lat: 25.7376, lng: 32.6065 }, 
         images: ["https://images.unsplash.com/photo-1572252009286-268acec5ca0a?w=800&h=600&fit=crop"],
-        day: 3 
+        day: 1 
       },
       { 
         name: "جولة بالمنطاد", 
         coordinates: { lat: 25.7000, lng: 32.6500 }, 
         images: ["https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=600&fit=crop"],
-        day: 4 
+        day: 2 
       },
     ],
     days: [
       { title: "اليوم الأول", activities: [0] },
       { title: "اليوم الثاني", activities: [1] },
-      { title: "اليوم الثالث", activities: [2] },
-      { title: "اليوم الرابع", activities: [3] }
     ],
     foodAndRestaurants: [
     ],
@@ -384,14 +382,14 @@ export const egyptTrips: Trip[] = [
         name: "رحلة سفاري", 
         coordinates: { lat: 27.9362, lng: 34.3757 }, 
         images: ["https://images.unsplash.com/photo-1504851149312-7a075b496cc7?w=800&h=600&fit=crop"],
-        day: 4 
+        day: 3 
       },
     ],
     days: [
       { title: "اليوم الأول", activities: [0] },
       { title: "اليوم الثاني", activities: [1] },
       { title: "اليوم الثالث", activities: [2] },
-      { title: "اليوم الرابع", activities: [3] }
+
     ],
     foodAndRestaurants: [
     ],
@@ -440,7 +438,6 @@ export const egyptTrips: Trip[] = [
     days: [
       { title: "اليوم الأول", activities: [0] },
       { title: "اليوم الثاني", activities: [1,2] },
-      { title: "اليوم الثالث", activities: [3] },
     ],
     foodAndRestaurants: [
       { 
