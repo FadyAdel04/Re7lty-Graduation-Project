@@ -16,6 +16,12 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import TripSkeletonLoader from "@/components/TripSkeletonLoader";
+
+// Module-level cache for trips data (loaded once per session)
+let tripsCache: any[] | null = null;
+let isLoadingCache = false;
+let loadPromise: Promise<any[]> | null = null;
 
 function timeAgo(iso: string): string {
   const now = new Date();
@@ -79,21 +85,77 @@ const Timeline = () => {
     lastTapRef.current[id] = now;
   };
 
-  const [trips, setTrips] = useState<any[]>([]);
+  const [trips, setTrips] = useState<any[]>(tripsCache || []);
+  const [loading, setLoading] = useState(!tripsCache);
 
   useEffect(() => {
     let isMounted = true;
-    const load = async () => {
+    
+    const loadTrips = async () => {
+      // If already loading, wait for the existing promise
+      if (loadPromise) {
+        try {
+          const data = await loadPromise;
+          if (isMounted && data) {
+            setTrips(data);
+            setLoading(false);
+          }
+          return;
+        } catch (e) {
+          if (isMounted) setLoading(false);
+          return;
+        }
+      }
+      
+      // If cache exists, use it immediately
+      if (tripsCache) {
+        setTrips(tripsCache);
+        setLoading(false);
+        return;
+      }
+      
+      // If already loading, wait
+      if (isLoadingCache) {
+        return;
+      }
+      
+      // Start loading
+      isLoadingCache = true;
+      setLoading(true);
+      
+      loadPromise = (async () => {
+        try {
+          const data = await listTrips({ sort: 'recent', limit: 20, page: 1 });
+          const tripsData = data.items || [];
+          tripsCache = tripsData;
+          return tripsData;
+        } catch (e) {
+          console.error('Error loading trips:', e);
+          return [];
+        } finally {
+          isLoadingCache = false;
+          loadPromise = null;
+        }
+      })();
+      
       try {
-        const data = await listTrips({ sort: 'recent', limit: 20, page: 1 });
-        if (isMounted) setTrips(data.items || []);
+        const tripsData = await loadPromise;
+        if (isMounted) {
+          setTrips(tripsData);
+          setLoading(false);
+        }
       } catch (e) {
-        // ignore
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
-    load();
-    const id = setInterval(load, 10000);
-    return () => { isMounted = false; clearInterval(id); };
+    
+    loadTrips();
+    
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const toProfilePath = (trip: any) => {
@@ -106,8 +168,11 @@ const Timeline = () => {
       <Header />
       <main className="container mx-auto px-4 py-6 sm:py-8 max-w-4xl">
         <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">الرحلات التى تمت مشاركتها مؤخرا</h1>
-        <div className="space-y-4 sm:space-y-6">
-          {trips.map((trip) => {
+        {loading ? (
+          <TripSkeletonLoader count={3} variant="list" />
+        ) : (
+          <div className="space-y-4 sm:space-y-6">
+            {trips.map((trip) => {
             // Use _id (MongoDB) or id (static data) consistently
             const tripId = trip._id || trip.id;
             const isLiked = !!likedIds[tripId];
@@ -250,7 +315,8 @@ const Timeline = () => {
               </Card>
             );
           })}
-        </div>
+          </div>
+        )}
       </main>
 
       {/* Comments Dialog */}

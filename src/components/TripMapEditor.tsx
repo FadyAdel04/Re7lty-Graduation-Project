@@ -94,6 +94,30 @@ const cityCoordinates: Record<string, [number, number]> = {
   bahariya: [27.8751, 28.3481],
 };
 
+// City name mapping for search filtering
+const cityNameMap: Record<string, string> = {
+  alexandria: "الإسكندرية",
+  matrouh: "مرسى مطروح",
+  luxor: "الأقصر",
+  aswan: "أسوان",
+  hurghada: "الغردقة",
+  sharm: "شرم الشيخ",
+  dahab: "دهب",
+  bahariya: "الواحات البحرية",
+};
+
+// English city names for Nominatim API
+const cityNameEnMap: Record<string, string> = {
+  alexandria: "Alexandria",
+  matrouh: "Marsa Matruh",
+  luxor: "Luxor",
+  aswan: "Aswan",
+  hurghada: "Hurghada",
+  sharm: "Sharm El Sheikh",
+  dahab: "Dahab",
+  bahariya: "Bahariya Oasis",
+};
+
 const TripMapEditor = ({ locations, route, onLocationsChange, onRouteChange, destination }: TripMapEditorProps) => {
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
   const [isAddingManually, setIsAddingManually] = useState(false);
@@ -159,13 +183,44 @@ const TripMapEditor = ({ locations, route, onLocationsChange, onRouteChange, des
 
     setIsSearching(true);
     try {
+      // Build search query with city filter if destination is selected
+      let searchQuery = query.trim();
+      
+      if (destination && cityNameEnMap[destination]) {
+        // Add city name to search query to filter results
+        const cityName = cityNameEnMap[destination];
+        searchQuery = `${query}, ${cityName}, Egypt`;
+      }
+      
       // Using OpenStreetMap Nominatim geocoding API
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&accept-language=ar,en`
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=10&accept-language=ar,en&countrycodes=eg`
       );
       const data = await response.json();
       
-      const results: GeocodingResult[] = data.map((item: any) => ({
+      // Filter results to only include places within the selected city
+      let filteredData = data;
+      if (destination && cityNameEnMap[destination]) {
+        const cityName = cityNameEnMap[destination].toLowerCase();
+        const cityNameAr = cityNameMap[destination]?.toLowerCase() || '';
+        
+        filteredData = data.filter((item: any) => {
+          const displayName = item.display_name.toLowerCase();
+          // Check if the result contains the city name (in English or Arabic)
+          return displayName.includes(cityName) || 
+                 displayName.includes(cityNameAr) ||
+                 // Also check address components
+                 (item.address && (
+                   item.address.city?.toLowerCase().includes(cityName) ||
+                   item.address.town?.toLowerCase().includes(cityName) ||
+                   item.address.city?.toLowerCase().includes(cityNameAr) ||
+                   item.address.town?.toLowerCase().includes(cityNameAr)
+                 ));
+        });
+      }
+      
+      // Limit to 5 results after filtering
+      const results: GeocodingResult[] = filteredData.slice(0, 5).map((item: any) => ({
         place_name: item.display_name,
         center: [parseFloat(item.lat), parseFloat(item.lon)] as [number, number],
       }));
@@ -177,7 +232,7 @@ const TripMapEditor = ({ locations, route, onLocationsChange, onRouteChange, des
     } finally {
       setIsSearching(false);
     }
-  }, []);
+  }, [destination]);
 
   // Handle search input with debounce
   useEffect(() => {

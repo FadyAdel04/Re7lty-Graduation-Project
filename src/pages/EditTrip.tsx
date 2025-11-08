@@ -18,6 +18,7 @@ import { useUser, useAuth } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 import { TripActivity, TripDay, FoodPlace } from "@/lib/trips-data";
 import { getTrip, updateTrip } from "@/lib/api";
+import UploadProgressLoader from "@/components/UploadProgressLoader";
 
 const EditTrip = () => {
   const { id } = useParams<{ id: string }>();
@@ -28,6 +29,13 @@ const EditTrip = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState({
+    show: false,
+    total: 0,
+    completed: 0,
+    currentItem: "",
+    isProcessing: false,
+  });
   
   // Step 1: Basic Info
   const [tripData, setTripData] = useState({
@@ -358,6 +366,23 @@ const EditTrip = () => {
     }
 
     setIsSaving(true);
+    
+    // Calculate total items to process
+    const totalImages = locations.reduce((sum, loc) => sum + (loc.images || []).filter((img: any) => img instanceof File).length, 0);
+    const totalVideos = locations.reduce((sum, loc) => sum + (loc.videos || []).filter((vid: any) => vid instanceof File).length, 0);
+    const totalItems = totalImages + totalVideos;
+
+    // Show upload progress if there are files to process
+    if (totalItems > 0) {
+      setUploadProgress({
+        show: true,
+        total: totalItems,
+        completed: 0,
+        currentItem: "جاري تحضير الملفات...",
+        isProcessing: false,
+      });
+    }
+
     try {
       toast({
         title: "جاري حفظ التعديلات...",
@@ -365,6 +390,8 @@ const EditTrip = () => {
       });
 
       const coverImage = tripData.coverImageUrl || "";
+
+      let processedCount = 0;
 
       const finalActivities: TripActivity[] = await Promise.all(
         locations.map(async (location, index) => {
@@ -375,6 +402,12 @@ const EditTrip = () => {
               if (typeof img === 'string' && img.startsWith('data:image')) {
                 return img;
               } else if (img instanceof File) {
+                processedCount++;
+                setUploadProgress(prev => ({
+                  ...prev,
+                  completed: processedCount,
+                  currentItem: `جاري رفع الصورة: ${location.name || `موقع ${index + 1}`}`,
+                }));
                 return await fileToBase64(img);
               }
               return '';
@@ -386,6 +419,12 @@ const EditTrip = () => {
               if (typeof vid === 'string' && (vid.startsWith('data:video') || vid.startsWith('http'))) {
                 return vid;
               } else if (vid instanceof File) {
+                processedCount++;
+                setUploadProgress(prev => ({
+                  ...prev,
+                  completed: processedCount,
+                  currentItem: `جاري رفع الفيديو: ${location.name || `موقع ${index + 1}`}`,
+                }));
                 return await fileToBase64(vid);
               }
               return '';
@@ -419,6 +458,15 @@ const EditTrip = () => {
           })
       );
 
+      // Update progress to show processing
+      if (totalItems > 0) {
+        setUploadProgress(prev => ({
+          ...prev,
+          isProcessing: true,
+          currentItem: "جاري إرسال البيانات...",
+        }));
+      }
+
       const token = await getToken();
       const payload = {
         title: tripData.title,
@@ -438,6 +486,9 @@ const EditTrip = () => {
       };
 
       await updateTrip(id, payload as any, token || undefined);
+      
+      // Hide progress loader
+      setUploadProgress(prev => ({ ...prev, show: false }));
 
       toast({
         title: "تم التحديث",
@@ -454,6 +505,7 @@ const EditTrip = () => {
       });
     } finally {
       setIsSaving(false);
+      setUploadProgress(prev => ({ ...prev, show: false }));
     }
   };
 
@@ -479,6 +531,14 @@ const EditTrip = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {uploadProgress.show && (
+        <UploadProgressLoader
+          totalItems={uploadProgress.total}
+          completedItems={uploadProgress.completed}
+          currentItem={uploadProgress.currentItem}
+          isProcessing={uploadProgress.isProcessing}
+        />
+      )}
       <Header />
       
       <main className="py-12">

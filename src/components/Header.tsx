@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link, useNavigate } from "react-router-dom";
 const logo = "/assets/logo.png";
-import { egyptTrips } from "@/lib/trips-data";
+import { search } from "@/lib/api";
 import {
   Sheet,
   SheetContent,
@@ -28,11 +28,13 @@ const Header = ({ onSearch }: HeaderProps) => {
   const { user } = useUser();
   const [searchValue, setSearchValue] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
-  const [searchResults, setSearchResults] = useState(egyptTrips.slice(0, 5));
-  const [authorResults, setAuthorResults] = useState<string[]>([]);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [userResults, setUserResults] = useState<any[]>([]);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleUserButtonClick = () => {
     // Navigate to user profile with Clerk ID when clicking on UserButton avatar
@@ -41,37 +43,40 @@ const Header = ({ onSearch }: HeaderProps) => {
     }
   };
 
-  const handleSearch = (value: string) => {
+  const handleSearch = async (value: string) => {
     setSearchValue(value);
     onSearch?.(value);
 
-    if (value.trim()) {
-      const query = value.toLowerCase();
-      const results = egyptTrips
-        .filter(
-          (trip) =>
-            trip.title.toLowerCase().includes(query) ||
-            trip.destination.toLowerCase().includes(query) ||
-            trip.city.toLowerCase().includes(query)
-        )
-        .slice(0, 10);
-      setSearchResults(results);
-
-      // Authors results
-      const uniqueAuthors = Array.from(
-        new Set(egyptTrips.map((t) => t.author))
-      );
-      const authorMatches = uniqueAuthors
-        .filter((a) => a.toLowerCase().includes(query))
-        .slice(0, 10);
-      setAuthorResults(authorMatches);
-
-      setShowDropdown(true);
-    } else {
-      setSearchResults(egyptTrips.slice(0, 5));
-      setAuthorResults([]);
-      setShowDropdown(false);
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
     }
+
+    if (!value.trim()) {
+      setSearchResults([]);
+      setUserResults([]);
+      setShowDropdown(false);
+      setIsSearching(false);
+      return;
+    }
+
+    // Debounce search - wait 300ms after user stops typing
+    setIsSearching(true);
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        const results = await search(value, 10);
+        setSearchResults(results.trips || []);
+        setUserResults(results.users || []);
+        setShowDropdown(true);
+      } catch (error) {
+        console.error('Search error:', error);
+        // Fallback to empty results on error
+        setSearchResults([]);
+        setUserResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
   };
 
   const handleTripClick = (tripId: string) => {
@@ -81,8 +86,8 @@ const Header = ({ onSearch }: HeaderProps) => {
     setSearchValue("");
   };
 
-  const handleAuthorClick = (author: string) => {
-    navigate(`/profile/${author.replace(/\s+/g, "-")}`);
+  const handleUserClick = (clerkId: string) => {
+    navigate(`/user/${clerkId}`);
     setShowDropdown(false);
     setSearchOpen(false);
     setSearchValue("");
@@ -99,7 +104,12 @@ const Header = ({ onSearch }: HeaderProps) => {
     };
 
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
   }, []);
 
   return (
@@ -288,60 +298,86 @@ const Header = ({ onSearch }: HeaderProps) => {
               />
             </div>
 
-            {/* Authors */}
-            {authorResults.length > 0 && (
-              <div className="border border-border rounded-xl overflow-hidden">
-                <div className="px-3 py-2 text-xs font-bold text-muted-foreground">
-                  مسافرون
-                </div>
-                {authorResults.map((author) => (
-                  <button
-                    key={author}
-                    onClick={() => handleAuthorClick(author)}
-                    className="w-full flex items-center gap-3 p-3 hover:bg-secondary-light transition-colors text-right"
-                  >
-                    <div className="h-10 w-10 rounded-full bg-gradient-hero text-white font-bold flex items-center justify-center">
-                      {author.charAt(0)}
-                    </div>
-                    <div className="flex-1 min-w-0 text-right">
-                      <p className="font-bold text-sm truncate">{author}</p>
-                      <p className="text-xs text-muted-foreground">
-                        الملف الشخصي
-                      </p>
-                    </div>
-                  </button>
-                ))}
+            {/* Loading State */}
+            {isSearching && (
+              <div className="text-center py-8 text-muted-foreground">
+                <Search className="h-8 w-8 mx-auto mb-2 animate-pulse" />
+                <p>جاري البحث...</p>
               </div>
             )}
 
-            {/* Trips */}
-            <div className="max-h-80 overflow-auto border border-border rounded-xl">
-              {searchResults.length > 0 ? (
-                searchResults.map((trip) => (
-                  <button
-                    key={trip.id}
-                    onClick={() => handleTripClick(trip.id)}
-                    className="w-full flex items-center gap-3 p-3 hover:bg-secondary-light transition-colors text-right"
-                  >
-                    <img
-                      src={trip.image}
-                      alt={trip.title}
-                      className="w-14 h-14 rounded-lg object-cover flex-shrink-0"
-                    />
-                    <div className="flex-1 min-w-0 text-right">
-                      <p className="font-bold text-sm truncate">{trip.title}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {trip.destination} • {trip.city}
-                      </p>
-                    </div>
-                  </button>
-                ))
-              ) : (
-                <div className="p-6 text-center text-muted-foreground text-sm">
-                  لا توجد نتائج
+            {/* Users Results */}
+            {!isSearching && userResults.length > 0 && (
+              <div className="border border-border rounded-xl overflow-hidden">
+                <div className="bg-muted/50 px-4 py-2 border-b border-border">
+                  <h3 className="font-semibold text-sm">المسافرون</h3>
                 </div>
-              )}
-            </div>
+                <div className="max-h-60 overflow-y-auto">
+                  {userResults.map((user) => (
+                    <button
+                      key={user.clerkId}
+                      onClick={() => handleUserClick(user.clerkId)}
+                      className="w-full px-4 py-3 hover:bg-muted/50 transition-colors text-right flex items-center gap-3"
+                    >
+                      <div className="h-10 w-10 rounded-full bg-gradient-hero text-white font-bold flex items-center justify-center flex-shrink-0">
+                        {user.fullName?.charAt(0) || user.username?.charAt(0) || 'U'}
+                      </div>
+                      <div className="flex-1 min-w-0 text-right">
+                        <p className="font-semibold truncate">{user.fullName || user.username || 'مستخدم'}</p>
+                        {user.location && (
+                          <p className="text-xs text-muted-foreground truncate">{user.location}</p>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Trips Results */}
+            {!isSearching && searchResults.length > 0 && (
+              <div className="border border-border rounded-xl overflow-hidden">
+                <div className="bg-muted/50 px-4 py-2 border-b border-border">
+                  <h3 className="font-semibold text-sm">الرحلات</h3>
+                </div>
+                <div className="max-h-60 overflow-y-auto">
+                  {searchResults.map((trip) => {
+                    const tripId = String(trip._id || trip.id);
+                    return (
+                      <button
+                        key={tripId}
+                        onClick={() => handleTripClick(tripId)}
+                        className="w-full px-4 py-3 hover:bg-muted/50 transition-colors text-right flex items-center gap-3"
+                      >
+                        {trip.image && (
+                          <img
+                            src={trip.image}
+                            alt={trip.title}
+                            className="h-12 w-16 object-cover rounded-lg flex-shrink-0"
+                          />
+                        )}
+                        <div className="flex-1 min-w-0 text-right">
+                          <p className="font-semibold truncate">{trip.title}</p>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                            <MapPin className="h-3 w-3" />
+                            <span className="truncate">{trip.destination || trip.city}</span>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* No Results */}
+            {!isSearching && searchValue.trim() && searchResults.length === 0 && userResults.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p>لا توجد نتائج</p>
+              </div>
+            )}
+
           </div>
         </DialogContent>
       </Dialog>

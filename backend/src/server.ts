@@ -5,6 +5,7 @@ import { clerkMiddleware } from "@clerk/express";
 import tripsRouter from "./routes/trips";
 import profilesRouter from "./routes/profiles";
 import usersRouter from "./routes/users";
+import searchRouter from "./routes/search";
 import { connectToDatabase } from "./db";
 
 dotenv.config();
@@ -55,6 +56,7 @@ app.get('/api/health', async (_req, res) => {
 app.use('/api/trips', tripsRouter);
 app.use('/api/profiles', profilesRouter);
 app.use('/api/users', usersRouter);
+app.use('/api/search', searchRouter);
 
 app.use('/api', (req, res) => {
   res.status(404).json({ error: 'Not Found', path: req.path });

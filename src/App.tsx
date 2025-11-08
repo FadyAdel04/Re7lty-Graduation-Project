@@ -14,6 +14,11 @@ import UserProfile from "./pages/UserProfile";
 import Leaderboard from "./pages/Leaderboard";
 import NotFound from "./pages/NotFound";
 import Timeline from "./pages/Timeline";
+import Support from "./pages/Support";
+import Help from "./pages/Help";
+import Terms from "./pages/Terms";
+import Privacy from "./pages/Privacy";
+import Contact from "./pages/Contact";
 import TripAIChatWidget from "@/components/TripAIChatWidget";
 import ScrollToTop from "@/components/ScrollToTop";
 import { SignedIn, SignedOut, RedirectToSignIn } from "@clerk/clerk-react";
@@ -46,6 +51,12 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/auth/sign-in" element={<Auth />} />
           <Route path="/auth/sign-up" element={<SignUpPage />} />
+          {/* Support pages */}
+          <Route path="/support" element={<Support />} />
+          <Route path="/help" element={<Help />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/contact" element={<Contact />} />
           {/* User profile routes - all profiles use /user/:id format */}
           <Route path="/user/:id" element={<UserProfile />} />
           

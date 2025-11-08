@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { Facebook, Twitter, Instagram, Mail } from "lucide-react";
 const logo = "/assets/logo.png";
 
@@ -35,24 +36,24 @@ const Footer = () => {
             <h4 className="font-bold mb-4 text-foreground">روابط سريعة</h4>
             <ul className="space-y-3">
               <li>
-                <a href="/" className="text-muted-foreground hover:text-primary transition-colors">
+                <Link to="/" className="text-muted-foreground hover:text-primary transition-colors">
                   الرئيسية
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="/templates" className="text-muted-foreground hover:text-primary transition-colors">
+                <Link to="/templates" className="text-muted-foreground hover:text-primary transition-colors">
                   القوالب
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="/trips/new" className="text-muted-foreground hover:text-primary transition-colors">
+                <Link to="/trips/new" className="text-muted-foreground hover:text-primary transition-colors">
                   أنشئ رحلة
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="/auth" className="text-muted-foreground hover:text-primary transition-colors">
+                <Link to="/auth" className="text-muted-foreground hover:text-primary transition-colors">
                   تسجيل الدخول
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
@@ -62,24 +63,29 @@ const Footer = () => {
             <h4 className="font-bold mb-4 text-foreground">الدعم</h4>
             <ul className="space-y-3">
               <li>
-                <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
+                <Link to="/support" className="text-muted-foreground hover:text-primary transition-colors">
+                  الدعم
+                </Link>
+              </li>
+              <li>
+                <Link to="/help" className="text-muted-foreground hover:text-primary transition-colors">
                   مركز المساعدة
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
+                <Link to="/terms" className="text-muted-foreground hover:text-primary transition-colors">
                   الشروط والأحكام
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
+                <Link to="/privacy" className="text-muted-foreground hover:text-primary transition-colors">
                   سياسة الخصوصية
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
+                <Link to="/contact" className="text-muted-foreground hover:text-primary transition-colors">
                   اتصل بنا
-                </a>
+                </Link>
               </li>
             </ul>
           </div>

@@ -11,7 +11,19 @@ router.get('/', async (req, res) => {
   try {
     const { q, city, sort = 'recent', page = '1', limit = '20' } = req.query as any;
     const filter: any = {};
-    if (q) filter.title = { $regex: String(q), $options: 'i' };
+    
+    // Enhanced search - search in title, destination, city, description, and author
+    if (q) {
+      const searchQuery = String(q);
+      filter.$or = [
+        { title: { $regex: searchQuery, $options: 'i' } },
+        { destination: { $regex: searchQuery, $options: 'i' } },
+        { city: { $regex: searchQuery, $options: 'i' } },
+        { description: { $regex: searchQuery, $options: 'i' } },
+        { author: { $regex: searchQuery, $options: 'i' } },
+      ];
+    }
+    
     if (city) filter.city = String(city);
     const skip = (Number(page) - 1) * Number(limit);
     const sortObj = sort === 'likes' ? { likes: -1 } : { postedAt: -1 };

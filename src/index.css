@@ -179,4 +179,69 @@ All colors MUST be HSL.
   .leaflet-container .leaflet-pane {
     overflow: hidden !important;
   }
+
+  /* Travel Animation Keyframes */
+  @keyframes travel {
+    0%, 100% {
+      transform: translateX(0) scale(1);
+    }
+    25% {
+      transform: translateX(20px) scale(1.1);
+    }
+    50% {
+      transform: translateX(40px) scale(1);
+    }
+    75% {
+      transform: translateX(60px) scale(1.1);
+    }
+  }
+
+  @keyframes busTravel {
+    0% {
+      left: 10%;
+      transform: translateY(-50%) scale(1);
+    }
+    50% {
+      left: 50%;
+      transform: translateY(-50%) scale(1.1);
+    }
+    100% {
+      left: 80%;
+      transform: translateY(-50%) scale(1);
+    }
+  }
+
+  @keyframes roadMove {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  @keyframes move {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(300%);
+    }
+  }
+
+  /* Slide up animation */
+  @keyframes slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-slide-up {
+    animation: slide-up 0.5s ease-out;
+  }
 }

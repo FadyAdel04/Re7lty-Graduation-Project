@@ -22,7 +22,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { getUserTrips, getUserById, getUserTripsById } from "@/lib/api";
+import { getUserTrips, getUserById, getUserTripsById, updateUserProfile } from "@/lib/api";
+import TripSkeletonLoader from "@/components/TripSkeletonLoader";
 
 const UserProfile = () => {
   const { id } = useParams<{ id: string }>();
@@ -103,13 +104,27 @@ const UserProfile = () => {
     const fetchUserData = async () => {
       if (!id) return;
       
-      // If viewing own profile, use Clerk data
+      // If viewing own profile, load from database (which has latest data)
       if (isOwnProfile && clerkUser) {
-        setFullName(clerkUser.fullName || clerkUser.firstName || clerkUser.username || "");
-        setBio(clerkUser.publicMetadata?.bio as string || "");
-        setLocation(clerkUser.publicMetadata?.location as string || "");
-        setProfileImage(clerkUser.imageUrl || null);
-        setCoverImage(clerkUser.publicMetadata?.coverImage as string || "https://images.unsplash.com/photo-1539768942893-daf53e448371?w=1200&h=400&fit=crop");
+        setIsLoadingUser(true);
+        try {
+          const userData = await getUserById(clerkUser.id);
+          setFullName(userData.fullName || clerkUser.fullName || clerkUser.firstName || clerkUser.username || "");
+          setBio(userData.bio || (clerkUser.publicMetadata?.bio as string) || "");
+          setLocation(userData.location || (clerkUser.publicMetadata?.location as string) || "");
+          setProfileImage(userData.imageUrl || clerkUser.imageUrl || null);
+          setCoverImage(userData.coverImage || (clerkUser.publicMetadata?.coverImage as string) || null);
+        } catch (error) {
+          console.error("Error loading own profile from database:", error);
+          // Fallback to Clerk data
+          setFullName(clerkUser.fullName || clerkUser.firstName || clerkUser.username || "");
+          setBio(clerkUser.publicMetadata?.bio as string || "");
+          setLocation(clerkUser.publicMetadata?.location as string || "");
+          setProfileImage(clerkUser.imageUrl || null);
+          setCoverImage((clerkUser.publicMetadata?.coverImage as string) || null);
+        } finally {
+          setIsLoadingUser(false);
+        }
         return;
       }
       
@@ -123,7 +138,7 @@ const UserProfile = () => {
         setBio(userData.bio || "");
         setLocation(userData.location || "");
         setProfileImage(userData.imageUrl || null);
-        setCoverImage(userData.coverImage || "https://images.unsplash.com/photo-1539768942893-daf53e448371?w=1200&h=400&fit=crop");
+        setCoverImage(userData.coverImage || null);
       } catch (error: any) {
         console.error("Error fetching user data:", error);
         toast({
@@ -182,14 +197,19 @@ const UserProfile = () => {
     if (!clerkUser || !isOwnProfile) return;
 
     try {
-      // Update metadata in Clerk
-      await clerkUser.update({
-        unsafeMetadata: {
+      const token = await getToken();
+      
+      // Update profile in database (which also updates Clerk)
+      await updateUserProfile(
+        {
           bio,
           location,
-          coverImage,
+          coverImage: coverImage || undefined,
+          fullName: fullName || undefined,
+          imageUrl: profileImage || undefined,
         },
-      });
+        token || undefined
+      );
 
       toast({
         title: "نجح التحديث",
@@ -197,36 +217,175 @@ const UserProfile = () => {
       });
 
       setIsEditing(false);
-    } catch (error) {
+      
+      // Refresh user data from database (which has the latest saved data)
+      if (isOwnProfile && clerkUser) {
+        // Update local state with saved values immediately
+        setFullName(fullName);
+        setBio(bio);
+        setLocation(location);
+        if (profileImage) setProfileImage(profileImage);
+        if (coverImage) setCoverImage(coverImage);
+        
+        // Reload user data from API to get the latest from database
+        setTimeout(async () => {
+          try {
+            const updatedUser = await getUserById(clerkUser.id);
+            if (updatedUser) {
+              setFullName(updatedUser.fullName || fullName);
+              setBio(updatedUser.bio || bio);
+              setLocation(updatedUser.location || location);
+              setProfileImage(updatedUser.imageUrl || profileImage);
+              setCoverImage(updatedUser.coverImage || null);
+            }
+          } catch (error) {
+            console.error("Error refreshing user data:", error);
+          }
+        }, 500);
+      }
+    } catch (error: any) {
       console.error("Error updating profile:", error);
       toast({
         title: "خطأ",
-        description: "حدث خطأ أثناء تحديث الملف الشخصي",
+        description: error.message || "حدث خطأ أثناء تحديث الملف الشخصي",
         variant: "destructive",
       });
     }
   };
 
-  const handleProfileImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleProfileImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
+    if (!file || !clerkUser || !isOwnProfile) return;
+
+    try {
+      // Show loading state
+      toast({
+        title: "جاري رفع الصورة...",
+        description: "يرجى الانتظار",
+      });
+
+      // Convert file to base64
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfileImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      const base64Image = await new Promise<string>((resolve, reject) => {
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      // Update local state immediately for preview
+      setProfileImage(base64Image);
+
+      // Save to database
+      const token = await getToken();
+      await updateUserProfile(
+        {
+          imageUrl: base64Image,
+        },
+        token || undefined
+      );
+
+      toast({
+        title: "تم الحفظ",
+        description: "تم حفظ صورة الملف الشخصي بنجاح",
+      });
+
+      // Refresh user data from database
+      setTimeout(async () => {
+        try {
+          const updatedUser = await getUserById(clerkUser.id);
+          if (updatedUser && updatedUser.imageUrl) {
+            setProfileImage(updatedUser.imageUrl);
+          }
+        } catch (error) {
+          console.error("Error refreshing profile image:", error);
+        }
+      }, 500);
+    } catch (error: any) {
+      console.error("Error uploading profile image:", error);
+      toast({
+        title: "خطأ",
+        description: error.message || "فشل رفع صورة الملف الشخصي",
+        variant: "destructive",
+      });
+      // Revert to previous profile image on error
+      if (isOwnProfile && clerkUser) {
+        const userData = await getUserById(clerkUser.id).catch(() => null);
+        if (userData?.imageUrl) {
+          setProfileImage(userData.imageUrl);
+        } else {
+          setProfileImage(clerkUser.imageUrl || null);
+        }
+      }
     }
   };
 
-  const handleCoverImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCoverImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
+    if (!file || !clerkUser || !isOwnProfile) return;
+
+    try {
+      // Show loading state
+      toast({
+        title: "جاري رفع الصورة...",
+        description: "يرجى الانتظار",
+      });
+
+      // Convert file to base64
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setCoverImage(reader.result as string);
-        setIsEditingCover(false);
-      };
-      reader.readAsDataURL(file);
+      const base64Image = await new Promise<string>((resolve, reject) => {
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      // Update local state immediately for preview
+      setCoverImage(base64Image);
+
+      // Save to database
+      const token = await getToken();
+      await updateUserProfile(
+        {
+          coverImage: base64Image,
+        },
+        token || undefined
+      );
+
+      // Close dialog
+      setIsEditingCover(false);
+
+      toast({
+        title: "تم الحفظ",
+        description: "تم حفظ صورة الغلاف بنجاح",
+      });
+
+      // Refresh user data from database
+      setTimeout(async () => {
+        try {
+          const updatedUser = await getUserById(clerkUser.id);
+          if (updatedUser) {
+            // Always update coverImage from database, even if it's null
+            setCoverImage(updatedUser.coverImage || null);
+          }
+        } catch (error) {
+          console.error("Error refreshing cover image:", error);
+        }
+      }, 500);
+    } catch (error: any) {
+      console.error("Error uploading cover image:", error);
+      toast({
+        title: "خطأ",
+        description: error.message || "فشل رفع صورة الغلاف",
+        variant: "destructive",
+      });
+      // Revert to previous cover image on error
+      if (isOwnProfile && clerkUser) {
+        const userData = await getUserById(clerkUser.id).catch(() => null);
+        if (userData?.coverImage) {
+          setCoverImage(userData.coverImage);
+        } else {
+          setCoverImage((clerkUser.publicMetadata?.coverImage as string) || null);
+        }
+      }
     }
   };
 
@@ -270,13 +429,11 @@ const UserProfile = () => {
 
   if (isLoadingUser || (isOwnProfile && !isLoaded)) {
     return (
-      <div className="min-h-screen bg-background">
+      <>
         <Header />
-        <div className="container mx-auto px-4 py-20 text-center">
-          <p className="text-muted-foreground">جاري تحميل الملف الشخصي...</p>
-        </div>
+        <TripSkeletonLoader variant="detail" />
         <Footer />
-      </div>
+      </>
     );
   }
 
@@ -287,12 +444,18 @@ const UserProfile = () => {
       
       <main>
         {/* Cover Image */}
-        <div className="relative h-64 sm:h-80 lg:h-96 overflow-hidden group">
-          <img
-            src={coverImage || "https://images.unsplash.com/photo-1539768942893-daf53e448371?w=1200&h=400&fit=crop"}
-            alt="Cover"
-            className="w-full h-full object-cover"
-          />
+        <div className="relative h-64 sm:h-80 lg:h-96 overflow-hidden group bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-800 dark:to-gray-900">
+          {coverImage ? (
+            <img
+              src={coverImage}
+              alt="Cover"
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                // If the image fails to load, hide it
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
+            />
+          ) : null}
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
           
           {isOwnProfile && !isEditingCover && (
@@ -508,9 +671,7 @@ const UserProfile = () => {
 
             <TabsContent value="trips" className="mt-8">
               {isLoadingTrips ? (
-                <div className="text-center py-16">
-                  <p className="text-muted-foreground">جاري تحميل الرحلات...</p>
-                </div>
+                <TripSkeletonLoader count={3} variant="card" />
               ) : userTrips.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {userTrips.map((trip) => {

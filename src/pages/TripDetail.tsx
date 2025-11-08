@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Edit2, Trash2 } from "lucide-react";
 import { deleteTrip } from "@/lib/api";
+import TripSkeletonLoader from "@/components/TripSkeletonLoader";
 
 function FitBounds({ positions }: { positions: [number, number][] }) {
   const map = useMap();
@@ -230,15 +231,11 @@ const TripDetail = () => {
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
+      <>
         <Header />
-        <div className="container mx-auto px-4 py-20 text-center">
-          <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
-          <h1 className="text-2xl font-bold mb-2">جاري تحميل الرحلة...</h1>
-          <p className="text-muted-foreground">يرجى الانتظار</p>
-        </div>
+        <TripSkeletonLoader variant="detail" />
         <Footer />
-      </div>
+      </>
     );
   }
 

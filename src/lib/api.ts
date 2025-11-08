@@ -126,8 +126,26 @@ export async function updateUserProfile(
     if (res.status === 401) {
       throw new Error('Unauthorized');
     }
-    const errorText = await res.text();
-    throw new Error(errorText || 'Failed to update profile');
+    if (res.status === 422) {
+      let errorMessage = 'Invalid data provided';
+      try {
+        const errorData = await res.json();
+        errorMessage = errorData.message || errorData.error || errorMessage;
+      } catch {
+        const text = await res.text();
+        errorMessage = text || errorMessage;
+      }
+      throw new Error(errorMessage);
+    }
+    let errorMessage = 'Failed to update profile';
+    try {
+      const errorData = await res.json();
+      errorMessage = errorData.message || errorData.error || errorMessage;
+    } catch {
+      const text = await res.text();
+      errorMessage = text || errorMessage;
+    }
+    throw new Error(errorMessage);
   }
   return await res.json();
 }
@@ -163,6 +181,15 @@ export async function updateTrip(id: string, input: CreateTripInput, token?: str
     throw new Error(errorMessage);
   }
   
+  return await res.json();
+}
+
+export async function search(query: string, limit: number = 10) {
+  const res = await fetch(`${BASE}/api/search?q=${encodeURIComponent(query)}&limit=${limit}`);
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(errorText || 'Failed to search');
+  }
   return await res.json();
 }
 
