@@ -20,8 +20,8 @@ export interface TripLocation {
   coordinates: [number, number];
   name: string;
   description: string;
-  images: File[];
-  videos: File[];
+  images: (File | string)[];
+  videos: (File | string)[];
 }
 
 interface TripMapEditorProps {

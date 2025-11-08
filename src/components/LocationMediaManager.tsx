@@ -22,7 +22,7 @@ const LocationMediaManager = ({ locations, onLocationsChange }: LocationMediaMan
     onLocationsChange(
       locations.map(loc =>
         loc.id === locationId
-          ? { ...loc, images: [...loc.images, ...newImages] }
+          ? { ...loc, images: [...(loc.images || []), ...newImages] }
           : loc
       )
     );
@@ -35,7 +35,7 @@ const LocationMediaManager = ({ locations, onLocationsChange }: LocationMediaMan
     onLocationsChange(
       locations.map(loc =>
         loc.id === locationId
-          ? { ...loc, videos: [...loc.videos, ...newVideos] }
+          ? { ...loc, videos: [...(loc.videos || []), ...newVideos] }
           : loc
       )
     );
@@ -45,7 +45,7 @@ const LocationMediaManager = ({ locations, onLocationsChange }: LocationMediaMan
     onLocationsChange(
       locations.map(loc =>
         loc.id === locationId
-          ? { ...loc, images: loc.images.filter((_, i) => i !== imageIndex) }
+          ? { ...loc, images: (loc.images || []).filter((_, i) => i !== imageIndex) }
           : loc
       )
     );
@@ -55,7 +55,7 @@ const LocationMediaManager = ({ locations, onLocationsChange }: LocationMediaMan
     onLocationsChange(
       locations.map(loc =>
         loc.id === locationId
-          ? { ...loc, videos: loc.videos.filter((_, i) => i !== videoIndex) }
+          ? { ...loc, videos: (loc.videos || []).filter((_, i) => i !== videoIndex) }
           : loc
       )
     );
@@ -95,13 +95,13 @@ const LocationMediaManager = ({ locations, onLocationsChange }: LocationMediaMan
                 <span>{location.name || `موقع ${index + 1}`}</span>
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                {location.images.length > 0 && (
+                {location.images && location.images.length > 0 && (
                   <span className="flex items-center gap-1">
                     <ImageIcon className="h-4 w-4" />
                     {location.images.length}
                   </span>
                 )}
-                {location.videos.length > 0 && (
+                {location.videos && location.videos.length > 0 && (
                   <span className="flex items-center gap-1">
                     <Video className="h-4 w-4" />
                     {location.videos.length}
@@ -143,21 +143,26 @@ const LocationMediaManager = ({ locations, onLocationsChange }: LocationMediaMan
               <div className="space-y-2">
                 <Label>الصور</Label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {location.images.map((image, imgIndex) => (
-                    <div key={imgIndex} className="relative group aspect-square rounded-lg overflow-hidden bg-muted">
-                      <img
-                        src={URL.createObjectURL(image)}
-                        alt={`Upload ${imgIndex + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                      <button
-                        onClick={() => removeImage(location.id, imgIndex)}
-                        className="absolute top-2 right-2 bg-destructive text-destructive-foreground p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ))}
+                  {(location.images || []).map((image, imgIndex) => {
+                    const imageSrc = image instanceof File 
+                      ? URL.createObjectURL(image) 
+                      : (typeof image === 'string' ? image : '');
+                    return (
+                      <div key={imgIndex} className="relative group aspect-square rounded-lg overflow-hidden bg-muted">
+                        <img
+                          src={imageSrc}
+                          alt={`Upload ${imgIndex + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          onClick={() => removeImage(location.id, imgIndex)}
+                          className="absolute top-2 right-2 bg-destructive text-destructive-foreground p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    );
+                  })}
                   
                   <label className="aspect-square border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-primary transition-colors">
                     <ImageIcon className="h-8 w-8 text-muted-foreground mb-2" />
@@ -177,10 +182,10 @@ const LocationMediaManager = ({ locations, onLocationsChange }: LocationMediaMan
               <div className="space-y-2">
                 <Label>الفيديوهات (قصيرة)</Label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {location.videos.map((video, vidIndex) => (
+                  {(location.videos || []).map((video, vidIndex) => (
                     <div key={vidIndex} className="relative group aspect-video rounded-lg overflow-hidden bg-muted">
                       <video
-                        src={URL.createObjectURL(video)}
+                        src={video instanceof File ? URL.createObjectURL(video) : (typeof video === 'string' ? video : '')}
                         className="w-full h-full object-cover"
                         controls
                       />

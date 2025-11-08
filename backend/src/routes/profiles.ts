@@ -1,46 +1,64 @@
 import { Router } from "express";
-import { requireAuthStrict, clerkClient } from "../utils/auth";
+import { requireAuthStrict, getAuth, clerkClient } from "../utils/auth";
 import { Profile } from "../models/Profile";
 
 const router = Router();
 
 // Get current user's profile (requires auth)
 router.get('/me', requireAuthStrict, async (req, res) => {
-  const userId = req.auth!.userId!;
-  let profile = await Profile.findOne({ userId });
-  if (!profile) {
-    const user = await clerkClient.users.getUser(userId);
-    profile = await Profile.create({
-      userId,
-      username: user.username,
-      fullName: user.fullName || user.firstName || user.username,
-      bio: (user.publicMetadata as any)?.bio || null,
-      location: (user.publicMetadata as any)?.location || null,
-      imageUrl: user.imageUrl,
-      coverImage: (user.publicMetadata as any)?.coverImage || null,
-    });
+  try {
+    const { userId } = getAuth(req);
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    
+    let profile = await Profile.findOne({ userId });
+    if (!profile) {
+      const user = await clerkClient.users.getUser(userId);
+      profile = await Profile.create({
+        userId,
+        username: user.username,
+        fullName: user.fullName || user.firstName || user.username,
+        bio: (user.publicMetadata as any)?.bio || null,
+        location: (user.publicMetadata as any)?.location || null,
+        imageUrl: user.imageUrl,
+        coverImage: (user.publicMetadata as any)?.coverImage || null,
+      });
+    }
+    res.json(profile);
+  } catch (error: any) {
+    console.error('Error fetching profile:', error);
+    res.status(500).json({ error: 'Failed to fetch profile', message: error.message });
   }
-  res.json(profile);
 });
 
 // Update current user's profile (requires auth)
 router.patch('/me', requireAuthStrict, async (req, res) => {
-  const userId = req.auth!.userId!;
-  const { bio, location, coverImage, fullName } = req.body || {};
-  const updated = await Profile.findOneAndUpdate(
-    { userId },
-    { $set: { bio, location, coverImage, ...(fullName ? { fullName } : {}) } },
-    { new: true, upsert: true }
-  );
-  await clerkClient.users.updateUser(userId, {
-    publicMetadata: {
-      ...(bio !== undefined ? { bio } : {}),
-      ...(location !== undefined ? { location } : {}),
-      ...(coverImage !== undefined ? { coverImage } : {}),
-    },
-    ...(fullName ? { firstName: fullName } : {}),
-  } as any);
-  res.json(updated);
+  try {
+    const { userId } = getAuth(req);
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    
+    const { bio, location, coverImage, fullName } = req.body || {};
+    const updated = await Profile.findOneAndUpdate(
+      { userId },
+      { $set: { bio, location, coverImage, ...(fullName ? { fullName } : {}) } },
+      { new: true, upsert: true }
+    );
+    await clerkClient.users.updateUser(userId, {
+      publicMetadata: {
+        ...(bio !== undefined ? { bio } : {}),
+        ...(location !== undefined ? { location } : {}),
+        ...(coverImage !== undefined ? { coverImage } : {}),
+      },
+      ...(fullName ? { firstName: fullName } : {}),
+    } as any);
+    res.json(updated);
+  } catch (error: any) {
+    console.error('Error updating profile:', error);
+    res.status(500).json({ error: 'Failed to update profile', message: error.message });
+  }
 });
 
 // Public profile by username (fallback to Clerk if exists)

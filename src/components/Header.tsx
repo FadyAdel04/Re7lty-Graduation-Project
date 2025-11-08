@@ -18,13 +18,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/clerk-react";
+import { SignedIn, SignedOut, SignInButton, UserButton, useUser } from "@clerk/clerk-react";
 
 interface HeaderProps {
   onSearch?: (query: string) => void;
 }
 
 const Header = ({ onSearch }: HeaderProps) => {
+  const { user } = useUser();
   const [searchValue, setSearchValue] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
   const [searchResults, setSearchResults] = useState(egyptTrips.slice(0, 5));
@@ -34,8 +35,10 @@ const Header = ({ onSearch }: HeaderProps) => {
   const navigate = useNavigate();
 
   const handleUserButtonClick = () => {
-    // Navigate to user profile when clicking on UserButton avatar
-    navigate('/user');
+    // Navigate to user profile with Clerk ID when clicking on UserButton avatar
+    if (user?.id) {
+      navigate(`/user/${user.id}`);
+    }
   };
 
   const handleSearch = (value: string) => {
@@ -232,7 +235,9 @@ const Header = ({ onSearch }: HeaderProps) => {
                     <div 
                       className="w-full flex justify-center cursor-pointer" 
                       onClick={() => {
-                        navigate('/user');
+                        if (user?.id) {
+                          navigate(`/user/${user.id}`);
+                        }
                         // Close the mobile menu sheet by finding and clicking close button
                         const sheet = document.querySelector('[data-state="open"]');
                         if (sheet) {

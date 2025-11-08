@@ -6,10 +6,10 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import TripDetail from "./pages/TripDetail";
 import CreateTrip from "./pages/CreateTrip";
+import EditTrip from "./pages/EditTrip";
 import Templates from "./pages/Templates";
 import Auth from "./pages/Auth";
 import SignUpPage from "./pages/SignUp";
-import Profile from "./pages/Profile";
 import UserProfile from "./pages/UserProfile";
 import Leaderboard from "./pages/Leaderboard";
 import NotFound from "./pages/NotFound";
@@ -41,13 +41,13 @@ const App = () => (
           {/* Public Routes */}
           <Route path="/" element={<Index />} />
           <Route path="/timeline" element={<Timeline />} />
-          <Route path="/trips/:id" element={<TripDetail />} />
           <Route path="/templates" element={<Templates />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/auth/sign-in" element={<Auth />} />
           <Route path="/auth/sign-up" element={<SignUpPage />} />
-          <Route path="/profile/:username" element={<Profile />} />
+          {/* User profile routes - all profiles use /user/:id format */}
+          <Route path="/user/:id" element={<UserProfile />} />
           
           {/* Protected Routes */}
           <Route
@@ -59,13 +59,16 @@ const App = () => (
             }
           />
           <Route
-            path="/user"
+            path="/trips/edit/:id"
             element={
               <ProtectedRoute>
-                <UserProfile />
+                <EditTrip />
               </ProtectedRoute>
             }
           />
+          
+          {/* Trip detail route - must come after /trips/edit/:id to avoid conflicts */}
+          <Route path="/trips/:id" element={<TripDetail />} />
           
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

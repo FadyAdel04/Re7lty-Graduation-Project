@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { MapPin, Calendar, DollarSign, Image as ImageIcon, Plus, Trash2, ArrowRight, ArrowLeft, Check, Star, Utensils, Clock } from "lucide-react";
+import { useParams } from "react-router-dom";
+import { MapPin, Calendar, DollarSign, Image as ImageIcon, Plus, Trash2, ArrowRight, ArrowLeft, Check, Star, Utensils } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,15 +16,18 @@ import LocationMediaManager from "@/components/LocationMediaManager";
 import { useToast } from "@/hooks/use-toast";
 import { useUser, useAuth } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
-import { Trip, TripActivity, TripDay, FoodPlace } from "@/lib/trips-data";
-import { createTrip } from "@/lib/api";
+import { TripActivity, TripDay, FoodPlace } from "@/lib/trips-data";
+import { getTrip, updateTrip } from "@/lib/api";
 
-const CreateTrip = () => {
+const EditTrip = () => {
+  const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
   const { user } = useUser();
   const { getToken } = useAuth();
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   
   // Step 1: Basic Info
   const [tripData, setTripData] = useState({
@@ -61,58 +65,155 @@ const CreateTrip = () => {
     bahariya: "الواحات البحرية",
   };
 
-  // Load from localStorage on mount
-  useEffect(() => {
-    const savedData = localStorage.getItem('tripDraft');
-    if (savedData) {
-      try {
-        const parsed = JSON.parse(savedData);
-        setTripData(parsed.tripData || tripData);
-        setActivities(parsed.activities || []);
-        setLocations(parsed.locations || []);
-        setDays(parsed.days || []);
-        setFoodPlaces(parsed.foodPlaces || []);
-        setCurrentStep(parsed.currentStep || 1);
-      } catch (error) {
-        console.error('Failed to load draft:', error);
-      }
-    }
-  }, []);
+  // Reverse destination mapping (Arabic to English key)
+  const reverseDestinationMap: Record<string, string> = {
+    "الإسكندرية": "alexandria",
+    "مرسى مطروح": "matrouh",
+    "الأقصر": "luxor",
+    "أسوان": "aswan",
+    "الغردقة": "hurghada",
+    "شرم الشيخ": "sharm",
+    "دهب": "dahab",
+    "الواحات البحرية": "bahariya",
+  };
 
-  // Save to localStorage whenever data changes
+  // Load trip data on mount
   useEffect(() => {
-    const dataToSave = {
-      tripData: {
-        ...tripData,
-        coverImage: null, // Don't save file
-      },
-      activities,
-      locations,
-      days,
-      foodPlaces,
-      currentStep,
+    const loadTrip = async () => {
+      if (!id) {
+        toast({
+          title: "خطأ",
+          description: "معرف الرحلة غير موجود",
+          variant: "destructive",
+        });
+        navigate("/timeline");
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const trip = await getTrip(id);
+        
+        // Check ownership
+        if (trip.ownerId !== user?.id) {
+          toast({
+            title: "غير مصرح",
+            description: "يمكنك فقط تعديل رحلاتك الخاصة",
+            variant: "destructive",
+          });
+          navigate(`/trips/${id}`);
+          return;
+        }
+
+        // Populate trip data
+        const destinationKey = reverseDestinationMap[trip.destination] || trip.destination || "";
+        setTripData({
+          title: trip.title || "",
+          destination: destinationKey,
+          city: trip.city || trip.destination || "",
+          duration: trip.duration || "",
+          budget: trip.budget || "",
+          description: trip.description || "",
+          rating: trip.rating || 4.5,
+          coverImage: null,
+          coverImageUrl: trip.image || "",
+        });
+
+        // Populate activities and locations
+        if (trip.activities && trip.activities.length > 0) {
+          const loadedLocations: TripLocation[] = trip.activities.map((act: any, idx: number) => ({
+            id: act.id || `location-${idx}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            name: act.name || "",
+            description: act.description || "",
+            coordinates: Array.isArray(act.coordinates)
+              ? [act.coordinates.lat || act.coordinates[0] || 0, act.coordinates.lng || act.coordinates[1] || 0]
+              : [act.coordinates?.lat || 0, act.coordinates?.lng || 0],
+            images: Array.isArray(act.images) ? act.images : [],
+            videos: Array.isArray(act.videos) ? act.videos : [],
+          }));
+
+          setLocations(loadedLocations);
+        }
+
+        // Populate days
+        if (trip.days && trip.days.length > 0) {
+          const loadedDays: TripDay[] = trip.days.map((day: any, dayIdx: number) => {
+            // Map activity indices based on day assignments
+            const activityIndices: number[] = [];
+            trip.activities?.forEach((act: any, actIdx: number) => {
+              if (act.day === dayIdx + 1) {
+                activityIndices.push(actIdx);
+              }
+            });
+            return {
+              title: day.title || `اليوم ${dayIdx + 1}`,
+              activities: activityIndices,
+            };
+          });
+          setDays(loadedDays);
+        } else if (trip.activities && trip.activities.length > 0) {
+          // Auto-create days if none exist
+          const maxDay = Math.max(...trip.activities.map((act: any) => act.day || 1), 1);
+          const newDays: TripDay[] = [];
+          for (let i = 0; i < maxDay; i++) {
+            const activityIndices: number[] = [];
+            trip.activities.forEach((act: any, actIdx: number) => {
+              if (act.day === i + 1) {
+                activityIndices.push(actIdx);
+              }
+            });
+            newDays.push({
+              title: `اليوم ${i + 1}`,
+              activities: activityIndices,
+            });
+          }
+          setDays(newDays);
+        }
+
+        // Populate food places
+        if (trip.foodAndRestaurants && trip.foodAndRestaurants.length > 0) {
+          const loadedFoodPlaces: FoodPlace[] = trip.foodAndRestaurants.map((food: any) => ({
+            name: food.name || "",
+            image: food.image || "",
+            rating: food.rating || 4.0,
+            description: food.description || "",
+          }));
+          setFoodPlaces(loadedFoodPlaces);
+        }
+      } catch (error: any) {
+        console.error("Error loading trip:", error);
+        toast({
+          title: "خطأ",
+          description: error.message || "فشل تحميل الرحلة",
+          variant: "destructive",
+        });
+        navigate("/timeline");
+      } finally {
+        setLoading(false);
+      }
     };
-    localStorage.setItem('tripDraft', JSON.stringify(dataToSave));
-  }, [tripData, activities, locations, days, foodPlaces, currentStep]);
+
+    if (user && id) {
+      loadTrip();
+    }
+  }, [id, user, navigate, toast]);
 
   // Update activities when locations change
   useEffect(() => {
     const newActivities: TripActivity[] = locations.map((loc, idx) => {
-      // Convert File[] to preview URLs for display
-      // We'll convert to base64 on submit using the locations array
       const imageUrls: string[] = (loc.images || []).map((img) => {
-        if (typeof img === 'string') return img; // Already a URL/base64
-        if (img instanceof File) return URL.createObjectURL(img); // Create blob URL for preview
+        if (typeof img === 'string') return img;
+        if (img instanceof File) return URL.createObjectURL(img);
         return '';
       }).filter(Boolean);
       
       return {
         name: loc.name || `موقع ${idx + 1}`,
-        images: imageUrls, // Preview URLs for display
+        images: imageUrls,
         coordinates: Array.isArray(loc.coordinates) 
           ? { lat: loc.coordinates[0], lng: loc.coordinates[1] }
           : (loc.coordinates || { lat: 0, lng: 0 }),
-        day: 1, // Default day, will be organized in step 3
+        day: 1,
       };
     });
     setActivities(newActivities);
@@ -190,7 +291,6 @@ const CreateTrip = () => {
         });
         return;
       }
-      // Auto-set city from destination
       const city = destinationMap[tripData.destination] || tripData.destination;
       setTripData({ ...tripData, city });
     } else if (currentStep === 2) {
@@ -202,7 +302,6 @@ const CreateTrip = () => {
         });
         return;
       }
-      // Auto-create days if none exist
       if (days.length === 0) {
         const numDays = Math.ceil(locations.length / 3) || 1;
         const newDays: TripDay[] = [];
@@ -212,7 +311,6 @@ const CreateTrip = () => {
         setDays(newDays);
       }
     } else if (currentStep === 3) {
-      // Validate that each activity is assigned to at least one day
       const allAssignedActivities = new Set(days.flatMap(d => d.activities));
       if (allAssignedActivities.size < activities.length) {
         toast({
@@ -229,7 +327,6 @@ const CreateTrip = () => {
     setCurrentStep(currentStep - 1);
   };
 
-  // Helper function to convert File to base64
   const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -240,7 +337,8 @@ const CreateTrip = () => {
   };
 
   const handleSubmit = async () => {
-    // Validate all data
+    if (!id) return;
+
     if (!tripData.title || !tripData.destination || !tripData.duration || !tripData.budget || !tripData.description) {
       toast({
         title: "معلومات ناقصة",
@@ -259,54 +357,45 @@ const CreateTrip = () => {
       return;
     }
 
+    setIsSaving(true);
     try {
-      // Show loading toast
       toast({
-        title: "جاري إنشاء الرحلة...",
-        description: "يرجى الانتظار بينما نقوم بتحميل الصور",
+        title: "جاري حفظ التعديلات...",
+        description: "يرجى الانتظار",
       });
 
-      // Convert all images to base64 before sending
-      // Convert cover image (already base64, but ensure it's valid)
       const coverImage = tripData.coverImageUrl || "";
 
-      // Convert activity images from locations (File objects) to base64
-      // Activities are created from locations, so we can directly use locations array
       const finalActivities: TripActivity[] = await Promise.all(
         locations.map(async (location, index) => {
-          // Find which day(s) this activity belongs to (activities[index] corresponds to locations[index])
           const dayIndex = days.findIndex(d => d.activities.includes(index));
           
-          // Convert location images (File objects) to base64
           const base64Images = await Promise.all(
-            (location.images || []).map(async (img) => {
+            (location.images || []).map(async (img: string | File) => {
               if (typeof img === 'string' && img.startsWith('data:image')) {
-                return img; // Already base64
+                return img;
               } else if (img instanceof File) {
-                // Convert File to base64
                 return await fileToBase64(img);
               }
-              return ''; // Skip invalid images
+              return '';
             })
           );
 
-          // Convert location videos (File objects) to base64
           const base64Videos = await Promise.all(
-            (location.videos || []).map(async (vid) => {
+            (location.videos || []).map(async (vid: string | File) => {
               if (typeof vid === 'string' && (vid.startsWith('data:video') || vid.startsWith('http'))) {
-                return vid; // Already base64 or URL
+                return vid;
               } else if (vid instanceof File) {
-                // Convert File to base64
                 return await fileToBase64(vid);
               }
-              return ''; // Skip invalid videos
+              return '';
             })
           );
 
           return {
             name: location.name || `موقع ${index + 1}`,
-            images: base64Images.filter(img => img), // Remove empty strings
-            videos: base64Videos.filter(vid => vid), // Remove empty strings
+            images: base64Images.filter(img => img),
+            videos: base64Videos.filter(vid => vid),
             coordinates: Array.isArray(location.coordinates) 
               ? { lat: location.coordinates[0], lng: location.coordinates[1] }
               : (location.coordinates || { lat: 0, lng: 0 }),
@@ -315,18 +404,13 @@ const CreateTrip = () => {
         })
       );
 
-      // Convert food place images to base64
       const foodPlacesWithBase64 = await Promise.all(
         foodPlaces
           .filter(fp => fp.name && fp.image)
           .map(async (fp) => {
-            let imageBase64 = fp.image;
-            // If it's a blob URL, we need to get the file
-            // For now, if it's already base64, use it; otherwise skip
+            let imageBase64 = String(fp.image || '');
             if (!imageBase64.startsWith('data:image')) {
-              // Try to find the file in the food places
-              // This might need adjustment based on how food images are stored
-              imageBase64 = ''; // Skip invalid images
+              imageBase64 = '';
             }
             return {
               ...fp,
@@ -343,7 +427,6 @@ const CreateTrip = () => {
         duration: tripData.duration,
         rating: tripData.rating,
         image: coverImage,
-        author: user?.fullName || user?.firstName || user?.username || "مستخدم",
         description: tripData.description,
         budget: tripData.budget,
         activities: finalActivities,
@@ -351,29 +434,27 @@ const CreateTrip = () => {
           ...day,
           activities: day.activities.filter(aIdx => aIdx < activities.length),
         })),
-        foodAndRestaurants: foodPlacesWithBase64.filter(fp => fp.image), // Only include places with valid images
+        foodAndRestaurants: foodPlacesWithBase64.filter(fp => fp.image),
       };
-      
-      const created = await createTrip(payload as any, token || undefined);
-      toast({
-        title: "تم إنشاء الرحلة بنجاح!",
-        description: "تم نشر رحلتك",
-      });
-      localStorage.removeItem('tripDraft');
-      setTimeout(() => {
-        if (created?._id) {
-          navigate(`/trips/${created._id}`);
-        } else {
-          navigate(`/timeline`);
-        }
-      }, 800);
-      return;
-    } catch (err: any) {
-      toast({ title: "فشل إنشاء الرحلة", description: err?.message || "", variant: "destructive" });
-      return;
-    }
 
-    
+      await updateTrip(id, payload as any, token || undefined);
+
+      toast({
+        title: "تم التحديث",
+        description: "تم تحديث الرحلة بنجاح",
+      });
+
+      navigate(`/trips/${id}`);
+    } catch (error: any) {
+      console.error("Error updating trip:", error);
+      toast({
+        title: "خطأ",
+        description: error.message || "فشل تحديث الرحلة",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const steps = [
@@ -384,6 +465,18 @@ const CreateTrip = () => {
     { number: 5, title: "المراجعة النهائية" },
   ];
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="container mx-auto px-4 py-20 text-center">
+          <p className="text-muted-foreground">جاري تحميل الرحلة...</p>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -393,10 +486,10 @@ const CreateTrip = () => {
           {/* Header */}
           <div className="text-center mb-12 animate-slide-up">
             <h1 className="text-4xl font-bold mb-4">
-              أنشئ <span className="text-gradient">رحلتك</span>
+              تعديل <span className="text-gradient">رحلتك</span>
             </h1>
             <p className="text-muted-foreground text-lg">
-              شارك تجربة سفرك مع مجتمع المسافرين
+              قم بتحديث معلومات رحلتك
             </p>
           </div>
 
@@ -569,8 +662,8 @@ const CreateTrip = () => {
                 </div>
 
                 <div className="flex gap-4 pt-6">
-                  <Button variant="outline" className="flex-1">
-                    حفظ كمسودة
+                  <Button variant="outline" className="flex-1" onClick={() => navigate(`/trips/${id}`)}>
+                    إلغاء
                   </Button>
                   <Button className="flex-1" onClick={nextStep}>
                     التالي: الأنشطة والمواقع
@@ -591,7 +684,6 @@ const CreateTrip = () => {
                 </p>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Map Editor */}
                 <div>
                   <h3 className="text-lg font-semibold mb-4">الخريطة التفاعلية</h3>
                   <TripMapEditor
@@ -603,7 +695,6 @@ const CreateTrip = () => {
                   />
                 </div>
 
-                {/* Manual Location Addition */}
                 <div className="border-t pt-6">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold">إضافة موقع يدوياً</h3>
@@ -613,7 +704,6 @@ const CreateTrip = () => {
                   </div>
                 </div>
 
-                {/* Location Media Manager - allows editing images for each location */}
                 {locations.length > 0 && (
                   <div className="border-t pt-6">
                     <h3 className="text-lg font-semibold mb-4">إدارة الصور للمواقع</h3>
@@ -632,7 +722,6 @@ const CreateTrip = () => {
                   </div>
                 )}
 
-                {/* Locations Summary */}
                 {locations.length > 0 && (
                   <div className="bg-muted/50 rounded-xl p-4">
                     <div className="flex items-center justify-between">
@@ -880,11 +969,10 @@ const CreateTrip = () => {
               <CardHeader>
                 <CardTitle>المراجعة النهائية</CardTitle>
                 <p className="text-sm text-muted-foreground mt-2">
-                  راجع معلومات رحلتك قبل النشر
+                  راجع معلومات رحلتك قبل الحفظ
                 </p>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Basic Info Review */}
                 <div className="space-y-4">
                   <h3 className="text-xl font-bold">المعلومات الأساسية</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -911,7 +999,6 @@ const CreateTrip = () => {
                   </div>
                 </div>
 
-                {/* Activities Review */}
                 <div className="space-y-4">
                   <h3 className="text-xl font-bold">الأنشطة ({activities.length})</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -926,7 +1013,6 @@ const CreateTrip = () => {
                   </div>
                 </div>
 
-                {/* Days Review */}
                 <div className="space-y-4">
                   <h3 className="text-xl font-bold">الأيام ({days.length})</h3>
                   <div className="space-y-2">
@@ -941,7 +1027,6 @@ const CreateTrip = () => {
                   </div>
                 </div>
 
-                {/* Food Review */}
                 {foodPlaces.length > 0 && (
                   <div className="space-y-4">
                     <h3 className="text-xl font-bold">المطاعم ({foodPlaces.filter(fp => fp.name).length})</h3>
@@ -960,13 +1045,13 @@ const CreateTrip = () => {
                 )}
 
                 <div className="flex gap-4 pt-6">
-                  <Button variant="outline" className="flex-1" onClick={prevStep}>
+                  <Button variant="outline" className="flex-1" onClick={prevStep} disabled={isSaving}>
                     <ArrowRight className="h-4 w-4 ml-2" />
                     السابق
                   </Button>
-                  <Button className="flex-1" onClick={handleSubmit} size="lg">
+                  <Button className="flex-1" onClick={handleSubmit} size="lg" disabled={isSaving}>
                     <Check className="h-5 w-5 ml-2" />
-                    نشر الرحلة
+                    {isSaving ? "جاري الحفظ..." : "حفظ التعديلات"}
                   </Button>
                 </div>
               </CardContent>
@@ -980,4 +1065,4 @@ const CreateTrip = () => {
   );
 };
 
-export default CreateTrip;
+export default EditTrip;

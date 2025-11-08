@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import TripCard from "@/components/TripCard";
@@ -6,8 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, Calendar, Users, Heart, Settings, Camera, Edit2, Save, X, Image as ImageIcon, LogOut } from "lucide-react";
-import { egyptTrips } from "@/lib/trips-data";
+import { MapPin, Calendar, Users, Heart, Settings, Camera, Edit2, Save, X, LogOut } from "lucide-react";
 import { useUser, useAuth, useClerk } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -22,13 +22,31 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { getUserTrips, getUserById, getUserTripsById } from "@/lib/api";
 
 const UserProfile = () => {
+  const { id } = useParams<{ id: string }>();
   const { user: clerkUser, isLoaded } = useUser();
-  const { isSignedIn } = useAuth();
+  const { isSignedIn, getToken } = useAuth();
   const { signOut } = useClerk();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // ID is required - redirect if missing
+  useEffect(() => {
+    if (isLoaded && !id) {
+      if (isSignedIn && clerkUser?.id) {
+        // Redirect to own profile with Clerk ID
+        navigate(`/user/${clerkUser.id}`, { replace: true });
+      } else {
+        // Not signed in and no ID - redirect to auth
+        navigate("/auth", { replace: true });
+      }
+    }
+  }, [id, isLoaded, isSignedIn, clerkUser?.id, navigate]);
+
+  // Determine if viewing own profile
+  const isOwnProfile = clerkUser && id === clerkUser.id;
 
   // Local state for editable profile data
   const [isEditing, setIsEditing] = useState(false);
@@ -39,16 +57,25 @@ const UserProfile = () => {
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [coverImage, setCoverImage] = useState<string | null>(null);
 
-  // Stats (in real app, these would come from backend)
-  const [stats] = useState({
-    trips: 12,
+  // User data state (for viewing other users)
+  const [viewingUser, setViewingUser] = useState<any>(null);
+  const [isLoadingUser, setIsLoadingUser] = useState(false);
+
+  // User trips state
+  const [userTrips, setUserTrips] = useState<any[]>([]);
+  const [isLoadingTrips, setIsLoadingTrips] = useState(false);
+
+  // Stats
+  const [stats, setStats] = useState({
+    trips: 0,
     followers: 342,
     following: 128,
     likes: 1580
   });
 
+  // Redirect to auth if viewing own profile but not signed in
   useEffect(() => {
-    if (isLoaded && !isSignedIn) {
+    if (isLoaded && isOwnProfile && !isSignedIn) {
       toast({
         title: "غير مصرح",
         description: "يجب تسجيل الدخول لعرض ملفك الشخصي",
@@ -56,20 +83,103 @@ const UserProfile = () => {
       });
       navigate("/auth");
     }
-  }, [isSignedIn, isLoaded, navigate, toast]);
+  }, [isOwnProfile, isSignedIn, isLoaded, navigate, toast]);
 
+  // Early return if no ID (will be handled by redirect effect)
+  if (!id) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="container mx-auto px-4 py-20 text-center">
+          <p className="text-muted-foreground">جاري التحميل...</p>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Load user's data - either own profile (from Clerk) or other user's profile (from API)
   useEffect(() => {
-    if (clerkUser) {
-      setFullName(clerkUser.fullName || clerkUser.firstName || clerkUser.username || "");
-      setBio(clerkUser.publicMetadata?.bio as string || "");
-      setLocation(clerkUser.publicMetadata?.location as string || "");
-      setProfileImage(clerkUser.imageUrl || null);
-      setCoverImage(clerkUser.publicMetadata?.coverImage as string || "https://images.unsplash.com/photo-1539768942893-daf53e448371?w=1200&h=400&fit=crop");
-    }
-  }, [clerkUser]);
+    const fetchUserData = async () => {
+      if (!id) return;
+      
+      // If viewing own profile, use Clerk data
+      if (isOwnProfile && clerkUser) {
+        setFullName(clerkUser.fullName || clerkUser.firstName || clerkUser.username || "");
+        setBio(clerkUser.publicMetadata?.bio as string || "");
+        setLocation(clerkUser.publicMetadata?.location as string || "");
+        setProfileImage(clerkUser.imageUrl || null);
+        setCoverImage(clerkUser.publicMetadata?.coverImage as string || "https://images.unsplash.com/photo-1539768942893-daf53e448371?w=1200&h=400&fit=crop");
+        return;
+      }
+      
+      // Otherwise, fetch from API
+      
+      setIsLoadingUser(true);
+      try {
+        const userData = await getUserById(id);
+        setViewingUser(userData);
+        setFullName(userData.fullName || userData.username || "");
+        setBio(userData.bio || "");
+        setLocation(userData.location || "");
+        setProfileImage(userData.imageUrl || null);
+        setCoverImage(userData.coverImage || "https://images.unsplash.com/photo-1539768942893-daf53e448371?w=1200&h=400&fit=crop");
+      } catch (error: any) {
+        console.error("Error fetching user data:", error);
+        toast({
+          title: "خطأ",
+          description: "فشل تحميل بيانات المستخدم",
+          variant: "destructive",
+        });
+        navigate("/");
+      } finally {
+        setIsLoadingUser(false);
+      }
+    };
+
+    fetchUserData();
+  }, [id, isOwnProfile, clerkUser, navigate, toast]);
+
+  // Fetch user trips
+  useEffect(() => {
+    const fetchUserTrips = async () => {
+      if (!id) return;
+      
+      setIsLoadingTrips(true);
+      try {
+        let trips: any[] = [];
+        
+        if (isOwnProfile && isSignedIn) {
+          // Fetch own trips (requires auth)
+          const token = await getToken();
+          trips = await getUserTrips(token || undefined);
+        } else {
+          // Fetch other user's trips (public) or own trips if not signed in yet
+          trips = await getUserTripsById(id);
+        }
+        
+        setUserTrips(Array.isArray(trips) ? trips : []);
+        setStats(prev => ({ ...prev, trips: Array.isArray(trips) ? trips.length : 0 }));
+      } catch (error: any) {
+        console.error("Error fetching user trips:", error);
+        if (error.message !== 'Unauthorized') {
+          toast({
+            title: "خطأ",
+            description: "فشل تحميل الرحلات",
+            variant: "destructive",
+          });
+        }
+        setUserTrips([]);
+      } finally {
+        setIsLoadingTrips(false);
+      }
+    };
+
+    fetchUserTrips();
+  }, [id, isOwnProfile, isSignedIn, getToken, toast]);
 
   const handleSaveProfile = async () => {
-    if (!clerkUser) return;
+    if (!clerkUser || !isOwnProfile) return;
 
     try {
       // Update metadata in Clerk
@@ -81,20 +191,10 @@ const UserProfile = () => {
         },
       });
 
-      // Update image if changed
-      if (profileImage && profileImage !== clerkUser.imageUrl) {
-        // In a real app, you'd upload the image to your backend
-        // For now, we'll just update the display
-        toast({
-          title: "نجح التحديث",
-          description: "تم تحديث الملف الشخصي بنجاح",
-        });
-      } else {
-        toast({
-          title: "نجح التحديث",
-          description: "تم تحديث الملف الشخصي بنجاح",
-        });
-      }
+      toast({
+        title: "نجح التحديث",
+        description: "تم تحديث الملف الشخصي بنجاح",
+      });
 
       setIsEditing(false);
     } catch (error) {
@@ -131,7 +231,7 @@ const UserProfile = () => {
   };
 
   const handleCancelEdit = () => {
-    if (clerkUser) {
+    if (clerkUser && isOwnProfile) {
       setBio(clerkUser.publicMetadata?.bio as string || "");
       setLocation(clerkUser.publicMetadata?.location as string || "");
       setFullName(clerkUser.fullName || clerkUser.firstName || clerkUser.username || "");
@@ -158,24 +258,28 @@ const UserProfile = () => {
     }
   };
 
-  // Filter user's trips based on their name
-  const userTrips = egyptTrips.filter((trip) => 
-    clerkUser && (trip.author === clerkUser.fullName || trip.author === clerkUser.firstName || trip.author === clerkUser.username)
-  );
+  const getJoinDate = () => {
+    if (isOwnProfile && clerkUser?.createdAt) {
+      return new Date(clerkUser.createdAt).toLocaleDateString("ar-EG", { year: "numeric", month: "long" });
+    }
+    if (viewingUser?.createdAt) {
+      return new Date(viewingUser.createdAt).toLocaleDateString("ar-EG", { year: "numeric", month: "long" });
+    }
+    return "غير محدد";
+  };
 
-  if (!isLoaded) {
+  if (isLoadingUser || (isOwnProfile && !isLoaded)) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
         <div className="container mx-auto px-4 py-20 text-center">
-          <p className="text-muted-foreground">جاري التحميل...</p>
+          <p className="text-muted-foreground">جاري تحميل الملف الشخصي...</p>
         </div>
         <Footer />
       </div>
     );
   }
 
-  if (!clerkUser) return null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -191,7 +295,7 @@ const UserProfile = () => {
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
           
-          {!isEditingCover && (
+          {isOwnProfile && !isEditingCover && (
             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
               <Button
                 variant="secondary"
@@ -205,26 +309,28 @@ const UserProfile = () => {
           )}
 
           {/* Cover Image Dialog */}
-          <Dialog open={isEditingCover} onOpenChange={setIsEditingCover}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>تغيير صورة الغلاف</DialogTitle>
-                <DialogDescription>
-                  اختر صورة جديدة لصورة الغلاف
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <Label htmlFor="cover-upload">صورة الغلاف</Label>
-                <input
-                  id="cover-upload"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleCoverImageChange}
-                  className="w-full"
-                />
-              </div>
-            </DialogContent>
-          </Dialog>
+          {isOwnProfile && (
+            <Dialog open={isEditingCover} onOpenChange={setIsEditingCover}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>تغيير صورة الغلاف</DialogTitle>
+                  <DialogDescription>
+                    اختر صورة جديدة لصورة الغلاف
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <Label htmlFor="cover-upload">صورة الغلاف</Label>
+                  <input
+                    id="cover-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleCoverImageChange}
+                    className="w-full"
+                  />
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
 
         {/* Profile Info */}
@@ -234,11 +340,11 @@ const UserProfile = () => {
               <Avatar className="h-32 w-32 sm:h-40 sm:w-40 border-4 border-background shadow-lg">
                 <AvatarImage src={profileImage || undefined} />
                 <AvatarFallback className="text-4xl">
-                  {fullName.charAt(0) || clerkUser.firstName?.charAt(0) || "?"}
+                  {fullName.charAt(0) || "?"}
                 </AvatarFallback>
               </Avatar>
               
-              {isEditing && (
+              {isOwnProfile && isEditing && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
                   <label htmlFor="profile-upload" className="cursor-pointer">
                     <Camera className="h-8 w-8 text-white" />
@@ -270,22 +376,31 @@ const UserProfile = () => {
                       </div>
                       
                       <div className="flex gap-2">
-                        <Button 
-                          onClick={() => setIsEditing(true)}
-                          variant="outline"
-                          className="rounded-full"
-                        >
-                          <Edit2 className="h-4 w-4 ml-2" />
-                          تعديل الملف الشخصي
-                        </Button>
-                        <Button 
-                          onClick={handleSignOut}
-                          variant="destructive"
-                          className="rounded-full"
-                        >
-                          <LogOut className="h-4 w-4 ml-2" />
-                          تسجيل الخروج
-                        </Button>
+                        {isOwnProfile ? (
+                          <>
+                            <Button 
+                              onClick={() => setIsEditing(true)}
+                              variant="outline"
+                              className="rounded-full"
+                            >
+                              <Edit2 className="h-4 w-4 ml-2" />
+                              تعديل الملف الشخصي
+                            </Button>
+                            <Button 
+                              onClick={handleSignOut}
+                              variant="destructive"
+                              className="rounded-full"
+                            >
+                              <LogOut className="h-4 w-4 ml-2" />
+                              تسجيل الخروج
+                            </Button>
+                          </>
+                        ) : (
+                          <Button variant="default" className="rounded-full">
+                            <Users className="h-4 w-4 ml-2" />
+                            متابعة
+                          </Button>
+                        )}
                       </div>
                     </div>
                     
@@ -296,7 +411,7 @@ const UserProfile = () => {
                       </div>
                       <div className="flex items-center gap-1.5">
                         <Calendar className="h-4 w-4 text-secondary" />
-                        <span>انضم {new Date(clerkUser.createdAt!).toLocaleDateString("ar-EG", { year: "numeric", month: "long" })}</span>
+                        <span>انضم {getJoinDate()}</span>
                       </div>
                     </div>
                   </CardHeader>
@@ -392,20 +507,46 @@ const UserProfile = () => {
             </TabsList>
 
             <TabsContent value="trips" className="mt-8">
-              {userTrips.length > 0 ? (
+              {isLoadingTrips ? (
+                <div className="text-center py-16">
+                  <p className="text-muted-foreground">جاري تحميل الرحلات...</p>
+                </div>
+              ) : userTrips.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {userTrips.map((trip) => (
-                    <TripCard key={trip.id} {...trip} />
-                  ))}
+                  {userTrips.map((trip) => {
+                    const tripId = String(trip._id || trip.id);
+                    return (
+                      <TripCard 
+                        key={tripId} 
+                        id={tripId}
+                        title={trip.title}
+                        destination={trip.destination}
+                        duration={trip.duration}
+                        rating={trip.rating}
+                        image={trip.image}
+                        author={trip.author}
+                        likes={trip.likes || 0}
+                        ownerId={trip.ownerId}
+                      />
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="text-center py-16">
                   <Calendar className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">لا توجد رحلات بعد</h3>
-                  <p className="text-muted-foreground mb-4">ابدأ بمشاركة أول رحلة لك!</p>
-                  <Button onClick={() => navigate("/trips/new")}>
-                    أنشئ رحلة جديدة
-                  </Button>
+                  <h3 className="text-xl font-semibold mb-2">
+                    {isOwnProfile ? "لا توجد رحلات بعد" : "لا توجد رحلات لهذا المستخدم"}
+                  </h3>
+                  <p className="text-muted-foreground mb-4">
+                    {isOwnProfile 
+                      ? "ابدأ بمشاركة أول رحلة لك!" 
+                      : "لم يقم هذا العضو بمشاركة أي رحلات حتى الآن."}
+                  </p>
+                  {isOwnProfile && (
+                    <Button onClick={() => navigate("/trips/new")}>
+                      أنشئ رحلة جديدة
+                    </Button>
+                  )}
                 </div>
               )}
             </TabsContent>
@@ -435,5 +576,3 @@ const UserProfile = () => {
 };
 
 export default UserProfile;
-
-

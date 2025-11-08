@@ -11,6 +11,7 @@ const CommentSchema = new Schema({
 const ActivitySchema = new Schema({
   name: String,
   images: [String],
+  videos: [String],
   coordinates: { lat: Number, lng: Number },
   day: Number,
 }, { _id: false });

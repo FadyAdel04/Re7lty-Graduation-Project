@@ -5,8 +5,15 @@ const UserSchema = new Schema({
   email: String,
   username: String,
   fullName: String,
-  imageUrl: String,
+  imageUrl: String, // Profile picture
+  bio: String, // User bio/description
+  location: String, // User location (city, country)
+  coverImage: String, // Background/cover image URL
   trips: [{ type: Schema.Types.ObjectId, ref: 'Trip' }],
+  // Stats (can be calculated or stored)
+  followers: { type: Number, default: 0 },
+  following: { type: Number, default: 0 },
+  totalLikes: { type: Number, default: 0 }, // Total likes on all trips
 }, { timestamps: true });
 
 export type UserDocument = mongoose.InferSchemaType<typeof UserSchema> & mongoose.Document;

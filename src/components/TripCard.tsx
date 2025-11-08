@@ -15,10 +15,14 @@ interface TripCardProps {
   image: string;
   author: string;
   likes: number;
+  ownerId?: string; // Clerk user ID for profile linking
 }
 
-const TripCard = ({ id, title, destination, duration, rating, image, author, likes }: TripCardProps) => {
+const TripCard = ({ id, title, destination, duration, rating, image, author, likes, ownerId }: TripCardProps) => {
   const [isLiked, setIsLiked] = useState(false);
+  
+  // Use ownerId for profile link if available, otherwise fallback to author name (for backward compatibility)
+  const profileLink = ownerId ? `/user/${ownerId}` : `/profile/${author.replace(/\s+/g, "-")}`;
 
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 group border-border/50">
@@ -69,7 +73,7 @@ const TripCard = ({ id, title, destination, duration, rating, image, author, lik
       <CardContent className="px-5 pb-5 pt-0">
         <div className="flex items-center justify-between pt-3 border-t border-border/50">
           <Link 
-            to={`/profile/${author}`} 
+            to={profileLink} 
             className="flex items-center gap-2 hover:opacity-80 transition-opacity"
             onClick={(e) => e.stopPropagation()}
           >
