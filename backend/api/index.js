@@ -1,13 +1,24 @@
-const path = require("path");
+const express = require("express");
+const cors = require("cors");
 
-function loadApp() {
-  const distPath = path.join(__dirname, "..", "dist", "app.js");
-  const exported = require(distPath);
-  return exported.default || exported.app || exported;
-}
+const app = express();
 
-const app = loadApp();
+app.use(cors({
+  origin: [
+    "https://re7lty-graduation-project.vercel.app",
+    "http://localhost:5000"
+  ],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+}));
+
+app.options("*", cors());
+
+app.use(express.json());
+
+// Example test route
+app.get("/api/test", (req, res) => {
+  res.json({ message: "API working!" });
+});
 
 module.exports = app;
-
-
