@@ -10,6 +10,7 @@ import usersRouter from "./routes/users";
 import searchRouter from "./routes/search";
 import notificationsRouter from "./routes/notifications";
 import { connectToDatabase } from "./db";
+import mongoose from "mongoose";
 
 dotenv.config();
 
@@ -31,15 +32,43 @@ const ensureUploadsDirectory = () => {
   return uploadsDir;
 };
 
-const initializeDatabase = () => {
+const initializeDatabase = async () => {
   if (!process.env.MONGODB_URI) {
     console.warn("⚠ MONGODB_URI not set - database features will not work");
     return;
   }
 
-  connectToDatabase(process.env.MONGODB_URI).catch((error) => {
+  try {
+    await connectToDatabase(process.env.MONGODB_URI);
+  } catch (error) {
     console.error("✗ Failed to connect to MongoDB:", error);
-  });
+  }
+};
+
+// Initialize database connection on app creation (for serverless compatibility)
+// In serverless environments, we want to connect eagerly but handle reconnection
+let dbConnectionPromise: Promise<void> | null = null;
+const ensureDatabaseConnection = async () => {
+  // If already connected, return immediately
+  if (mongoose.connection.readyState === 1) {
+    return;
+  }
+
+  // If connection is in progress, wait for it
+  if (dbConnectionPromise) {
+    await dbConnectionPromise;
+    return;
+  }
+
+  // Start new connection
+  if (process.env.MONGODB_URI) {
+    dbConnectionPromise = initializeDatabase().catch((error) => {
+      console.error("Database connection error:", error);
+      dbConnectionPromise = null; // Reset on error so we can retry
+      throw error;
+    });
+    await dbConnectionPromise;
+  }
 };
 
 export function createApp() {
@@ -80,11 +109,30 @@ export function createApp() {
 
   app.get("/api/health", async (_req, res) => {
     try {
-      await connectToDatabase(process.env.MONGODB_URI || "");
-      res.json({ status: "ok", service: "backend", db: "connected", timestamp: new Date().toISOString() });
-    } catch {
-      res.json({ status: "ok", service: "backend", db: "disconnected", timestamp: new Date().toISOString() });
+      // Ensure database connection
+      await ensureDatabaseConnection();
+      const isConnected = mongoose.connection.readyState === 1;
+      res.json({ 
+        status: "ok", 
+        service: "backend", 
+        db: isConnected ? "connected" : "disconnected", 
+        timestamp: new Date().toISOString() 
+      });
+    } catch (error: any) {
+      res.json({ 
+        status: "ok", 
+        service: "backend", 
+        db: "disconnected", 
+        error: error.message,
+        timestamp: new Date().toISOString() 
+      });
     }
+  });
+
+  // Ensure database connection before handling routes (for serverless)
+  app.use("/api", async (_req, _res, next) => {
+    await ensureDatabaseConnection();
+    next();
   });
 
   app.use("/api/trips", tripsRouter);
@@ -116,7 +164,11 @@ export function createApp() {
   return app;
 }
 
-initializeDatabase();
+// Only initialize database on module load (not in serverless)
+// In serverless, we'll connect on first request via ensureDatabaseConnection
+if (process.env.VERCEL !== "1" && !process.env.AWS_LAMBDA_FUNCTION_NAME) {
+  initializeDatabase();
+}
 
 const app = createApp();
 

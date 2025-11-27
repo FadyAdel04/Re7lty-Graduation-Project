@@ -13,3 +13,6 @@ FollowSchema.index({ followerId: 1, followingId: 1 }, { unique: true });
 export type FollowDocument = mongoose.InferSchemaType<typeof FollowSchema> & mongoose.Document;
 export const Follow = model<FollowDocument>("Follow", FollowSchema);
 
+
+
+
