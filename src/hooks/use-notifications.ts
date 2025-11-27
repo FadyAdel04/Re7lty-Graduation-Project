@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import { getNotifications, markNotificationRead, markAllNotificationsRead } from "@/lib/api";
+import { createPusherClient } from "@/lib/pusher-client";
 
-const API_BASE = import.meta.env.VITE_API_URL || "";
+const PUSHER_KEY = import.meta.env.VITE_PUSHER_KEY;
+const PUSHER_CLUSTER = import.meta.env.VITE_PUSHER_CLUSTER;
 
 export type NotificationItem = {
   id: string;
@@ -25,7 +27,6 @@ export function useNotifications() {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isStreaming, setIsStreaming] = useState(false);
-  const reconnectRef = useRef<NodeJS.Timeout | null>(null);
 
   const syncUnreadCount = useCallback((items: NotificationItem[]) => {
     const count = items.filter((item) => !item.isRead).length;
@@ -50,98 +51,41 @@ export function useNotifications() {
 
   useEffect(() => {
     refreshNotifications();
-    return () => {
-      if (reconnectRef.current) {
-        clearTimeout(reconnectRef.current);
-      }
-    };
   }, [refreshNotifications]);
 
   useEffect(() => {
-    if (!isSignedIn) return;
-    let abortController = new AbortController();
-    let reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
-    let isCancelled = false;
+    if (!isSignedIn || !user?.id) return;
+    if (!PUSHER_KEY || !PUSHER_CLUSTER) {
+      setIsStreaming(false);
+      return;
+    }
 
-    const connect = async () => {
-      try {
-        const token = await getToken();
-        const response = await fetch(`${API_BASE}/api/notifications/stream`, {
-          headers: {
-            Authorization: token ? `Bearer ${token}` : "",
-          },
-          signal: abortController.signal,
-          credentials: "include",
-        });
-        if (!response.ok || !response.body) {
-          throw new Error("Failed to connect to notification stream");
-        }
+    const client = createPusherClient(PUSHER_KEY, PUSHER_CLUSTER);
+    if (!client) {
+      setIsStreaming(false);
+      return;
+    }
 
-        setIsStreaming(true);
-        reader = response.body.getReader();
-        const decoder = new TextDecoder("utf-8");
-        let buffer = "";
-
-        while (!isCancelled) {
-          const { value, done } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          let boundary = buffer.indexOf("\n\n");
-          while (boundary !== -1) {
-            const chunk = buffer.slice(0, boundary);
-            buffer = buffer.slice(boundary + 2);
-            processChunk(chunk);
-            boundary = buffer.indexOf("\n\n");
-          }
-        }
-      } catch (error) {
-        if (!abortController.signal.aborted) {
-          console.error("Notification stream error:", error);
-          setIsStreaming(false);
-          reconnectRef.current = setTimeout(() => {
-            connect();
-          }, 5000);
-        }
-      }
+    const channelName = `user-${user.id}`;
+    const channel = client.subscribe(channelName);
+    const handler = (payload: NotificationItem) => {
+      setNotifications((prev) => {
+        const next = [payload, ...prev].slice(0, 50);
+        syncUnreadCount(next);
+        return next;
+      });
     };
 
-    const processChunk = (chunk: string) => {
-      const lines = chunk.split("\n").map((line) => line.trim()).filter(Boolean);
-      let eventType = "message";
-      let dataPayload = "";
-      for (const line of lines) {
-        if (line.startsWith("event:")) {
-          eventType = line.slice(6).trim();
-        } else if (line.startsWith("data:")) {
-          dataPayload += line.slice(5).trim();
-        }
-      }
-      if (eventType === "notification" && dataPayload) {
-        try {
-          const parsed = JSON.parse(dataPayload);
-          setNotifications((prev) => {
-            const next = [parsed, ...prev].slice(0, 50);
-            syncUnreadCount(next);
-            return next;
-          });
-        } catch (error) {
-          console.error("Failed to parse notification payload:", error);
-        }
-      }
-    };
-
-    connect();
+    channel.bind("notification", handler);
+    setIsStreaming(true);
 
     return () => {
-      isCancelled = true;
-      abortController.abort();
-      reader?.cancel().catch(() => {});
-      if (reconnectRef.current) {
-        clearTimeout(reconnectRef.current);
-      }
+      channel.unbind("notification", handler);
+      client.unsubscribe(channelName);
+      client.disconnect();
       setIsStreaming(false);
     };
-  }, [getToken, isSignedIn, user?.id, syncUnreadCount]);
+  }, [isSignedIn, user?.id, syncUnreadCount]);
 
   const markAsRead = useCallback(
     async (id: string) => {

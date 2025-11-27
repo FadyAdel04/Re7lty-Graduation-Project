@@ -1,40 +1,5 @@
-import { Response } from "express";
 import { Notification, NotificationDocument } from "../models/Notification";
-
-type Subscriber = {
-  res: Response;
-};
-
-const subscribers = new Map<string, Set<Subscriber>>();
-
-function sendEvent(res: Response, event: string, data: any) {
-  res.write(`event: ${event}\n`);
-  res.write(`data: ${JSON.stringify(data)}\n\n`);
-}
-
-export function registerNotificationStream(userId: string, res: Response) {
-  const subscriber: Subscriber = { res };
-  if (!subscribers.has(userId)) {
-    subscribers.set(userId, new Set());
-  }
-  subscribers.get(userId)!.add(subscriber);
-
-  res.on("close", () => {
-    subscribers.get(userId)?.delete(subscriber);
-    if (subscribers.get(userId)?.size === 0) {
-      subscribers.delete(userId);
-    }
-  });
-}
-
-export function dispatchNotification(notification: NotificationDocument) {
-  const payload = formatNotificationPayload(notification);
-  const targets = subscribers.get(notification.recipientId);
-  if (!targets) return;
-  for (const subscriber of targets) {
-    sendEvent(subscriber.res, "notification", payload);
-  }
-}
+import { getPusher } from "../services/pusher";
 
 export function formatNotificationPayload(notification: NotificationDocument) {
   const plain = typeof notification.toObject === "function"
@@ -96,8 +61,16 @@ export async function createNotification(input: NotificationInput) {
     metadata,
   });
 
-  dispatchNotification(notification);
+  const pusher = getPusher();
+  if (pusher) {
+    const payload = formatNotificationPayload(notification);
+    try {
+      await pusher.trigger(`user-${recipientId}`, "notification", payload);
+    } catch (error) {
+      console.error("Failed to dispatch Pusher notification:", error);
+    }
+  }
+
   return notification;
 }
-
 

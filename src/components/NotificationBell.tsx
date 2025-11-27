@@ -52,7 +52,7 @@ const NotificationBell = () => {
           <div>
             <p className="font-semibold">الإشعارات</p>
             <p className="text-xs text-muted-foreground">
-              {isStreaming ? "متصل الآن" : "جارٍ إعادة الاتصال..."}
+              {isStreaming ? "متصل الآن" : "وضع غير متصل – يتم التحديث عند إعادة التحميل"}
             </p>
           </div>
           <Button
@@ -106,7 +106,7 @@ const NotificationBell = () => {
         {!isStreaming && (
           <div className="flex items-center justify-center gap-2 border-t px-4 py-2 text-xs text-muted-foreground">
             <Loader2 className="h-3 w-3 animate-spin" />
-            إعادة محاولة الاتصال...
+            سيتم مزامنة الإشعارات عند التحديث اليدوي
           </div>
         )}
       </PopoverContent>

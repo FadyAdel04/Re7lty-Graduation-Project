@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { requireAuthStrict, getAuth, clerkClient } from "../utils/auth";
+import { requireAuthStrict, getAuth } from "../utils/auth";
 import { Notification } from "../models/Notification";
-import { formatNotificationPayload, registerNotificationStream } from "../utils/notificationDispatcher";
+import { formatNotificationPayload } from "../utils/notificationDispatcher";
 
 const router = Router();
 
@@ -16,22 +16,6 @@ router.get('/', requireAuthStrict, async (req, res) => {
     .limit(Number(limit));
 
   res.json(items.map(formatNotificationPayload));
-});
-
-router.get('/stream', requireAuthStrict, (req, res) => {
-  const { userId } = getAuth(req);
-  if (!userId) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Connection', 'keep-alive');
-  res.flushHeaders?.();
-
-  registerNotificationStream(userId, res);
-  res.write('event: connected\n');
-  res.write('data: {}\n\n');
 });
 
 router.post('/:id/read', requireAuthStrict, async (req, res) => {
