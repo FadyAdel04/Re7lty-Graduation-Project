@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import { getNotifications, markNotificationRead, markAllNotificationsRead } from "@/lib/api";
 import { createPusherClient } from "@/lib/pusher-client";
+import type Pusher from "pusher-js";
 
 const PUSHER_KEY = import.meta.env.VITE_PUSHER_KEY;
 const PUSHER_CLUSTER = import.meta.env.VITE_PUSHER_CLUSTER;
@@ -27,6 +28,7 @@ export function useNotifications() {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isStreaming, setIsStreaming] = useState(false);
+  const pusherRef = useRef<Pusher | null>(null);
 
   const syncUnreadCount = useCallback((items: NotificationItem[]) => {
     const count = items.filter((item) => !item.isRead).length;
@@ -54,20 +56,33 @@ export function useNotifications() {
   }, [refreshNotifications]);
 
   useEffect(() => {
-    if (!isSignedIn || !user?.id) return;
+    if (!isSignedIn || !user?.id) {
+      if (pusherRef.current) {
+        pusherRef.current.disconnect();
+        pusherRef.current = null;
+      }
+      setIsStreaming(false);
+      return;
+    }
+
     if (!PUSHER_KEY || !PUSHER_CLUSTER) {
       setIsStreaming(false);
       return;
     }
 
-    const client = createPusherClient(PUSHER_KEY, PUSHER_CLUSTER);
+    if (!pusherRef.current) {
+      pusherRef.current = createPusherClient(PUSHER_KEY, PUSHER_CLUSTER);
+    }
+
+    const client = pusherRef.current;
     if (!client) {
       setIsStreaming(false);
       return;
     }
 
     const channelName = `user-${user.id}`;
-    const channel = client.subscribe(channelName);
+    const channel = client.channel(channelName) || client.subscribe(channelName);
+
     const handler = (payload: NotificationItem) => {
       setNotifications((prev) => {
         const next = [payload, ...prev].slice(0, 50);
@@ -81,9 +96,15 @@ export function useNotifications() {
 
     return () => {
       channel.unbind("notification", handler);
-      client.unsubscribe(channelName);
-      client.disconnect();
-      setIsStreaming(false);
+      if (client.channel(channelName)) {
+        client.unsubscribe(channelName);
+      }
+      // Only disconnect if no other channels are subscribed
+      if (!Object.keys((client as any).channels.channels || {}).length) {
+        client.disconnect();
+        pusherRef.current = null;
+        setIsStreaming(false);
+      }
     };
   }, [isSignedIn, user?.id, syncUnreadCount]);
 

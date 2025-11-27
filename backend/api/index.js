@@ -1,24 +1,13 @@
-const express = require("express");
-const cors = require("cors");
-const mongoose = require("mongoose");
+const path = require("path");
 
-const app = express();
+function loadApp() {
+  const distPath = path.join(__dirname, "..", "dist", "app.js");
+  const exported = require(distPath);
+  return exported.default || exported.app || exported;
+}
 
-// Middlewares
-app.use(cors());
-app.use(express.json());
+const app = loadApp();
 
-// Connect DB
-mongoose
-  .connect(process.env.MONGODB_URI)
-  .then(() => console.log("MongoDB Connected"))
-  .catch((err) => console.error("MongoDB Error:", err));
-
-// Test Route
-app.get("/api", (req, res) => {
-  res.json({ message: "Backend working on Vercel" });
-});
-
-// المهم جداً 👇
-// لازم نعمل export للـ app، مش listen()
 module.exports = app;
+
+
