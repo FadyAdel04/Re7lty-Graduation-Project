@@ -1,6 +1,8 @@
 {
   "name": "backend",
   "version": "0.1.0",
+  "main": "api/index.js",
+  "type": "commonjs",
   "private": true,
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
