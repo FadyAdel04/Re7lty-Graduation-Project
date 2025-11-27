@@ -52,6 +52,7 @@ const CreateTrip = () => {
   // Destination mapping
   const destinationMap: Record<string, string> = {
     alexandria: "الإسكندرية",
+    cairo: "القاهرة",
     matrouh: "مرسى مطروح",
     luxor: "الأقصر",
     aswan: "أسوان",
@@ -462,6 +463,7 @@ const CreateTrip = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="alexandria">الإسكندرية</SelectItem>
+                        <SelectItem value="cairo">القاهرة</SelectItem>
                         <SelectItem value="matrouh">مرسى مطروح</SelectItem>
                         <SelectItem value="luxor">الأقصر</SelectItem>
                         <SelectItem value="aswan">أسوان</SelectItem>

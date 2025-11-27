@@ -460,7 +460,14 @@ const TripMapEditor = ({ locations, route, onLocationsChange, onRouteChange, des
                     variant="destructive"
                     size="sm"
                     className="w-full"
-                    onClick={() => removeLocation(location.id)}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      if ('nativeEvent' in event && event.nativeEvent.stopPropagation) {
+                        event.nativeEvent.stopPropagation();
+                      }
+                      removeLocation(location.id);
+                    }}
                   >
                     <Trash2 className="h-4 w-4 ml-2" />
                     حذف الموقع

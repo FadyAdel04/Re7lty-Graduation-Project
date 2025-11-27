@@ -2,13 +2,13 @@ import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { listTrips } from "@/lib/api";
+import { listTrips, toggleTripLove, toggleTripSave } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Heart, MessageCircle, Share2, Bookmark, MapPin, Star } from "lucide-react";
 import TripComments from "@/components/TripComments";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { SignedIn, SignedOut } from "@clerk/clerk-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { SignedIn, SignedOut, useAuth } from "@clerk/clerk-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Tooltip,
@@ -17,11 +17,46 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import TripSkeletonLoader from "@/components/TripSkeletonLoader";
+import { Comment } from "@/lib/trips-data";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 // Module-level cache for trips data (loaded once per session)
 let tripsCache: any[] | null = null;
 let isLoadingCache = false;
 let loadPromise: Promise<any[]> | null = null;
+
+async function fetchTripsFromApi() {
+  try {
+    const data = await listTrips({ sort: "recent", limit: 20, page: 1 });
+    return data.items || [];
+  } catch (error) {
+    console.error("Error loading trips:", error);
+    return [];
+  }
+}
+
+function primeTripsCache() {
+  if (tripsCache || loadPromise || isLoadingCache) {
+    return loadPromise;
+  }
+
+  isLoadingCache = true;
+  const promise = fetchTripsFromApi()
+    .then((items) => {
+      tripsCache = items;
+      return items;
+    })
+    .finally(() => {
+      isLoadingCache = false;
+      loadPromise = null;
+    });
+
+  loadPromise = promise;
+  return promise;
+}
+
+// Start fetching as soon as the module loads to minimize perceived wait time
+primeTripsCache();
 
 function timeAgo(iso: string): string {
   const now = new Date();
@@ -37,23 +72,26 @@ function timeAgo(iso: string): string {
   return `الآن`;
 }
 
+const getTripIdentifier = (trip: any) => {
+  if (!trip) return "";
+  if (trip._id) return String(trip._id);
+  if (trip.id) return String(trip.id);
+  return "";
+};
+
 const Timeline = () => {
   const { toast } = useToast();
-  const [likedIds, setLikedIds] = useState<Record<string, boolean>>({});
-  const [savedIds, setSavedIds] = useState<Record<string, boolean>>({});
+  const { isSignedIn, getToken } = useAuth();
   const [showHeartByTrip, setShowHeartByTrip] = useState<Record<string, boolean>>({});
   const [activeImageByTrip, setActiveImageByTrip] = useState<Record<string, string>>({});
-  const [openCommentsForTrip, setOpenCommentsForTrip] = useState<string | null>(null);
+  const [activeCommentsTripId, setActiveCommentsTripId] = useState<string | null>(null);
   const lastTapRef = useRef<Record<string, number>>({});
+  const [loveState, setLoveState] = useState<Record<string, { liked: boolean; likes: number }>>({});
+  const [saveState, setSaveState] = useState<Record<string, boolean>>({});
 
-  const handleLike = (id: string) => {
-    setLikedIds((prev) => ({ ...prev, [id]: !prev[id] }));
-    setShowHeartByTrip((prev) => ({ ...prev, [id]: true }));
-    setTimeout(() => setShowHeartByTrip((prev) => ({ ...prev, [id]: false })), 700);
-  };
-
-  const handleSave = (id: string) => {
-    setSavedIds((prev) => ({ ...prev, [id]: !prev[id] }));
+  const triggerHeart = (tripId: string) => {
+    setShowHeartByTrip((prev) => ({ ...prev, [tripId]: true }));
+    setTimeout(() => setShowHeartByTrip((prev) => ({ ...prev, [tripId]: false })), 700);
   };
 
   const handleUnauthenticatedLike = () => {
@@ -72,15 +110,13 @@ const Timeline = () => {
     });
   };
 
-  const handleDouble = (id: string) => {
+  const handleDouble = (trip: any) => {
+    const id = getTripIdentifier(trip);
+    if (!id) return;
     const now = Date.now();
     const last = lastTapRef.current[id] || 0;
     if (now - last < 350) {
-      if (!likedIds[id]) {
-        setLikedIds((prev) => ({ ...prev, [id]: true }));
-      }
-      setShowHeartByTrip((prev) => ({ ...prev, [id]: true }));
-      setTimeout(() => setShowHeartByTrip((prev) => ({ ...prev, [id]: false })), 700);
+      handleToggleLove(trip, true);
     }
     lastTapRef.current[id] = now;
   };
@@ -92,7 +128,14 @@ const Timeline = () => {
     let isMounted = true;
     
     const loadTrips = async () => {
-      // If already loading, wait for the existing promise
+      // If cache already filled, use it immediately
+      if (tripsCache) {
+        setTrips(tripsCache);
+        setLoading(false);
+        return;
+      }
+
+      // If a fetch is already in flight, await it
       if (loadPromise) {
         try {
           const data = await loadPromise;
@@ -101,50 +144,30 @@ const Timeline = () => {
             setLoading(false);
           }
           return;
-        } catch (e) {
-          if (isMounted) setLoading(false);
+        } catch {
+          if (isMounted) {
+            setLoading(false);
+          }
           return;
         }
       }
-      
-      // If cache exists, use it immediately
-      if (tripsCache) {
-        setTrips(tripsCache);
+
+      // Kick off a new fetch immediately
+      setLoading(true);
+      const promise = primeTripsCache();
+
+      if (!promise) {
         setLoading(false);
         return;
       }
-      
-      // If already loading, wait
-      if (isLoadingCache) {
-        return;
-      }
-      
-      // Start loading
-      isLoadingCache = true;
-      setLoading(true);
-      
-      loadPromise = (async () => {
-        try {
-          const data = await listTrips({ sort: 'recent', limit: 20, page: 1 });
-          const tripsData = data.items || [];
-          tripsCache = tripsData;
-          return tripsData;
-        } catch (e) {
-          console.error('Error loading trips:', e);
-          return [];
-        } finally {
-          isLoadingCache = false;
-          loadPromise = null;
-        }
-      })();
-      
+
       try {
-        const tripsData = await loadPromise;
+        const tripsData = await promise;
         if (isMounted) {
-          setTrips(tripsData);
+          setTrips(tripsData || []);
           setLoading(false);
         }
-      } catch (e) {
+      } catch {
         if (isMounted) {
           setLoading(false);
         }
@@ -157,6 +180,170 @@ const Timeline = () => {
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    setLoveState((prev) => {
+      const next = { ...prev };
+      trips.forEach((trip) => {
+        const tripId = getTripIdentifier(trip);
+        if (!tripId || next[tripId]) return;
+        next[tripId] = {
+          liked: Boolean(trip.viewerLoved),
+          likes: typeof trip.likes === "number" ? trip.likes : 0,
+        };
+      });
+      return next;
+    });
+  }, [trips]);
+
+  useEffect(() => {
+    setSaveState((prev) => {
+      const next = { ...prev };
+      trips.forEach((trip) => {
+        const tripId = getTripIdentifier(trip);
+        if (!tripId || next.hasOwnProperty(tripId)) return;
+        next[tripId] = Boolean(trip.viewerSaved);
+      });
+      return next;
+    });
+  }, [trips]);
+
+  const updateTripComments = (tripId: string, updater: (comments: Comment[]) => Comment[]) => {
+    let updatedSnapshot: any = null;
+    setTrips((prev) =>
+      prev.map((trip) => {
+        if (getTripIdentifier(trip) !== tripId) return trip;
+        const currentComments: Comment[] = Array.isArray(trip.comments) ? trip.comments : [];
+        const nextComments = updater([...currentComments]);
+        const updatedTrip = { ...trip, comments: nextComments };
+        updatedSnapshot = updatedTrip;
+        return updatedTrip;
+      })
+    );
+    if (updatedSnapshot && tripsCache) {
+      tripsCache = tripsCache.map((trip) =>
+        getTripIdentifier(trip) === tripId ? updatedSnapshot : trip
+      );
+    }
+  };
+
+  const syncTripLikes = (tripId: string, likes: number) => {
+    setTrips((prev) =>
+      prev.map((trip) =>
+        getTripIdentifier(trip) === tripId ? { ...trip, likes } : trip
+      )
+    );
+    if (tripsCache) {
+      tripsCache = tripsCache.map((trip) =>
+        getTripIdentifier(trip) === tripId ? { ...trip, likes } : trip
+      );
+    }
+  };
+
+  const syncTripSaves = (tripId: string, saves: number) => {
+    setTrips((prev) =>
+      prev.map((trip) =>
+        getTripIdentifier(trip) === tripId ? { ...trip, saves } : trip
+      )
+    );
+    if (tripsCache) {
+      tripsCache = tripsCache.map((trip) =>
+        getTripIdentifier(trip) === tripId ? { ...trip, saves } : trip
+      );
+    }
+  };
+
+  const handleToggleLove = async (trip: any, fromGesture: boolean = false) => {
+    const tripId = getTripIdentifier(trip);
+    if (!tripId) return;
+    const current = loveState[tripId] || {
+      liked: Boolean(trip.viewerLoved),
+      likes: typeof trip.likes === "number" ? trip.likes : 0,
+    };
+
+    if (!trip?._id) {
+      const nextLiked = !current.liked;
+      const nextLikes = Math.max(0, current.likes + (nextLiked ? 1 : -1));
+      setLoveState((prev) => ({ ...prev, [tripId]: { liked: nextLiked, likes: nextLikes } }));
+      syncTripLikes(tripId, nextLikes);
+      if (nextLiked) triggerHeart(tripId);
+      return;
+    }
+
+    if (!isSignedIn) {
+      if (!fromGesture) {
+        handleUnauthenticatedLike();
+      }
+      return;
+    }
+
+    try {
+      const token = await getToken();
+      if (!token) {
+        throw new Error("يرجى إعادة تسجيل الدخول");
+      }
+      const result = await toggleTripLove(trip._id, token);
+      setLoveState((prev) => ({ ...prev, [tripId]: { liked: result.loved, likes: result.likes } }));
+      syncTripLikes(tripId, result.likes);
+      if (result.loved) {
+        triggerHeart(tripId);
+      }
+    } catch (error: any) {
+      console.error("Error toggling love:", error);
+      toast({
+        title: "خطأ",
+        description: error.message || "تعذر تحديث حالة الإعجاب",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleToggleSave = async (trip: any) => {
+    const tripId = getTripIdentifier(trip);
+    if (!tripId) return;
+
+    if (!trip?._id) {
+      const current = saveState.hasOwnProperty(tripId)
+        ? saveState[tripId]
+        : Boolean(trip.viewerSaved);
+      const nextSaved = !current;
+      setSaveState((prev) => ({ ...prev, [tripId]: nextSaved }));
+      setTrips((prevTrips) =>
+        prevTrips.map((t) =>
+          getTripIdentifier(t) === tripId
+            ? { ...t, saves: Math.max(0, (t.saves || 0) + (nextSaved ? 1 : -1)) }
+            : t
+        )
+      );
+      return;
+    }
+
+    if (!isSignedIn) {
+      handleUnauthenticatedSave();
+      return;
+    }
+
+    try {
+      const token = await getToken();
+      if (!token) {
+        throw new Error("يرجى إعادة تسجيل الدخول");
+      }
+      const result = await toggleTripSave(trip._id, token);
+      setSaveState((prev) => ({ ...prev, [tripId]: result.saved }));
+      syncTripSaves(tripId, result.saves);
+    } catch (error: any) {
+      console.error("Error toggling save:", error);
+      toast({
+        title: "خطأ",
+        description: error.message || "تعذر تحديث حالة الحفظ",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const activeCommentsTrip = activeCommentsTripId
+    ? trips.find((trip) => getTripIdentifier(trip) === activeCommentsTripId)
+    : null;
 
   const toProfilePath = (trip: any) => {
     // Use ownerId if available, otherwise fallback to author name
@@ -174,10 +361,16 @@ const Timeline = () => {
           <div className="space-y-4 sm:space-y-6">
             {trips.map((trip) => {
             // Use _id (MongoDB) or id (static data) consistently
-            const tripId = trip._id || trip.id;
-            const isLiked = !!likedIds[tripId];
-            const isSaved = !!savedIds[tripId];
-            const likeCount = trip.likes + (isLiked ? 1 : 0);
+            const tripId = getTripIdentifier(trip);
+            const loveInfo = loveState[tripId] || {
+              liked: Boolean(trip.viewerLoved),
+              likes: typeof trip.likes === "number" ? trip.likes : 0,
+            };
+            const isLiked = loveInfo.liked;
+            const isSaved = saveState.hasOwnProperty(tripId)
+              ? saveState[tripId]
+              : Boolean(trip.viewerSaved);
+            const likeCount = loveInfo.likes;
             const thumbnails = [
               ...((trip.activities || []).flatMap((a: any) => a.images || [])),
               ...((trip.foodAndRestaurants || []).map((f: any) => f.image)),
@@ -212,7 +405,11 @@ const Timeline = () => {
                   </div>
 
                   {/* Main Image (double-click to like) */}
-                  <div className="relative select-none" onDoubleClick={() => handleDouble(tripId)} onClick={() => handleDouble(tripId)}>
+                  <div
+                    className="relative select-none"
+                    onDoubleClick={() => handleDouble(trip)}
+                    onClick={() => handleDouble(trip)}
+                  >
                     <img src={activeSrc} alt={trip.title} className="w-full aspect-video object-cover" />
                       {showHeartByTrip[tripId] && (
                       <div className="absolute inset-0 flex items-center justify-center">
@@ -251,7 +448,12 @@ const Timeline = () => {
                   <div className="px-3 sm:px-4 pb-3 sm:pb-4 pt-1 sm:pt-2 flex flex-wrap items-center gap-2 justify-between text-sm">
                     <div className="flex items-center gap-1 sm:gap-3 flex-wrap">
                       <SignedIn>
-                      <Button variant="ghost" size="sm" className={`rounded-full px-2 sm:px-3 ${isLiked ? 'text-primary' : ''}`} onClick={() => handleLike(tripId)}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className={`rounded-full px-2 sm:px-3 ${isLiked ? 'text-primary' : ''}`}
+                        onClick={() => handleToggleLove(trip)}
+                      >
                         <Heart className={`h-4 w-4 ${isLiked ? 'fill-primary' : ''}`} />
                         <span className="ml-1 sm:ml-2">{likeCount}</span>
                       </Button>
@@ -273,7 +475,7 @@ const Timeline = () => {
                         </TooltipProvider>
                       </SignedOut>
                       
-                      <Button variant="ghost" size="sm" className="rounded-full px-2 sm:px-3" onClick={() => setOpenCommentsForTrip(tripId)}>
+                      <Button variant="ghost" size="sm" className="rounded-full px-2 sm:px-3" onClick={() => setActiveCommentsTripId(tripId)}>
                         <MessageCircle className="h-4 w-4" />
                         <span className="ml-1 sm:ml-2">{(trip.comments || []).length}</span>
                       </Button>
@@ -284,7 +486,12 @@ const Timeline = () => {
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
                       <SignedIn>
-                      <Button variant={isSaved ? "secondary" : "outline"} size="sm" className="rounded-full px-3" onClick={() => handleSave(tripId)}>
+                      <Button
+                        variant={isSaved ? "secondary" : "outline"}
+                        size="sm"
+                        className="rounded-full px-3"
+                        onClick={() => handleToggleSave(trip)}
+                      >
                         <Bookmark className={`h-4 w-4 ${isSaved ? 'fill-secondary' : ''}`} />
                         <span className="ml-2 hidden xs:inline">{isSaved ? 'محفوظ' : 'حفظ'}</span>
                       </Button>
@@ -311,6 +518,51 @@ const Timeline = () => {
                       </Link>
                     </div>
                   </div>
+                  {/* Comments preview */}
+                  <div className="px-3 sm:px-4 pb-4">
+                    {trip.comments && trip.comments.length > 0 ? (
+                      <div className="space-y-3">
+                        {trip.comments.slice(0, 2).map((comment: Comment) => (
+                          <div key={comment.id} className="flex gap-3">
+                            <Avatar className="h-9 w-9">
+                              {comment.authorAvatar ? (
+                                <AvatarImage src={comment.authorAvatar} alt={comment.author} />
+                              ) : null}
+                              <AvatarFallback className="bg-gradient-hero text-white">
+                                {comment.author.charAt(0)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 rounded-2xl bg-muted/40 px-3 py-2">
+                              <div className="text-sm font-semibold">{comment.author}</div>
+                              <p className="text-sm text-muted-foreground line-clamp-3">
+                                {comment.content}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                        {trip.comments.length > 2 && (
+                          <Button
+                            variant="link"
+                            className="px-0"
+                            onClick={() => setActiveCommentsTripId(tripId)}
+                          >
+                            عرض جميع التعليقات ({trip.comments.length})
+                          </Button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-sm text-muted-foreground">
+                        لا توجد تعليقات بعد.{" "}
+                        <Button
+                          variant="link"
+                          className="p-0 h-auto align-baseline"
+                          onClick={() => setActiveCommentsTripId(tripId)}
+                        >
+                          كن أول من يعلق
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             );
@@ -320,13 +572,38 @@ const Timeline = () => {
       </main>
 
       {/* Comments Dialog */}
-      <Dialog open={!!openCommentsForTrip} onOpenChange={(o) => !o && setOpenCommentsForTrip(null)}>
+      <Dialog open={!!activeCommentsTripId} onOpenChange={(open) => !open && setActiveCommentsTripId(null)}>
         <DialogContent className="sm:max-w-[720px]">
           <DialogHeader>
             <DialogTitle>التعليقات</DialogTitle>
+            <DialogDescription className="sr-only">
+              عرض وإضافة التعليقات الخاصة بالرحلة المحددة
+            </DialogDescription>
           </DialogHeader>
-          {/* In dynamic mode, comments are not yet fetched; show empty for now */}
-          <TripComments comments={[]} />
+          {activeCommentsTrip && activeCommentsTripId ? (
+            <TripComments
+              tripId={activeCommentsTripId}
+              initialComments={activeCommentsTrip.comments || []}
+              onCommentAdded={(comment) =>
+                updateTripComments(activeCommentsTripId, (comments) => [comment, ...comments])
+              }
+              onCommentUpdated={(commentId, changes) =>
+                updateTripComments(activeCommentsTripId, (comments) =>
+                  comments.map((comment) =>
+                    comment.id === commentId ? { ...comment, ...changes } : comment
+                  )
+                )
+              }
+              onCommentDeleted={(commentId) =>
+                updateTripComments(activeCommentsTripId, (comments) =>
+                  comments.filter((comment) => comment.id !== commentId)
+                )
+              }
+              tripOwnerId={activeCommentsTrip.ownerId}
+            />
+          ) : (
+            <div className="py-6 text-center text-muted-foreground">جاري التحميل...</div>
+          )}
         </DialogContent>
       </Dialog>
 

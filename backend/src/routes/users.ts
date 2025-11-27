@@ -3,8 +3,69 @@ import mongoose from "mongoose";
 import { requireAuthStrict, getAuth, clerkClient } from "../utils/auth";
 import { User } from "../models/User";
 import { Trip } from "../models/Trip";
+import { TripLove } from "../models/TripLove";
+import { TripSave } from "../models/TripSave";
+import { formatTripMedia } from "../utils/tripFormatter";
+import { createNotification } from "../utils/notificationDispatcher";
+import { Follow } from "../models/Follow";
 
 const router = Router();
+
+async function formatTripsForResponse(tripDocs: any[], req: any, viewerId?: string | null) {
+  const docs = tripDocs.filter(Boolean);
+  if (!docs.length) return [];
+
+  const tripIds = docs.map((trip: any) => trip?._id).filter(Boolean);
+  const ownerIds = docs.map((trip: any) => trip?.ownerId).filter(Boolean);
+
+  let lovedSet = new Set<string>();
+  let savedSet = new Set<string>();
+  let followingSet = new Set<string>();
+
+  if (viewerId) {
+    const [loveDocs, saveDocs, followDocs] = await Promise.all([
+      tripIds.length
+        ? TripLove.find({ userId: viewerId, tripId: { $in: tripIds } }).select('tripId')
+        : [],
+      tripIds.length
+        ? TripSave.find({ userId: viewerId, tripId: { $in: tripIds } }).select('tripId')
+        : [],
+      ownerIds.length
+        ? Follow.find({ followerId: viewerId, followingId: { $in: ownerIds } }).select('followingId')
+        : [],
+    ]);
+    lovedSet = new Set(loveDocs.map((doc: any) => String(doc.tripId)));
+    savedSet = new Set(saveDocs.map((doc: any) => String(doc.tripId)));
+    followingSet = new Set(followDocs.map((doc: any) => doc.followingId));
+  }
+
+  return docs.map((trip: any) => {
+    const formatted = formatTripMedia(trip, req, viewerId || undefined);
+    const tripId = trip?._id ? String(trip._id) : undefined;
+    return {
+      ...formatted,
+      viewerLoved: tripId ? lovedSet.has(tripId) : false,
+      viewerSaved: tripId ? savedSet.has(tripId) : false,
+      viewerFollowsAuthor: viewerId && trip?.ownerId ? followingSet.has(trip.ownerId) : false,
+    };
+  });
+}
+
+async function buildTripsFromRefs(refDocs: any[], req: any, viewerId?: string | null) {
+  if (!Array.isArray(refDocs) || !refDocs.length) return [];
+  const tripIds = refDocs
+    .map((doc: any) => (doc?.tripId ? String(doc.tripId) : null))
+    .filter((id): id is string => typeof id === 'string' && !!id);
+  if (!tripIds.length) return [];
+
+  const trips = await Trip.find({ _id: { $in: tripIds } });
+  const tripMap = new Map(trips.map((trip: any) => [String(trip._id), trip]));
+  const orderedTrips = tripIds
+    .map((id) => tripMap.get(id))
+    .filter((trip): trip is any => Boolean(trip));
+
+  return await formatTripsForResponse(orderedTrips, req, viewerId);
+}
 
 // Get current user (DB record, upsert from Clerk)
 router.get('/me', requireAuthStrict, async (req, res) => {
@@ -50,6 +111,48 @@ router.get('/me/trips', requireAuthStrict, async (req, res) => {
   } catch (error: any) {
     console.error('Error fetching user trips:', error);
     res.status(500).json({ error: 'Failed to fetch trips', message: error.message });
+  }
+});
+
+router.get('/me/loves', requireAuthStrict, async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({
+        error: 'Database not connected',
+        message: 'MongoDB connection is required.',
+      });
+    }
+    const { userId } = getAuth(req);
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const loveDocs = await TripLove.find({ userId }).sort({ createdAt: -1 }).limit(100);
+    const trips = await buildTripsFromRefs(loveDocs, req, userId);
+    res.json(trips);
+  } catch (error: any) {
+    console.error('Error fetching loved trips:', error);
+    res.status(500).json({ error: 'Failed to fetch loved trips', message: error.message });
+  }
+});
+
+router.get('/me/saves', requireAuthStrict, async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({
+        error: 'Database not connected',
+        message: 'MongoDB connection is required.',
+      });
+    }
+    const { userId } = getAuth(req);
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const saveDocs = await TripSave.find({ userId }).sort({ createdAt: -1 }).limit(100);
+    const trips = await buildTripsFromRefs(saveDocs, req, userId);
+    res.json(trips);
+  } catch (error: any) {
+    console.error('Error fetching saved trips:', error);
+    res.status(500).json({ error: 'Failed to fetch saved trips', message: error.message });
   }
 });
 
@@ -135,10 +238,49 @@ router.patch('/me', requireAuthStrict, async (req, res) => {
   }
 });
 
+router.get('/:clerkId/loves', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({
+        error: 'Database not connected',
+        message: 'MongoDB connection is required.',
+      });
+    }
+    const { clerkId } = req.params;
+    const { userId: viewerId } = getAuth(req);
+    const loveDocs = await TripLove.find({ userId: clerkId }).sort({ createdAt: -1 }).limit(100);
+    const trips = await buildTripsFromRefs(loveDocs, req, viewerId);
+    res.json(trips);
+  } catch (error: any) {
+    console.error('Error fetching loved trips:', error);
+    res.status(500).json({ error: 'Failed to fetch loved trips', message: error.message });
+  }
+});
+
+router.get('/:clerkId/saves', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({
+        error: 'Database not connected',
+        message: 'MongoDB connection is required.',
+      });
+    }
+    const { clerkId } = req.params;
+    const { userId: viewerId } = getAuth(req);
+    const saveDocs = await TripSave.find({ userId: clerkId }).sort({ createdAt: -1 }).limit(100);
+    const trips = await buildTripsFromRefs(saveDocs, req, viewerId);
+    res.json(trips);
+  } catch (error: any) {
+    console.error('Error fetching saved trips:', error);
+    res.status(500).json({ error: 'Failed to fetch saved trips', message: error.message });
+  }
+});
+
 // Get user by Clerk ID (public)
 router.get('/:clerkId', async (req, res) => {
   try {
     const { clerkId } = req.params;
+    const { userId: viewerId } = getAuth(req);
     
     // Check if MongoDB is connected
     if (mongoose.connection.readyState !== 1) {
@@ -185,7 +327,21 @@ router.get('/:clerkId', async (req, res) => {
       { $set: updateData },
       { upsert: true, new: true }
     );
-    
+
+    const [followersCount, followingCount, tripsCount, likesAgg, viewerFollowsDoc] = await Promise.all([
+      Follow.countDocuments({ followingId: clerkId }),
+      Follow.countDocuments({ followerId: clerkId }),
+      Trip.countDocuments({ ownerId: clerkId }),
+      Trip.aggregate([
+        { $match: { ownerId: clerkId } },
+        { $group: { _id: null, totalLikes: { $sum: { $ifNull: ['$likes', 0] } } } },
+      ]),
+      viewerId && viewerId !== clerkId
+        ? Follow.exists({ followerId: viewerId, followingId: clerkId })
+        : Promise.resolve(null),
+    ]);
+    const totalLikes = likesAgg?.[0]?.totalLikes || 0;
+
     // Return combined data (DB has latest synced data, use it as source of truth)
     const userData = {
       clerkId: dbUser.clerkId,
@@ -196,9 +352,11 @@ router.get('/:clerkId', async (req, res) => {
       bio: dbUser.bio,
       location: dbUser.location,
       coverImage: dbUser.coverImage,
-      followers: dbUser.followers || 0,
-      following: dbUser.following || 0,
-      totalLikes: dbUser.totalLikes || 0,
+      followers: followersCount,
+      following: followingCount,
+      totalLikes,
+      tripsCount,
+      viewerFollows: Boolean(viewerFollowsDoc),
       createdAt: dbUser.createdAt || clerkUser.createdAt,
       _id: dbUser._id,
     };
@@ -207,6 +365,56 @@ router.get('/:clerkId', async (req, res) => {
   } catch (error: any) {
     console.error('Error fetching user:', error);
     res.status(500).json({ error: 'Failed to fetch user', message: error.message });
+  }
+});
+
+// Follow/unfollow a user
+router.post('/:clerkId/follow', requireAuthStrict, async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({
+        error: 'Database not connected',
+        message: 'MongoDB connection is required.',
+      });
+    }
+
+    const targetId = req.params.clerkId;
+    const { userId } = getAuth(req);
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    if (userId === targetId) {
+      return res.status(400).json({ error: 'You cannot follow yourself' });
+    }
+
+    const existing = await Follow.findOne({ followerId: userId, followingId: targetId });
+    let following = true;
+    if (existing) {
+      await existing.deleteOne();
+      following = false;
+    } else {
+      await Follow.create({ followerId: userId, followingId: targetId });
+      try {
+        const actorUser = await clerkClient.users.getUser(userId);
+        const actorName = actorUser.fullName || actorUser.firstName || actorUser.username || "مستخدم";
+        await createNotification({
+          recipientId: targetId,
+          actorId: userId,
+          actorName,
+          actorImage: actorUser.imageUrl,
+          type: "follow",
+          message: `${actorName} قام بمتابعتك`,
+        });
+      } catch (err) {
+        console.error("Error creating follow notification:", err);
+      }
+    }
+
+    const followersCount = await Follow.countDocuments({ followingId: targetId });
+    res.json({ following, followers: followersCount });
+  } catch (error: any) {
+    console.error('Error toggling follow state:', error);
+    res.status(500).json({ error: 'Failed to update follow state', message: error.message });
   }
 });
 

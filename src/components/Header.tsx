@@ -19,6 +19,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { SignedIn, SignedOut, SignInButton, UserButton, useUser } from "@clerk/clerk-react";
+import NotificationBell from "@/components/NotificationBell";
 
 interface HeaderProps {
   onSearch?: (query: string) => void;
@@ -174,6 +175,7 @@ const Header = ({ onSearch }: HeaderProps) => {
               </SignInButton>
             </SignedOut>
             <SignedIn>
+              <NotificationBell />
               <div className="hidden sm:block cursor-pointer" onClick={handleUserButtonClick}>
                 <UserButton />
               </div>

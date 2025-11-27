@@ -1,10 +1,13 @@
 export interface Comment {
   id: string;
   author: string;
+  authorId?: string;
   authorAvatar?: string;
   content: string;
   date: string;
   likes: number;
+  viewerHasLiked?: boolean;
+  createdAt?: string;
 }
 
 export interface TripActivity {

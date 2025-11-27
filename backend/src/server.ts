@@ -6,7 +6,10 @@ import tripsRouter from "./routes/trips";
 import profilesRouter from "./routes/profiles";
 import usersRouter from "./routes/users";
 import searchRouter from "./routes/search";
+import notificationsRouter from "./routes/notifications";
 import { connectToDatabase } from "./db";
+import path from "path";
+import fs from "fs";
 
 dotenv.config();
 
@@ -21,7 +24,7 @@ const app = express();
 const port = process.env.PORT ? Number(process.env.PORT) : 5000;
 
 // Apply middleware in correct order
-app.use(cors());
+app.use(cors({ origin: true, credentials: true }));
 
 // Increase body size limit to handle large image payloads (50MB)
 // Base64 encoded images can be quite large
@@ -33,6 +36,22 @@ app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
   next();
 });
+
+// Ensure uploads directory exists and serve it statically
+const uploadsDir = path.join(process.cwd(), "uploads");
+try {
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+} catch (e) {
+  console.warn("Unable to ensure uploads directory:", e);
+}
+app.use("/uploads", express.static(uploadsDir, {
+  maxAge: '7d',
+  setHeaders: (res) => {
+    res.setHeader('Cache-Control', 'public, max-age=604800');
+  }
+}));
 
 // Apply Clerk middleware (reads CLERK_SECRET_KEY from env automatically)
 // This must be after body parsing for proper request handling
@@ -57,6 +76,7 @@ app.use('/api/trips', tripsRouter);
 app.use('/api/profiles', profilesRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/search', searchRouter);
+app.use('/api/notifications', notificationsRouter);
 
 app.use('/api', (req, res) => {
   res.status(404).json({ error: 'Not Found', path: req.path });

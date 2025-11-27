@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, Calendar, Users, Heart, Settings, Camera, Edit2, Save, X, LogOut } from "lucide-react";
+import { MapPin, Calendar, Users, Heart, Settings, Camera, Edit2, Save, X, LogOut, Bookmark } from "lucide-react";
 import { useUser, useAuth, useClerk } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -22,7 +22,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { getUserTrips, getUserById, getUserTripsById, updateUserProfile } from "@/lib/api";
+import {
+  getUserTrips,
+  getUserById,
+  getUserTripsById,
+  updateUserProfile,
+  toggleFollowUser,
+  getUserSavedTrips,
+  getUserLovedTrips,
+  getUserSavedTripsById,
+  getUserLovedTripsById,
+} from "@/lib/api";
 import TripSkeletonLoader from "@/components/TripSkeletonLoader";
 
 const UserProfile = () => {
@@ -65,14 +75,20 @@ const UserProfile = () => {
   // User trips state
   const [userTrips, setUserTrips] = useState<any[]>([]);
   const [isLoadingTrips, setIsLoadingTrips] = useState(false);
+  const [savedTrips, setSavedTrips] = useState<any[]>([]);
+  const [lovedTrips, setLovedTrips] = useState<any[]>([]);
+  const [isLoadingSaved, setIsLoadingSaved] = useState(false);
+  const [isLoadingLoved, setIsLoadingLoved] = useState(false);
 
   // Stats
   const [stats, setStats] = useState({
     trips: 0,
-    followers: 342,
-    following: 128,
-    likes: 1580
+    followers: 0,
+    following: 0,
+    likes: 0
   });
+  const [isFollowingUser, setIsFollowingUser] = useState(false);
+  const [isFollowLoading, setIsFollowLoading] = useState(false);
 
   // Redirect to auth if viewing own profile but not signed in
   useEffect(() => {
@@ -114,6 +130,14 @@ const UserProfile = () => {
           setLocation(userData.location || (clerkUser.publicMetadata?.location as string) || "");
           setProfileImage(userData.imageUrl || clerkUser.imageUrl || null);
           setCoverImage(userData.coverImage || (clerkUser.publicMetadata?.coverImage as string) || null);
+          setStats((prev) => ({
+            ...prev,
+            followers: userData.followers || 0,
+            following: userData.following || 0,
+            likes: userData.totalLikes || 0,
+            trips: userData.tripsCount ?? prev.trips,
+          }));
+          setIsFollowingUser(false);
         } catch (error) {
           console.error("Error loading own profile from database:", error);
           // Fallback to Clerk data
@@ -132,13 +156,21 @@ const UserProfile = () => {
       
       setIsLoadingUser(true);
       try {
-        const userData = await getUserById(id);
+        const token = isSignedIn ? await getToken() : undefined;
+        const userData = await getUserById(id, token || undefined);
         setViewingUser(userData);
         setFullName(userData.fullName || userData.username || "");
         setBio(userData.bio || "");
         setLocation(userData.location || "");
         setProfileImage(userData.imageUrl || null);
         setCoverImage(userData.coverImage || null);
+        setStats({
+          trips: userData.tripsCount || 0,
+          followers: userData.followers || 0,
+          following: userData.following || 0,
+          likes: userData.totalLikes || 0,
+        });
+        setIsFollowingUser(Boolean(userData.viewerFollows));
       } catch (error: any) {
         console.error("Error fetching user data:", error);
         toast({
@@ -153,7 +185,7 @@ const UserProfile = () => {
     };
 
     fetchUserData();
-  }, [id, isOwnProfile, clerkUser, navigate, toast]);
+  }, [id, isOwnProfile, clerkUser, navigate, toast, isSignedIn, getToken]);
 
   // Fetch user trips
   useEffect(() => {
@@ -191,6 +223,42 @@ const UserProfile = () => {
     };
 
     fetchUserTrips();
+  }, [id, isOwnProfile, isSignedIn, getToken, toast]);
+
+  useEffect(() => {
+    const fetchSavedAndLoved = async () => {
+      if (!id) return;
+      setIsLoadingSaved(true);
+      setIsLoadingLoved(true);
+      try {
+        let saved: any[] = [];
+        let loved: any[] = [];
+        if (isOwnProfile && isSignedIn) {
+          const token = await getToken();
+          saved = await getUserSavedTrips(token || undefined);
+          loved = await getUserLovedTrips(token || undefined);
+        } else {
+          saved = await getUserSavedTripsById(id);
+          loved = await getUserLovedTripsById(id);
+        }
+        setSavedTrips(Array.isArray(saved) ? saved : []);
+        setLovedTrips(Array.isArray(loved) ? loved : []);
+      } catch (error: any) {
+        console.error("Error fetching saved/loved trips:", error);
+        toast({
+          title: "خطأ",
+          description: error.message || "فشل تحميل الرحلات المحفوظة أو المعجب بها",
+          variant: "destructive",
+        });
+        setSavedTrips([]);
+        setLovedTrips([]);
+      } finally {
+        setIsLoadingSaved(false);
+        setIsLoadingLoved(false);
+      }
+    };
+
+    fetchSavedAndLoved();
   }, [id, isOwnProfile, isSignedIn, getToken, toast]);
 
   const handleSaveProfile = async () => {
@@ -417,6 +485,47 @@ const UserProfile = () => {
     }
   };
 
+  const handleToggleFollow = async () => {
+    if (!id) return;
+    if (!isSignedIn) {
+      toast({
+        title: "تسجيل الدخول مطلوب",
+        description: "يجب تسجيل الدخول لمتابعة المستخدمين",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsFollowLoading(true);
+      const token = await getToken();
+      if (!token) {
+        throw new Error("يرجى إعادة تسجيل الدخول");
+      }
+      const response = await toggleFollowUser(id, token);
+      setIsFollowingUser(response.following);
+      setStats((prev) => ({
+        ...prev,
+        followers: response.followers ?? prev.followers,
+      }));
+      toast({
+        title: response.following ? "تمت المتابعة" : "تم إلغاء المتابعة",
+        description: response.following
+          ? "ستظهر تحديثات هذا المستخدم في موجزك"
+          : undefined,
+      });
+    } catch (error: any) {
+      console.error("Error toggling follow:", error);
+      toast({
+        title: "خطأ",
+        description: error.message || "تعذر تحديث حالة المتابعة",
+        variant: "destructive",
+      });
+    } finally {
+      setIsFollowLoading(false);
+    }
+  };
+
   const getJoinDate = () => {
     if (isOwnProfile && clerkUser?.createdAt) {
       return new Date(clerkUser.createdAt).toLocaleDateString("ar-EG", { year: "numeric", month: "long" });
@@ -559,9 +668,18 @@ const UserProfile = () => {
                             </Button>
                           </>
                         ) : (
-                          <Button variant="default" className="rounded-full">
+                          <Button
+                            variant={isFollowingUser ? "secondary" : "default"}
+                            className="rounded-full"
+                            onClick={handleToggleFollow}
+                            disabled={isFollowLoading}
+                          >
                             <Users className="h-4 w-4 ml-2" />
-                            متابعة
+                            {isFollowLoading
+                              ? "جاري المتابعة..."
+                              : isFollowingUser
+                                ? "إلغاء المتابعة"
+                                : "متابعة"}
                           </Button>
                         )}
                       </div>
@@ -713,19 +831,79 @@ const UserProfile = () => {
             </TabsContent>
 
             <TabsContent value="saved" className="mt-8">
-              <div className="text-center py-16">
-                <Heart className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
-                <h3 className="text-xl font-semibold mb-2">لا توجد رحلات محفوظة</h3>
-                <p className="text-muted-foreground">ابدأ بحفظ رحلاتك المفضلة</p>
-              </div>
+              {isLoadingSaved ? (
+                <TripSkeletonLoader count={3} variant="card" />
+              ) : savedTrips.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {savedTrips.map((trip) => {
+                    const tripId = String(trip._id || trip.id);
+                    return (
+                      <TripCard
+                        key={tripId}
+                        id={tripId}
+                        title={trip.title}
+                        destination={trip.destination}
+                        duration={trip.duration}
+                        rating={trip.rating}
+                        image={trip.image}
+                        author={trip.author}
+                        likes={trip.likes || 0}
+                        ownerId={trip.ownerId}
+                      />
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-16">
+                  <Bookmark className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
+                  <h3 className="text-xl font-semibold mb-2">
+                    {isOwnProfile ? "لا توجد رحلات محفوظة" : "لا توجد رحلات محفوظة لهذا المستخدم"}
+                  </h3>
+                  <p className="text-muted-foreground">
+                    {isOwnProfile
+                      ? "ابدأ بحفظ رحلاتك المفضلة لتظهر هنا"
+                      : "لم يقم هذا العضو بحفظ أي رحلات حتى الآن"}
+                  </p>
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="liked" className="mt-8">
-              <div className="text-center py-16">
-                <Heart className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
-                <h3 className="text-xl font-semibold mb-2">لا توجد رحلات مُعجب بها</h3>
-                <p className="text-muted-foreground">اكتشف رحلات جديدة وابدأ بالإعجاب بها</p>
-              </div>
+              {isLoadingLoved ? (
+                <TripSkeletonLoader count={3} variant="card" />
+              ) : lovedTrips.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {lovedTrips.map((trip) => {
+                    const tripId = String(trip._id || trip.id);
+                    return (
+                      <TripCard
+                        key={tripId}
+                        id={tripId}
+                        title={trip.title}
+                        destination={trip.destination}
+                        duration={trip.duration}
+                        rating={trip.rating}
+                        image={trip.image}
+                        author={trip.author}
+                        likes={trip.likes || 0}
+                        ownerId={trip.ownerId}
+                      />
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-16">
+                  <Heart className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
+                  <h3 className="text-xl font-semibold mb-2">
+                    {isOwnProfile ? "لا توجد رحلات مُعجب بها" : "لا توجد إعجابات لهذا المستخدم"}
+                  </h3>
+                  <p className="text-muted-foreground">
+                    {isOwnProfile
+                      ? "اكتشف رحلات جديدة وابدأ بالإعجاب بها"
+                      : "لم يقم هذا العضو بالإعجاب بأي رحلات بعد"}
+                  </p>
+                </div>
+              )}
             </TabsContent>
           </Tabs>
         </div>

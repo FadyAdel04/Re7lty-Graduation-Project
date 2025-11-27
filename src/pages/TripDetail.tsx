@@ -18,8 +18,8 @@ import { Badge } from "@/components/ui/badge";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import TripComments from "@/components/TripComments";
-import { egyptTrips } from "@/lib/trips-data";
-import { getTrip } from "@/lib/api";
+import { egyptTrips, Comment } from "@/lib/trips-data";
+import { getTrip, toggleTripLove, toggleFollowUser, toggleTripSave } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import {
   MapContainer,
@@ -55,6 +55,62 @@ function FitBounds({ positions }: { positions: [number, number][] }) {
   return null;
 }
 
+function BusTravelAnimator({ positions }: { positions: [number, number][] }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!positions || positions.length < 2) return;
+
+    const busIcon = L.divIcon({
+      className: "bus-travel-icon",
+      html:
+        "<div style='transform: translate(-50%, -50%); font-size: 20px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4))'>🚌</div>",
+    });
+
+    const marker = L.marker(positions[0], { icon: busIcon }).addTo(map);
+
+    let segmentIndex = 0;
+    let t = 0;
+    let rafId: number;
+    const stepIncrement = 0.005; // speed factor (higher = faster)
+
+    const animate = () => {
+      if (segmentIndex >= positions.length - 1) {
+        cancelAnimationFrame(rafId);
+        return;
+      }
+
+      const [fromLat, fromLng] = positions[segmentIndex];
+      const [toLat, toLng] = positions[segmentIndex + 1];
+
+      t += stepIncrement;
+      if (t >= 1) {
+        t = 0;
+        segmentIndex += 1;
+        if (segmentIndex >= positions.length - 1) {
+          marker.setLatLng(positions[positions.length - 1]);
+          cancelAnimationFrame(rafId);
+          return;
+        }
+      }
+
+      const lat = fromLat + (toLat - fromLat) * t;
+      const lng = fromLng + (toLng - fromLng) * t;
+      marker.setLatLng([lat, lng]);
+
+      rafId = requestAnimationFrame(animate);
+    };
+
+    rafId = requestAnimationFrame(animate);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      map.removeLayer(marker);
+    };
+  }, [map, positions]);
+
+  return null;
+}
+
 const TripDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -69,6 +125,11 @@ const TripDetail = () => {
   const [isSaved, setIsSaved] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
   const [savesCount, setSavesCount] = useState(0);
+const [authorFollowers, setAuthorFollowers] = useState(0);
+const [isFollowingAuthor, setIsFollowingAuthor] = useState(false);
+const [loveLoading, setLoveLoading] = useState(false);
+  const [saveLoading, setSaveLoading] = useState(false);
+const [followLoading, setFollowLoading] = useState(false);
   const [dialogActivityIdx, setDialogActivityIdx] = useState<number | null>(null);
   const [dialogRestaurantIdx, setDialogRestaurantIdx] = useState<number | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -107,88 +168,167 @@ const TripDetail = () => {
   };
 
   // Fetch trip from API or fallback to static data
-  useEffect(() => {
-    const fetchTrip = async () => {
-      if (!id) {
-        setError('Trip ID is missing');
-        setLoading(false);
-        return;
-      }
+useEffect(() => {
+  const fetchTrip = async () => {
+    if (!id) {
+      setError('Trip ID is missing');
+      setLoading(false);
+      return;
+    }
 
-      setLoading(true);
-      setError(null);
+    setLoading(true);
+    setError(null);
+
+    try {
+      let token: string | undefined;
+      if (isSignedIn) {
+        token = await getToken();
+      }
 
       try {
-        // Try to fetch from API first (for trips created via backend)
-        try {
-          const apiTrip = await getTrip(id);
-          // Transform API trip to match expected format
-          const transformedTrip = {
-            id: apiTrip._id || apiTrip.id,
-            _id: apiTrip._id,
-            title: apiTrip.title,
-            destination: apiTrip.destination,
-            city: apiTrip.city || apiTrip.destination,
-            duration: apiTrip.duration,
-            rating: apiTrip.rating || 4.5,
-            image: apiTrip.image || '',
-            author: apiTrip.author || 'مستخدم',
-            authorFollowers: apiTrip.authorFollowers || 0,
-            ownerId: apiTrip.ownerId, // Include ownerId for profile linking
-            likes: apiTrip.likes || 0,
-            weeklyLikes: apiTrip.weeklyLikes || 0,
-            saves: apiTrip.saves || 0,
-            shares: apiTrip.shares || 0,
-            description: apiTrip.description || '',
-            budget: apiTrip.budget || '',
-            activities: apiTrip.activities || [],
-            days: apiTrip.days || [],
-            foodAndRestaurants: apiTrip.foodAndRestaurants || [],
-            comments: apiTrip.comments || [],
-            postedAt: apiTrip.postedAt || new Date().toISOString(),
-          };
-          setTrip(transformedTrip);
-          setLikesCount(transformedTrip.likes);
-          setSavesCount(transformedTrip.saves);
-        } catch (apiError: any) {
-          // If API fails (404 or other), try static data
-          console.log('API trip not found, trying static data:', apiError.message);
-          const staticTrip = egyptTrips.find((t) => t.id === id);
-          if (staticTrip) {
-            setTrip(staticTrip);
-            setLikesCount(staticTrip.likes);
-            setSavesCount(staticTrip.saves);
-          } else {
-            setError('Trip not found');
-          }
+        const apiTrip = await getTrip(id, token || undefined);
+        const transformedTrip = {
+          id: apiTrip._id || apiTrip.id,
+          _id: apiTrip._id,
+          title: apiTrip.title,
+          destination: apiTrip.destination,
+          city: apiTrip.city || apiTrip.destination,
+          duration: apiTrip.duration,
+          rating: apiTrip.rating || 4.5,
+          image: apiTrip.image || '',
+          author: apiTrip.author || 'مستخدم',
+          authorFollowers: apiTrip.authorFollowers || 0,
+          ownerId: apiTrip.ownerId,
+          likes: apiTrip.likes || 0,
+          weeklyLikes: apiTrip.weeklyLikes || 0,
+          saves: apiTrip.saves || 0,
+          shares: apiTrip.shares || 0,
+          description: apiTrip.description || '',
+          budget: apiTrip.budget || '',
+          activities: apiTrip.activities || [],
+          days: apiTrip.days || [],
+          foodAndRestaurants: apiTrip.foodAndRestaurants || [],
+          comments: apiTrip.comments || [],
+          postedAt: apiTrip.postedAt || new Date().toISOString(),
+        };
+        setTrip(transformedTrip);
+        setLikesCount(transformedTrip.likes);
+        setSavesCount(transformedTrip.saves);
+        setAuthorFollowers(transformedTrip.authorFollowers || 0);
+        setIsLiked(Boolean(apiTrip.viewerLoved));
+        setIsFollowingAuthor(Boolean(apiTrip.viewerFollowsAuthor));
+        setIsSaved(Boolean(apiTrip.viewerSaved));
+      } catch (apiError: any) {
+        console.log('API trip not found, trying static data:', apiError.message);
+        const staticTrip = egyptTrips.find((t) => t.id === id);
+        if (staticTrip) {
+          setTrip(staticTrip);
+          setLikesCount(staticTrip.likes);
+          setSavesCount(staticTrip.saves);
+          setAuthorFollowers(staticTrip.authorFollowers || 0);
+          setIsLiked(false);
+          setIsFollowingAuthor(false);
+        setIsSaved(false);
+        } else {
+          setError('Trip not found');
         }
-      } catch (err: any) {
-        console.error('Error fetching trip:', err);
-        setError(err.message || 'Failed to load trip');
-      } finally {
-        setLoading(false);
       }
-    };
-
-    fetchTrip();
-  }, [id]);
-
-  const handleLike = () => {
-    setIsLiked(!isLiked);
-    setLikesCount((prev) => (isLiked ? prev - 1 : prev + 1));
-    toast({
-      title: isLiked ? "تم إلغاء الإعجاب" : "تم الإعجاب بالرحلة",
-      description: isLiked ? "" : "يمكنك العثور عليها في قائمة المفضلات",
-    });
+    } catch (err: any) {
+      console.error('Error fetching trip:', err);
+      setError(err.message || 'Failed to load trip');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSave = () => {
-    setIsSaved(!isSaved);
-    setSavesCount((prev) => (isSaved ? prev - 1 : prev + 1));
-    toast({
-      title: isSaved ? "تم إلغاء الحفظ" : "تم حفظ الرحلة",
-      description: isSaved ? "" : "يمكنك العثور عليها في قائمة المحفوظات",
-    });
+  fetchTrip();
+}, [id, isSignedIn, getToken]);
+
+  const handleLike = async () => {
+    if (!trip) return;
+
+    // Fallback for static demo trips that don't exist in the database
+    if (!trip._id) {
+      setIsLiked(!isLiked);
+      setLikesCount((prev) => (isLiked ? Math.max(0, prev - 1) : prev + 1));
+      toast({
+        title: isLiked ? "تم إلغاء الإعجاب" : "تم الإعجاب بالرحلة",
+        description: !isLiked ? "يمكنك العثور عليها في قائمة المفضلات" : undefined,
+      });
+      return;
+    }
+    if (!isSignedIn) {
+      handleUnauthenticatedLike();
+      return;
+    }
+
+    try {
+      setLoveLoading(true);
+      const token = await getToken();
+      if (!token) {
+        throw new Error("يرجى إعادة تسجيل الدخول");
+      }
+      const result = await toggleTripLove(String(trip._id || trip.id), token);
+      setIsLiked(result.loved);
+      setLikesCount(result.likes);
+      toast({
+        title: result.loved ? "تم الإعجاب بالرحلة" : "تم إلغاء الإعجاب",
+        description: result.loved ? "يمكنك العثور عليها في قائمة المفضلات" : undefined,
+      });
+    } catch (error: any) {
+      console.error("Error updating love state:", error);
+      toast({
+        title: "خطأ",
+        description: error.message || "تعذر تحديث حالة الإعجاب",
+        variant: "destructive",
+      });
+    } finally {
+      setLoveLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!trip) return;
+
+    if (!trip._id) {
+      const nextSaved = !isSaved;
+      setIsSaved(nextSaved);
+      setSavesCount((prev) => (nextSaved ? prev + 1 : Math.max(0, prev - 1)));
+      toast({
+        title: nextSaved ? "تم حفظ الرحلة" : "تم إلغاء الحفظ",
+        description: nextSaved ? "يمكنك العثور عليها في قائمة المحفوظات" : "",
+      });
+      return;
+    }
+
+    if (!isSignedIn) {
+      handleUnauthenticatedSave();
+      return;
+    }
+
+    try {
+      setSaveLoading(true);
+      const token = await getToken();
+      if (!token) {
+        throw new Error("يرجى إعادة تسجيل الدخول");
+      }
+      const result = await toggleTripSave(String(trip._id), token);
+      setIsSaved(result.saved);
+      setSavesCount(result.saves);
+      toast({
+        title: result.saved ? "تم حفظ الرحلة" : "تم إلغاء الحفظ",
+        description: result.saved ? "يمكنك العثور عليها في قائمة المحفوظات" : "",
+      });
+    } catch (error: any) {
+      console.error("Error updating save state:", error);
+      toast({
+        title: "خطأ",
+        description: error.message || "تعذر تحديث حالة الحفظ",
+        variant: "destructive",
+      });
+    } finally {
+      setSaveLoading(false);
+    }
   };
 
   const handleUnauthenticatedLike = () => {
@@ -226,6 +366,78 @@ const TripDetail = () => {
         description: "يمكنك مشاركة الرابط الآن",
       });
     }
+  };
+
+  const handleFollowAuthor = async () => {
+    if (!trip?.ownerId) return;
+    if (!isSignedIn) {
+      toast({
+        title: "تسجيل الدخول مطلوب",
+        description: "يجب تسجيل الدخول لمتابعة الرحلات",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setFollowLoading(true);
+      const token = await getToken();
+      if (!token) {
+        throw new Error("يرجى إعادة تسجيل الدخول");
+      }
+      const response = await toggleFollowUser(trip.ownerId, token);
+      setIsFollowingAuthor(response.following);
+      setAuthorFollowers(response.followers || 0);
+      toast({
+        title: response.following ? "تمت المتابعة" : "تم إلغاء المتابعة",
+        description: response.following
+          ? "ستظهر تحديثات هذا العضو في متابعاتك"
+          : undefined,
+      });
+    } catch (error: any) {
+      console.error("Error toggling follow:", error);
+      toast({
+        title: "خطأ",
+        description: error.message || "تعذر تحديث حالة المتابعة",
+        variant: "destructive",
+      });
+    } finally {
+      setFollowLoading(false);
+    }
+  };
+
+  const handleCommentAdded = (comment: Comment) => {
+    setTrip((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        comments: [comment, ...(prev.comments || [])],
+      };
+    });
+  };
+
+  const handleCommentUpdated = (commentId: string, changes: Partial<Comment>) => {
+    setTrip((prev) => {
+      if (!prev) return prev;
+      if (!Array.isArray(prev.comments)) return prev;
+      return {
+        ...prev,
+        comments: prev.comments.map((c: Comment) =>
+          c.id === commentId ? { ...c, ...changes } : c
+        ),
+      };
+    });
+  };
+
+  const handleCommentDeleted = (commentId: string) => {
+    setTrip((prev) => {
+      if (!prev) return prev;
+      const updatedComments = (prev.comments || []).filter((c: Comment) => c.id !== commentId);
+      return {
+        ...prev,
+        comments: updatedComments,
+      };
+    });
   };
 
   // Loading state
@@ -282,6 +494,7 @@ const TripDetail = () => {
                   isLiked ? "bg-red-600 scale-110" : ""
                 }`}
                 onClick={handleLike}
+                disabled={loveLoading}
               >
                 <Heart
                   className={`h-5 w-5 ${
@@ -330,6 +543,7 @@ const TripDetail = () => {
                   isSaved ? "bg-purple-600 scale-110" : ""
                 }`}
                 onClick={handleSave}
+                disabled={saveLoading}
               >
                 <Bookmark
                   className={`h-5 w-5 ${
@@ -418,7 +632,7 @@ const TripDetail = () => {
                   <div>
                     <p className="font-bold">{trip.author}</p>
                     <p className="text-sm text-muted-foreground">
-                      {trip.authorFollowers.toLocaleString("ar-EG")} متابع
+                      {authorFollowers.toLocaleString("ar-EG")} متابع
                     </p>
                   </div>
                 </Link>
@@ -443,8 +657,16 @@ const TripDetail = () => {
                       </Button>
                     </>
                   ) : (
-                    <Button variant="outline">
-                      متابعة
+                    <Button
+                      variant={isFollowingAuthor ? "secondary" : "outline"}
+                      onClick={handleFollowAuthor}
+                      disabled={followLoading}
+                    >
+                      {followLoading
+                        ? "جاري التحديث..."
+                        : isFollowingAuthor
+                          ? "إلغاء المتابعة"
+                          : "متابعة"}
                     </Button>
                   )}
                 </div>
@@ -648,6 +870,14 @@ const TripDetail = () => {
                             opacity={0.7}
                           />
                         )}
+                        {/* Bus travel animation from first to last point */}
+                        {trip.activities.filter((a: any) => a.coordinates).length > 1 && (
+                          <BusTravelAnimator
+                            positions={trip.activities
+                              .filter((a: any) => a.coordinates)
+                              .map((a: any) => [a.coordinates.lat, a.coordinates.lng])}
+                          />
+                        )}
                         {/* Markers for activities */}
                         {trip.activities
                           .filter((a: any) => a.coordinates)
@@ -777,7 +1007,14 @@ const TripDetail = () => {
           </Card>
 
           {/* Comments Section */}
-          <TripComments comments={trip.comments || []} />
+          <TripComments
+            tripId={String(trip._id || trip.id)}
+            initialComments={trip.comments || []}
+            onCommentAdded={handleCommentAdded}
+            onCommentUpdated={handleCommentUpdated}
+            onCommentDeleted={handleCommentDeleted}
+            tripOwnerId={trip.ownerId}
+          />
         </div>
       </main>
 

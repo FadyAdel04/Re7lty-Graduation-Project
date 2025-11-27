@@ -1,12 +1,14 @@
 import mongoose, { Schema, model } from "mongoose";
 
 const CommentSchema = new Schema({
+  authorId: { type: String, index: true },
   author: String,
   authorAvatar: String,
   content: String,
   date: String,
   likes: { type: Number, default: 0 },
-}, { _id: true });
+  likedBy: { type: [String], default: [] },
+}, { _id: true, timestamps: true });
 
 const ActivitySchema = new Schema({
   name: String,

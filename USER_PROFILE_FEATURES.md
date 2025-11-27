@@ -223,3 +223,7 @@ Created a comprehensive profile page at `src/pages/UserProfile.tsx` with:
 
 
 
+
+
+
+

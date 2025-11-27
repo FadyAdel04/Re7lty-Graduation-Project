@@ -31,7 +31,7 @@ const Hero = () => {
                 شارك رحلتك
               </Button>
             </Link>
-            <Link to="/templates">
+            <Link to="/timeline">
               <Button size="lg" variant="outline" className="w-full sm:w-auto min-w-[200px] rounded-full">
                 <Globe className="ml-2 h-5 w-5" />
                 استعرض الوجهات

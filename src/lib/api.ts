@@ -60,8 +60,12 @@ export async function listTrips(params?: { page?: number; limit?: number; sort?:
   return await res.json();
 }
 
-export async function getTrip(id: string) {
-  const res = await fetch(`${BASE}/api/trips/${id}`);
+export async function getTrip(id: string, token?: string) {
+  const res = await fetch(`${BASE}/api/trips/${id}`, {
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
   if (!res.ok) {
     if (res.status === 404) {
       throw new Error('Trip not found');
@@ -88,8 +92,12 @@ export async function getUserTrips(token?: string) {
   return await res.json();
 }
 
-export async function getUserById(clerkId: string) {
-  const res = await fetch(`${BASE}/api/users/${clerkId}`);
+export async function getUserById(clerkId: string, token?: string) {
+  const res = await fetch(`${BASE}/api/users/${clerkId}`, {
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
   if (!res.ok) {
     if (res.status === 404) {
       throw new Error('User not found');
@@ -107,6 +115,166 @@ export async function getUserTripsById(clerkId: string) {
     throw new Error(errorText || 'Failed to fetch user trips');
   }
   return await res.json();
+}
+
+export async function toggleTripLove(id: string, token: string) {
+  const res = await fetch(`${BASE}/api/trips/${id}/love`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(errorText || 'Failed to update love state');
+  }
+  return await res.json();
+}
+
+export async function toggleTripSave(id: string, token: string) {
+  const res = await fetch(`${BASE}/api/trips/${id}/save`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(errorText || 'Failed to update save state');
+  }
+  return await res.json();
+}
+
+export async function addTripComment(id: string, content: string, token: string) {
+  const res = await fetch(`${BASE}/api/trips/${id}/comments`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ content }),
+  });
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(errorText || 'Failed to add comment');
+  }
+  return await res.json();
+}
+
+export async function toggleTripCommentLove(tripId: string, commentId: string, token: string) {
+  const res = await fetch(`${BASE}/api/trips/${tripId}/comments/${commentId}/love`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(errorText || 'Failed to update comment love');
+  }
+  return await res.json();
+}
+
+export async function toggleFollowUser(clerkId: string, token: string) {
+  const res = await fetch(`${BASE}/api/users/${clerkId}/follow`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(errorText || 'Failed to update follow state');
+  }
+  return await res.json();
+}
+
+export async function deleteTripComment(tripId: string, commentId: string, token: string) {
+  const res = await fetch(`${BASE}/api/trips/${tripId}/comments/${commentId}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(errorText || 'Failed to delete comment');
+  }
+  return await res.json();
+}
+
+export async function getNotifications(limit: number = 30, token?: string) {
+  const res = await fetch(`${BASE}/api/notifications?limit=${limit}`, {
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(errorText || 'Failed to fetch notifications');
+  }
+  return await res.json();
+}
+
+export async function markNotificationRead(id: string, token?: string) {
+  const res = await fetch(`${BASE}/api/notifications/${id}/read`, {
+    method: 'POST',
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(errorText || 'Failed to mark notification read');
+  }
+  return await res.json();
+}
+
+export async function markAllNotificationsRead(token?: string) {
+  const res = await fetch(`${BASE}/api/notifications/read-all`, {
+    method: 'POST',
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(errorText || 'Failed to mark notifications read');
+  }
+  return await res.json();
+}
+
+async function fetchUserTripCollection(path: string, token?: string) {
+  const res = await fetch(`${BASE}${path}`, {
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(errorText || 'Failed to fetch trips');
+  }
+  return await res.json();
+}
+
+export async function getUserSavedTrips(token?: string) {
+  return fetchUserTripCollection('/api/users/me/saves', token);
+}
+
+export async function getUserLovedTrips(token?: string) {
+  return fetchUserTripCollection('/api/users/me/loves', token);
+}
+
+export async function getUserSavedTripsById(clerkId: string) {
+  return fetchUserTripCollection(`/api/users/${clerkId}/saves`);
+}
+
+export async function getUserLovedTripsById(clerkId: string) {
+  return fetchUserTripCollection(`/api/users/${clerkId}/loves`);
 }
 
 export async function updateUserProfile(
