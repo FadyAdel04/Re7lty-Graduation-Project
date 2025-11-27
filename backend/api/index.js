@@ -63,9 +63,34 @@ app.use(async (_req, res, next) => {
   }
 });
 
-// Example test route
-app.get("/api/test", (_req, res) => {
-  res.json({ message: "API working!", dbConnected: mongoose.connection.readyState === 1 });
+const resolveRouter = (path) => {
+  const mod = require(path);
+  return mod.default || mod;
+};
+
+const tripsRouter = resolveRouter("../dist/routes/trips.js");
+const profilesRouter = resolveRouter("../dist/routes/profiles.js");
+const usersRouter = resolveRouter("../dist/routes/users.js");
+const searchRouter = resolveRouter("../dist/routes/search.js");
+const notificationsRouter = resolveRouter("../dist/routes/notifications.js");
+
+app.use("/api/trips", tripsRouter);
+app.use("/api/profiles", profilesRouter);
+app.use("/api/users", usersRouter);
+app.use("/api/search", searchRouter);
+app.use("/api/notifications", notificationsRouter);
+
+app.use("/api/health", (_req, res) => {
+  res.json({
+    status: "ok",
+    service: "backend",
+    dbConnected: mongoose.connection.readyState === 1,
+    timestamp: new Date().toISOString(),
+  });
+});
+
+app.use("/api", (req, res) => {
+  res.status(404).json({ error: "Not Found", path: req.path });
 });
 
 module.exports = app;
