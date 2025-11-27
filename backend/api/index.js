@@ -24,44 +24,23 @@ app.use(
 app.options("*", cors());
 app.use(express.json());
 
-const connectToDatabase = async () => {
-  if (!process.env.MONGODB_URI) {
-    console.warn("MONGODB_URI is not set. Database features will be unavailable.");
-    return;
-  }
+const DB_URI = process.env.MONGODB_URI;
 
-  if (mongoose.connection.readyState === 1) {
-    return;
-  }
-
-  try {
-    await mongoose.connect(process.env.MONGODB_URI, {
+if (!DB_URI) {
+  console.warn("MONGODB_URI is not set. Database features will be unavailable.");
+} else {
+  mongoose
+    .connect(DB_URI, {
       dbName: process.env.MONGODB_DB || undefined,
       serverSelectionTimeoutMS: 5000,
+    })
+    .then(() => {
+      console.log("✓ MongoDB connection successful!");
+    })
+    .catch((err) => {
+      console.error("DB connection error:", err.message);
     });
-    console.log("✓ MongoDB connected (serverless function)");
-  } catch (error) {
-    console.error("Failed to connect to MongoDB:", error.message);
-    throw error;
-  }
-};
-
-let dbPromise = null;
-
-app.use(async (_req, res, next) => {
-  try {
-    if (!dbPromise) {
-      dbPromise = connectToDatabase();
-    }
-    await dbPromise;
-    return next();
-  } catch (error) {
-    return res.status(500).json({
-      error: "Database connection failed",
-      message: error.message || "Unable to connect to MongoDB",
-    });
-  }
-});
+}
 
 // Example test route
 app.get("/api/test", (_req, res) => {
