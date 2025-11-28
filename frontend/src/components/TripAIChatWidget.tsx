@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { egyptTrips } from "@/lib/trips-data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -16,18 +17,27 @@ const TRIP_TYPES = ["تاريخية", "ساحلية", "مغامرات", "است�
 type TripType = typeof TRIP_TYPES[number];
 
 const TripAIChatWidget = () => {
-  // Cities supported by Travel Advisor API
-  const allCities = useMemo(() => [
-    'القاهرة',
-    'الإسكندرية',
-    'الأقصر',
-    'أسوان',
-    'شرم الشيخ',
-    'دهب',
-    'الجونة',
-    'الغردقة',
-    'مرسى مطروح',
-  ], []);
+  // Extended list of Egyptian cities for Travel Advisor API
+  const allCities = useMemo(() => {
+    const tripCities = Array.from(new Set(egyptTrips.map((t) => t.city)));
+    const additionalCities = [
+      'القاهرة',
+      'الإسكندرية',
+      'الأقصر',
+      'أسوان',
+      'شرم الشيخ',
+      'دهب',
+      'الجونة',
+      'مرسى علم',
+      'الغردقة',
+      'طابا',
+      'الجيزة',
+      'المنيا',
+      'سوهاج',
+      'قنا',
+    ];
+    return Array.from(new Set([...tripCities, ...additionalCities]));
+  }, []);
 
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<number>(0);
@@ -35,6 +45,7 @@ const TripAIChatWidget = () => {
   const [days, setDays] = useState<string>("");
   const [tripType, setTripType] = useState<TripType | "">("");
   const [salary, setSalary] = useState<string>("");
+  const [suggestions, setSuggestions] = useState<typeof egyptTrips>([]);
   const [tripPlan, setTripPlan] = useState<TripPlan | null>(null);
   const [showTripPlanDialog, setShowTripPlanDialog] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -52,6 +63,7 @@ const TripAIChatWidget = () => {
     setDays("");
     setTripType("");
     setSalary("");
+    setSuggestions([]);
     setTripPlan(null);
     setShowTripPlanDialog(false);
     setSelectedAttractions(new Set());
@@ -78,10 +90,13 @@ const TripAIChatWidget = () => {
         setTripPlan(plan);
         setShowTripPlanDialog(true);
         setStep(4);
-        // Don't auto-select - user must choose
-        setSelectedAttractions(new Set());
-        setSelectedRestaurants(new Set());
-        setSelectedHotels(new Set());
+        // Auto-select all items by default
+        const allAttractions = new Set(plan.attractions.map(a => a.location_id || plan.attractions.indexOf(a).toString()));
+        const allRestaurants = new Set(plan.restaurants.map(r => r.location_id || plan.restaurants.indexOf(r).toString()));
+        const allHotels = new Set(plan.hotels.map(h => h.location_id || plan.hotels.indexOf(h).toString()));
+        setSelectedAttractions(allAttractions);
+        setSelectedRestaurants(allRestaurants);
+        setSelectedHotels(allHotels);
       } else {
         toast({
           title: "لم يتم العثور على نتائج",
@@ -172,65 +187,6 @@ const TripAIChatWidget = () => {
                        selectedHotelsList[0]?.photo?.images?.medium?.url ||
                        "";
 
-      // Calculate average prices from selected items (user budget is NOT used in calculation)
-      // Extract hotel prices
-      const hotelPrices = selectedHotelsList
-        .map(h => h.price)
-        .filter(Boolean)
-        .map(price => {
-          // Extract number from price string (e.g., "$150" -> 150, "$150-$200" -> 175)
-          const prices = price?.match(/[\d,]+/g) || [];
-          if (prices.length === 0) return 0;
-          const nums = prices.map(p => parseFloat(p.replace(/,/g, ''))).filter(p => p > 0);
-          if (nums.length === 0) return 0;
-          // If range, take average; if single, use it
-          return nums.length > 1 ? (nums[0] + nums[1]) / 2 : nums[0];
-        })
-        .filter(p => p > 0);
-      
-      const avgHotelPricePerNight = hotelPrices.length > 0 
-        ? Math.round(hotelPrices.reduce((a, b) => a + b, 0) / hotelPrices.length)
-        : 0;
-
-      // Extract restaurant price levels (convert $ to estimated price)
-      const restaurantPriceLevels = selectedRestaurantsList
-        .map(r => {
-          if (r.price_level) {
-            const level = parseInt(r.price_level) || 0;
-            // Estimate: $ = 10, $$ = 25, $$$ = 50, $$$$ = 100 USD per meal
-            const estimates = [0, 10, 25, 50, 100];
-            return estimates[level] || 0;
-          }
-          return 0;
-        })
-        .filter(p => p > 0);
-      
-      const avgRestaurantPrice = restaurantPriceLevels.length > 0
-        ? Math.round(restaurantPriceLevels.reduce((a, b) => a + b, 0) / restaurantPriceLevels.length)
-        : 0;
-
-      // Calculate total trip average cost
-      const hotelCost = avgHotelPricePerNight * numDays;
-      const restaurantCost = avgRestaurantPrice * selectedRestaurantsList.length * numDays; // Average meals per day
-      const totalAverageCost = hotelCost + restaurantCost;
-
-      // Store user's budget (for reference, not used in calculation)
-      const userBudget = salary ? `${salary} جنيه مصري` : null;
-
-      // Create trip description with average price
-      let description = `رحلة مخصصة إلى ${city} لمدة ${numDays} أيام. تتضمن ${selectedAttractionsList.length} معلم سياحي، ${selectedRestaurantsList.length} مطعم، و ${selectedHotelsList.length} فندق.`;
-      
-      if (totalAverageCost > 0) {
-        description += `\n\nالتكلفة المتوسطة المتوقعة:`;
-        if (avgHotelPricePerNight > 0) {
-          description += `\n• الفنادق: ${avgHotelPricePerNight} دولار/ليلة × ${numDays} ليلة = ${hotelCost} دولار`;
-        }
-        if (avgRestaurantPrice > 0) {
-          description += `\n• المطاعم: ~${avgRestaurantPrice} دولار/وجبة`;
-        }
-        description += `\n• الإجمالي المتوقع: ~${totalAverageCost} دولار`;
-      }
-
       const tripData = {
         title: `رحلة ${city} - ${numDays} أيام`,
         destination: tripPlan.location.name,
@@ -238,26 +194,19 @@ const TripAIChatWidget = () => {
         duration: `${numDays} أيام`,
         rating: 4.5,
         image: mainImage,
-        description: description,
-        budget: userBudget || (totalAverageCost > 0 ? `~${totalAverageCost} دولار` : "غير محدد"),
+        description: `رحلة مخصصة إلى ${city} لمدة ${numDays} أيام. تتضمن ${selectedAttractionsList.length} معلم سياحي، ${selectedRestaurantsList.length} مطعم، و ${selectedHotelsList.length} فندق.`,
+        budget: salary ? `${salary} جنيه مصري` : "غير محدد",
         activities: activities,
         days: daysArray,
         foodAndRestaurants: foodAndRestaurants,
         isAIGenerated: true, // Mark as AI-generated
-        isPublic: false, // AI trips are private by default, not shown in public timeline
       };
 
       const createdTrip = await createTrip(tripData, token);
       
-      // Show success toast with average price summary
-      const priceSummary = totalAverageCost > 0 
-        ? `التكلفة المتوسطة المتوقعة: ~${totalAverageCost} دولار${avgHotelPricePerNight > 0 ? ` (${avgHotelPricePerNight} دولار/ليلة للفنادق)` : ''}`
-        : 'تم حفظ رحلتك في ملفك الشخصي';
-      
       toast({
         title: "تم إنشاء الرحلة بنجاح",
-        description: priceSummary,
-        duration: 6000,
+        description: "تم حفظ رحلتك في ملفك الشخصي",
       });
 
       // Reset and close
@@ -595,13 +544,13 @@ const TripAIChatWidget = () => {
                 </div>
               )}
 
-              {/* Hotels - Always show section */}
-              <div>
-                <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
-                  <Hotel className="h-5 w-5 text-primary" />
-                  الفنادق المقترحة ({tripPlan.hotels.length})
-                </h3>
-                {tripPlan.hotels.length > 0 ? (
+              {/* Hotels */}
+              {tripPlan.hotels.length > 0 && (
+                <div>
+                  <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
+                    <Hotel className="h-5 w-5 text-primary" />
+                    الفنادق ({tripPlan.hotels.length})
+                  </h3>
                   <div className="grid gap-4 md:grid-cols-2">
                     {tripPlan.hotels.map((hotel, idx) => {
                       const isSelected = selectedHotels.has(hotel.location_id || String(idx));
@@ -629,7 +578,7 @@ const TripAIChatWidget = () => {
                             />
                           )}
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-semibold mb-1 truncate">{hotel.name || 'فندق'}</h4>
+                            <h4 className="font-semibold mb-1 truncate">{hotel.name}</h4>
                             {hotel.rating && (
                               <div className="flex items-center gap-1 text-sm mb-1">
                                 <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
@@ -639,28 +588,20 @@ const TripAIChatWidget = () => {
                                 )}
                               </div>
                             )}
-                            {(hotel.price || hotel.price_level) && (
-                              <p className="text-sm font-medium mb-1 text-primary">
-                                السعر: {hotel.price || (hotel.price_level ? "$".repeat(parseInt(hotel.price_level) || 0) : 'غير محدد')}
-                              </p>
-                            )}
-                            {hotel.description && (
-                              <p className="text-sm text-muted-foreground line-clamp-2 mb-1">{hotel.description}</p>
+                            {hotel.price && (
+                              <p className="text-sm font-medium mb-1">{hotel.price}</p>
                             )}
                             {hotel.amenities && hotel.amenities.length > 0 && (
                               <p className="text-xs text-muted-foreground mb-1">
-                                {hotel.amenities.slice(0, 3).map((a: any) => a?.name || a).filter(Boolean).join(", ")}
+                                {hotel.amenities.slice(0, 3).map(a => a.name).filter(Boolean).join(", ")}
                               </p>
                             )}
                             {hotel.address && (
                               <p className="text-xs text-muted-foreground mt-1">{hotel.address}</p>
                             )}
-                            {hotel.phone && (
-                              <p className="text-xs text-muted-foreground">الهاتف: {hotel.phone}</p>
-                            )}
                             {hotel.website && (
                               <a 
-                                href={hotel.website.startsWith('http') ? hotel.website : `https://${hotel.website}`} 
+                                href={hotel.website} 
                                 target="_blank" 
                                 rel="noopener noreferrer"
                                 className="text-xs text-primary hover:underline mt-1 block"
@@ -668,45 +609,14 @@ const TripAIChatWidget = () => {
                                 زيارة الموقع
                               </a>
                             )}
-                            {hotel.reviews && hotel.reviews.length > 0 && (
-                              <div className="mt-2 pt-2 border-t">
-                                <p className="text-xs font-semibold mb-1">آراء الزوار:</p>
-                                <div className="space-y-1">
-                                  {hotel.reviews.slice(0, 2).map((review: any, ridx: number) => (
-                                    <p key={ridx} className="text-xs text-muted-foreground line-clamp-2">
-                                      "{review.text || review.review_text || review.comment || ''}"
-                                    </p>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                            {hotel.photos && hotel.photos.length > 0 && (
-                              <div className="mt-2 flex gap-1 overflow-x-auto">
-                                {hotel.photos.slice(0, 3).map((photo: any, pidx: number) => {
-                                  const photoUrl = photo.images?.medium?.url || photo.images?.small?.url || photo.url;
-                                  return photoUrl ? (
-                                    <img 
-                                      key={pidx}
-                                      src={photoUrl} 
-                                      alt={`${hotel.name} photo ${pidx + 1}`}
-                                      className="h-12 w-12 object-cover rounded border"
-                                    />
-                                  ) : null;
-                                })}
-                              </div>
-                            )}
                           </div>
                         </div>
                       </div>
                       );
                     })}
                   </div>
-                ) : (
-                  <div className="text-center py-4 text-muted-foreground border rounded-lg">
-                    <p>لا توجد فنادق متاحة لهذه المدينة</p>
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
 
               {tripPlan.attractions.length === 0 && tripPlan.restaurants.length === 0 && tripPlan.hotels.length === 0 && (
                 <div className="text-center py-8 text-muted-foreground">

@@ -435,38 +435,4 @@ export async function deleteTrip(id: string, token?: string) {
   return await res.json();
 }
 
-export async function toggleTripVisibility(id: string, isPublic: boolean, token?: string) {
-  const res = await fetch(`${BASE}/api/trips/${id}/visibility`, {
-    method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify({ isPublic }),
-  });
-  
-  if (!res.ok) {
-    if (res.status === 401) {
-      throw new Error('Unauthorized');
-    }
-    if (res.status === 403) {
-      throw new Error('You can only change visibility of your own trips');
-    }
-    if (res.status === 404) {
-      throw new Error('Trip not found');
-    }
-    let errorMessage = 'Failed to update trip visibility';
-    try {
-      const errorData = await res.json();
-      errorMessage = errorData.message || errorData.error || errorMessage;
-    } catch {
-      const text = await res.text();
-      errorMessage = text || errorMessage;
-    }
-    throw new Error(errorMessage);
-  }
-  
-  return await res.json();
-}
-
 
