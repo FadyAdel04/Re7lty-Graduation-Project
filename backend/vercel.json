@@ -1,23 +1,23 @@
 {
   "version": 2,
-  "buildCommand": "npm install",
+  "buildCommand": "cd backend && npm install && npm run build",
   "builds": [
     {
-      "src": "api/index.js",
+      "src": "backend/api/index.js",
       "use": "@vercel/node",
       "config": {
-        "includeFiles": ["src/**"]
+        "includeFiles": ["backend/dist/**"]
       }
     }
   ],
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "api/index.js"
+      "dest": "backend/api/index.js"
     },
     {
       "src": "/(.*)",
-      "dest": "api/index.js"
+      "dest": "backend/api/index.js"
     }
   ]
 }
