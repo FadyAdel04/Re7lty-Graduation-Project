@@ -75,7 +75,14 @@ export function createApp() {
   const app = express();
 
   // Apply middleware in correct order
-  app.use(cors({ origin: true, credentials: true }));
+  // CORS configuration: allow all origins in production, with credentials support
+  app.use(cors({ 
+    origin: true, // Allow all origins (reflects the request origin)
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    exposedHeaders: ['Content-Type', 'Authorization'],
+  }));
 
   // Increase body size limit to handle large image payloads (50MB)
   app.use(express.json({ limit: "50mb" }));

@@ -16,7 +16,9 @@ export type CreateTripInput = {
 // Use relative URLs in development (proxied by Vite) or VITE_API_URL if set
 // In development, empty string means relative URLs which triggers Vite proxy
 // In production, you can set VITE_API_URL to your backend URL
-const BASE = import.meta.env.VITE_API_URL || ""; // Empty = relative URLs (uses Vite proxy)
+// Normalize BASE URL: remove trailing slashes to avoid double slashes in URLs
+const rawBase = import.meta.env.VITE_API_URL || "";
+const BASE = rawBase ? rawBase.replace(/\/+$/, "") : ""; // Remove trailing slashes, empty = relative URLs (uses Vite proxy)
 
 export async function createTrip(input: CreateTripInput, token?: string) {
   const res = await fetch(`${BASE}/api/trips`, {
@@ -55,9 +57,30 @@ export async function listTrips(params?: { page?: number; limit?: number; sort?:
   if (params?.sort) query.set('sort', params.sort);
   if (params?.q) query.set('q', params.q);
   if (params?.city) query.set('city', params.city);
-  const res = await fetch(`${BASE}/api/trips?${query.toString()}`);
-  if (!res.ok) throw new Error(await res.text());
-  return await res.json();
+  
+  const url = `${BASE}/api/trips?${query.toString()}`;
+  try {
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(errorText || `Failed to fetch trips: ${res.status} ${res.statusText}`);
+    }
+    
+    return await res.json();
+  } catch (error: any) {
+    // Provide more helpful error messages for common issues
+    if (error.message === 'Failed to fetch' || error.name === 'TypeError') {
+      const apiUrl = BASE || 'the backend server';
+      throw new Error(`Network error: Unable to connect to ${apiUrl}. Please check if the backend is running and CORS is properly configured.`);
+    }
+    throw error;
+  }
 }
 
 export async function getTrip(id: string, token?: string) {
@@ -208,16 +231,30 @@ export async function deleteTripComment(tripId: string, commentId: string, token
 }
 
 export async function getNotifications(limit: number = 30, token?: string) {
-  const res = await fetch(`${BASE}/api/notifications?limit=${limit}`, {
-    headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-  });
-  if (!res.ok) {
-    const errorText = await res.text();
-    throw new Error(errorText || 'Failed to fetch notifications');
+  const url = `${BASE}/api/notifications?limit=${limit}`;
+  try {
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+    
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(errorText || `Failed to fetch notifications: ${res.status} ${res.statusText}`);
+    }
+    
+    return await res.json();
+  } catch (error: any) {
+    // Provide more helpful error messages for common issues
+    if (error.message === 'Failed to fetch' || error.name === 'TypeError') {
+      const apiUrl = BASE || 'the backend server';
+      throw new Error(`Network error: Unable to connect to ${apiUrl}. Please check if the backend is running and CORS is properly configured.`);
+    }
+    throw error;
   }
-  return await res.json();
 }
 
 export async function markNotificationRead(id: string, token?: string) {
