@@ -98,7 +98,7 @@ router.get('/me', requireAuthStrict, async (req, res) => {
   }
 });
 
-// Get current user's trips
+// Get current user's trips (excludes AI-generated trips, those are in /me/ai-trips)
 router.get('/me/trips', requireAuthStrict, async (req, res) => {
   try {
     const { userId } = getAuth(req);
@@ -106,11 +106,30 @@ router.get('/me/trips', requireAuthStrict, async (req, res) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
     
-    const trips = await Trip.find({ ownerId: userId }).sort({ postedAt: -1 });
-    res.json(trips);
+    // Exclude AI-generated trips from regular trips list
+    const trips = await Trip.find({ ownerId: userId, isAIGenerated: { $ne: true } }).sort({ postedAt: -1 });
+    const formatted = await formatTripsForResponse(trips, req, userId);
+    res.json(formatted);
   } catch (error: any) {
     console.error('Error fetching user trips:', error);
     res.status(500).json({ error: 'Failed to fetch trips', message: error.message });
+  }
+});
+
+// Get current user's AI-generated trips
+router.get('/me/ai-trips', requireAuthStrict, async (req, res) => {
+  try {
+    const { userId } = getAuth(req);
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    
+    const trips = await Trip.find({ ownerId: userId, isAIGenerated: true }).sort({ postedAt: -1 });
+    const formatted = await formatTripsForResponse(trips, req, userId);
+    res.json(formatted);
+  } catch (error: any) {
+    console.error('Error fetching AI trips:', error);
+    res.status(500).json({ error: 'Failed to fetch AI trips', message: error.message });
   }
 });
 
@@ -418,7 +437,7 @@ router.post('/:clerkId/follow', requireAuthStrict, async (req, res) => {
   }
 });
 
-// Get trips by clerk user id
+// Get trips by clerk user id (excludes AI-generated trips, those are private)
 router.get('/:clerkId/trips', async (req, res) => {
   try {
     const { clerkId } = req.params;
@@ -431,8 +450,21 @@ router.get('/:clerkId/trips', async (req, res) => {
       });
     }
     
-    const trips = await Trip.find({ ownerId: clerkId }).sort({ postedAt: -1 });
-    res.json(trips);
+    const authInfo = getAuth(req);
+    const viewerId = authInfo.userId || undefined;
+    
+    // Only show public trips, or private trips if viewer is the owner
+    // AI trips are always excluded from this endpoint (they're in /me/ai-trips)
+    const filter: any = { ownerId: clerkId, isAIGenerated: { $ne: true } };
+    if (viewerId !== clerkId) {
+      // If not viewing own profile, only show public trips
+      filter.isPublic = true;
+    }
+    // If viewing own profile, show all non-AI trips (public and private)
+    
+    const trips = await Trip.find(filter).sort({ postedAt: -1 });
+    const formatted = await formatTripsForResponse(trips, req, viewerId);
+    res.json(formatted);
   } catch (error: any) {
     console.error('Error fetching user trips:', error);
     res.status(500).json({ error: 'Failed to fetch trips', message: error.message });

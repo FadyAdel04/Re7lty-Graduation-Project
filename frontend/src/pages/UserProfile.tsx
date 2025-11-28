@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, Calendar, Users, Heart, Settings, Camera, Edit2, Save, X, LogOut, Bookmark } from "lucide-react";
+import { MapPin, Calendar, Users, Heart, Settings, Camera, Edit2, Save, X, LogOut, Bookmark, MessageCircle } from "lucide-react";
 import { useUser, useAuth, useClerk } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -32,6 +32,7 @@ import {
   getUserLovedTrips,
   getUserSavedTripsById,
   getUserLovedTripsById,
+  getUserAITrips,
 } from "@/lib/api";
 import TripSkeletonLoader from "@/components/TripSkeletonLoader";
 
@@ -77,8 +78,10 @@ const UserProfile = () => {
   const [isLoadingTrips, setIsLoadingTrips] = useState(false);
   const [savedTrips, setSavedTrips] = useState<any[]>([]);
   const [lovedTrips, setLovedTrips] = useState<any[]>([]);
+  const [aiTrips, setAiTrips] = useState<any[]>([]);
   const [isLoadingSaved, setIsLoadingSaved] = useState(false);
   const [isLoadingLoved, setIsLoadingLoved] = useState(false);
+  const [isLoadingAITrips, setIsLoadingAITrips] = useState(false);
 
   // Stats
   const [stats, setStats] = useState({
@@ -260,6 +263,27 @@ const UserProfile = () => {
 
     fetchSavedAndLoved();
   }, [id, isOwnProfile, isSignedIn, getToken, toast]);
+
+  // Fetch AI trips
+  useEffect(() => {
+    const fetchAITrips = async () => {
+      if (!isOwnProfile || !isSignedIn) return;
+      
+      setIsLoadingAITrips(true);
+      try {
+        const token = await getToken();
+        const trips = await getUserAITrips(token || undefined);
+        setAiTrips(Array.isArray(trips) ? trips : []);
+      } catch (error: any) {
+        console.error("Error fetching AI trips:", error);
+        setAiTrips([]);
+      } finally {
+        setIsLoadingAITrips(false);
+      }
+    };
+
+    fetchAITrips();
+  }, [id, isOwnProfile, isSignedIn, getToken]);
 
   const handleSaveProfile = async () => {
     if (!clerkUser || !isOwnProfile) return;
@@ -783,6 +807,9 @@ const UserProfile = () => {
           <Tabs defaultValue="trips" className="w-full">
             <TabsList className="w-full sm:w-auto rounded-full bg-muted/50">
               <TabsTrigger value="trips" className="rounded-full">رحلاتي</TabsTrigger>
+              {isOwnProfile && (
+                <TabsTrigger value="ai-trips" className="rounded-full">رحلات الذكاء الاصطناعي</TabsTrigger>
+              )}
               <TabsTrigger value="saved" className="rounded-full">المحفوظات</TabsTrigger>
               <TabsTrigger value="liked" className="rounded-full">الإعجابات</TabsTrigger>
             </TabsList>
@@ -829,6 +856,42 @@ const UserProfile = () => {
                 </div>
               )}
             </TabsContent>
+
+            {isOwnProfile && (
+              <TabsContent value="ai-trips" className="mt-8">
+                {isLoadingAITrips ? (
+                  <TripSkeletonLoader count={3} variant="card" />
+                ) : aiTrips.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {aiTrips.map((trip) => {
+                      const tripId = String(trip._id || trip.id);
+                      return (
+                        <TripCard 
+                          key={tripId} 
+                          id={tripId}
+                          title={trip.title}
+                          destination={trip.destination}
+                          duration={trip.duration}
+                          rating={trip.rating}
+                          image={trip.image}
+                          author={trip.author}
+                          likes={trip.likes || 0}
+                          ownerId={trip.ownerId}
+                        />
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-16">
+                    <MessageCircle className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
+                    <h3 className="text-xl font-semibold mb-2">لا توجد رحلات ذكاء اصطناعي بعد</h3>
+                    <p className="text-muted-foreground mb-4">
+                      استخدم مساعد الرحلات الذكي لإنشاء رحلات مخصصة
+                    </p>
+                  </div>
+                )}
+              </TabsContent>
+            )}
 
             <TabsContent value="saved" className="mt-8">
               {isLoadingSaved ? (

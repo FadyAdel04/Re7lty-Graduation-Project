@@ -1,17 +1,33 @@
 import { useMemo, useState } from "react";
-import { egyptTrips } from "@/lib/trips-data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MessageCircle, X, Send, MapPin, Star, Heart } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Checkbox } from "@/components/ui/checkbox";
+import { MessageCircle, X, Send, MapPin, Star, Heart, Loader2, Utensils, Hotel, Camera, CheckCircle2 } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { getTripPlan, type TripPlan, type TravelAdvisorAttraction, type TravelAdvisorRestaurant, type TravelAdvisorHotel } from "@/lib/travel-advisor-api";
+import { useToast } from "@/hooks/use-toast";
+import { createTrip } from "@/lib/api";
+import { useAuth } from "@clerk/clerk-react";
 
 const TRIP_TYPES = ["تاريخية", "ساحلية", "مغامرات", "استرخاء", "غوص"] as const;
 
 type TripType = typeof TRIP_TYPES[number];
 
 const TripAIChatWidget = () => {
-  const cities = useMemo(() => Array.from(new Set(egyptTrips.map((t) => t.city))), []);
+  // Cities supported by Travel Advisor API
+  const allCities = useMemo(() => [
+    'القاهرة',
+    'الإسكندرية',
+    'الأقصر',
+    'أسوان',
+    'شرم الشيخ',
+    'دهب',
+    'الجونة',
+    'الغردقة',
+    'مرسى مطروح',
+  ], []);
 
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<number>(0);
@@ -19,7 +35,16 @@ const TripAIChatWidget = () => {
   const [days, setDays] = useState<string>("");
   const [tripType, setTripType] = useState<TripType | "">("");
   const [salary, setSalary] = useState<string>("");
-  const [suggestions, setSuggestions] = useState<typeof egyptTrips>([]);
+  const [tripPlan, setTripPlan] = useState<TripPlan | null>(null);
+  const [showTripPlanDialog, setShowTripPlanDialog] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedAttractions, setSelectedAttractions] = useState<Set<string>>(new Set());
+  const [selectedRestaurants, setSelectedRestaurants] = useState<Set<string>>(new Set());
+  const [selectedHotels, setSelectedHotels] = useState<Set<string>>(new Set());
+  const [isCreatingTrip, setIsCreatingTrip] = useState(false);
+  const { toast } = useToast();
+  const { isSignedIn, getToken } = useAuth();
+  const navigate = useNavigate();
 
   const reset = () => {
     setStep(0);
@@ -27,36 +52,230 @@ const TripAIChatWidget = () => {
     setDays("");
     setTripType("");
     setSalary("");
-    setSuggestions([]);
+    setTripPlan(null);
+    setShowTripPlanDialog(false);
+    setSelectedAttractions(new Set());
+    setSelectedRestaurants(new Set());
+    setSelectedHotels(new Set());
   };
 
-  const computeSuggestions = () => {
-    const tripDays = (t: string) => parseInt(t.match(/\d+/)?.[0] || "0");
-    const maxBudget = parseInt(salary || "0");
+  const computeSuggestions = async () => {
+    if (!city) {
+      toast({
+        title: "خطأ",
+        description: "يرجى اختيار المدينة أولاً",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    // crude type keyword mapping
-    const typeKeywords: Record<string, string[]> = {
-      "تاريخية": ["معبد", "تاريخ", "وادي", "دير"],
-      "ساحلية": ["شاطئ", "كورنيش", "جزيرة"],
-      "مغامرات": ["سفاري", "تخييم", "جبال"],
-      "استرخاء": ["هادئ", "قرية", "منتجع"],
-      "غوص": ["غوص", "Blue Hole", "شعاب"],
-    };
+    setIsLoading(true);
+    try {
+      const numDays = parseInt(days || "3");
+      const plan = await getTripPlan(city, numDays);
+      
+      if (plan) {
+        setTripPlan(plan);
+        setShowTripPlanDialog(true);
+        setStep(4);
+        // Don't auto-select - user must choose
+        setSelectedAttractions(new Set());
+        setSelectedRestaurants(new Set());
+        setSelectedHotels(new Set());
+      } else {
+        toast({
+          title: "لم يتم العثور على نتائج",
+          description: "لم نتمكن من العثور على رحلة لهذه المدينة. يرجى المحاولة مرة أخرى.",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      console.error("Error fetching trip plan:", error);
+      toast({
+        title: "خطأ في الاتصال",
+        description: error.message || "حدث خطأ أثناء جلب بيانات الرحلة. يرجى المحاولة مرة أخرى.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    const filtered = egyptTrips.filter((t) => {
-      const byCity = city ? t.city === city || t.destination === city : true;
-      const withinDays = days ? tripDays(t.duration) <= parseInt(days) : true;
-      const withinBudget = maxBudget ? parseInt(t.budget.replace(/[^\d]/g, "")) <= maxBudget : true;
-      const byType = tripType
-        ? typeKeywords[tripType].some((k) => t.title.includes(k) || t.description.includes(k) || t.activities.some((a) => a.name.includes(k)))
-        : true;
-      return byCity && withinDays && withinBudget && byType;
-    })
-      .sort((a, b) => b.rating - a.rating || b.likes - a.likes)
-      .slice(0, 5);
+  const handleCreateTrip = async () => {
+    if (!tripPlan || !isSignedIn) {
+      toast({
+        title: "تسجيل الدخول مطلوب",
+        description: "يجب تسجيل الدخول لإنشاء رحلة",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    setSuggestions(filtered);
-    setStep(4);
+    const totalSelected = selectedAttractions.size + selectedRestaurants.size + selectedHotels.size;
+    if (totalSelected === 0) {
+      toast({
+        title: "يرجى تحديد عناصر",
+        description: "يجب تحديد معالم أو مطاعم أو فنادق على الأقل",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsCreatingTrip(true);
+    try {
+      const token = await getToken();
+      if (!token) {
+        throw new Error("يرجى إعادة تسجيل الدخول");
+      }
+
+      // Get selected items
+      const selectedAttractionsList = tripPlan.attractions.filter((a, idx) => 
+        selectedAttractions.has(a.location_id || String(idx))
+      );
+      const selectedRestaurantsList = tripPlan.restaurants.filter((r, idx) => 
+        selectedRestaurants.has(r.location_id || String(idx))
+      );
+      const selectedHotelsList = tripPlan.hotels.filter((h, idx) => 
+        selectedHotels.has(h.location_id || String(idx))
+      );
+
+      // Transform to trip format
+      const activities = selectedAttractionsList.map((attraction, idx) => ({
+        name: attraction.name,
+        images: attraction.photo?.images?.medium?.url ? [attraction.photo.images.medium.url] : [],
+        coordinates: attraction.location_id ? {
+          lat: parseFloat(tripPlan.location.latitude || "0"),
+          lng: parseFloat(tripPlan.location.longitude || "0"),
+        } : undefined,
+        day: Math.floor(idx / 3) + 1, // Distribute across days
+      }));
+
+      const foodAndRestaurants = selectedRestaurantsList.map((restaurant) => ({
+        name: restaurant.name,
+        image: restaurant.photo?.images?.medium?.url || "",
+        rating: parseFloat(restaurant.rating || "4.5"),
+        description: restaurant.description || restaurant.cuisine?.map(c => c.name).join(", ") || "",
+      }));
+
+      // Create days based on number of days
+      const numDays = parseInt(days || "3");
+      const daysArray = Array.from({ length: numDays }, (_, i) => ({
+        title: `اليوم ${i + 1}`,
+        activities: activities
+          .map((_, idx) => idx)
+          .filter((_, idx) => Math.floor(idx / 3) === i),
+      }));
+
+      // Get main image from first attraction or restaurant
+      const mainImage = selectedAttractionsList[0]?.photo?.images?.medium?.url ||
+                       selectedRestaurantsList[0]?.photo?.images?.medium?.url ||
+                       selectedHotelsList[0]?.photo?.images?.medium?.url ||
+                       "";
+
+      // Calculate average prices from selected items (user budget is NOT used in calculation)
+      // Extract hotel prices
+      const hotelPrices = selectedHotelsList
+        .map(h => h.price)
+        .filter(Boolean)
+        .map(price => {
+          // Extract number from price string (e.g., "$150" -> 150, "$150-$200" -> 175)
+          const prices = price?.match(/[\d,]+/g) || [];
+          if (prices.length === 0) return 0;
+          const nums = prices.map(p => parseFloat(p.replace(/,/g, ''))).filter(p => p > 0);
+          if (nums.length === 0) return 0;
+          // If range, take average; if single, use it
+          return nums.length > 1 ? (nums[0] + nums[1]) / 2 : nums[0];
+        })
+        .filter(p => p > 0);
+      
+      const avgHotelPricePerNight = hotelPrices.length > 0 
+        ? Math.round(hotelPrices.reduce((a, b) => a + b, 0) / hotelPrices.length)
+        : 0;
+
+      // Extract restaurant price levels (convert $ to estimated price)
+      const restaurantPriceLevels = selectedRestaurantsList
+        .map(r => {
+          if (r.price_level) {
+            const level = parseInt(r.price_level) || 0;
+            // Estimate: $ = 10, $$ = 25, $$$ = 50, $$$$ = 100 USD per meal
+            const estimates = [0, 10, 25, 50, 100];
+            return estimates[level] || 0;
+          }
+          return 0;
+        })
+        .filter(p => p > 0);
+      
+      const avgRestaurantPrice = restaurantPriceLevels.length > 0
+        ? Math.round(restaurantPriceLevels.reduce((a, b) => a + b, 0) / restaurantPriceLevels.length)
+        : 0;
+
+      // Calculate total trip average cost
+      const hotelCost = avgHotelPricePerNight * numDays;
+      const restaurantCost = avgRestaurantPrice * selectedRestaurantsList.length * numDays; // Average meals per day
+      const totalAverageCost = hotelCost + restaurantCost;
+
+      // Store user's budget (for reference, not used in calculation)
+      const userBudget = salary ? `${salary} جنيه مصري` : null;
+
+      // Create trip description with average price
+      let description = `رحلة مخصصة إلى ${city} لمدة ${numDays} أيام. تتضمن ${selectedAttractionsList.length} معلم سياحي، ${selectedRestaurantsList.length} مطعم، و ${selectedHotelsList.length} فندق.`;
+      
+      if (totalAverageCost > 0) {
+        description += `\n\nالتكلفة المتوسطة المتوقعة:`;
+        if (avgHotelPricePerNight > 0) {
+          description += `\n• الفنادق: ${avgHotelPricePerNight} دولار/ليلة × ${numDays} ليلة = ${hotelCost} دولار`;
+        }
+        if (avgRestaurantPrice > 0) {
+          description += `\n• المطاعم: ~${avgRestaurantPrice} دولار/وجبة`;
+        }
+        description += `\n• الإجمالي المتوقع: ~${totalAverageCost} دولار`;
+      }
+
+      const tripData = {
+        title: `رحلة ${city} - ${numDays} أيام`,
+        destination: tripPlan.location.name,
+        city: city,
+        duration: `${numDays} أيام`,
+        rating: 4.5,
+        image: mainImage,
+        description: description,
+        budget: userBudget || (totalAverageCost > 0 ? `~${totalAverageCost} دولار` : "غير محدد"),
+        activities: activities,
+        days: daysArray,
+        foodAndRestaurants: foodAndRestaurants,
+        isAIGenerated: true, // Mark as AI-generated
+        isPublic: false, // AI trips are private by default, not shown in public timeline
+      };
+
+      const createdTrip = await createTrip(tripData, token);
+      
+      // Show success toast with average price summary
+      const priceSummary = totalAverageCost > 0 
+        ? `التكلفة المتوسطة المتوقعة: ~${totalAverageCost} دولار${avgHotelPricePerNight > 0 ? ` (${avgHotelPricePerNight} دولار/ليلة للفنادق)` : ''}`
+        : 'تم حفظ رحلتك في ملفك الشخصي';
+      
+      toast({
+        title: "تم إنشاء الرحلة بنجاح",
+        description: priceSummary,
+        duration: 6000,
+      });
+
+      // Reset and close
+      reset();
+      setShowTripPlanDialog(false);
+      
+      // Navigate to trip detail page
+      navigate(`/trips/${createdTrip._id || createdTrip.id}`);
+    } catch (error: any) {
+      console.error("Error creating trip:", error);
+      toast({
+        title: "خطأ",
+        description: error.message || "فشل إنشاء الرحلة",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreatingTrip(false);
+    }
   };
 
   const renderStep = () => {
@@ -69,7 +288,7 @@ const TripAIChatWidget = () => {
               <SelectValue placeholder="اختر المدينة" />
             </SelectTrigger>
             <SelectContent>
-              {cities.map((c) => (
+              {allCities.map((c) => (
                 <SelectItem key={c} value={c}>
                   {c}
                 </SelectItem>
@@ -133,8 +352,20 @@ const TripAIChatWidget = () => {
           <Input type="number" min={0} value={salary} onChange={(e) => setSalary(e.target.value)} />
           <div className="flex justify-between">
             <Button variant="ghost" size="sm" onClick={() => setStep(2)}>رجوع</Button>
-            <Button size="sm" className="rounded-full" onClick={computeSuggestions}>
-              اقترح رحلات
+            <Button 
+              size="sm" 
+              className="rounded-full" 
+              onClick={computeSuggestions}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  جاري البحث...
+                </>
+              ) : (
+                "اقترح رحلات"
+              )}
             </Button>
           </div>
         </div>
@@ -144,26 +375,29 @@ const TripAIChatWidget = () => {
     // step 4 results
     return (
       <div className="space-y-2">
-        {suggestions.length === 0 ? (
-          <div className="text-sm text-muted-foreground">لم أجد نتائج مطابقة. جرّب تعديل المعايير.</div>
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-8 space-y-2">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <div className="text-sm text-muted-foreground">جاري البحث عن أفضل الرحلات...</div>
+          </div>
+        ) : tripPlan ? (
+          <div className="space-y-2">
+            <div className="text-sm font-semibold text-center p-2 bg-primary/10 rounded-lg">
+              ✓ تم إنشاء خطة رحلة مخصصة لـ {city}
+            </div>
+            <Button 
+              className="w-full" 
+              onClick={() => setShowTripPlanDialog(true)}
+            >
+              عرض تفاصيل الرحلة الكاملة
+            </Button>
+            <div className="pt-1 flex justify-end gap-2">
+              <Button variant="ghost" size="sm" onClick={reset}>إعادة البدء</Button>
+            </div>
+          </div>
         ) : (
-          suggestions.map((trip) => (
-            <Link key={trip.id} to={`/trips/${trip.id}`} className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/50">
-              <img src={trip.image} alt={trip.title} className="h-12 w-16 rounded object-cover border" />
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-bold truncate">{trip.title}</div>
-                <div className="text-[11px] text-muted-foreground flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3 text-secondary" /> {trip.destination}</span>
-                  <span className="inline-flex items-center gap-1"><Star className="h-3 w-3 fill-primary text-primary" /> {trip.rating}</span>
-                  <span className="inline-flex items-center gap-1"><Heart className="h-3 w-3 text-primary" /> {trip.likes}</span>
-                </div>
-              </div>
-            </Link>
-          ))
+          <div className="text-sm text-muted-foreground">لم أجد نتائج مطابقة. جرّب تعديل المعايير.</div>
         )}
-        <div className="pt-1 flex justify-end gap-2">
-          <Button variant="ghost" size="sm" onClick={reset}>إعادة البدء</Button>
-        </div>
       </div>
     );
   };
@@ -187,9 +421,327 @@ const TripAIChatWidget = () => {
           <div className="p-4 space-y-3 max-h-[60vh] overflow-auto">
             {renderStep()}
           </div>
-          <div className="px-4 py-2 border-t text-xs text-muted-foreground">اختبارات تجريبية - نتائج مبنية على بيانات الرحلات الحالية.</div>
+          <div className="px-4 py-2 border-t text-xs text-muted-foreground">مدعوم بـ Travel Advisor API</div>
         </div>
       )}
+
+      {/* Trip Plan Details Dialog */}
+      <Dialog open={showTripPlanDialog} onOpenChange={setShowTripPlanDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">خطة رحلة مخصصة - {city}</DialogTitle>
+            <DialogDescription>
+              خطة رحلة لمدة {days} أيام في {city}
+            </DialogDescription>
+          </DialogHeader>
+
+          {tripPlan && (
+            <div className="space-y-6 py-4">
+              {/* Location Info */}
+              <div className="bg-muted/50 p-4 rounded-lg">
+                <h3 className="font-bold text-lg mb-2 flex items-center gap-2">
+                  <MapPin className="h-5 w-5 text-primary" />
+                  {tripPlan.location.name}
+                </h3>
+                {tripPlan.location.latitude && tripPlan.location.longitude && (
+                  <p className="text-sm text-muted-foreground">
+                    الموقع: {tripPlan.location.latitude}, {tripPlan.location.longitude}
+                  </p>
+                )}
+              </div>
+
+              {/* Attractions */}
+              {tripPlan.attractions.length > 0 && (
+                <div>
+                  <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
+                    <Camera className="h-5 w-5 text-primary" />
+                    المعالم السياحية ({tripPlan.attractions.length})
+                  </h3>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {tripPlan.attractions.map((attraction, idx) => {
+                      const isSelected = selectedAttractions.has(attraction.location_id || String(idx));
+                      return (
+                      <div key={attraction.location_id || idx} className={`border rounded-lg p-4 hover:shadow-md transition-shadow ${isSelected ? 'ring-2 ring-primary' : ''}`}>
+                        <div className="flex gap-3">
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={(checked) => {
+                              const newSet = new Set(selectedAttractions);
+                              if (checked) {
+                                newSet.add(attraction.location_id || String(idx));
+                              } else {
+                                newSet.delete(attraction.location_id || String(idx));
+                              }
+                              setSelectedAttractions(newSet);
+                            }}
+                            className="mt-1"
+                          />
+                          {attraction.photo?.images?.medium?.url && (
+                            <img 
+                              src={attraction.photo.images.medium.url} 
+                              alt={attraction.name}
+                              className="w-24 h-24 object-cover rounded"
+                            />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold mb-1 truncate">{attraction.name}</h4>
+                            {attraction.rating && (
+                              <div className="flex items-center gap-1 text-sm mb-1">
+                                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                                <span>{attraction.rating}</span>
+                                {attraction.num_reviews && (
+                                  <span className="text-muted-foreground">({attraction.num_reviews} تقييم)</span>
+                                )}
+                              </div>
+                            )}
+                            {attraction.description && (
+                              <p className="text-sm text-muted-foreground line-clamp-2">{attraction.description}</p>
+                            )}
+                            {attraction.address && (
+                              <p className="text-xs text-muted-foreground mt-1">{attraction.address}</p>
+                            )}
+                            {attraction.website && (
+                              <a 
+                                href={attraction.website} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-xs text-primary hover:underline mt-1 block"
+                              >
+                                زيارة الموقع
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Restaurants */}
+              {tripPlan.restaurants.length > 0 && (
+                <div>
+                  <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
+                    <Utensils className="h-5 w-5 text-primary" />
+                    المطاعم ({tripPlan.restaurants.length})
+                  </h3>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {tripPlan.restaurants.map((restaurant, idx) => {
+                      const isSelected = selectedRestaurants.has(restaurant.location_id || String(idx));
+                      return (
+                      <div key={restaurant.location_id || idx} className={`border rounded-lg p-4 hover:shadow-md transition-shadow ${isSelected ? 'ring-2 ring-primary' : ''}`}>
+                        <div className="flex gap-3">
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={(checked) => {
+                              const newSet = new Set(selectedRestaurants);
+                              if (checked) {
+                                newSet.add(restaurant.location_id || String(idx));
+                              } else {
+                                newSet.delete(restaurant.location_id || String(idx));
+                              }
+                              setSelectedRestaurants(newSet);
+                            }}
+                            className="mt-1"
+                          />
+                          {restaurant.photo?.images?.medium?.url && (
+                            <img 
+                              src={restaurant.photo.images.medium.url} 
+                              alt={restaurant.name}
+                              className="w-24 h-24 object-cover rounded"
+                            />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold mb-1 truncate">{restaurant.name}</h4>
+                            {restaurant.rating && (
+                              <div className="flex items-center gap-1 text-sm mb-1">
+                                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                                <span>{restaurant.rating}</span>
+                                {restaurant.num_reviews && (
+                                  <span className="text-muted-foreground">({restaurant.num_reviews} تقييم)</span>
+                                )}
+                              </div>
+                            )}
+                            {restaurant.cuisine && restaurant.cuisine.length > 0 && (
+                              <p className="text-xs text-muted-foreground mb-1">
+                                {restaurant.cuisine.map(c => c.name).filter(Boolean).join(", ")}
+                              </p>
+                            )}
+                            {restaurant.price_level && (
+                              <p className="text-xs text-muted-foreground">
+                                مستوى الأسعار: {"$".repeat(parseInt(restaurant.price_level) || 0)}
+                              </p>
+                            )}
+                            {restaurant.address && (
+                              <p className="text-xs text-muted-foreground mt-1">{restaurant.address}</p>
+                            )}
+                            {restaurant.website && (
+                              <a 
+                                href={restaurant.website} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-xs text-primary hover:underline mt-1 block"
+                              >
+                                زيارة الموقع
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Hotels - Always show section */}
+              <div>
+                <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
+                  <Hotel className="h-5 w-5 text-primary" />
+                  الفنادق المقترحة ({tripPlan.hotels.length})
+                </h3>
+                {tripPlan.hotels.length > 0 ? (
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {tripPlan.hotels.map((hotel, idx) => {
+                      const isSelected = selectedHotels.has(hotel.location_id || String(idx));
+                      return (
+                      <div key={hotel.location_id || idx} className={`border rounded-lg p-4 hover:shadow-md transition-shadow ${isSelected ? 'ring-2 ring-primary' : ''}`}>
+                        <div className="flex gap-3">
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={(checked) => {
+                              const newSet = new Set(selectedHotels);
+                              if (checked) {
+                                newSet.add(hotel.location_id || String(idx));
+                              } else {
+                                newSet.delete(hotel.location_id || String(idx));
+                              }
+                              setSelectedHotels(newSet);
+                            }}
+                            className="mt-1"
+                          />
+                          {hotel.photo?.images?.medium?.url && (
+                            <img 
+                              src={hotel.photo.images.medium.url} 
+                              alt={hotel.name}
+                              className="w-24 h-24 object-cover rounded"
+                            />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold mb-1 truncate">{hotel.name || 'فندق'}</h4>
+                            {hotel.rating && (
+                              <div className="flex items-center gap-1 text-sm mb-1">
+                                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                                <span>{hotel.rating}</span>
+                                {hotel.num_reviews && (
+                                  <span className="text-muted-foreground">({hotel.num_reviews} تقييم)</span>
+                                )}
+                              </div>
+                            )}
+                            {(hotel.price || hotel.price_level) && (
+                              <p className="text-sm font-medium mb-1 text-primary">
+                                السعر: {hotel.price || (hotel.price_level ? "$".repeat(parseInt(hotel.price_level) || 0) : 'غير محدد')}
+                              </p>
+                            )}
+                            {hotel.description && (
+                              <p className="text-sm text-muted-foreground line-clamp-2 mb-1">{hotel.description}</p>
+                            )}
+                            {hotel.amenities && hotel.amenities.length > 0 && (
+                              <p className="text-xs text-muted-foreground mb-1">
+                                {hotel.amenities.slice(0, 3).map((a: any) => a?.name || a).filter(Boolean).join(", ")}
+                              </p>
+                            )}
+                            {hotel.address && (
+                              <p className="text-xs text-muted-foreground mt-1">{hotel.address}</p>
+                            )}
+                            {hotel.phone && (
+                              <p className="text-xs text-muted-foreground">الهاتف: {hotel.phone}</p>
+                            )}
+                            {hotel.website && (
+                              <a 
+                                href={hotel.website.startsWith('http') ? hotel.website : `https://${hotel.website}`} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-xs text-primary hover:underline mt-1 block"
+                              >
+                                زيارة الموقع
+                              </a>
+                            )}
+                            {hotel.reviews && hotel.reviews.length > 0 && (
+                              <div className="mt-2 pt-2 border-t">
+                                <p className="text-xs font-semibold mb-1">آراء الزوار:</p>
+                                <div className="space-y-1">
+                                  {hotel.reviews.slice(0, 2).map((review: any, ridx: number) => (
+                                    <p key={ridx} className="text-xs text-muted-foreground line-clamp-2">
+                                      "{review.text || review.review_text || review.comment || ''}"
+                                    </p>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {hotel.photos && hotel.photos.length > 0 && (
+                              <div className="mt-2 flex gap-1 overflow-x-auto">
+                                {hotel.photos.slice(0, 3).map((photo: any, pidx: number) => {
+                                  const photoUrl = photo.images?.medium?.url || photo.images?.small?.url || photo.url;
+                                  return photoUrl ? (
+                                    <img 
+                                      key={pidx}
+                                      src={photoUrl} 
+                                      alt={`${hotel.name} photo ${pidx + 1}`}
+                                      className="h-12 w-12 object-cover rounded border"
+                                    />
+                                  ) : null;
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-4 text-muted-foreground border rounded-lg">
+                    <p>لا توجد فنادق متاحة لهذه المدينة</p>
+                  </div>
+                )}
+              </div>
+
+              {tripPlan.attractions.length === 0 && tripPlan.restaurants.length === 0 && tripPlan.hotels.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  لم يتم العثور على معلومات كافية لهذه المدينة
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <div className="flex gap-2 w-full justify-between">
+              <div className="text-sm text-muted-foreground flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4" />
+                {selectedAttractions.size + selectedRestaurants.size + selectedHotels.size} عنصر محدد
+              </div>
+              <Button
+                onClick={handleCreateTrip}
+                disabled={isCreatingTrip || (selectedAttractions.size === 0 && selectedRestaurants.size === 0 && selectedHotels.size === 0) || !isSignedIn}
+                className="gap-2"
+              >
+                {isCreatingTrip ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    جاري الإنشاء...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="h-4 w-4" />
+                    إنشاء خطة الرحلة
+                  </>
+                )}
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

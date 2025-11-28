@@ -24,7 +24,7 @@ async function getActorSnapshot(userId: string) {
 router.get('/', async (req, res) => {
   try {
     const { q, city, sort = 'recent', page = '1', limit = '20' } = req.query as any;
-    const filter: any = {};
+    const filter: any = { isPublic: true }; // Only show public trips in timeline
     const authInfo = getAuth(req);
     const viewerId = authInfo.userId || undefined;
     
@@ -125,6 +125,11 @@ router.get('/:id', async (req, res) => {
     const authInfo = getAuth(req);
     const viewerId = authInfo.userId || undefined;
     const ownerId = typeof trip.ownerId === 'string' ? trip.ownerId : undefined;
+
+    // Check if trip is public or if viewer is the owner
+    if (!trip.isPublic && viewerId !== ownerId) {
+      return res.status(403).json({ error: 'Forbidden', message: 'This trip is private' });
+    }
 
     const followersPromise = ownerId
       ? Follow.countDocuments({ followingId: ownerId })
@@ -257,11 +262,14 @@ router.post('/', requireAuthStrict, async (req, res) => {
     };
 
     const mediaReadyBody = await sanitizeTripMediaOnCreate(restBody);
+    // AI-generated trips are private by default, regular trips are public
+    const isAIGenerated = mediaReadyBody.isAIGenerated === true;
     const tripData = {
       ...mediaReadyBody,
       ownerId: userId, // Clerk user ID (from Clerk Express SDK)
       author: authorName, // Author name from Clerk (always use Clerk data)
       authorFollowers: authorFollowers,
+      isPublic: isAIGenerated ? false : (mediaReadyBody.isPublic !== undefined ? mediaReadyBody.isPublic : true), // AI trips private by default
     };
 
     // Create trip with author details
@@ -433,6 +441,46 @@ const toggleTripSaveHandler = async (req: any, res: any) => {
 };
 
 router.post('/:id/save', requireAuthStrict, toggleTripSaveHandler);
+
+// Toggle trip visibility (public/private)
+router.patch('/:id/visibility', requireAuthStrict, async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({
+        error: 'Database not connected',
+        message: 'MongoDB connection is required.',
+      });
+    }
+
+    const { userId } = getAuth(req);
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const trip = await Trip.findById(req.params.id);
+    if (!trip) {
+      return res.status(404).json({ error: 'Trip not found' });
+    }
+
+    // Only owner can change visibility
+    if (trip.ownerId !== userId) {
+      return res.status(403).json({ error: 'Forbidden', message: 'You can only change visibility of your own trips' });
+    }
+
+    const { isPublic } = req.body;
+    if (typeof isPublic !== 'boolean') {
+      return res.status(400).json({ error: 'Invalid request', message: 'isPublic must be a boolean' });
+    }
+
+    trip.isPublic = isPublic;
+    await trip.save();
+
+    res.json({ isPublic: trip.isPublic, message: isPublic ? 'Trip is now public' : 'Trip is now private' });
+  } catch (error: any) {
+    console.error('Error toggling trip visibility:', error);
+    res.status(500).json({ error: 'Failed to update trip visibility', message: error.message });
+  }
+});
 
 // Fetch comments for a trip
 router.get('/:id/comments', async (req, res) => {

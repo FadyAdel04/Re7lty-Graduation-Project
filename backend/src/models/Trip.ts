@@ -52,6 +52,8 @@ const TripSchema = new Schema({
   comments: [CommentSchema],
   postedAt: { type: Date, default: () => new Date() },
   ownerId: { type: String, index: true }, // Clerk user id
+  isAIGenerated: { type: Boolean, default: false }, // Flag for AI-generated trips
+  isPublic: { type: Boolean, default: true }, // Whether trip is visible in timeline (default true for regular trips)
 }, { timestamps: true });
 
 TripSchema.index({ postedAt: -1 });
