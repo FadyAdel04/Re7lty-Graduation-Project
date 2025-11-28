@@ -107,6 +107,23 @@ export function createApp() {
     console.error("Failed to initialize Clerk middleware:", error.message);
   }
 
+  // Root route handler
+  app.get("/", (_req, res) => {
+    res.json({
+      message: "Re7lty Backend API",
+      version: "1.0.0",
+      endpoints: {
+        health: "/api/health",
+        trips: "/api/trips",
+        profiles: "/api/profiles",
+        users: "/api/users",
+        search: "/api/search",
+        notifications: "/api/notifications"
+      },
+      documentation: "Visit /api/health to check server status"
+    });
+  });
+
   app.get("/api/health", async (_req, res) => {
     try {
       // Ensure database connection
