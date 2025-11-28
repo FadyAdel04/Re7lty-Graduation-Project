@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
-    "build": "tsc",
+    "build": "tsc && node -e \"const fs=require('fs'); const path=require('path'); const distPath=path.join(__dirname,'dist','app.js'); if(!fs.existsSync(distPath)){console.error('ERROR: dist/app.js was not created!'); process.exit(1);} else {console.log('✓ Build successful: dist/app.js exists');}\"",
     "start": "node dist/server.js",
     "seed": "ts-node-dev --transpile-only src/scripts/seed.ts"
   },
