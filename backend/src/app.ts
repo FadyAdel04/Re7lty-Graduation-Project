@@ -8,6 +8,7 @@ import profilesRouter from "./routes/profiles";
 import usersRouter from "./routes/users";
 import searchRouter from "./routes/search";
 import notificationsRouter from "./routes/notifications";
+import storiesRouter from "./routes/stories";
 import { connectToDatabase } from "./db";
 import mongoose from "mongoose";
 
@@ -167,6 +168,7 @@ export function createApp() {
   app.use("/api/users", usersRouter);
   app.use("/api/search", searchRouter);
   app.use("/api/notifications", notificationsRouter);
+  app.use("/api/stories", storiesRouter);
 
   app.use("/api", (req, res) => {
     res.status(404).json({ error: "Not Found", path: req.path });

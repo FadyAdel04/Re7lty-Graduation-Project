@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, Calendar, Users, Heart, Settings, Camera, Edit2, Save, X, LogOut, Bookmark, MessageCircle } from "lucide-react";
+import { MapPin, Calendar, Users, Heart, Settings, Camera, Edit2, Save, X, LogOut, Bookmark, MessageCircle, Award, Crown, Gem } from "lucide-react";
 import { useUser, useAuth, useClerk } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -33,6 +33,7 @@ import {
   getUserSavedTripsById,
   getUserLovedTripsById,
   getUserAITrips,
+  createStory,
 } from "@/lib/api";
 import TripSkeletonLoader from "@/components/TripSkeletonLoader";
 
@@ -92,6 +93,13 @@ const UserProfile = () => {
   });
   const [isFollowingUser, setIsFollowingUser] = useState(false);
   const [isFollowLoading, setIsFollowLoading] = useState(false);
+
+  // Stories (user can add story from profile)
+  const [isStoryDialogOpen, setIsStoryDialogOpen] = useState(false);
+  const [storyMedia, setStoryMedia] = useState<string | null>(null);
+  const [storyMediaType, setStoryMediaType] = useState<"image" | "video" | null>(null);
+  const [storyCaption, setStoryCaption] = useState("");
+  const [isPublishingStory, setIsPublishingStory] = useState(false);
 
   // Redirect to auth if viewing own profile but not signed in
   useEffect(() => {
@@ -509,6 +517,74 @@ const UserProfile = () => {
     }
   };
 
+  const handleStoryFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      setStoryMedia(result);
+      if (file.type.startsWith("video")) {
+        setStoryMediaType("video");
+      } else {
+        setStoryMediaType("image");
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const resetStoryForm = () => {
+    setStoryMedia(null);
+    setStoryMediaType(null);
+    setStoryCaption("");
+    setIsPublishingStory(false);
+  };
+
+  const handlePublishStory = async () => {
+    if (!clerkUser || !isOwnProfile) return;
+    if (!storyMedia || !storyMediaType) {
+      toast({
+        title: "بيانات غير مكتملة",
+        description: "الرجاء اختيار صورة أو فيديو للستوري",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsPublishingStory(true);
+      const token = await getToken();
+      if (!token) {
+        throw new Error("يرجى إعادة تسجيل الدخول");
+      }
+
+      await createStory(
+        {
+          mediaUrl: storyMedia,
+          mediaType: storyMediaType,
+          caption: storyCaption || undefined,
+        },
+        token
+      );
+
+      toast({
+        title: "تم نشر القصة",
+        description: "تم نشر الستوري بنجاح ليتظهر لمتابعيك خلال ٢٤ ساعة",
+      });
+      setIsStoryDialogOpen(false);
+      resetStoryForm();
+    } catch (error: any) {
+      console.error("Error publishing story:", error);
+      toast({
+        title: "خطأ",
+        description: error?.message || "تعذر نشر الستوري، حاول مرة أخرى",
+        variant: "destructive",
+      });
+      setIsPublishingStory(false);
+    }
+  };
+
   const handleToggleFollow = async () => {
     if (!id) return;
     if (!isSignedIn) {
@@ -559,6 +635,45 @@ const UserProfile = () => {
     }
     return "غير محدد";
   };
+
+  const getUserBadge = () => {
+    // Activity score based on trips and engagement
+    const activityScore =
+      stats.trips * 5 + // publishing trips
+      stats.likes * 0.5 +
+      stats.followers * 0.5;
+
+    if (activityScore >= 300) {
+      return {
+        type: "diamond" as const,
+        label: "مستخدم ماسي",
+        icon: <Gem className="h-4 w-4 ml-1" />,
+        className: "bg-gradient-to-l from-cyan-400 to-indigo-500 text-white",
+      };
+    }
+
+    if (activityScore >= 120) {
+      return {
+        type: "gold" as const,
+        label: "مستخدم ذهبي",
+        icon: <Crown className="h-4 w-4 ml-1" />,
+        className: "bg-gradient-to-l from-amber-400 to-orange-500 text-white",
+      };
+    }
+
+    if (activityScore >= 40) {
+      return {
+        type: "silver" as const,
+        label: "مستخدم فضي",
+        icon: <Award className="h-4 w-4 ml-1" />,
+        className: "bg-gradient-to-l from-slate-200 to-slate-400 text-slate-900",
+      };
+    }
+
+    return null;
+  };
+
+  const userBadge = getUserBadge();
 
   if (isLoadingUser || (isOwnProfile && !isLoaded)) {
     return (
@@ -664,9 +779,12 @@ const UserProfile = () => {
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
                           <h1 className="text-3xl font-bold">{fullName}</h1>
-                          <Badge className="bg-secondary text-secondary-foreground">
-                            موثق ✓
-                          </Badge>
+                          {userBadge && (
+                            <Badge className={userBadge.className}>
+                              {userBadge.icon}
+                              {userBadge.label}
+                            </Badge>
+                          )}
                         </div>
                         <p className="text-muted-foreground leading-relaxed">{bio || "لا يوجد وصف..."}</p>
                       </div>
@@ -674,6 +792,14 @@ const UserProfile = () => {
                       <div className="flex gap-2">
                         {isOwnProfile ? (
                           <>
+                            <Button
+                              onClick={() => setIsStoryDialogOpen(true)}
+                              variant="default"
+                              className="rounded-full"
+                            >
+                              <Camera className="h-4 w-4 ml-2" />
+                              إضافة قصة
+                            </Button>
                             <Button 
                               onClick={() => setIsEditing(true)}
                               variant="outline"
@@ -971,6 +1097,80 @@ const UserProfile = () => {
           </Tabs>
         </div>
       </main>
+
+      {/* Add Story Dialog */}
+      {isOwnProfile && (
+        <Dialog open={isStoryDialogOpen} onOpenChange={(open) => {
+          setIsStoryDialogOpen(open);
+          if (!open) resetStoryForm();
+        }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>إضافة قصة جديدة</DialogTitle>
+              <DialogDescription>
+                اختر صورة أو فيديو وأضف وصفاً قصيراً ليظهر لمتابعيك خلال ٢٤ ساعة.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="story-media">الصورة أو الفيديو</Label>
+                <input
+                  id="story-media"
+                  type="file"
+                  accept="image/*,video/*"
+                  onChange={handleStoryFileChange}
+                  className="w-full"
+                />
+              </div>
+              {storyMedia && (
+                <div className="rounded-lg overflow-hidden border">
+                  {storyMediaType === "video" ? (
+                    <video
+                      src={storyMedia}
+                      controls
+                      className="w-full max-h-72 object-contain bg-black"
+                    />
+                  ) : (
+                    <img
+                      src={storyMedia}
+                      alt="Story preview"
+                      className="w-full max-h-72 object-cover"
+                    />
+                  )}
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor="story-caption">الوصف (اختياري)</Label>
+                <Textarea
+                  id="story-caption"
+                  value={storyCaption}
+                  onChange={(e) => setStoryCaption(e.target.value)}
+                  placeholder="اكتب وصفاً قصيراً للستوري..."
+                  rows={3}
+                />
+              </div>
+              <div className="flex gap-2 justify-end pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsStoryDialogOpen(false);
+                    resetStoryForm();
+                  }}
+                  disabled={isPublishingStory}
+                >
+                  إلغاء
+                </Button>
+                <Button
+                  onClick={handlePublishStory}
+                  disabled={isPublishingStory || !storyMedia || !storyMediaType}
+                >
+                  {isPublishingStory ? "جاري النشر..." : "نشر القصة"}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
 
       <Footer />
     </div>

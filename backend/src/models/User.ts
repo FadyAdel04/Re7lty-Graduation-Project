@@ -9,11 +9,18 @@ const UserSchema = new Schema({
   bio: String, // User bio/description
   location: String, // User location (city, country)
   coverImage: String, // Background/cover image URL
-  trips: [{ type: Schema.Types.ObjectId, ref: 'Trip' }],
+  trips: [{ type: Schema.Types.ObjectId, ref: "Trip" }],
   // Stats (can be calculated or stored)
   followers: { type: Number, default: 0 },
   following: { type: Number, default: 0 },
   totalLikes: { type: Number, default: 0 }, // Total likes on all trips
+  // Gamification / badge system
+  activityScore: { type: Number, default: 0 }, // Derived score from trips + activity
+  badgeLevel: {
+    type: String,
+    enum: ["none", "silver", "gold", "diamond"],
+    default: "none",
+  },
 }, { timestamps: true });
 
 export type UserDocument = mongoose.InferSchemaType<typeof UserSchema> & mongoose.Document;

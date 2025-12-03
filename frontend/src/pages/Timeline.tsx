@@ -17,6 +17,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import TripSkeletonLoader from "@/components/TripSkeletonLoader";
+import { StoriesBar } from "@/components/StoriesBar";
 import { Comment } from "@/lib/trips-data";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -354,7 +355,8 @@ const Timeline = () => {
     <div className="min-h-screen bg-background">
       <Header />
       <main className="container mx-auto px-4 py-6 sm:py-8 max-w-4xl">
-        <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">الرحلات التى تمت مشاركتها مؤخرا</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold mb-3 sm:mb-4">الرحلات التى تمت مشاركتها مؤخرا</h1>
+        <StoriesBar />
         {loading ? (
           <TripSkeletonLoader count={3} variant="list" />
         ) : (

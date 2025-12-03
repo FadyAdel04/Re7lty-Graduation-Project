@@ -454,4 +454,97 @@ export async function deleteTrip(id: string, token?: string) {
   return await res.json();
 }
 
+// === Stories API ===
+
+export interface StoryItem {
+  _id: string;
+  mediaUrl: string;
+  mediaType: "image" | "video";
+  caption?: string;
+  createdAt: string;
+  expiresAt: string;
+  seen?: boolean;
+}
+
+export interface StoryUserGroup {
+  userId: string;
+  fullName: string;
+  imageUrl?: string;
+  hasUnseen: boolean;
+  stories: StoryItem[];
+}
+
+export async function createStory(
+  input: { mediaUrl: string; mediaType: "image" | "video"; caption?: string },
+  token: string
+) {
+  const res = await fetch(`${BASE}/api/stories`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Failed to create story");
+  }
+  return res.json();
+}
+
+export async function getMyStories(token: string) {
+  const res = await fetch(`${BASE}/api/stories/me`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Failed to fetch stories");
+  }
+  return res.json() as Promise<{ items: StoryItem[] }>;
+}
+
+export async function getFollowingStories(token: string) {
+  const res = await fetch(`${BASE}/api/stories/following`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Failed to fetch following stories");
+  }
+  return res.json() as Promise<{ users: StoryUserGroup[] }>;
+}
+
+export async function markStoryViewed(id: string, token: string) {
+  const res = await fetch(`${BASE}/api/stories/${id}/view`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Failed to mark story viewed");
+  }
+  return res.json();
+}
+
+export async function deleteStory(id: string, token: string) {
+  const res = await fetch(`${BASE}/api/stories/${id}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Failed to delete story");
+  }
+  return res.json();
+}
+
 

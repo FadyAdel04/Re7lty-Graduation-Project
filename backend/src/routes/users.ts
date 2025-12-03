@@ -339,12 +339,6 @@ router.get('/:clerkId', async (req, res) => {
     }
     // If existingUser has coverImage and Clerk doesn't, keep the DB value (don't update)
     
-    const dbUser = await User.findOneAndUpdate(
-      { clerkId },
-      { $set: updateData },
-      { upsert: true, new: true }
-    );
-
     const [followersCount, followingCount, tripsCount, likesAgg, viewerFollowsDoc] = await Promise.all([
       Follow.countDocuments({ followingId: clerkId }),
       Follow.countDocuments({ followerId: clerkId }),
@@ -359,6 +353,36 @@ router.get('/:clerkId', async (req, res) => {
     ]);
     const totalLikes = likesAgg?.[0]?.totalLikes || 0;
 
+    // Compute activity score and badge level (must stay in sync with frontend logic)
+    const activityScore =
+      tripsCount * 5 +
+      totalLikes * 0.5 +
+      followersCount * 0.5;
+
+    let badgeLevel: "none" | "silver" | "gold" | "diamond" = "none";
+    if (activityScore >= 300) {
+      badgeLevel = "diamond";
+    } else if (activityScore >= 120) {
+      badgeLevel = "gold";
+    } else if (activityScore >= 40) {
+      badgeLevel = "silver";
+    }
+
+    const dbUser = await User.findOneAndUpdate(
+      { clerkId },
+      {
+        $set: {
+          ...updateData,
+          followers: followersCount,
+          following: followingCount,
+          totalLikes,
+          activityScore,
+          badgeLevel,
+        },
+      },
+      { upsert: true, new: true }
+    );
+
     // Return combined data (DB has latest synced data, use it as source of truth)
     const userData = {
       clerkId: dbUser.clerkId,
@@ -372,6 +396,8 @@ router.get('/:clerkId', async (req, res) => {
       followers: followersCount,
       following: followingCount,
       totalLikes,
+      activityScore: dbUser.activityScore,
+      badgeLevel: dbUser.badgeLevel,
       tripsCount,
       viewerFollows: Boolean(viewerFollowsDoc),
       createdAt: dbUser.createdAt || clerkUser.createdAt,
