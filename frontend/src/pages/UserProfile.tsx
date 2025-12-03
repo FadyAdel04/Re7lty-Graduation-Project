@@ -34,6 +34,11 @@ import {
   getUserLovedTripsById,
   getUserAITrips,
   createStory,
+  getMyStories,
+  getStoryViewers,
+  deleteStory,
+  StoryItem,
+  StoryViewerInfo,
 } from "@/lib/api";
 import TripSkeletonLoader from "@/components/TripSkeletonLoader";
 
@@ -100,6 +105,9 @@ const UserProfile = () => {
   const [storyMediaType, setStoryMediaType] = useState<"image" | "video" | null>(null);
   const [storyCaption, setStoryCaption] = useState("");
   const [isPublishingStory, setIsPublishingStory] = useState(false);
+  const [myStories, setMyStories] = useState<StoryItem[]>([]);
+  const [isLoadingMyStories, setIsLoadingMyStories] = useState(false);
+  const [storyViewersById, setStoryViewersById] = useState<Record<string, StoryViewerInfo[]>>({});
 
   // Redirect to auth if viewing own profile but not signed in
   useEffect(() => {
@@ -541,6 +549,21 @@ const UserProfile = () => {
     setIsPublishingStory(false);
   };
 
+  const loadMyStories = async () => {
+    if (!clerkUser) return;
+    try {
+      setIsLoadingMyStories(true);
+      const token = await getToken();
+      if (!token) return;
+      const data = await getMyStories(token);
+      setMyStories(data?.items || []);
+    } catch (error) {
+      console.error("Error loading my stories:", error);
+    } finally {
+      setIsLoadingMyStories(false);
+    }
+  };
+
   const handlePublishStory = async () => {
     if (!clerkUser || !isOwnProfile) return;
     if (!storyMedia || !storyMediaType) {
@@ -574,6 +597,8 @@ const UserProfile = () => {
       });
       setIsStoryDialogOpen(false);
       resetStoryForm();
+      // refresh my stories list if dialog is open
+      void loadMyStories();
     } catch (error: any) {
       console.error("Error publishing story:", error);
       toast({
@@ -793,7 +818,10 @@ const UserProfile = () => {
                         {isOwnProfile ? (
                           <>
                             <Button
-                              onClick={() => setIsStoryDialogOpen(true)}
+                              onClick={() => {
+                                setIsStoryDialogOpen(true);
+                                void loadMyStories();
+                              }}
                               variant="default"
                               className="rounded-full"
                             >
@@ -1113,6 +1141,16 @@ const UserProfile = () => {
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={loadMyStories}
+                  disabled={isLoadingMyStories}
+                >
+                  {isLoadingMyStories ? "جاري تحميل قصصك..." : "تحديث قائمة القصص الخاصة بي"}
+                </Button>
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="story-media">الصورة أو الفيديو</Label>
                 <input
                   id="story-media"
@@ -1122,6 +1160,88 @@ const UserProfile = () => {
                   className="w-full"
                 />
               </div>
+              {myStories.length > 0 && (
+                <div className="space-y-2">
+                  <Label>قصصي الحالية</Label>
+                  <div className="space-y-2 max-h-64 overflow-y-auto border rounded-lg p-2">
+                    {myStories.map((story) => (
+                      <div key={story._id} className="flex items-center gap-3 text-sm">
+                        <div className="h-12 w-12 rounded-md overflow-hidden bg-muted flex-shrink-0">
+                          {story.mediaType === "video" ? (
+                            <video src={story.mediaUrl} className="h-full w-full object-cover" />
+                          ) : (
+                            <img src={story.mediaUrl} alt={story.caption || ""} className="h-full w-full object-cover" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="truncate">{story.caption || "بدون وصف"}</p>
+                          <p className="text-xs text-muted-foreground">
+                            المشاهدات: {(story as any).viewedByCount ?? 0}
+                          </p>
+                          {storyViewersById[story._id]?.length ? (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              آخر المشاهدين:{" "}
+                              {storyViewersById[story._id]
+                                .slice(0, 3)
+                                .map((v) => v.fullName)
+                                .join("، ")}
+                              {storyViewersById[story._id].length > 3 ? " وغيرهم..." : ""}
+                            </p>
+                          ) : null}
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <Button
+                            variant="outline"
+                            size="xs"
+                            onClick={async () => {
+                              try {
+                                const token = await getToken();
+                                if (!token) return;
+                                const data = await getStoryViewers(story._id, token);
+                                setStoryViewersById((prev) => ({
+                                  ...prev,
+                                  [story._id]: data.viewers,
+                                }));
+                                if (!data.viewers.length) {
+                                  toast({
+                                    title: "لا يوجد مشاهدين بعد",
+                                    description: "لم يشاهد أحد هذه القصة حتى الآن.",
+                                  });
+                                }
+                              } catch (error) {
+                                console.error("Error loading story viewers:", error);
+                                toast({
+                                  title: "خطأ",
+                                  description: "تعذر تحميل قائمة المشاهدين",
+                                  variant: "destructive",
+                                });
+                              }
+                            }}
+                          >
+                            عرض المشاهدين
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="xs"
+                            onClick={async () => {
+                              try {
+                                const token = await getToken();
+                                if (!token) return;
+                                await deleteStory(story._id, token);
+                                setMyStories((prev) => prev.filter((s) => s._id !== story._id));
+                              } catch (error) {
+                                console.error("Error deleting story:", error);
+                              }
+                            }}
+                          >
+                            حذف
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               {storyMedia && (
                 <div className="rounded-lg overflow-hidden border">
                   {storyMediaType === "video" ? (

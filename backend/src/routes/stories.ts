@@ -216,6 +216,66 @@ router.post("/:id/view", requireAuthStrict, async (req, res) => {
   }
 });
 
+// Get viewers for a story (owner only)
+router.get("/:id/viewers", requireAuthStrict, async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({
+        error: "Database not connected",
+        message: "MongoDB connection is required.",
+      });
+    }
+
+    const { userId } = getAuth(req);
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const storyId = req.params.id;
+    const story = await Story.findById(storyId).lean();
+    if (!story) {
+      return res.status(404).json({ error: "Story not found" });
+    }
+    if (story.userId !== userId) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
+    const viewerIds: string[] = Array.isArray(story.viewedBy) ? story.viewedBy : [];
+    if (!viewerIds.length) {
+      return res.json({ storyId, total: 0, viewers: [] });
+    }
+
+    const uniqueIds = Array.from(new Set(viewerIds));
+    const viewerUsers = await Promise.all(
+      uniqueIds.map(async (vid) => {
+        try {
+          const u = await clerkClient.users.getUser(vid);
+          return {
+            userId: vid,
+            fullName: u.fullName || u.firstName || u.username || "مستخدم",
+            imageUrl: u.imageUrl,
+          };
+        } catch {
+          return {
+            userId: vid,
+            fullName: "مستخدم",
+            imageUrl: undefined,
+          };
+        }
+      })
+    );
+
+    res.json({
+      storyId,
+      total: viewerIds.length,
+      viewers: viewerUsers,
+    });
+  } catch (error: any) {
+    console.error("Error fetching story viewers:", error);
+    res.status(500).json({ error: "Failed to fetch story viewers", message: error.message });
+  }
+});
+
 // Delete my story
 router.delete("/:id", requireAuthStrict, async (req, res) => {
   try {

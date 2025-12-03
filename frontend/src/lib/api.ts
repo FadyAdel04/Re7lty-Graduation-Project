@@ -547,4 +547,23 @@ export async function deleteStory(id: string, token: string) {
   return res.json();
 }
 
+export interface StoryViewerInfo {
+  userId: string;
+  fullName: string;
+  imageUrl?: string;
+}
+
+export async function getStoryViewers(id: string, token: string) {
+  const res = await fetch(`${BASE}/api/stories/${id}/viewers`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Failed to fetch story viewers");
+  }
+  return res.json() as Promise<{ storyId: string; total: number; viewers: StoryViewerInfo[] }>;
+}
+
 

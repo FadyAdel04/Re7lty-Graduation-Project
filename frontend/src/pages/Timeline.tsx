@@ -18,6 +18,8 @@ import {
 } from "@/components/ui/tooltip";
 import TripSkeletonLoader from "@/components/TripSkeletonLoader";
 import { StoriesBar } from "@/components/StoriesBar";
+import { StoryViewer } from "@/components/StoryViewer";
+import { StoryUserGroup } from "@/lib/api";
 import { Comment } from "@/lib/trips-data";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -89,6 +91,8 @@ const Timeline = () => {
   const lastTapRef = useRef<Record<string, number>>({});
   const [loveState, setLoveState] = useState<Record<string, { liked: boolean; likes: number }>>({});
   const [saveState, setSaveState] = useState<Record<string, boolean>>({});
+  const [activeStoryGroup, setActiveStoryGroup] = useState<StoryUserGroup | null>(null);
+  const [isStoryViewerOpen, setIsStoryViewerOpen] = useState(false);
 
   const triggerHeart = (tripId: string) => {
     setShowHeartByTrip((prev) => ({ ...prev, [tripId]: true }));
@@ -356,7 +360,12 @@ const Timeline = () => {
       <Header />
       <main className="container mx-auto px-4 py-6 sm:py-8 max-w-4xl">
         <h1 className="text-2xl sm:text-3xl font-bold mb-3 sm:mb-4">الرحلات التى تمت مشاركتها مؤخرا</h1>
-        <StoriesBar />
+        <StoriesBar
+          onUserClick={(user) => {
+            setActiveStoryGroup(user);
+            setIsStoryViewerOpen(true);
+          }}
+        />
         {loading ? (
           <TripSkeletonLoader count={3} variant="list" />
         ) : (
@@ -608,6 +617,15 @@ const Timeline = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      <StoryViewer
+        group={activeStoryGroup}
+        isOpen={isStoryViewerOpen && !!activeStoryGroup}
+        onClose={() => {
+          setIsStoryViewerOpen(false);
+          setActiveStoryGroup(null);
+        }}
+      />
 
       <Footer />
     </div>
