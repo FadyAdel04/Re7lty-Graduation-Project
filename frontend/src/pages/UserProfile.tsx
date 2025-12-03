@@ -1192,7 +1192,7 @@ const UserProfile = () => {
                         <div className="flex flex-col gap-1">
                           <Button
                             variant="outline"
-                            size="xs"
+                            size="lg"
                             onClick={async () => {
                               try {
                                 const token = await getToken();
@@ -1222,7 +1222,7 @@ const UserProfile = () => {
                           </Button>
                           <Button
                             variant="destructive"
-                            size="xs"
+                            size="lg"
                             onClick={async () => {
                               try {
                                 const token = await getToken();
