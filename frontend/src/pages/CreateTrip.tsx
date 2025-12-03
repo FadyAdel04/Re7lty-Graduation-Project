@@ -370,7 +370,15 @@ const CreateTrip = () => {
       }, 800);
       return;
     } catch (err: any) {
-      toast({ title: "فشل إنشاء الرحلة", description: err?.message || "", variant: "destructive" });
+      console.error('Error creating trip:', err);
+      const errorMessage = err?.message || "حدث خطأ غير متوقع";
+      const errorDetails = err?.details || (err?.response?.data?.details ? JSON.stringify(err.response.data.details) : null);
+      toast({ 
+        title: "فشل إنشاء الرحلة", 
+        description: errorDetails ? `${errorMessage}\n${errorDetails}` : errorMessage, 
+        variant: "destructive",
+        duration: 5000
+      });
       return;
     }
 

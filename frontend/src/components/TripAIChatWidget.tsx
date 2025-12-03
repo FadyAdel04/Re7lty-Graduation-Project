@@ -30,11 +30,7 @@ const TripAIChatWidget = () => {
       'الجونة',
       'مرسى علم',
       'الغردقة',
-      'طابا',
-      'الجيزة',
-      'المنيا',
-      'سوهاج',
-      'قنا',
+
     ];
     return Array.from(new Set([...tripCities, ...additionalCities]));
   }, []);

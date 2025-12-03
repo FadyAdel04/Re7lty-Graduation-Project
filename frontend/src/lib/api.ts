@@ -33,19 +33,38 @@ export async function createTrip(input: CreateTripInput, token?: string) {
   
   if (!res.ok) {
     let errorMessage = 'Failed to create trip';
+    let errorDetails: any = null;
     try {
       const errorData = await res.json();
       errorMessage = errorData.message || errorData.error || errorMessage;
+      errorDetails = errorData.details || null;
+      
       // If it's a database error, provide more helpful message
       if (res.status === 503 && errorData.error === 'Database not connected') {
         errorMessage = 'Database connection failed. Please check MongoDB connection settings.';
       }
-    } catch {
+      
+      // Create error with details
+      const error = new Error(errorMessage);
+      (error as any).details = errorDetails;
+      (error as any).status = res.status;
+      throw error;
+    } catch (err: any) {
+      // If it's already our error, re-throw it
+      if (err.message && err.details !== undefined) {
+        throw err;
+      }
       // If response is not JSON, try to get text
-      const text = await res.text();
-      errorMessage = text || errorMessage;
+      try {
+        const text = await res.text();
+        errorMessage = text || errorMessage;
+      } catch {
+        // Ignore text parsing errors
+      }
+      const error = new Error(errorMessage);
+      (error as any).status = res.status;
+      throw error;
     }
-    throw new Error(errorMessage);
   }
   
   return await res.json();

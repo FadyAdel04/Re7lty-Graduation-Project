@@ -2,7 +2,6 @@ import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import path from "path";
-import fs from "fs";
 import { clerkMiddleware } from "@clerk/express";
 import tripsRouter from "./routes/trips";
 import profilesRouter from "./routes/profiles";
@@ -21,14 +20,18 @@ if (!process.env.CLERK_SECRET_KEY) {
 }
 
 const ensureUploadsDirectory = () => {
+  // IMPORTANT: Never touch the filesystem here.
+  // This function runs during app initialization (including on serverless
+  // platforms like Vercel) and **must** be pure and non-throwing.
+  //
+  // We only need to provide a virtual path for `express.static`. In serverless
+  // production we currently store media as base64 in MongoDB (see
+  // `routes/trips.ts`), so this directory is only useful for future
+  // non-serverless/local setups.
+  //
+  // If you ever introduce real file uploads again, do it through a dedicated
+  // storage service (S3, Cloudinary, etc.), not by writing to `/var/task`.
   const uploadsDir = path.join(process.cwd(), "uploads");
-  try {
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
-  } catch (error) {
-    console.warn("Unable to ensure uploads directory:", error);
-  }
   return uploadsDir;
 };
 

@@ -179,6 +179,14 @@ router.post('/', requireAuthStrict, async (req, res) => {
 
     console.log(`[Trip Creation] Authenticated user: ${userId}`);
 
+    // Validate required fields before processing
+    if (!req.body.title || typeof req.body.title !== 'string' || req.body.title.trim() === '') {
+      return res.status(400).json({ 
+        error: 'Validation error', 
+        message: 'Trip title is required and must be a non-empty string' 
+      });
+    }
+
     // Fetch user details from Clerk to get author information
     let clerkUser;
     try {
@@ -205,50 +213,109 @@ router.post('/', requireAuthStrict, async (req, res) => {
     const { author, authorFollowers: _, ...restBody } = req.body;
 
     // Persist base64 media to disk and replace with URL paths
-    const persistBase64 = async (dataUrl: string, subdir: string) => {
+    // In serverless environments (Vercel/Lambda), file system is read-only, so we keep base64
+    // DEFAULT: Always use base64 - only try file writes if explicitly enabled via env var
+    const persistBase64 = async (dataUrl: string, subdir: string): Promise<string> => {
+      // Always return base64 data by default
+      // TODO: In production, consider uploading to cloud storage (S3, Cloudinary, etc.)
+      // For now, storing base64 directly in database is acceptable for small to medium images
+      
       const match = /^data:(image|video)\/([a-zA-Z0-9+.-]+);base64,(.+)$/.exec(dataUrl);
-      if (!match) return dataUrl;
-      const [, , ext, b64] = match;
-      const safeExt = (ext || 'bin').toLowerCase().replace(/[^a-z0-9]+/g, '');
-      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${safeExt}`;
-      const dir = path.join(process.cwd(), "uploads", subdir);
-      await fs.mkdir(dir, { recursive: true });
-      const filePath = path.join(dir, fileName);
-      const buffer = Buffer.from(b64, 'base64');
-      await fs.writeFile(filePath, buffer);
-      return `/uploads/${subdir}/${fileName}`;
+      if (!match) {
+        // Not a base64 data URL, return as-is
+        return dataUrl;
+      }
+      
+      // Only try to write to disk if explicitly enabled via environment variable
+      // This ensures we never try file writes in production/serverless
+      const allowFileWrites = process.env.ALLOW_FILE_UPLOADS === 'true';
+      
+      if (!allowFileWrites) {
+        // Default behavior: use base64
+        return dataUrl;
+      }
+      
+      // Only try to write to disk if explicitly enabled
+      // Wrap in try-catch to ensure we never throw
+      try {
+        const cwd = process.cwd();
+        const [, , ext, b64] = match;
+        const safeExt = (ext || 'bin').toLowerCase().replace(/[^a-z0-9]+/g, '');
+        const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${safeExt}`;
+        const dir = path.join(cwd, "uploads", subdir);
+        
+        // Try to create directory
+        await fs.mkdir(dir, { recursive: true });
+        const filePath = path.join(dir, fileName);
+        const buffer = Buffer.from(b64, 'base64');
+        await fs.writeFile(filePath, buffer);
+        console.log(`[Trip Creation] Saved file to disk: ${filePath}`);
+        return `/uploads/${subdir}/${fileName}`;
+      } catch (fileError: any) {
+        // Always fall back to base64 if file operations fail
+        console.warn(`[Trip Creation] Cannot save file to disk (${subdir}): ${fileError.message}`);
+        console.log(`[Trip Creation] Using base64 storage instead for ${subdir}`);
+        return dataUrl; // Return base64 as fallback - NEVER throw
+      }
     };
 
     const sanitizeTripMediaOnCreate = async (payload: any) => {
       const out: any = { ...payload };
-      if (typeof out.image === 'string' && out.image.startsWith('data:')) {
-        out.image = await persistBase64(out.image, "trips");
+      try {
+        if (typeof out.image === 'string' && out.image.startsWith('data:')) {
+          out.image = await persistBase64(out.image, "trips");
+        }
+      } catch (err: any) {
+        console.warn('[Trip Creation] Error processing cover image, keeping base64:', err.message);
+        // Keep original base64
       }
+      
       if (Array.isArray(out.activities)) {
         out.activities = await Promise.all(out.activities.map(async (act: any) => {
           const a = { ...act };
-          if (Array.isArray(a.images)) {
-            a.images = await Promise.all(a.images.map(async (img: any) => {
-              return typeof img === 'string' && img.startsWith('data:')
-                ? await persistBase64(img, "activities")
-                : img;
-            }));
-          }
-          if (Array.isArray(a.videos)) {
-            a.videos = await Promise.all(a.videos.map(async (vid: any) => {
-              return typeof vid === 'string' && vid.startsWith('data:')
-                ? await persistBase64(vid, "activities")
-                : vid;
-            }));
+          try {
+            if (Array.isArray(a.images)) {
+              a.images = await Promise.all(a.images.map(async (img: any) => {
+                try {
+                  return typeof img === 'string' && img.startsWith('data:')
+                    ? await persistBase64(img, "activities")
+                    : img;
+                } catch (err: any) {
+                  console.warn('[Trip Creation] Error processing activity image, keeping base64:', err.message);
+                  return img; // Return original if processing fails
+                }
+              }));
+            }
+            if (Array.isArray(a.videos)) {
+              a.videos = await Promise.all(a.videos.map(async (vid: any) => {
+                try {
+                  return typeof vid === 'string' && vid.startsWith('data:')
+                    ? await persistBase64(vid, "activities")
+                    : vid;
+                } catch (err: any) {
+                  console.warn('[Trip Creation] Error processing activity video, keeping base64:', err.message);
+                  return vid; // Return original if processing fails
+                }
+              }));
+            }
+          } catch (err: any) {
+            console.warn('[Trip Creation] Error processing activity media, keeping original:', err.message);
+            // Keep original activity data
           }
           return a;
         }));
       }
+      
       if (Array.isArray(out.foodAndRestaurants)) {
         out.foodAndRestaurants = await Promise.all(out.foodAndRestaurants.map(async (f: any) => {
           const nf = { ...f };
-          if (typeof nf.image === 'string' && nf.image.startsWith('data:')) {
-            nf.image = await persistBase64(nf.image, "foods");
+          try {
+            if (typeof nf.image === 'string' && nf.image.startsWith('data:')) {
+              nf.image = await persistBase64(nf.image, "foods");
+            }
+          } catch (err: any) {
+            console.warn('[Trip Creation] Error processing food image, keeping base64:', err.message);
+            // Keep original base64
           }
           return nf;
         }));
@@ -256,7 +323,25 @@ router.post('/', requireAuthStrict, async (req, res) => {
       return out;
     };
 
-    const mediaReadyBody = await sanitizeTripMediaOnCreate(restBody);
+    let mediaReadyBody;
+    try {
+      mediaReadyBody = await sanitizeTripMediaOnCreate(restBody);
+    } catch (mediaError: any) {
+      console.error('[Trip Creation] Error processing media:', mediaError);
+      console.error('[Trip Creation] Media error stack:', mediaError.stack);
+      // If it's a file system error (ENOENT, EACCES, etc.), we can still proceed with base64
+      if (mediaError.code === 'ENOENT' || mediaError.code === 'EACCES' || mediaError.message.includes('mkdir')) {
+        console.warn('[Trip Creation] File system not writable - using base64 data directly');
+        // Return the original body with base64 data intact
+        mediaReadyBody = restBody;
+      } else {
+        return res.status(500).json({ 
+          error: 'Failed to process media files', 
+          message: mediaError.message 
+        });
+      }
+    }
+
     const tripData = {
       ...mediaReadyBody,
       ownerId: userId, // Clerk user ID (from Clerk Express SDK)
@@ -264,9 +349,60 @@ router.post('/', requireAuthStrict, async (req, res) => {
       authorFollowers: authorFollowers,
     };
 
+    // Validate trip data structure before creating
+    // Ensure activities have valid structure
+    if (Array.isArray(tripData.activities)) {
+      for (let i = 0; i < tripData.activities.length; i++) {
+        const activity = tripData.activities[i];
+        if (!activity.name || typeof activity.name !== 'string') {
+          return res.status(400).json({ 
+            error: 'Validation error', 
+            message: `Activity at index ${i} is missing a valid name` 
+          });
+        }
+        // Ensure coordinates exist and are valid
+        if (!activity.coordinates || typeof activity.coordinates !== 'object') {
+          return res.status(400).json({ 
+            error: 'Validation error', 
+            message: `Activity "${activity.name}" is missing valid coordinates` 
+          });
+        }
+        if (typeof activity.coordinates.lat !== 'number' || typeof activity.coordinates.lng !== 'number') {
+          return res.status(400).json({ 
+            error: 'Validation error', 
+            message: `Activity "${activity.name}" has invalid coordinates (lat/lng must be numbers)` 
+          });
+        }
+      }
+    }
+
+    console.log('[Trip Creation] Creating trip with data:', {
+      title: tripData.title,
+      destination: tripData.destination,
+      city: tripData.city,
+      activitiesCount: Array.isArray(tripData.activities) ? tripData.activities.length : 0,
+      daysCount: Array.isArray(tripData.days) ? tripData.days.length : 0,
+      foodCount: Array.isArray(tripData.foodAndRestaurants) ? tripData.foodAndRestaurants.length : 0,
+    });
+
     // Create trip with author details
-    const created = await Trip.create(tripData);
-    console.log(`[Trip Creation] Trip created: ${created._id} by ${authorName}`);
+    let created;
+    try {
+      created = await Trip.create(tripData);
+      console.log(`[Trip Creation] Trip created: ${created._id} by ${authorName}`);
+    } catch (createError: any) {
+      console.error('[Trip Creation] Error creating trip in database:', createError);
+      // Provide more detailed error information
+      if (createError.name === 'ValidationError') {
+        const validationErrors = Object.values(createError.errors || {}).map((err: any) => err.message);
+        return res.status(400).json({ 
+          error: 'Validation error', 
+          message: 'Trip data validation failed',
+          details: validationErrors
+        });
+      }
+      throw createError; // Re-throw to be caught by outer catch
+    }
     
     // Upsert user in database and link trip
     try {
@@ -308,8 +444,29 @@ router.post('/', requireAuthStrict, async (req, res) => {
     formatted.viewerSaved = false;
     res.status(201).json(formatted);
   } catch (error: any) {
-    console.error('Error creating trip:', error);
-    res.status(500).json({ error: 'Failed to create trip', message: error.message });
+    console.error('[Trip Creation] Unhandled error:', error);
+    console.error('[Trip Creation] Error stack:', error.stack);
+    console.error('[Trip Creation] Request body keys:', Object.keys(req.body || {}));
+    
+    // Provide more detailed error information
+    let errorMessage = error.message || 'Failed to create trip';
+    let errorDetails: any = {};
+    
+    if (error.name === 'ValidationError') {
+      errorDetails.validationErrors = Object.values(error.errors || {}).map((err: any) => ({
+        field: err.path,
+        message: err.message
+      }));
+    } else if (error.code) {
+      errorDetails.code = error.code;
+    }
+    
+    res.status(500).json({ 
+      error: 'Failed to create trip', 
+      message: errorMessage,
+      ...(Object.keys(errorDetails).length > 0 && { details: errorDetails }),
+      ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
+    });
   }
 });
 
@@ -676,18 +833,39 @@ router.put('/:id', requireAuthStrict, async (req, res) => {
     const { author, authorFollowers: _, ownerId: __, ...restBody } = req.body;
 
     // Persist base64 media coming in the update
-    const persistBase64 = async (dataUrl: string, subdir: string) => {
+    // DEFAULT: Always use base64 - only try file writes if explicitly enabled via env var
+    const persistBase64 = async (dataUrl: string, subdir: string): Promise<string> => {
       const match = /^data:(image|video)\/([a-zA-Z0-9+.-]+);base64,(.+)$/.exec(dataUrl);
-      if (!match) return dataUrl;
-      const [, , ext, b64] = match;
-      const safeExt = (ext || 'bin').toLowerCase().replace(/[^a-z0-9]+/g, '');
-      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${safeExt}`;
-      const dir = path.join(process.cwd(), "uploads", subdir);
-      await fs.mkdir(dir, { recursive: true });
-      const filePath = path.join(dir, fileName);
-      const buffer = Buffer.from(b64, 'base64');
-      await fs.writeFile(filePath, buffer);
-      return `/uploads/${subdir}/${fileName}`;
+      if (!match) {
+        return dataUrl;
+      }
+      
+      // Only try to write to disk if explicitly enabled via environment variable
+      const allowFileWrites = process.env.ALLOW_FILE_UPLOADS === 'true';
+      
+      if (!allowFileWrites) {
+        // Default behavior: use base64
+        return dataUrl;
+      }
+      
+      // Only try to write to disk if explicitly enabled
+      try {
+        const cwd = process.cwd();
+        const [, , ext, b64] = match;
+        const safeExt = (ext || 'bin').toLowerCase().replace(/[^a-z0-9]+/g, '');
+        const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${safeExt}`;
+        const dir = path.join(cwd, "uploads", subdir);
+        
+        await fs.mkdir(dir, { recursive: true });
+        const filePath = path.join(dir, fileName);
+        const buffer = Buffer.from(b64, 'base64');
+        await fs.writeFile(filePath, buffer);
+        return `/uploads/${subdir}/${fileName}`;
+      } catch (fileError: any) {
+        // Always fall back to base64 if file operations fail
+        console.warn(`[Trip Update] Cannot save file to disk (${subdir}): ${fileError.message}`);
+        return dataUrl; // Return base64 as fallback - NEVER throw
+      }
     };
 
     const sanitizeTripMediaOnUpdate = async (payload: any) => {
