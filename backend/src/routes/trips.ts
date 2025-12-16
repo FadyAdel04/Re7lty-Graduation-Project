@@ -8,8 +8,16 @@ import { Follow } from "../models/Follow";
 import { TripSave } from "../models/TripSave";
 import { formatTripMedia, formatComment, toAbsoluteUrl } from "../utils/tripFormatter";
 import { createNotification } from "../utils/notificationDispatcher";
-import fs from "fs/promises";
-import path from "path";
+import { v2 as cloudinary } from "cloudinary";
+
+// Configure Cloudinary if credentials are available
+if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+  });
+}
 
 const router = Router();
 
@@ -212,48 +220,39 @@ router.post('/', requireAuthStrict, async (req, res) => {
     // Always use Clerk data as source of truth for author information
     const { author, authorFollowers: _, ...restBody } = req.body;
 
-    // Persist base64 media to disk and replace with URL paths
-    // In serverless environments (Vercel/Lambda), file system is read-only, so we keep base64
-    // DEFAULT: Always use base64 - only try file writes if explicitly enabled via env var
+    // Upload base64 media to Cloudinary and return URL
+    // Falls back to base64 if Cloudinary is not configured
     const persistBase64 = async (dataUrl: string, subdir: string): Promise<string> => {
-      // Always return base64 data by default
-      // TODO: In production, consider uploading to cloud storage (S3, Cloudinary, etc.)
-      // For now, storing base64 directly in database is acceptable for small to medium images
-      
       const match = /^data:(image|video)\/([a-zA-Z0-9+.-]+);base64,(.+)$/.exec(dataUrl);
       if (!match) {
-        // Not a base64 data URL, return as-is
+        // Not a base64 data URL, return as-is (already a URL)
         return dataUrl;
       }
       
-      // Only try to write to disk if explicitly enabled via environment variable
-      // This ensures we never try file writes in production/serverless
-      const allowFileWrites = process.env.ALLOW_FILE_UPLOADS === 'true';
-      
-      if (!allowFileWrites) {
-        // Default behavior: use base64
+      // If Cloudinary is not configured, return base64 (fallback)
+      if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+        console.warn(`[Trip Creation] Cloudinary not configured, storing base64 for ${subdir}`);
         return dataUrl;
       }
       
-      // Only try to write to disk if explicitly enabled
-      // Wrap in try-catch to ensure we never throw
       try {
-        const cwd = process.cwd();
-        const [, , ext, b64] = match;
-        const safeExt = (ext || 'bin').toLowerCase().replace(/[^a-z0-9]+/g, '');
-        const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${safeExt}`;
-        const dir = path.join(cwd, "uploads", subdir);
+        const [, mediaType, ext, b64] = match;
         
-        // Try to create directory
-        await fs.mkdir(dir, { recursive: true });
-        const filePath = path.join(dir, fileName);
-        const buffer = Buffer.from(b64, 'base64');
-        await fs.writeFile(filePath, buffer);
-        console.log(`[Trip Creation] Saved file to disk: ${filePath}`);
-        return `/uploads/${subdir}/${fileName}`;
-      } catch (fileError: any) {
-        // Always fall back to base64 if file operations fail
-        console.warn(`[Trip Creation] Cannot save file to disk (${subdir}): ${fileError.message}`);
+        // Upload to Cloudinary (accepts data URL string directly)
+        const uploadResult = await cloudinary.uploader.upload(
+          `data:${mediaType}/${ext};base64,${b64}`,
+          {
+            folder: `re7lty/${subdir}`,
+            resource_type: mediaType === 'video' ? 'video' : 'image',
+            format: ext,
+          }
+        );
+        
+        console.log(`[Trip Creation] Uploaded to Cloudinary: ${uploadResult.secure_url}`);
+        return uploadResult.secure_url; // Return Cloudinary URL instead of base64
+      } catch (cloudinaryError: any) {
+        // If Cloudinary upload fails, fall back to base64
+        console.warn(`[Trip Creation] Cloudinary upload failed (${subdir}): ${cloudinaryError.message}`);
         console.log(`[Trip Creation] Using base64 storage instead for ${subdir}`);
         return dataUrl; // Return base64 as fallback - NEVER throw
       }
@@ -832,38 +831,36 @@ router.put('/:id', requireAuthStrict, async (req, res) => {
     // Prepare update data
     const { author, authorFollowers: _, ownerId: __, ...restBody } = req.body;
 
-    // Persist base64 media coming in the update
-    // DEFAULT: Always use base64 - only try file writes if explicitly enabled via env var
+    // Upload base64 media to Cloudinary and return URL (same as create route)
     const persistBase64 = async (dataUrl: string, subdir: string): Promise<string> => {
       const match = /^data:(image|video)\/([a-zA-Z0-9+.-]+);base64,(.+)$/.exec(dataUrl);
       if (!match) {
         return dataUrl;
       }
       
-      // Only try to write to disk if explicitly enabled via environment variable
-      const allowFileWrites = process.env.ALLOW_FILE_UPLOADS === 'true';
-      
-      if (!allowFileWrites) {
-        // Default behavior: use base64
+      // If Cloudinary is not configured, return base64 (fallback)
+      if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+        console.warn(`[Trip Update] Cloudinary not configured, storing base64 for ${subdir}`);
         return dataUrl;
       }
       
-      // Only try to write to disk if explicitly enabled
       try {
-        const cwd = process.cwd();
-        const [, , ext, b64] = match;
-        const safeExt = (ext || 'bin').toLowerCase().replace(/[^a-z0-9]+/g, '');
-        const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${safeExt}`;
-        const dir = path.join(cwd, "uploads", subdir);
+        const [, mediaType, ext, b64] = match;
         
-        await fs.mkdir(dir, { recursive: true });
-        const filePath = path.join(dir, fileName);
-        const buffer = Buffer.from(b64, 'base64');
-        await fs.writeFile(filePath, buffer);
-        return `/uploads/${subdir}/${fileName}`;
-      } catch (fileError: any) {
-        // Always fall back to base64 if file operations fail
-        console.warn(`[Trip Update] Cannot save file to disk (${subdir}): ${fileError.message}`);
+        // Upload to Cloudinary (accepts data URL string directly)
+        const uploadResult = await cloudinary.uploader.upload(
+          `data:${mediaType}/${ext};base64,${b64}`,
+          {
+            folder: `re7lty/${subdir}`,
+            resource_type: mediaType === 'video' ? 'video' : 'image',
+            format: ext,
+          }
+        );
+        
+        console.log(`[Trip Update] Uploaded to Cloudinary: ${uploadResult.secure_url}`);
+        return uploadResult.secure_url;
+      } catch (cloudinaryError: any) {
+        console.warn(`[Trip Update] Cloudinary upload failed (${subdir}): ${cloudinaryError.message}`);
         return dataUrl; // Return base64 as fallback - NEVER throw
       }
     };

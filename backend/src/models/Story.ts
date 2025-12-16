@@ -45,3 +45,4 @@ export const Story = model("Story", StorySchema);
 
 export type StoryDocument = typeof Story extends { prototype: infer P } ? P : never;
 
+
