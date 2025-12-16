@@ -35,7 +35,7 @@ router.get('/', async (req, res) => {
     const filter: any = {};
     const authInfo = getAuth(req);
     const viewerId = authInfo.userId || undefined;
-    
+
     // Enhanced search - search in title, destination, city, description, and author
     if (q) {
       const searchQuery = String(q);
@@ -47,20 +47,20 @@ router.get('/', async (req, res) => {
         { author: { $regex: searchQuery, $options: 'i' } },
       ];
     }
-    
+
     if (city) filter.city = String(city);
     const skip = (Number(page) - 1) * Number(limit);
     const sortObj: Record<string, mongoose.SortOrder> =
       sort === 'likes' ? { likes: -1 } : { postedAt: -1 };
-    
+
     // Check if MongoDB is connected
     if (mongoose.connection.readyState !== 1) {
-      return res.status(503).json({ 
-        error: 'Database not connected', 
-        message: 'MongoDB connection is required. Please check your MONGODB_URI and IP whitelist.' 
+      return res.status(503).json({
+        error: 'Database not connected',
+        message: 'MongoDB connection is required. Please check your MONGODB_URI and IP whitelist.'
       });
     }
-    
+
     const [items, total] = await Promise.all([
       Trip.find(filter).sort(sortObj).skip(skip).limit(Number(limit)),
       Trip.countDocuments(filter)
@@ -79,15 +79,15 @@ router.get('/', async (req, res) => {
       const [loveDocs, followDocs, saveDocs] = await Promise.all([
         tripIds.length
           ? TripLove.find({ userId: viewerId, tripId: { $in: tripIds } })
-              .select('tripId')
+            .select('tripId')
           : [],
         ownerIds.length
           ? Follow.find({ followerId: viewerId, followingId: { $in: ownerIds } })
-              .select('followingId')
+            .select('followingId')
           : [],
         tripIds.length
           ? TripSave.find({ userId: viewerId, tripId: { $in: tripIds } })
-              .select('tripId')
+            .select('tripId')
           : [],
       ]);
       lovedSet = new Set(loveDocs.map((doc: any) => String(doc.tripId)));
@@ -121,12 +121,12 @@ router.get('/:id', async (req, res) => {
   try {
     // Check if MongoDB is connected
     if (mongoose.connection.readyState !== 1) {
-      return res.status(503).json({ 
-        error: 'Database not connected', 
-        message: 'MongoDB connection is required.' 
+      return res.status(503).json({
+        error: 'Database not connected',
+        message: 'MongoDB connection is required.'
       });
     }
-    
+
     const trip = await Trip.findById(req.params.id);
     if (!trip) return res.status(404).json({ error: 'Trip not found' });
 
@@ -171,8 +171,8 @@ router.post('/', requireAuthStrict, async (req, res) => {
   try {
     // Check if MongoDB is connected
     if (mongoose.connection.readyState !== 1) {
-      return res.status(503).json({ 
-        error: 'Database not connected', 
+      return res.status(503).json({
+        error: 'Database not connected',
         message: 'MongoDB connection is required to create trips. Please check your MONGODB_URI and ensure your IP is whitelisted in MongoDB Atlas.',
         details: 'See: https://www.mongodb.com/docs/atlas/security-whitelist/'
       });
@@ -180,7 +180,7 @@ router.post('/', requireAuthStrict, async (req, res) => {
 
     // Get authenticated user ID from Clerk Express SDK
     const { userId } = getAuth(req);
-    
+
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized: User ID not found' });
     }
@@ -189,9 +189,9 @@ router.post('/', requireAuthStrict, async (req, res) => {
 
     // Validate required fields before processing
     if (!req.body.title || typeof req.body.title !== 'string' || req.body.title.trim() === '') {
-      return res.status(400).json({ 
-        error: 'Validation error', 
-        message: 'Trip title is required and must be a non-empty string' 
+      return res.status(400).json({
+        error: 'Validation error',
+        message: 'Trip title is required and must be a non-empty string'
       });
     }
 
@@ -202,17 +202,17 @@ router.post('/', requireAuthStrict, async (req, res) => {
       console.log(`[Trip Creation] Fetched Clerk user: ${clerkUser.fullName || clerkUser.username}`);
     } catch (clerkError: any) {
       console.error('Error fetching user from Clerk:', clerkError.message);
-      return res.status(500).json({ 
-        error: 'Failed to fetch user details from Clerk', 
-        message: clerkError.message 
+      return res.status(500).json({
+        error: 'Failed to fetch user details from Clerk',
+        message: clerkError.message
       });
     }
 
     // Extract author details from Clerk user
-    const authorName = clerkUser.fullName || 
-                      clerkUser.firstName || 
-                      clerkUser.username || 
-                      'مستخدم';
+    const authorName = clerkUser.fullName ||
+      clerkUser.firstName ||
+      clerkUser.username ||
+      'مستخدم';
     const authorFollowers = 0; // Can be calculated from user relationships if needed
     const authorImageUrl = clerkUser.imageUrl || '';
 
@@ -221,104 +221,82 @@ router.post('/', requireAuthStrict, async (req, res) => {
     const { author, authorFollowers: _, ...restBody } = req.body;
 
     // Upload base64 media to Cloudinary and return URL
-    // Falls back to base64 if Cloudinary is not configured
+    // ENFORCES Cloudinary usage - throws error if not configured or upload fails
     const persistBase64 = async (dataUrl: string, subdir: string): Promise<string> => {
       const match = /^data:(image|video)\/([a-zA-Z0-9+.-]+);base64,(.+)$/.exec(dataUrl);
       if (!match) {
         // Not a base64 data URL, return as-is (already a URL)
         return dataUrl;
       }
-      
-      // If Cloudinary is not configured, return base64 (fallback)
+
+      // Enforce Cloudinary configuration
       if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
-        console.warn(`[Trip Creation] Cloudinary not configured, storing base64 for ${subdir}`);
-        return dataUrl;
+        const errorMsg = `[Trip Creation] Cloudinary is not configured. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET environment variables.`;
+        console.error(errorMsg);
+        throw new Error('Cloudinary configuration is required for media uploads');
       }
-      
-      try {
-        const [, mediaType, ext, b64] = match;
-        
-        // Upload to Cloudinary (accepts data URL string directly)
-        const uploadResult = await cloudinary.uploader.upload(
-          `data:${mediaType}/${ext};base64,${b64}`,
-          {
-            folder: `re7lty/${subdir}`,
-            resource_type: mediaType === 'video' ? 'video' : 'image',
-            format: ext,
-          }
-        );
-        
-        console.log(`[Trip Creation] Uploaded to Cloudinary: ${uploadResult.secure_url}`);
-        return uploadResult.secure_url; // Return Cloudinary URL instead of base64
-      } catch (cloudinaryError: any) {
-        // If Cloudinary upload fails, fall back to base64
-        console.warn(`[Trip Creation] Cloudinary upload failed (${subdir}): ${cloudinaryError.message}`);
-        console.log(`[Trip Creation] Using base64 storage instead for ${subdir}`);
-        return dataUrl; // Return base64 as fallback - NEVER throw
-      }
+
+      const [, mediaType, ext, b64] = match;
+
+      // Upload to Cloudinary (accepts data URL string directly)
+      const uploadResult = await cloudinary.uploader.upload(
+        `data:${mediaType}/${ext};base64,${b64}`,
+        {
+          folder: `re7lty/${subdir}`,
+          resource_type: 'auto', // Let Cloudinary auto-detect the resource type
+        }
+      );
+
+      console.log(`[Trip Creation] Successfully uploaded to Cloudinary: ${uploadResult.secure_url}`);
+      return uploadResult.secure_url; // Return Cloudinary URL
     };
 
     const sanitizeTripMediaOnCreate = async (payload: any) => {
       const out: any = { ...payload };
-      try {
-        if (typeof out.image === 'string' && out.image.startsWith('data:')) {
-          out.image = await persistBase64(out.image, "trips");
-        }
-      } catch (err: any) {
-        console.warn('[Trip Creation] Error processing cover image, keeping base64:', err.message);
-        // Keep original base64
+
+      // Process cover image
+      if (typeof out.image === 'string' && out.image.startsWith('data:')) {
+        out.image = await persistBase64(out.image, "trips");
       }
-      
+
+      // Process activities
       if (Array.isArray(out.activities)) {
         out.activities = await Promise.all(out.activities.map(async (act: any) => {
           const a = { ...act };
-          try {
-            if (Array.isArray(a.images)) {
-              a.images = await Promise.all(a.images.map(async (img: any) => {
-                try {
-                  return typeof img === 'string' && img.startsWith('data:')
-                    ? await persistBase64(img, "activities")
-                    : img;
-                } catch (err: any) {
-                  console.warn('[Trip Creation] Error processing activity image, keeping base64:', err.message);
-                  return img; // Return original if processing fails
-                }
-              }));
-            }
-            if (Array.isArray(a.videos)) {
-              a.videos = await Promise.all(a.videos.map(async (vid: any) => {
-                try {
-                  return typeof vid === 'string' && vid.startsWith('data:')
-                    ? await persistBase64(vid, "activities")
-                    : vid;
-                } catch (err: any) {
-                  console.warn('[Trip Creation] Error processing activity video, keeping base64:', err.message);
-                  return vid; // Return original if processing fails
-                }
-              }));
-            }
-          } catch (err: any) {
-            console.warn('[Trip Creation] Error processing activity media, keeping original:', err.message);
-            // Keep original activity data
+
+          // Process activity images
+          if (Array.isArray(a.images)) {
+            a.images = await Promise.all(a.images.map(async (img: any) => {
+              return typeof img === 'string' && img.startsWith('data:')
+                ? await persistBase64(img, "activities")
+                : img;
+            }));
           }
+
+          // Process activity videos
+          if (Array.isArray(a.videos)) {
+            a.videos = await Promise.all(a.videos.map(async (vid: any) => {
+              return typeof vid === 'string' && vid.startsWith('data:')
+                ? await persistBase64(vid, "activities")
+                : vid;
+            }));
+          }
+
           return a;
         }));
       }
-      
+
+      // Process food and restaurant images
       if (Array.isArray(out.foodAndRestaurants)) {
         out.foodAndRestaurants = await Promise.all(out.foodAndRestaurants.map(async (f: any) => {
           const nf = { ...f };
-          try {
-            if (typeof nf.image === 'string' && nf.image.startsWith('data:')) {
-              nf.image = await persistBase64(nf.image, "foods");
-            }
-          } catch (err: any) {
-            console.warn('[Trip Creation] Error processing food image, keeping base64:', err.message);
-            // Keep original base64
+          if (typeof nf.image === 'string' && nf.image.startsWith('data:')) {
+            nf.image = await persistBase64(nf.image, "foods");
           }
           return nf;
         }));
       }
+
       return out;
     };
 
@@ -328,17 +306,13 @@ router.post('/', requireAuthStrict, async (req, res) => {
     } catch (mediaError: any) {
       console.error('[Trip Creation] Error processing media:', mediaError);
       console.error('[Trip Creation] Media error stack:', mediaError.stack);
-      // If it's a file system error (ENOENT, EACCES, etc.), we can still proceed with base64
-      if (mediaError.code === 'ENOENT' || mediaError.code === 'EACCES' || mediaError.message.includes('mkdir')) {
-        console.warn('[Trip Creation] File system not writable - using base64 data directly');
-        // Return the original body with base64 data intact
-        mediaReadyBody = restBody;
-      } else {
-        return res.status(500).json({ 
-          error: 'Failed to process media files', 
-          message: mediaError.message 
-        });
-      }
+
+      // Return error to user - do not fall back to base64
+      return res.status(500).json({
+        error: 'Failed to upload media to Cloudinary',
+        message: mediaError.message || 'Media upload failed',
+        details: 'Please ensure Cloudinary is properly configured and try again.'
+      });
     }
 
     const tripData = {
@@ -354,22 +328,22 @@ router.post('/', requireAuthStrict, async (req, res) => {
       for (let i = 0; i < tripData.activities.length; i++) {
         const activity = tripData.activities[i];
         if (!activity.name || typeof activity.name !== 'string') {
-          return res.status(400).json({ 
-            error: 'Validation error', 
-            message: `Activity at index ${i} is missing a valid name` 
+          return res.status(400).json({
+            error: 'Validation error',
+            message: `Activity at index ${i} is missing a valid name`
           });
         }
         // Ensure coordinates exist and are valid
         if (!activity.coordinates || typeof activity.coordinates !== 'object') {
-          return res.status(400).json({ 
-            error: 'Validation error', 
-            message: `Activity "${activity.name}" is missing valid coordinates` 
+          return res.status(400).json({
+            error: 'Validation error',
+            message: `Activity "${activity.name}" is missing valid coordinates`
           });
         }
         if (typeof activity.coordinates.lat !== 'number' || typeof activity.coordinates.lng !== 'number') {
-          return res.status(400).json({ 
-            error: 'Validation error', 
-            message: `Activity "${activity.name}" has invalid coordinates (lat/lng must be numbers)` 
+          return res.status(400).json({
+            error: 'Validation error',
+            message: `Activity "${activity.name}" has invalid coordinates (lat/lng must be numbers)`
           });
         }
       }
@@ -394,15 +368,15 @@ router.post('/', requireAuthStrict, async (req, res) => {
       // Provide more detailed error information
       if (createError.name === 'ValidationError') {
         const validationErrors = Object.values(createError.errors || {}).map((err: any) => err.message);
-        return res.status(400).json({ 
-          error: 'Validation error', 
+        return res.status(400).json({
+          error: 'Validation error',
           message: 'Trip data validation failed',
           details: validationErrors
         });
       }
       throw createError; // Re-throw to be caught by outer catch
     }
-    
+
     // Upsert user in database and link trip
     try {
       // Create or update user in database with Clerk data
@@ -424,19 +398,19 @@ router.post('/', requireAuthStrict, async (req, res) => {
         },
         { upsert: true, new: true }
       );
-      
+
       // Link trip to user
       await User.updateOne(
-        { clerkId: userId }, 
+        { clerkId: userId },
         { $addToSet: { trips: created._id } }
       );
-      
+
       console.log(`[Trip Creation] User database updated for ${userId}`);
     } catch (userError: any) {
       console.error('Error updating user in database:', userError.message);
       // Continue even if user update fails - trip is still created
     }
-    
+
     const formatted = formatTripMedia(created, req, userId);
     formatted.viewerLoved = false;
     formatted.viewerFollowsAuthor = false;
@@ -446,11 +420,11 @@ router.post('/', requireAuthStrict, async (req, res) => {
     console.error('[Trip Creation] Unhandled error:', error);
     console.error('[Trip Creation] Error stack:', error.stack);
     console.error('[Trip Creation] Request body keys:', Object.keys(req.body || {}));
-    
+
     // Provide more detailed error information
     let errorMessage = error.message || 'Failed to create trip';
     let errorDetails: any = {};
-    
+
     if (error.name === 'ValidationError') {
       errorDetails.validationErrors = Object.values(error.errors || {}).map((err: any) => ({
         field: err.path,
@@ -459,9 +433,9 @@ router.post('/', requireAuthStrict, async (req, res) => {
     } else if (error.code) {
       errorDetails.code = error.code;
     }
-    
-    res.status(500).json({ 
-      error: 'Failed to create trip', 
+
+    res.status(500).json({
+      error: 'Failed to create trip',
       message: errorMessage,
       ...(Object.keys(errorDetails).length > 0 && { details: errorDetails }),
       ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
@@ -795,9 +769,9 @@ router.put('/:id', requireAuthStrict, async (req, res) => {
   try {
     // Check if MongoDB is connected
     if (mongoose.connection.readyState !== 1) {
-      return res.status(503).json({ 
-        error: 'Database not connected', 
-        message: 'MongoDB connection is required.' 
+      return res.status(503).json({
+        error: 'Database not connected',
+        message: 'MongoDB connection is required.'
       });
     }
 
@@ -824,7 +798,7 @@ router.put('/:id', requireAuthStrict, async (req, res) => {
       console.error('Error fetching user from Clerk:', clerkError.message);
     }
 
-    const authorName = clerkUser 
+    const authorName = clerkUser
       ? (clerkUser.fullName || clerkUser.firstName || clerkUser.username || 'مستخدم')
       : trip.author;
 
@@ -837,16 +811,16 @@ router.put('/:id', requireAuthStrict, async (req, res) => {
       if (!match) {
         return dataUrl;
       }
-      
+
       // If Cloudinary is not configured, return base64 (fallback)
       if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
         console.warn(`[Trip Update] Cloudinary not configured, storing base64 for ${subdir}`);
         return dataUrl;
       }
-      
+
       try {
         const [, mediaType, ext, b64] = match;
-        
+
         // Upload to Cloudinary (accepts data URL string directly)
         const uploadResult = await cloudinary.uploader.upload(
           `data:${mediaType}/${ext};base64,${b64}`,
@@ -856,7 +830,7 @@ router.put('/:id', requireAuthStrict, async (req, res) => {
             format: ext,
           }
         );
-        
+
         console.log(`[Trip Update] Uploaded to Cloudinary: ${uploadResult.secure_url}`);
         return uploadResult.secure_url;
       } catch (cloudinaryError: any) {
@@ -926,9 +900,9 @@ router.delete('/:id', requireAuthStrict, async (req, res) => {
   try {
     // Check if MongoDB is connected
     if (mongoose.connection.readyState !== 1) {
-      return res.status(503).json({ 
-        error: 'Database not connected', 
-        message: 'MongoDB connection is required.' 
+      return res.status(503).json({
+        error: 'Database not connected',
+        message: 'MongoDB connection is required.'
       });
     }
 
