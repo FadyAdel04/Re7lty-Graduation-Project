@@ -42,12 +42,7 @@ const Footer = () => {
               </li>
               <li>
                 <Link to="/templates" className="text-muted-foreground hover:text-primary transition-colors">
-                  القوالب
-                </Link>
-              </li>
-              <li>
-                <Link to="/trips/new" className="text-muted-foreground hover:text-primary transition-colors">
-                  أنشئ رحلة
+                  رحلات الشركات
                 </Link>
               </li>
               <li>
