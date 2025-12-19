@@ -19,9 +19,12 @@ import Help from "./pages/Help";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import Contact from "./pages/Contact";
+import TripAIChat from "./pages/TripAIChat";
 import TripAIChatWidget from "@/components/TripAIChatWidget";
 import ScrollToTop from "@/components/ScrollToTop";
 import { SignedIn, SignedOut, RedirectToSignIn } from "@clerk/clerk-react";
+import { UploadProgressProvider } from "@/contexts/UploadProgressContext";
+import { UploadProgressBar } from "@/components/UploadProgressBar";
 
 const queryClient = new QueryClient();
 
@@ -36,7 +39,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => (
 );
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
+  <UploadProgressProvider>
+    <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
@@ -57,6 +61,8 @@ const App = () => (
           <Route path="/terms" element={<Terms />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/contact" element={<Contact />} />
+          {/* Trip AI Assistant */}
+          <Route path="/trip-assistant" element={<TripAIChat />} />
           {/* User profile routes - all profiles use /user/:id format */}
           <Route path="/user/:id" element={<UserProfile />} />
           
@@ -86,9 +92,12 @@ const App = () => (
         </Routes>
         {/* Global AI Chat Widget */}
         <TripAIChatWidget />
+        {/* Global Upload Progress Bar */}
+        <UploadProgressBar />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
+  </UploadProgressProvider>
 );
 
 export default App;

@@ -31,33 +31,33 @@ export function formatTripMedia(trip: any, req: any, viewerId?: string) {
 
   const activities = Array.isArray(plain.activities)
     ? plain.activities.map((act: any) => ({
-        ...act,
-        images: Array.isArray(act?.images)
-          ? act.images.map((img: string) => toAbsoluteUrl(img, req) || img)
-          : [],
-        videos: Array.isArray(act?.videos)
-          ? act.videos.map((vid: string) => toAbsoluteUrl(vid, req) || vid)
-          : [],
-      }))
+      ...act,
+      images: Array.isArray(act?.images)
+        ? act.images.map((img: string) => toAbsoluteUrl(img, req) || img)
+        : [],
+      videos: Array.isArray(act?.videos)
+        ? act.videos.map((vid: string) => toAbsoluteUrl(vid, req) || vid)
+        : [],
+    }))
     : [];
 
   const foodAndRestaurants = Array.isArray(plain.foodAndRestaurants)
     ? plain.foodAndRestaurants.map((f: any) => ({
-        ...f,
-        image: toAbsoluteUrl(f?.image, req) || f?.image,
-      }))
+      ...f,
+      image: toAbsoluteUrl(f?.image, req) || f?.image,
+    }))
     : [];
 
   const comments = Array.isArray(plain.comments)
     ? plain.comments.map((c: any) =>
-        formatComment(
-          {
-            ...c,
-            authorAvatar: toAbsoluteUrl(c?.authorAvatar, req) || c?.authorAvatar,
-          },
-          viewerId
-        )
+      formatComment(
+        {
+          ...c,
+          authorAvatar: toAbsoluteUrl(c?.authorAvatar, req) || c?.authorAvatar,
+        },
+        viewerId
       )
+    )
     : [];
 
   return {
@@ -68,6 +68,35 @@ export function formatTripMedia(trip: any, req: any, viewerId?: string) {
     comments,
   };
 }
+
+// Batch format trips with user data population
+export async function formatTripsWithUserData(trips: any[], req: any, viewerId?: string) {
+  if (!Array.isArray(trips) || trips.length === 0) return [];
+
+  // Import User model dynamically to avoid circular dependencies
+  const { User } = await import('../models/User');
+
+  // Extract unique owner IDs
+  const ownerIds = [...new Set(trips.map(t => t?.ownerId).filter(Boolean))];
+
+  // Fetch all users in one query
+  const users = await User.find({ clerkId: { $in: ownerIds } }).select('clerkId fullName imageUrl');
+  const userMap = new Map(users.map((u: any) => [u.clerkId, u]));
+
+  // Format each trip with media URLs and user data
+  return trips.map(trip => {
+    const formatted = formatTripMedia(trip, req, viewerId);
+    const user = userMap.get(trip?.ownerId);
+
+    return {
+      ...formatted,
+      // Populate with current user data from MongoDB
+      author: user?.fullName || formatted.author || 'مستخدم',
+      authorImage: user?.imageUrl || undefined,
+    };
+  });
+}
+
 
 
 

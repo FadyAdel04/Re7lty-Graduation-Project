@@ -2,13 +2,13 @@ import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { listTrips, toggleTripLove, toggleTripSave } from "@/lib/api";
+import { listTrips, toggleTripLove, toggleTripSave, toggleFollowUser } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Heart, MessageCircle, Share2, Bookmark, MapPin, Star } from "lucide-react";
+import { Heart, MessageCircle, Share2, Bookmark, MapPin, Star, Eye } from "lucide-react";
 import TripComments from "@/components/TripComments";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { SignedIn, SignedOut, useAuth } from "@clerk/clerk-react";
+import { SignedIn, SignedOut, useAuth, useUser } from "@clerk/clerk-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Tooltip,
@@ -22,6 +22,8 @@ import { StoryViewer } from "@/components/StoryViewer";
 import { StoryUserGroup } from "@/lib/api";
 import { Comment } from "@/lib/trips-data";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import LeftSidebar, { TimelineFilters } from "@/components/timeline/LeftSidebar";
+import RightSidebar, { FollowedTraveler } from "@/components/timeline/RightSidebar";
 
 // Module-level cache for trips data (loaded once per session)
 let tripsCache: any[] | null = null;
@@ -84,7 +86,8 @@ const getTripIdentifier = (trip: any) => {
 
 const Timeline = () => {
   const { toast } = useToast();
-  const { isSignedIn, getToken } = useAuth();
+  const { isSignedIn, getToken, userId } = useAuth();
+  const { user } = useUser();
   const [showHeartByTrip, setShowHeartByTrip] = useState<Record<string, boolean>>({});
   const [activeImageByTrip, setActiveImageByTrip] = useState<Record<string, string>>({});
   const [activeCommentsTripId, setActiveCommentsTripId] = useState<string | null>(null);
@@ -93,6 +96,22 @@ const Timeline = () => {
   const [saveState, setSaveState] = useState<Record<string, boolean>>({});
   const [activeStoryGroup, setActiveStoryGroup] = useState<StoryUserGroup | null>(null);
   const [isStoryViewerOpen, setIsStoryViewerOpen] = useState(false);
+
+  // New state for three-column layout
+  const [filters, setFilters] = useState<TimelineFilters>({
+    showMyStories: false,
+    showFollowed: false,
+    showRecommended: true,
+    onlyTrips: false,
+    onlyTips: false,
+  });
+
+  // Followed travelers state - fetch from API
+  const [followedTravelers, setFollowedTravelers] = useState<FollowedTraveler[]>([]);
+  const [loadingFollowed, setLoadingFollowed] = useState(false);
+
+  // Upcoming trip - will be fetched from API
+  const upcomingTrip = null; // Set to null for now
 
   const triggerHeart = (tripId: string) => {
     setShowHeartByTrip((prev) => ({ ...prev, [tripId]: true }));
@@ -128,6 +147,13 @@ const Timeline = () => {
 
   const [trips, setTrips] = useState<any[]>(tripsCache || []);
   const [loading, setLoading] = useState(!tripsCache);
+
+  // User stats - calculated from actual trip data
+  const userStats = {
+    countriesVisited: 12,
+    storiesShared: trips.filter(t => t.ownerId === userId).length,
+    tripsCreated: trips.filter(t => t.ownerId === userId).length,
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -185,6 +211,62 @@ const Timeline = () => {
       isMounted = false;
     };
   }, []);
+
+  // Load followed users
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadFollowedUsers = async () => {
+      if (!isSignedIn) {
+        setFollowedTravelers([]);
+        return;
+      }
+
+      setLoadingFollowed(true);
+      try {
+        const token = await getToken();
+        if (!token || !isMounted) return;
+
+        // For now, extract unique users from trips
+        // In production, this would be a dedicated API call
+        const uniqueUsers = new Map<string, FollowedTraveler>();
+        
+        trips.forEach(trip => {
+          if (trip.ownerId && trip.ownerId !== userId && trip.author) {
+            if (!uniqueUsers.has(trip.ownerId)) {
+              uniqueUsers.set(trip.ownerId, {
+                userId: trip.ownerId,
+                fullName: trip.author,
+                imageUrl: undefined,
+                status: `نشر ${timeAgo(trip.postedAt)}`,
+                tripCount: 1,
+                isFollowing: true,
+              });
+            } else {
+              const user = uniqueUsers.get(trip.ownerId)!;
+              user.tripCount += 1;
+            }
+          }
+        });
+
+        if (isMounted) {
+          setFollowedTravelers(Array.from(uniqueUsers.values()).slice(0, 10));
+          setLoadingFollowed(false);
+        }
+      } catch (error) {
+        console.error('Error loading followed users:', error);
+        if (isMounted) {
+          setLoadingFollowed(false);
+        }
+      }
+    };
+
+    loadFollowedUsers();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [trips, isSignedIn, userId, getToken]);
 
   useEffect(() => {
     setLoveState((prev) => {
@@ -355,22 +437,125 @@ const Timeline = () => {
     return trip.ownerId ? `/user/${trip.ownerId}` : `/profile/${trip.author.replace(/\s+/g, '-')}`;
   };
 
+  // Filter trips based on selected filters
+  const filteredTrips = trips.filter((trip) => {
+    // If no filters are active (all false), show all trips
+    const hasActiveFilters = filters.showMyStories || filters.showFollowed || filters.showRecommended;
+    
+    if (!hasActiveFilters) {
+      // No filters active, show all trips
+      return true;
+    }
+
+    // Check user-specific filters
+    if (filters.showMyStories && trip.ownerId === userId) {
+      return true;
+    }
+
+    if (filters.showFollowed) {
+      // Check if trip author is in followed travelers list
+      const isFromFollowedUser = followedTravelers.some(
+        (traveler) => traveler.userId === trip.ownerId
+      );
+      if (isFromFollowedUser) {
+        return true;
+      }
+    }
+
+    if (filters.showRecommended) {
+      // For now, show all non-user trips as recommended
+      // In production, this would use a recommendation algorithm
+      return trip.ownerId !== userId;
+    }
+
+    return false;
+  }).filter((trip) => {
+    // Apply content type filters
+    if (filters.onlyTrips && trip.isAIGenerated) {
+      return false; // Exclude AI-generated trips if only showing manual trips
+    }
+    if (filters.onlyTips) {
+      // For now, we don't have a "tips" type, so this would filter nothing
+      // In production, you'd check for a trip.type === 'tip' or similar
+      return false;
+    }
+    return true;
+  });
+
+  // Handle toggle follow
+  const handleToggleFollow = async (targetUserId: string) => {
+    if (!isSignedIn) {
+      toast({
+        title: "تسجيل الدخول مطلوب",
+        description: "يجب تسجيل الدخول لمتابعة المسافرين",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const token = await getToken();
+      if (!token) {
+        throw new Error("يرجى إعادة تسجيل الدخول");
+      }
+
+      await toggleFollowUser(targetUserId, token);
+      
+      // Update local state
+      setFollowedTravelers((prev) =>
+        prev.map((traveler) =>
+          traveler.userId === targetUserId
+            ? { ...traveler, isFollowing: !traveler.isFollowing }
+            : traveler
+        )
+      );
+
+      toast({
+        title: "تم التحديث",
+        description: "تم تحديث حالة المتابعة بنجاح",
+      });
+    } catch (error: any) {
+      console.error("Error toggling follow:", error);
+      toast({
+        title: "خطأ",
+        description: error.message || "تعذر تحديث حالة المتابعة",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="container mx-auto px-4 py-6 sm:py-8 max-w-4xl">
-        <h1 className="text-2xl sm:text-3xl font-bold mb-3 sm:mb-4">الرحلات التى تمت مشاركتها مؤخرا</h1>
-        <StoriesBar
-          onUserClick={(user) => {
-            setActiveStoryGroup(user);
-            setIsStoryViewerOpen(true);
-          }}
-        />
-        {loading ? (
-          <TripSkeletonLoader count={3} variant="list" />
-        ) : (
-          <div className="space-y-4 sm:space-y-6">
-            {trips.map((trip) => {
+      <main className="w-full px-4 py-6 sm:py-8">
+        <div className="max-w-[1600px] mx-auto">
+          <h1 className="text-2xl sm:text-3xl font-bold mb-3 sm:mb-4">الرحلات التى تمت مشاركتها مؤخرا</h1>
+          
+          {/* Three-column layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] xl:grid-cols-[300px_minmax(500px,700px)_320px] gap-6 justify-center">
+            {/* Left Sidebar - Hidden on mobile, visible on lg+ */}
+            <div className="hidden lg:block">
+              <LeftSidebar
+                filters={filters}
+                onFiltersChange={setFilters}
+                userStats={userStats}
+                upcomingTrip={upcomingTrip}
+              />
+            </div>
+
+            {/* Center Column - Main Timeline */}
+            <div className="space-y-4">
+              <StoriesBar
+                onUserClick={(user) => {
+                  setActiveStoryGroup(user);
+                  setIsStoryViewerOpen(true);
+                }}
+              />
+            {loading ? (
+              <TripSkeletonLoader count={3} variant="list" />
+            ) : (
+              <div className="space-y-4 sm:space-y-6">
+            {filteredTrips.map((trip) => {
             // Use _id (MongoDB) or id (static data) consistently
             const tripId = getTripIdentifier(trip);
             const loveInfo = loveState[tripId] || {
@@ -393,8 +578,15 @@ const Timeline = () => {
                 <CardContent className="p-0">
                   {/* Header */}
                   <div className="flex items-center gap-3 p-3 sm:p-4">
-                    <Link to={toProfilePath(trip)} className="h-10 w-10 rounded-full bg-gradient-hero text-white font-bold flex items-center justify-center hover:opacity-90 flex-shrink-0">
-                      {trip.author.charAt(0)}
+                    <Link to={toProfilePath(trip)} className="flex-shrink-0">
+                      <Avatar className="h-10 w-10">
+                        {trip.authorImage ? (
+                          <AvatarImage src={trip.authorImage} alt={trip.author} />
+                        ) : null}
+                        <AvatarFallback className="bg-gradient-hero text-white font-bold">
+                          {trip.author.charAt(0)}
+                        </AvatarFallback>
+                      </Avatar>
                     </Link>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -494,6 +686,14 @@ const Timeline = () => {
                         <Share2 className="h-4 w-4" />
                         <span className="ml-1 sm:ml-2">{trip.shares || 0}</span>
                       </Button>
+                      
+                      {/* View Their Journey Button */}
+                      <Link to={toProfilePath(trip)}>
+                        <Button variant="ghost" size="sm" className="rounded-full px-2 sm:px-3 text-primary hover:text-primary">
+                          <Eye className="h-4 w-4" />
+                          <span className="ml-1 sm:ml-2 hidden md:inline">رحلتهم</span>
+                        </Button>
+                      </Link>
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
                       <SignedIn>
@@ -580,7 +780,22 @@ const Timeline = () => {
           })}
           </div>
         )}
+          </div>
+          {/* End Center Column */}
+
+          {/* Right Sidebar - Hidden on mobile/tablet, visible on xl+ */}
+          <div className="hidden xl:block">
+            <RightSidebar
+              followedTravelers={followedTravelers}
+              onToggleFollow={handleToggleFollow}
+              isLoading={loadingFollowed}
+            />
+          </div>
+        </div>
+        </div>
+        {/* End Three-column grid */}
       </main>
+
 
       {/* Comments Dialog */}
       <Dialog open={!!activeCommentsTripId} onOpenChange={(open) => !open && setActiveCommentsTripId(null)}>

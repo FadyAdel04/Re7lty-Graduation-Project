@@ -95,8 +95,12 @@ router.get('/', async (req, res) => {
       savedSet = new Set(saveDocs.map((doc: any) => String(doc.tripId)));
     }
 
-    const formatted = items.map((t) => {
-      const shaped = formatTripMedia(t, req, viewerId);
+    // Use formatTripsWithUserData to populate user data
+    const { formatTripsWithUserData } = await import('../utils/tripFormatter');
+    const formattedTrips = await formatTripsWithUserData(items, req, viewerId);
+
+    const formatted = formattedTrips.map((shaped: any, index: number) => {
+      const t = items[index];
       const tripId = t?._id ? String(t._id) : undefined;
       const ownerId = typeof t?.ownerId === 'string' ? t.ownerId : undefined;
       const viewerFollowsAuthor = Boolean(
@@ -151,7 +155,11 @@ router.get('/:id', async (req, res) => {
       viewerId ? TripSave.exists({ tripId: trip._id, userId: viewerId }) : Promise.resolve(null),
     ]);
 
-    const formatted = formatTripMedia(trip, req, viewerId);
+    // Use formatTripsWithUserData to populate user data
+    const { formatTripsWithUserData } = await import('../utils/tripFormatter');
+    const formattedTrips = await formatTripsWithUserData([trip], req, viewerId);
+    const formatted = formattedTrips[0];
+
     if (typeof followersCount === 'number') {
       formatted.authorFollowers = followersCount;
     }

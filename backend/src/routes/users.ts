@@ -39,8 +39,12 @@ async function formatTripsForResponse(tripDocs: any[], req: any, viewerId?: stri
     followingSet = new Set(followDocs.map((doc: any) => doc.followingId));
   }
 
-  return docs.map((trip: any) => {
-    const formatted = formatTripMedia(trip, req, viewerId || undefined);
+  // Use formatTripsWithUserData to populate user data
+  const { formatTripsWithUserData } = await import('../utils/tripFormatter');
+  const formattedTrips = await formatTripsWithUserData(docs, req, viewerId || undefined);
+
+  return formattedTrips.map((formatted: any, index: number) => {
+    const trip = docs[index];
     const tripId = trip?._id ? String(trip._id) : undefined;
     return {
       ...formatted,
@@ -74,7 +78,7 @@ router.get('/me', requireAuthStrict, async (req, res) => {
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
-    
+
     const clerkUser = await clerkClient.users.getUser(userId);
     const dbUser = await User.findOneAndUpdate(
       { clerkId: userId },
@@ -105,7 +109,7 @@ router.get('/me/trips', requireAuthStrict, async (req, res) => {
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
-    
+
     const trips = await Trip.find({ ownerId: userId }).sort({ postedAt: -1 });
     res.json(trips);
   } catch (error: any) {
@@ -121,7 +125,7 @@ router.get('/me/ai-trips', requireAuthStrict, async (req, res) => {
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
-    
+
     const trips = await Trip.find({ ownerId: userId, isAIGenerated: true }).sort({ postedAt: -1 });
     const formatted = await formatTripsForResponse(trips, req, userId);
     res.json(formatted);
@@ -180,23 +184,23 @@ router.patch('/me', requireAuthStrict, async (req, res) => {
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
-    
+
     const { bio, location, coverImage, fullName, imageUrl } = req.body || {};
-    
+
     // Check if MongoDB is connected
     if (mongoose.connection.readyState !== 1) {
-      return res.status(503).json({ 
-        error: 'Database not connected', 
-        message: 'MongoDB connection is required.' 
+      return res.status(503).json({
+        error: 'Database not connected',
+        message: 'MongoDB connection is required.'
       });
     }
-    
+
     // Update Clerk metadata (only if there's data to update)
     try {
       const clerkUpdateData: any = {
         publicMetadata: {},
       };
-      
+
       if (bio !== undefined) clerkUpdateData.publicMetadata.bio = bio;
       if (location !== undefined) clerkUpdateData.publicMetadata.location = location;
       // Only update coverImage in Clerk if it's not too large (Clerk has limits)
@@ -216,7 +220,7 @@ router.patch('/me', requireAuthStrict, async (req, res) => {
         clerkUpdateData.firstName = fullName;
         clerkUpdateData.lastName = '';
       }
-      
+
       // Only update Clerk if there's something to update
       if (Object.keys(clerkUpdateData.publicMetadata).length > 0 || fullName !== undefined) {
         await clerkClient.users.updateUser(userId, clerkUpdateData);
@@ -226,7 +230,7 @@ router.patch('/me', requireAuthStrict, async (req, res) => {
       // Continue with MongoDB update even if Clerk update fails
       // This allows large images to be stored in MongoDB even if Clerk rejects them
     }
-    
+
     // Update MongoDB User document (this is our source of truth for large images)
     const updateData: any = {};
     if (bio !== undefined) updateData.bio = bio;
@@ -234,21 +238,21 @@ router.patch('/me', requireAuthStrict, async (req, res) => {
     if (coverImage !== undefined) updateData.coverImage = coverImage;
     if (fullName !== undefined) updateData.fullName = fullName;
     if (imageUrl !== undefined) updateData.imageUrl = imageUrl;
-    
+
     const updatedUser = await User.findOneAndUpdate(
       { clerkId: userId },
       { $set: updateData },
       { new: true, upsert: true }
     );
-    
+
     res.json(updatedUser);
   } catch (error: any) {
     console.error('Error updating user profile:', error);
     // Check if it's a validation error
     if (error.name === 'ValidationError') {
-      return res.status(422).json({ 
-        error: 'Validation Error', 
-        message: error.message || 'Invalid data provided' 
+      return res.status(422).json({
+        error: 'Validation Error',
+        message: error.message || 'Invalid data provided'
       });
     }
     res.status(500).json({ error: 'Failed to update profile', message: error.message });
@@ -298,15 +302,15 @@ router.get('/:clerkId', async (req, res) => {
   try {
     const { clerkId } = req.params;
     const { userId: viewerId } = getAuth(req);
-    
+
     // Check if MongoDB is connected
     if (mongoose.connection.readyState !== 1) {
-      return res.status(503).json({ 
-        error: 'Database not connected', 
-        message: 'MongoDB connection is required.' 
+      return res.status(503).json({
+        error: 'Database not connected',
+        message: 'MongoDB connection is required.'
       });
     }
-    
+
     // Get user from Clerk
     let clerkUser;
     try {
@@ -314,11 +318,11 @@ router.get('/:clerkId', async (req, res) => {
     } catch (clerkError: any) {
       return res.status(404).json({ error: 'User not found', message: clerkError.message });
     }
-    
+
     // Sync user data from Clerk to database (upsert)
     // Get existing user to preserve coverImage if it exists in DB
     const existingUser = await User.findOne({ clerkId });
-    
+
     const updateData: any = {
       email: clerkUser.primaryEmailAddress?.emailAddress,
       username: clerkUser.username,
@@ -327,7 +331,7 @@ router.get('/:clerkId', async (req, res) => {
       bio: (clerkUser.publicMetadata as any)?.bio || null,
       location: (clerkUser.publicMetadata as any)?.location || null,
     };
-    
+
     // Only update coverImage from Clerk if it exists in Clerk metadata
     // Otherwise, preserve the existing database value (which is the source of truth)
     const clerkCoverImage = (clerkUser.publicMetadata as any)?.coverImage;
@@ -338,7 +342,7 @@ router.get('/:clerkId', async (req, res) => {
       updateData.coverImage = null;
     }
     // If existingUser has coverImage and Clerk doesn't, keep the DB value (don't update)
-    
+
     const [followersCount, followingCount, tripsCount, likesAgg, viewerFollowsDoc] = await Promise.all([
       Follow.countDocuments({ followingId: clerkId }),
       Follow.countDocuments({ followerId: clerkId }),
@@ -403,7 +407,7 @@ router.get('/:clerkId', async (req, res) => {
       createdAt: dbUser.createdAt || clerkUser.createdAt,
       _id: dbUser._id,
     };
-    
+
     res.json(userData);
   } catch (error: any) {
     console.error('Error fetching user:', error);
@@ -465,15 +469,15 @@ router.post('/:clerkId/follow', requireAuthStrict, async (req, res) => {
 router.get('/:clerkId/trips', async (req, res) => {
   try {
     const { clerkId } = req.params;
-    
+
     // Check if MongoDB is connected
     if (mongoose.connection.readyState !== 1) {
-      return res.status(503).json({ 
-        error: 'Database not connected', 
-        message: 'MongoDB connection is required.' 
+      return res.status(503).json({
+        error: 'Database not connected',
+        message: 'MongoDB connection is required.'
       });
     }
-    
+
     const trips = await Trip.find({ ownerId: clerkId }).sort({ postedAt: -1 });
     res.json(trips);
   } catch (error: any) {
