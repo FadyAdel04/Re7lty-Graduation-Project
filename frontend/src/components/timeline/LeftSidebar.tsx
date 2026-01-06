@@ -164,16 +164,6 @@ const LeftSidebar = ({ filters, onFiltersChange, userStats, upcomingTrip }: Left
           </CardContent>
         </Card>
       )}
-
-      {/* Saved Items Link */}
-      <Card className="shadow-sm">
-        <CardContent className="p-4">
-          <Link to="/saved" className="flex items-center gap-2 text-sm hover:text-primary transition-colors">
-            <Bookmark className="h-4 w-4" />
-            <span>العناصر المحفوظة</span>
-          </Link>
-        </CardContent>
-      </Card>
     </aside>
   );
 };

@@ -20,11 +20,13 @@ import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import Contact from "./pages/Contact";
 import TripAIChat from "./pages/TripAIChat";
+import DiscoverPage from "./pages/DiscoverPage";
 import TripAIChatWidget from "@/components/TripAIChatWidget";
 import ScrollToTop from "@/components/ScrollToTop";
 import { SignedIn, SignedOut, RedirectToSignIn } from "@clerk/clerk-react";
 import { UploadProgressProvider } from "@/contexts/UploadProgressContext";
 import { UploadProgressBar } from "@/components/UploadProgressBar";
+import UserConnectionsPage from "./pages/UserConnectionsPage";
 
 const queryClient = new QueryClient();
 
@@ -52,6 +54,7 @@ const App = () => (
           <Route path="/timeline" element={<Timeline />} />
           <Route path="/templates" element={<Templates />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
+          <Route path="/discover" element={<DiscoverPage />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/auth/sign-in" element={<Auth />} />
           <Route path="/auth/sign-up" element={<SignUpPage />} />
@@ -63,8 +66,10 @@ const App = () => (
           <Route path="/contact" element={<Contact />} />
           {/* Trip AI Assistant */}
           <Route path="/trip-assistant" element={<TripAIChat />} />
+
           {/* User profile routes - all profiles use /user/:id format */}
           <Route path="/user/:id" element={<UserProfile />} />
+          <Route path="/user/:id/network" element={<UserConnectionsPage />} />
           
           {/* Protected Routes */}
           <Route

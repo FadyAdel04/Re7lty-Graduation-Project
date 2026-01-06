@@ -15,7 +15,7 @@ import { TripLocation } from "@/components/TripMapEditor";
 import LocationMediaManager from "@/components/LocationMediaManager";
 import { useToast } from "@/hooks/use-toast";
 import { useUser, useAuth } from "@clerk/clerk-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { TripActivity, TripDay, FoodPlace } from "@/lib/trips-data";
 import { getTrip, updateTrip } from "@/lib/api";
 import UploadProgressLoader from "@/components/UploadProgressLoader";
@@ -26,6 +26,7 @@ const EditTrip = () => {
   const { user } = useUser();
   const { getToken } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -205,6 +206,13 @@ const EditTrip = () => {
       loadTrip();
     }
   }, [id, user, navigate, toast]);
+
+  // Set initial step from location state if available
+  useEffect(() => {
+    if (location.state && (location.state as any).initialStep) {
+      setCurrentStep((location.state as any).initialStep);
+    }
+  }, [location.state]);
 
   // Update activities when locations change
   useEffect(() => {

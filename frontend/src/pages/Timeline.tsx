@@ -63,18 +63,17 @@ function primeTripsCache() {
 // Start fetching as soon as the module loads to minimize perceived wait time
 primeTripsCache();
 
-function timeAgo(iso: string): string {
-  const now = new Date();
-  const then = new Date(iso);
-  const diff = Math.max(0, now.getTime() - then.getTime());
-  const s = Math.floor(diff / 1000);
-  const m = Math.floor(s / 60);
-  const h = Math.floor(m / 60);
-  const d = Math.floor(h / 24);
-  if (d > 0) return `${d} يوم${d === 1 ? '' : ''} مضت`;
-  if (h > 0) return `${h} ساعة مضت`;
-  if (m > 0) return `${m} دقيقة مضت`;
-  return `الآن`;
+function formatDate(iso: string): string {
+  try {
+    const date = new Date(iso);
+    // Format as: YYYY-MM-DD or DD/MM/YYYY based on preference
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  } catch {
+    return '';
+  }
 }
 
 const getTripIdentifier = (trip: any) => {
@@ -237,8 +236,8 @@ const Timeline = () => {
               uniqueUsers.set(trip.ownerId, {
                 userId: trip.ownerId,
                 fullName: trip.author,
-                imageUrl: undefined,
-                status: `نشر ${timeAgo(trip.postedAt)}`,
+                imageUrl: trip.authorImage,
+                status: `نشر ${formatDate(trip.postedAt)}`,
                 tripCount: 1,
                 isFollowing: true,
               });
@@ -534,7 +533,7 @@ const Timeline = () => {
           {/* Three-column layout */}
           <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] xl:grid-cols-[300px_minmax(500px,700px)_320px] gap-6 justify-center">
             {/* Left Sidebar - Hidden on mobile, visible on lg+ */}
-            <div className="hidden lg:block">
+            <div className="hidden lg:block sticky top-24 h-fit">
               <LeftSidebar
                 filters={filters}
                 onFiltersChange={setFilters}
@@ -594,7 +593,7 @@ const Timeline = () => {
                           <Link to={toProfilePath(trip)} className="truncate font-bold hover:underline">
                             {trip.author}
                           </Link>
-                          <span className="text-xs text-muted-foreground whitespace-nowrap">• {timeAgo(trip.postedAt)}</span>
+                          <span className="text-xs text-muted-foreground whitespace-nowrap">• {formatDate(trip.postedAt)}</span>
                         </div>
                         <div className="flex items-center gap-1.5 text-xs text-muted-foreground whitespace-nowrap">
                           <MapPin className="h-4 w-4 text-secondary" />
@@ -784,7 +783,7 @@ const Timeline = () => {
           {/* End Center Column */}
 
           {/* Right Sidebar - Hidden on mobile/tablet, visible on xl+ */}
-          <div className="hidden xl:block">
+          <div className="hidden xl:block sticky top-24 h-fit">
             <RightSidebar
               followedTravelers={followedTravelers}
               onToggleFollow={handleToggleFollow}

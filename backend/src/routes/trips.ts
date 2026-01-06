@@ -229,7 +229,7 @@ router.post('/', requireAuthStrict, async (req, res) => {
     const { author, authorFollowers: _, ...restBody } = req.body;
 
     // Upload base64 media to Cloudinary and return URL
-    // ENFORCES Cloudinary usage - throws error if not configured or upload fails
+    // Falls back to base64 string if Cloudinary is partially configured or disabled
     const persistBase64 = async (dataUrl: string, subdir: string): Promise<string> => {
       const match = /^data:(image|video)\/([a-zA-Z0-9+.-]+);base64,(.+)$/.exec(dataUrl);
       if (!match) {
@@ -237,26 +237,30 @@ router.post('/', requireAuthStrict, async (req, res) => {
         return dataUrl;
       }
 
-      // Enforce Cloudinary configuration
+      // Check Cloudinary configuration
       if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
-        const errorMsg = `[Trip Creation] Cloudinary is not configured. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET environment variables.`;
-        console.error(errorMsg);
-        throw new Error('Cloudinary configuration is required for media uploads');
+        console.warn(`[Trip Creation] Cloudinary not configured. Storing media as base64 in MongoDB.`);
+        return dataUrl; // Fallback to base64
       }
 
       const [, mediaType, ext, b64] = match;
 
-      // Upload to Cloudinary (accepts data URL string directly)
-      const uploadResult = await cloudinary.uploader.upload(
-        `data:${mediaType}/${ext};base64,${b64}`,
-        {
-          folder: `re7lty/${subdir}`,
-          resource_type: 'auto', // Let Cloudinary auto-detect the resource type
-        }
-      );
+      try {
+        // Upload to Cloudinary (accepts data URL string directly)
+        const uploadResult = await cloudinary.uploader.upload(
+          `data:${mediaType}/${ext};base64,${b64}`,
+          {
+            folder: `re7lty/${subdir}`,
+            resource_type: 'auto', // Let Cloudinary auto-detect the resource type
+          }
+        );
 
-      console.log(`[Trip Creation] Successfully uploaded to Cloudinary: ${uploadResult.secure_url}`);
-      return uploadResult.secure_url; // Return Cloudinary URL
+        console.log(`[Trip Creation] Successfully uploaded to Cloudinary: ${uploadResult.secure_url}`);
+        return uploadResult.secure_url; // Return Cloudinary URL
+      } catch (error: any) {
+        console.error(`[Trip Creation] Cloudinary upload failed: ${error.message}. Falling back to base64.`);
+        return dataUrl; // Fallback to base64 on error
+      }
     };
 
     const sanitizeTripMediaOnCreate = async (payload: any) => {

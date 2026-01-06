@@ -30,7 +30,7 @@ export async function createTrip(input: CreateTripInput, token?: string) {
     },
     body: JSON.stringify(input),
   });
-  
+
   if (!res.ok) {
     let errorMessage = 'Failed to create trip';
     let errorDetails: any = null;
@@ -38,12 +38,12 @@ export async function createTrip(input: CreateTripInput, token?: string) {
       const errorData = await res.json();
       errorMessage = errorData.message || errorData.error || errorMessage;
       errorDetails = errorData.details || null;
-      
+
       // If it's a database error, provide more helpful message
       if (res.status === 503 && errorData.error === 'Database not connected') {
         errorMessage = 'Database connection failed. Please check MongoDB connection settings.';
       }
-      
+
       // Create error with details
       const error = new Error(errorMessage);
       (error as any).details = errorDetails;
@@ -66,7 +66,7 @@ export async function createTrip(input: CreateTripInput, token?: string) {
       throw error;
     }
   }
-  
+
   return await res.json();
 }
 
@@ -77,7 +77,7 @@ export async function listTrips(params?: { page?: number; limit?: number; sort?:
   if (params?.sort) query.set('sort', params.sort);
   if (params?.q) query.set('q', params.q);
   if (params?.city) query.set('city', params.city);
-  
+
   const url = `${BASE}/api/trips?${query.toString()}`;
   try {
     const res = await fetch(url, {
@@ -86,12 +86,12 @@ export async function listTrips(params?: { page?: number; limit?: number; sort?:
         'Content-Type': 'application/json',
       },
     });
-    
+
     if (!res.ok) {
       const errorText = await res.text();
       throw new Error(errorText || `Failed to fetch trips: ${res.status} ${res.statusText}`);
     }
-    
+
     return await res.json();
   } catch (error: any) {
     // Provide more helpful error messages for common issues
@@ -260,12 +260,12 @@ export async function getNotifications(limit: number = 30, token?: string) {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
     });
-    
+
     if (!res.ok) {
       const errorText = await res.text();
       throw new Error(errorText || `Failed to fetch notifications: ${res.status} ${res.statusText}`);
     }
-    
+
     return await res.json();
   } catch (error: any) {
     // Provide more helpful error messages for common issues
@@ -350,7 +350,7 @@ export async function updateUserProfile(
     },
     body: JSON.stringify(data),
   });
-  
+
   if (!res.ok) {
     if (res.status === 401) {
       throw new Error('Unauthorized');
@@ -388,7 +388,7 @@ export async function updateTrip(id: string, input: CreateTripInput, token?: str
     },
     body: JSON.stringify(input),
   });
-  
+
   if (!res.ok) {
     if (res.status === 401) {
       throw new Error('Unauthorized');
@@ -409,7 +409,7 @@ export async function updateTrip(id: string, input: CreateTripInput, token?: str
     }
     throw new Error(errorMessage);
   }
-  
+
   return await res.json();
 }
 
@@ -429,7 +429,7 @@ export async function deleteTrip(id: string, token?: string) {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   });
-  
+
   if (!res.ok) {
     if (res.status === 401) {
       throw new Error('Unauthorized');
@@ -450,7 +450,7 @@ export async function deleteTrip(id: string, token?: string) {
     }
     throw new Error(errorMessage);
   }
-  
+
   return await res.json();
 }
 
@@ -564,6 +564,24 @@ export async function getStoryViewers(id: string, token: string) {
     throw new Error(text || "Failed to fetch story viewers");
   }
   return res.json() as Promise<{ storyId: string; total: number; viewers: StoryViewerInfo[] }>;
+}
+
+export async function getUserFollowers(clerkId: string) {
+  const res = await fetch(`${BASE}/api/users/${clerkId}/followers`);
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Failed to fetch followers");
+  }
+  return res.json();
+}
+
+export async function getUserFollowing(clerkId: string) {
+  const res = await fetch(`${BASE}/api/users/${clerkId}/following`);
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Failed to fetch following");
+  }
+  return res.json();
 }
 
 

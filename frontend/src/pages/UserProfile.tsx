@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import TripCard from "@/components/TripCard";
+import UserCard from "@/components/UserCard";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +40,8 @@ import {
   deleteStory,
   StoryItem,
   StoryViewerInfo,
+  getUserFollowers,
+  getUserFollowing,
 } from "@/lib/api";
 import TripSkeletonLoader from "@/components/TripSkeletonLoader";
 
@@ -108,6 +111,16 @@ const UserProfile = () => {
   const [myStories, setMyStories] = useState<StoryItem[]>([]);
   const [isLoadingMyStories, setIsLoadingMyStories] = useState(false);
   const [storyViewersById, setStoryViewersById] = useState<Record<string, StoryViewerInfo[]>>({});
+
+  const handleOpenFollowers = () => {
+    const targetId = id || clerkUser?.id;
+    if (targetId) navigate(`/user/${targetId}/network?type=followers`);
+  };
+
+  const handleOpenFollowing = () => {
+    const targetId = id || clerkUser?.id;
+    if (targetId) navigate(`/user/${targetId}/network?type=following`);
+  };
 
   // Redirect to auth if viewing own profile but not signed in
   useEffect(() => {
@@ -939,14 +952,20 @@ const UserProfile = () => {
                   <div className="text-2xl font-bold text-primary">{stats.trips}</div>
                   <div className="text-xs text-muted-foreground">رحلة</div>
                 </div>
-                <div className="bg-background rounded-2xl p-4 border border-border/50 text-center">
+                <button 
+                  onClick={handleOpenFollowers}
+                  className="bg-background rounded-2xl p-4 border border-border/50 text-center hover:bg-muted/50 transition-colors cursor-pointer"
+                >
                   <div className="text-2xl font-bold text-secondary">{stats.followers}</div>
                   <div className="text-xs text-muted-foreground">متابع</div>
-                </div>
-                <div className="bg-background rounded-2xl p-4 border border-border/50 text-center">
+                </button>
+                <button 
+                  onClick={handleOpenFollowing}
+                  className="bg-background rounded-2xl p-4 border border-border/50 text-center hover:bg-muted/50 transition-colors cursor-pointer"
+                >
                   <div className="text-2xl font-bold text-primary">{stats.following}</div>
                   <div className="text-xs text-muted-foreground">يتابع</div>
-                </div>
+                </button>
                 <div className="bg-background rounded-2xl p-4 border border-border/50 text-center">
                   <div className="text-2xl font-bold text-secondary">{stats.likes}</div>
                   <div className="text-xs text-muted-foreground">إعجاب</div>
@@ -1125,6 +1144,8 @@ const UserProfile = () => {
           </Tabs>
         </div>
       </main>
+
+
 
       {/* Add Story Dialog */}
       {isOwnProfile && (

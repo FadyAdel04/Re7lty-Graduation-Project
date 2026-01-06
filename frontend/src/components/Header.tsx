@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Search, MapPin, Menu, Trophy, Compass, Briefcase, Home, Plus, X } from "lucide-react";
+import { Search, MapPin, Menu, Trophy, Compass, Briefcase, Home, Plus, X, Sparkles, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link, useNavigate, useLocation } from "react-router-dom";
@@ -72,6 +72,14 @@ const Header = ({ onSearch }: HeaderProps) => {
         setIsSearching(false);
       }
     }, 300);
+  };
+
+  const handleSearchSubmit = () => {
+    if (searchValue.trim()) {
+      navigate(`/discover?q=${encodeURIComponent(searchValue.trim())}`);
+      setShowDropdown(false);
+      setMobileSearchOpen(false);
+    }
   };
 
   const handleTripClick = (tripId: string) => {
@@ -229,6 +237,11 @@ const Header = ({ onSearch }: HeaderProps) => {
               placeholder="ابحث عن رحلة، مدينة، أو نشاط..."
               value={searchValue}
               onChange={(e) => handleSearch(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleSearchSubmit();
+                }
+              }}
               className="flex-1 border-none shadow-none focus-visible:ring-0 bg-transparent text-base"
             />
             <Button 
@@ -265,13 +278,15 @@ const Header = ({ onSearch }: HeaderProps) => {
           </Link>
 
           {/* Center Section: Navigation Link + Search */}
-          <div className="flex-1 hidden lg:flex items-center justify-center gap-6 order-2">
+          <div className="flex-1 hidden lg:flex items-center justify-center gap-3 xl:gap-6 order-2">
             
             {/* Nav Links */}
             <nav className="flex items-center gap-1">
               <NavItem to="/" icon={Home} label="الرئيسية" exact={true} />
-              <NavItem to="/timeline" icon={Compass} label="استكشف الرحلات" />
-              <NavItem to="/templates" icon={Briefcase} label="رحلات الشركات" />
+              <NavItem to="/discover" icon={Sparkles} label="اكتشف" />
+              <NavItem to="/timeline" icon={Compass} label="الرحلات" />
+              
+              <NavItem to="/templates" icon={Briefcase} label="الباقات" />
               
               <Link to="/leaderboard" className="relative group px-1">
                 <div className={`
@@ -302,6 +317,11 @@ const Header = ({ onSearch }: HeaderProps) => {
                   onChange={(e) => handleSearch(e.target.value)}
                   onFocus={() => {
                     if (searchValue.trim()) setShowDropdown(true);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleSearchSubmit();
+                    }
                   }}
                   className="w-full pl-4 pr-10 py-2 h-10 bg-gray-50/50 border-gray-200 rounded-full focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-sm placeholder:text-gray-400"
                 />
@@ -394,6 +414,10 @@ const Header = ({ onSearch }: HeaderProps) => {
                   <Link to="/timeline" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-orange-50 text-gray-700 hover:text-orange-600 transition-colors">
                     <Compass className="h-5 w-5" />
                     استكشف الرحلات
+                  </Link>
+                  <Link to="/discover" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-orange-50 text-gray-700 hover:text-orange-600 transition-colors">
+                    <Sparkles className="h-5 w-5" />
+                    استكشف
                   </Link>
                   <Link to="/templates" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-orange-50 text-gray-700 hover:text-orange-600 transition-colors">
                     <Briefcase className="h-5 w-5" />

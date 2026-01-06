@@ -17,6 +17,7 @@ import { useUser, useAuth } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 import { Trip, TripActivity, TripDay, FoodPlace } from "@/lib/trips-data";
 import { createTrip } from "@/lib/api";
+import UploadProgressLoader from "@/components/UploadProgressLoader";
 
 const CreateTrip = () => {
   const { toast } = useToast();
@@ -24,6 +25,13 @@ const CreateTrip = () => {
   const { getToken } = useAuth();
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
+  const [uploadProgress, setUploadProgress] = useState({
+    show: false,
+    total: 0,
+    completed: 0,
+    currentItem: "",
+    isProcessing: false,
+  });
   
   // Step 1: Basic Info
   const [tripData, setTripData] = useState({
@@ -240,7 +248,7 @@ const CreateTrip = () => {
     });
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (isEarlyShare = false) => {
     // Validate all data
     if (!tripData.title || !tripData.destination || !tripData.duration || !tripData.budget || !tripData.description) {
       toast({
@@ -251,7 +259,7 @@ const CreateTrip = () => {
       return;
     }
 
-    if (activities.length === 0) {
+    if (!isEarlyShare && activities.length === 0) {
       toast({
         title: "معلومات ناقصة",
         description: "الرجاء إضافة نشاط واحد على الأقل",
@@ -267,9 +275,37 @@ const CreateTrip = () => {
         description: "يرجى الانتظار بينما نقوم بتحميل الصور",
       });
 
+      // Calculate total items to process
+      const totalImages = locations.reduce((sum, loc) => sum + (loc.images || []).filter((img: any) => img instanceof File).length, 0);
+      const totalVideos = locations.reduce((sum, loc) => sum + (loc.videos || []).filter((vid: any) => vid instanceof File).length, 0);
+      // Add cover image if it's a file
+      const hasCoverImage = tripData.coverImage instanceof File;
+      const totalItems = totalImages + totalVideos + (hasCoverImage ? 1 : 0);
+
+      // Show upload progress if there are files to process
+      if (totalItems > 0) {
+        setUploadProgress({
+          show: true,
+          total: totalItems,
+          completed: 0,
+          currentItem: "جاري تحضير الملفات...",
+          isProcessing: false,
+        });
+      }
+
+      let processedCount = 0;
+
       // Convert all images to base64 before sending
       // Convert cover image (already base64, but ensure it's valid)
       const coverImage = tripData.coverImageUrl || "";
+      if (hasCoverImage) {
+        processedCount++;
+        setUploadProgress(prev => ({
+          ...prev,
+          completed: processedCount,
+          currentItem: "جاري معالجة صورة الغلاف...",
+        }));
+      }
 
       // Convert activity images from locations (File objects) to base64
       // Activities are created from locations, so we can directly use locations array
@@ -285,6 +321,12 @@ const CreateTrip = () => {
                 return img; // Already base64
               } else if (img instanceof File) {
                 // Convert File to base64
+                processedCount++;
+                setUploadProgress(prev => ({
+                  ...prev,
+                  completed: processedCount,
+                  currentItem: `جاري رفع الصورة: ${location.name || `موقع ${index + 1}`}`,
+                }));
                 return await fileToBase64(img);
               }
               return ''; // Skip invalid images
@@ -298,6 +340,12 @@ const CreateTrip = () => {
                 return vid; // Already base64 or URL
               } else if (vid instanceof File) {
                 // Convert File to base64
+                processedCount++;
+                setUploadProgress(prev => ({
+                  ...prev,
+                  completed: processedCount,
+                  currentItem: `جاري رفع الفيديو: ${location.name || `موقع ${index + 1}`}`,
+                }));
                 return await fileToBase64(vid);
               }
               return ''; // Skip invalid videos
@@ -355,15 +403,29 @@ const CreateTrip = () => {
         foodAndRestaurants: foodPlacesWithBase64.filter(fp => fp.image), // Only include places with valid images
       };
       
+      // Update progress to show processing
+      if (totalItems > 0) {
+        setUploadProgress(prev => ({
+          ...prev,
+          isProcessing: true,
+          currentItem: "جاري إرسال البيانات...",
+        }));
+      }
+
       const created = await createTrip(payload as any, token || undefined);
       toast({
         title: "تم إنشاء الرحلة بنجاح!",
-        description: "تم نشر رحلتك",
+        description: isEarlyShare ? "تم نشر الرحلة. يمكنك الآن إضافة المزيد من التفاصيل." : "تم نشر رحلتك",
       });
       localStorage.removeItem('tripDraft');
       setTimeout(() => {
         if (created?._id) {
-          navigate(`/trips/${created._id}`);
+          // If early share, go to edit page at step 2
+          if (isEarlyShare) {
+            navigate(`/trips/edit/${created._id}`, { state: { initialStep: 2 } });
+          } else {
+            navigate(`/trips/${created._id}`);
+          }
         } else {
           navigate(`/timeline`);
         }
@@ -371,6 +433,8 @@ const CreateTrip = () => {
       return;
     } catch (err: any) {
       console.error('Error creating trip:', err);
+      // Hide progress loader on error
+      setUploadProgress(prev => ({ ...prev, show: false }));
       const errorMessage = err?.message || "حدث خطأ غير متوقع";
       const errorDetails = err?.details || (err?.response?.data?.details ? JSON.stringify(err.response.data.details) : null);
       toast({ 
@@ -395,6 +459,14 @@ const CreateTrip = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {uploadProgress.show && (
+        <UploadProgressLoader
+          totalItems={uploadProgress.total}
+          completedItems={uploadProgress.completed}
+          currentItem={uploadProgress.currentItem}
+          isProcessing={uploadProgress.isProcessing}
+        />
+      )}
       <Header />
       
       <main className="py-12">
@@ -578,10 +650,18 @@ const CreateTrip = () => {
                   )}
                 </div>
 
-                <div className="flex gap-4 pt-6">
-                  <Button variant="outline" className="flex-1">
+                <div className="flex flex-col sm:flex-row gap-4 pt-6">
+                  <Button variant="outline" className="flex-1" onClick={() => {}}>
                     حفظ كمسودة
                   </Button>
+                  
+                  <Button 
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-white" 
+                    onClick={() => handleSubmit(true)}
+                  >
+                    نشر وتكملة التفاصيل لاحقاً
+                  </Button>
+
                   <Button className="flex-1" onClick={nextStep}>
                     التالي: الأنشطة والمواقع
                     <ArrowLeft className="h-4 w-4 mr-2" />
@@ -974,7 +1054,7 @@ const CreateTrip = () => {
                     <ArrowRight className="h-4 w-4 ml-2" />
                     السابق
                   </Button>
-                  <Button className="flex-1" onClick={handleSubmit} size="lg">
+                  <Button className="flex-1" onClick={() => handleSubmit(false)} size="lg">
                     <Check className="h-5 w-5 ml-2" />
                     نشر الرحلة
                   </Button>

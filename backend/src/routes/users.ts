@@ -486,6 +486,62 @@ router.get('/:clerkId/trips', async (req, res) => {
   }
 });
 
+// Get followers
+router.get('/:clerkId/followers', async (req, res) => {
+  try {
+    const { clerkId } = req.params;
+
+    // Check if MongoDB is connected
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({
+        error: 'Database not connected',
+        message: 'MongoDB connection is required.'
+      });
+    }
+
+    const followers = await Follow.find({ followingId: clerkId });
+    const followerIds = followers.map(f => f.followerId);
+
+    if (followerIds.length === 0) {
+      return res.json([]);
+    }
+
+    const users = await User.find({ clerkId: { $in: followerIds } }).select('clerkId fullName username imageUrl bio location');
+    res.json(users);
+  } catch (error: any) {
+    console.error('Error fetching followers:', error);
+    res.status(500).json({ error: 'Failed to fetch followers', message: error.message });
+  }
+});
+
+// Get following
+router.get('/:clerkId/following', async (req, res) => {
+  try {
+    const { clerkId } = req.params;
+
+    // Check if MongoDB is connected
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({
+        error: 'Database not connected',
+        message: 'MongoDB connection is required.'
+      });
+    }
+
+    const following = await Follow.find({ followerId: clerkId });
+    const followingIds = following.map(f => f.followingId);
+
+    if (followingIds.length === 0) {
+      return res.json([]);
+    }
+
+    const users = await User.find({ clerkId: { $in: followingIds } }).select('clerkId fullName username imageUrl bio location');
+    res.json(users);
+  } catch (error: any) {
+    console.error('Error fetching following:', error);
+    res.status(500).json({ error: 'Failed to fetch following', message: error.message });
+  }
+});
+
 export default router;
 
 
