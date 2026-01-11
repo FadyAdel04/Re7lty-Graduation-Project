@@ -84,6 +84,10 @@ const router = express.Router();
  */
 router.post('/', async (req, res) => {
     try {
+        // Set CORS headers explicitly for this endpoint
+        res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+        res.header('Access-Control-Allow-Credentials', 'true');
+
         const { companyName, email, phone, whatsapp, tripTypes, message } = req.body;
 
         // Validation
