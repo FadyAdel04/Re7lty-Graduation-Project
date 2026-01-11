@@ -21,6 +21,49 @@ if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && proce
 
 const router = Router();
 
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Trip:
+ *       type: object
+ *       properties:
+ *         _id:
+ *           type: string
+ *         title:
+ *           type: string
+ *         destination:
+ *           type: string
+ *         city:
+ *           type: string
+ *         description:
+ *           type: string
+ *         days:
+ *           type: array
+ *           items:
+ *             type: object
+ *         activities:
+ *           type: array
+ *           items:
+ *             type: object
+ *         foodAndRestaurants:
+ *           type: array
+ *           items:
+ *             type: object
+ *         likes:
+ *           type: integer
+ *         saves:
+ *           type: integer
+ *         ownerId:
+ *           type: string
+ *         image:
+ *           type: string
+ *         postedAt:
+ *           type: string
+ *           format: date-time
+ */
+
 async function getActorSnapshot(userId: string) {
   const user = await clerkClient.users.getUser(userId);
   const actorName = user.fullName || user.firstName || user.username || "مستخدم";
@@ -29,6 +72,59 @@ async function getActorSnapshot(userId: string) {
 }
 
 // Public list
+
+/**
+ * @swagger
+ * /trips:
+ *   get:
+ *     summary: Get a list of trips
+ *     tags: [Trips]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *       - in: query
+ *         name: sort
+ *         schema:
+ *           type: string
+ *           enum: [recent, likes]
+ *           default: recent
+ *       - in: query
+ *         name: q
+ *         schema:
+ *           type: string
+ *         description: Search query
+ *       - in: query
+ *         name: city
+ *         schema:
+ *           type: string
+ *         description: Filter by city
+ *     responses:
+ *       200:
+ *         description: List of trips
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 items:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Trip'
+ *                 total:
+ *                   type: integer
+ *                 page:
+ *                   type: integer
+ *                 limit:
+ *                   type: integer
+ */
 router.get('/', async (req, res) => {
   try {
     const { q, city, sort = 'recent', page = '1', limit = '20' } = req.query as any;
@@ -121,6 +217,29 @@ router.get('/', async (req, res) => {
 });
 
 // Public detail
+
+/**
+ * @swagger
+ * /trips/{id}:
+ *   get:
+ *     summary: Get a trip by ID
+ *     tags: [Trips]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Trip details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Trip'
+ *       404:
+ *         description: Trip not found
+ */
 router.get('/:id', async (req, res) => {
   try {
     // Check if MongoDB is connected
@@ -175,6 +294,52 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create (requires auth)
+
+/**
+ * @swagger
+ * /trips:
+ *   post:
+ *     summary: Create a new trip
+ *     tags: [Trips]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *             properties:
+ *               title:
+ *                 type: string
+ *               destination:
+ *                 type: string
+ *               city:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               days:
+ *                 type: array
+ *               activities:
+ *                 type: array
+ *               foodAndRestaurants:
+ *                 type: array
+ *               image:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Trip created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Trip'
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ */
 router.post('/', requireAuthStrict, async (req, res) => {
   try {
     // Check if MongoDB is connected

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Search, MapPin, Menu, Trophy, Compass, Briefcase, Home, Plus, X, Sparkles, Globe } from "lucide-react";
+import { Search, MapPin, Menu, Trophy, Compass, Briefcase, Home, Plus, X, Sparkles, Globe, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link, useNavigate, useLocation } from "react-router-dom";
@@ -33,6 +33,9 @@ const Header = ({ onSearch }: HeaderProps) => {
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const location = useLocation();
+  
+  // Check if user is admin
+  const isAdmin = user?.emailAddresses?.some(email => email.emailAddress === 'e79442457@gmail.com');
 
   const handleUserButtonClick = () => {
     if (user?.id) {
@@ -302,6 +305,11 @@ const Header = ({ onSearch }: HeaderProps) => {
                   <span className="text-sm">المتصدرين</span>
                 </div>
               </Link>
+              
+              {/* Admin Link - Only visible to admin */}
+              {isAdmin && (
+                <NavItem to="/admin/dashboard" icon={Shield} label="لوحة التحكم" />
+              )}
             </nav>
 
             {/* Separator */}
@@ -427,6 +435,14 @@ const Header = ({ onSearch }: HeaderProps) => {
                     <Trophy className="h-5 w-5" />
                     المتصدرين
                   </Link>
+                  
+                  {/* Admin Link - Mobile */}
+                  {isAdmin && (
+                    <Link to="/admin/dashboard" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-orange-50 text-gray-700 hover:text-orange-600 transition-colors">
+                      <Shield className="h-5 w-5" />
+                      لوحة التحكم
+                    </Link>
+                  )}
                   
                   <div className="my-4 h-px bg-gray-100" />
                   

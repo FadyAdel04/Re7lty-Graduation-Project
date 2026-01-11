@@ -9,8 +9,13 @@ import usersRouter from "./routes/users";
 import searchRouter from "./routes/search";
 import notificationsRouter from "./routes/notifications";
 import storiesRouter from "./routes/stories";
+import companySubmissionsRouter from "./routes/companySubmissions";
+import corporateCompaniesRouter from "./routes/corporateCompanies";
+import corporateTripsRouter from "./routes/corporateTrips";
 import { connectToDatabase } from "./db";
 import mongoose from "mongoose";
+import swaggerUi from "swagger-ui-express";
+import { specs } from "./config/swagger";
 
 dotenv.config();
 
@@ -80,7 +85,7 @@ export function createApp() {
 
   // Apply middleware in correct order
   // CORS configuration: allow all origins in production, with credentials support
-  app.use(cors({ 
+  app.use(cors({
     origin: true, // Allow all origins (reflects the request origin)
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -117,6 +122,8 @@ export function createApp() {
   } catch (error: any) {
     console.error("Failed to initialize Clerk middleware:", error.message);
   }
+  // Swagger UI
+  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
 
   // Root route handler
   app.get("/", (_req, res) => {
@@ -140,19 +147,19 @@ export function createApp() {
       // Ensure database connection
       await ensureDatabaseConnection();
       const isConnected = mongoose.connection.readyState === 1;
-      res.json({ 
-        status: "ok", 
-        service: "backend", 
-        db: isConnected ? "connected" : "disconnected", 
-        timestamp: new Date().toISOString() 
+      res.json({
+        status: "ok",
+        service: "backend",
+        db: isConnected ? "connected" : "disconnected",
+        timestamp: new Date().toISOString()
       });
     } catch (error: any) {
-      res.json({ 
-        status: "ok", 
-        service: "backend", 
-        db: "disconnected", 
+      res.json({
+        status: "ok",
+        service: "backend",
+        db: "disconnected",
         error: error.message,
-        timestamp: new Date().toISOString() 
+        timestamp: new Date().toISOString()
       });
     }
   });
@@ -169,6 +176,11 @@ export function createApp() {
   app.use("/api/search", searchRouter);
   app.use("/api/notifications", notificationsRouter);
   app.use("/api/stories", storiesRouter);
+
+  // Corporate trips routes
+  app.use("/api/submissions", companySubmissionsRouter);
+  app.use("/api/corporate/companies", corporateCompaniesRouter);
+  app.use("/api/corporate/trips", corporateTripsRouter);
 
   app.use("/api", (req, res) => {
     res.status(404).json({ error: "Not Found", path: req.path });

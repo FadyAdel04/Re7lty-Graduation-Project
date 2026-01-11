@@ -27,6 +27,11 @@ import { SignedIn, SignedOut, RedirectToSignIn } from "@clerk/clerk-react";
 import { UploadProgressProvider } from "@/contexts/UploadProgressContext";
 import { UploadProgressBar } from "@/components/UploadProgressBar";
 import UserConnectionsPage from "./pages/UserConnectionsPage";
+import TripDetailsPage from "./pages/TripDetailsPage";
+import AdminDashboard from "./pages/AdminDashboard";
+import SubmissionsPage from "./pages/admin/SubmissionsPage";
+import CompaniesManagementPage from "./pages/admin/CompaniesManagementPage";
+import TripsManagementPage from "./pages/admin/TripsManagementPage";
 
 const queryClient = new QueryClient();
 
@@ -88,6 +93,15 @@ const App = () => (
               </ProtectedRoute>
             }
           />
+          
+          {/* Corporate trip details route - must come before /trips/:id */}
+          <Route path="/trips/:tripSlug" element={<TripDetailsPage />} />
+          
+          {/* Admin routes - protected by email check */}
+          <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/admin/submissions" element={<SubmissionsPage />} />
+          <Route path="/admin/companies" element={<CompaniesManagementPage />} />
+          <Route path="/admin/trips" element={<TripsManagementPage />} />
           
           {/* Trip detail route - must come after /trips/edit/:id to avoid conflicts */}
           <Route path="/trips/:id" element={<TripDetail />} />

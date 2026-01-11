@@ -11,12 +11,16 @@
   "dependencies": {
     "@clerk/clerk-sdk-node": "^5.0.0",
     "@clerk/express": "^1.7.46",
+    "@types/swagger-jsdoc": "^6.0.4",
+    "@types/swagger-ui-express": "^4.1.8",
     "cloudinary": "^1.41.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "mongoose": "^8.19.3",
-    "pusher": "^5.1.3"
+    "pusher": "^5.1.3",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",

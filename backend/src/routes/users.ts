@@ -11,6 +11,39 @@ import { Follow } from "../models/Follow";
 
 const router = Router();
 
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     User:
+ *       type: object
+ *       properties:
+ *         clerkId:
+ *           type: string
+ *           description: The user's Clerk ID
+ *         username:
+ *           type: string
+ *         email:
+ *           type: string
+ *         fullName:
+ *           type: string
+ *         imageUrl:
+ *           type: string
+ *         bio:
+ *           type: string
+ *         location:
+ *           type: string
+ *         followers:
+ *           type: integer
+ *         following:
+ *           type: integer
+ *         totalLikes:
+ *           type: integer
+ *         tripsCount:
+ *           type: integer
+ */
+
 async function formatTripsForResponse(tripDocs: any[], req: any, viewerId?: string | null) {
   const docs = tripDocs.filter(Boolean);
   if (!docs.length) return [];
@@ -72,6 +105,25 @@ async function buildTripsFromRefs(refDocs: any[], req: any, viewerId?: string | 
 }
 
 // Get current user (DB record, upsert from Clerk)
+
+/**
+ * @swagger
+ * /users/me:
+ *   get:
+ *     summary: Get current authenticated user
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: The authenticated user profile
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ *       401:
+ *         description: Unauthorized
+ */
 router.get('/me', requireAuthStrict, async (req, res) => {
   try {
     const { userId } = getAuth(req);
@@ -103,6 +155,25 @@ router.get('/me', requireAuthStrict, async (req, res) => {
 });
 
 // Get current user's trips
+
+/**
+ * @swagger
+ * /users/me/trips:
+ *   get:
+ *     summary: Get current user's trips
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of trips owned by the current user
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Trip'
+ */
 router.get('/me/trips', requireAuthStrict, async (req, res) => {
   try {
     const { userId } = getAuth(req);
@@ -178,6 +249,40 @@ router.get('/me/saves', requireAuthStrict, async (req, res) => {
 });
 
 // Update current user's profile (requires auth)
+
+/**
+ * @swagger
+ * /users/me:
+ *   patch:
+ *     summary: Update current user profile
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               bio:
+ *                 type: string
+ *               location:
+ *                 type: string
+ *               fullName:
+ *                 type: string
+ *               imageUrl:
+ *                 type: string
+ *               coverImage:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Updated user profile
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ */
 router.patch('/me', requireAuthStrict, async (req, res) => {
   try {
     const { userId } = getAuth(req);
@@ -298,6 +403,29 @@ router.get('/:clerkId/saves', async (req, res) => {
 });
 
 // Get user by Clerk ID (public)
+
+/**
+ * @swagger
+ * /users/{clerkId}:
+ *   get:
+ *     summary: Get user by Clerk ID
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: clerkId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User profile data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ *       404:
+ *         description: User not found
+ */
 router.get('/:clerkId', async (req, res) => {
   try {
     const { clerkId } = req.params;
