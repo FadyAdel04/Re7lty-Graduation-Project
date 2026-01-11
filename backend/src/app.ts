@@ -122,8 +122,11 @@ export function createApp() {
   } catch (error: any) {
     console.error("Failed to initialize Clerk middleware:", error.message);
   }
-  // Swagger UI
-  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
+  // Swagger UI - only in development (doesn't work on Vercel serverless)
+  if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+    app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
+    console.log("Swagger UI enabled at /api-docs");
+  }
 
   // Root route handler
   app.get("/", (_req, res) => {
