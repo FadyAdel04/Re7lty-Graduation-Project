@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useAuth, useUser } from "@clerk/clerk-react";
-import { getFollowingStories, StoryUserGroup, createStory } from "@/lib/api";
+import { getFollowingStories, getMyStories, StoryUserGroup, createStory } from "@/lib/api";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus } from "lucide-react";
@@ -25,6 +25,7 @@ export function StoriesBar({ onUserClick }: StoriesBarProps) {
   const { user } = useUser();
   const { toast } = useToast();
   const [groups, setGroups] = useState<StoryUserGroup[]>([]);
+  const [myStories, setMyStories] = useState<StoryUserGroup | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -43,9 +44,26 @@ export function StoriesBar({ onUserClick }: StoriesBarProps) {
       try {
         const token = await getToken();
         if (!token) return;
-        const data = await getFollowingStories(token);
-        if (isMounted && data?.users) {
-          setGroups(data.users);
+        const [followingData, myData] = await Promise.all([
+          getFollowingStories(token),
+          getMyStories(token).catch(() => ({ items: [] }))
+        ]);
+        
+        if (isMounted) {
+          if (followingData?.users) {
+            setGroups(followingData.users);
+          }
+          if (myData?.items && myData.items.length > 0 && user) {
+            setMyStories({
+              userId: user.id,
+              fullName: user.fullName || "أنت",
+              imageUrl: user.imageUrl,
+              hasUnseen: false, // You always see your own stories? Or logic could be refined
+              stories: myData.items
+            });
+          } else {
+            setMyStories(null);
+          }
         }
       } catch (err) {
         console.error("Error loading stories:", err);
@@ -117,9 +135,22 @@ export function StoriesBar({ onUserClick }: StoriesBarProps) {
       setCaption("");
       
       // Reload stories
-      const data = await getFollowingStories(token);
-      if (data?.users) {
-        setGroups(data.users);
+      const [followingData, myData] = await Promise.all([
+        getFollowingStories(token),
+        getMyStories(token)
+      ]);
+      
+      if (followingData?.users) {
+        setGroups(followingData.users);
+      }
+      if (myData?.items && user) {
+        setMyStories({
+          userId: user.id,
+          fullName: user.fullName || "أنت",
+          imageUrl: user.imageUrl,
+          hasUnseen: false,
+          stories: myData.items
+        });
       }
     } catch (error: any) {
       console.error("Error creating story:", error);
@@ -143,15 +174,63 @@ export function StoriesBar({ onUserClick }: StoriesBarProps) {
         <button
           type="button"
           className="flex flex-col items-center gap-1 focus:outline-none flex-shrink-0"
-          onClick={() => setShowCreateDialog(true)}
+          onClick={() => {
+            if (myStories) {
+              onUserClick?.(myStories);
+            } else {
+              setShowCreateDialog(true);
+            }
+          }}
         >
-          <div className="p-[2px] rounded-full bg-gradient-to-tr from-primary via-secondary to-primary">
-            <div className="h-14 w-14 rounded-full bg-background flex items-center justify-center">
-              <Plus className="h-6 w-6 text-primary" />
+          <div className={`p-[2px] rounded-full ${myStories ? 'bg-gradient-to-tr from-primary via-secondary to-primary' : 'bg-transparent'}`}>
+            <div className="h-14 w-14 rounded-full bg-background flex items-center justify-center relative overflow-hidden">
+              {myStories ? (
+                <Avatar className="h-full w-full">
+                  <AvatarImage src={user?.imageUrl} alt="قصتك" />
+                  <AvatarFallback>أنا</AvatarFallback>
+                </Avatar>
+              ) : (
+                <div className="h-full w-full bg-muted flex items-center justify-center">
+                  <Plus className="h-6 w-6 text-primary" />
+                </div>
+              )}
             </div>
           </div>
           <span className="text-[11px] max-w-[80px] truncate">قصتك</span>
         </button>
+        
+        {/* If user has stories, show separate add button or rely on viewer to add more? 
+            For simplicity: The "Your Story" circle opens viewer if stories exist. 
+            If user wants to add MORE, they can do so from viewer or we provide a tiny plus badge.
+            Let's add a tiny plus badge to the avatar if they already have stories to indicate "Add more" is possible 
+            inside, or just keep it simple. 
+            Actually, commonly "Your Story" opens the viewer, and inside viewer there's an "Add" button, 
+            OR long press to add. 
+            Let's stick to: Click -> View. If you want to add, maybe we add a small separate button 
+            OR we add a "+" action in the viewer. 
+            For now, let's allow adding via a separate small button if they already have stories, 
+            OR just simple check: if used clicks the button we define behavior.
+            
+            Let's refine: 
+            If myStories exists -> Click opens viewer.
+            If myStories doesn't exist -> Click opens Create Dialog.
+            
+            But how to add MORE stories? 
+            Let's add a small "+" button next to it if they have stories.
+        */}
+        
+        {myStories && (
+             <button
+              type="button"
+              className="flex flex-col items-center gap-1 focus:outline-none flex-shrink-0"
+              onClick={() => setShowCreateDialog(true)}
+            >
+              <div className="h-14 w-14 rounded-full bg-muted flex items-center justify-center">
+                 <Plus className="h-6 w-6 text-muted-foreground" />
+              </div>
+              <span className="text-[11px]">جديد</span>
+            </button>
+        )}
 
         {isLoading && (
           <>

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { listTrips, toggleTripLove, toggleTripSave, toggleFollowUser } from "@/lib/api";
+import { listTrips, toggleTripLove, toggleTripSave, toggleFollowUser, getUserFollowing } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Heart, MessageCircle, Share2, Bookmark, MapPin, Star, Eye, Calendar } from "lucide-react";
@@ -107,6 +107,7 @@ const Timeline = () => {
 
   // Followed travelers state - fetch from API
   const [followedTravelers, setFollowedTravelers] = useState<FollowedTraveler[]>([]);
+  const [suggestedTravelers, setSuggestedTravelers] = useState<FollowedTraveler[]>([]);
   const [loadingFollowed, setLoadingFollowed] = useState(false);
 
   // Upcoming trip - will be fetched from API
@@ -147,11 +148,16 @@ const Timeline = () => {
   const [trips, setTrips] = useState<any[]>(tripsCache || []);
   const [loading, setLoading] = useState(!tripsCache);
 
-  // User stats - calculated from actual trip data
+  const [myStoriesCount, setMyStoriesCount] = useState(0);
+
+  // User stats - calculated from actual trip data and stories
+  const userTrips = trips.filter(t => t.ownerId === userId);
+  const uniqueDestinations = new Set(userTrips.map(t => t.city || t.destination).filter(Boolean));
+  
   const userStats = {
-    countriesVisited: 12,
-    storiesShared: trips.filter(t => t.ownerId === userId).length,
-    tripsCreated: trips.filter(t => t.ownerId === userId).length,
+    citiesVisited: uniqueDestinations.size,
+    storiesShared: myStoriesCount,
+    tripsCreated: userTrips.length,
   };
 
   useEffect(() => {
@@ -162,44 +168,49 @@ const Timeline = () => {
       if (tripsCache) {
         setTrips(tripsCache);
         setLoading(false);
-        return;
-      }
-
-      // If a fetch is already in flight, await it
-      if (loadPromise) {
+      } else if (loadPromise) {
+        // If a fetch is already in flight, await it
         try {
           const data = await loadPromise;
           if (isMounted && data) {
             setTrips(data);
             setLoading(false);
           }
-          return;
         } catch {
-          if (isMounted) {
-            setLoading(false);
+          if (isMounted) setLoading(false);
+        }
+      } else {
+        // Kick off a new fetch immediately
+        setLoading(true);
+        const promise = primeTripsCache();
+        if (!promise) {
+          setLoading(false);
+        } else {
+          try {
+            const tripsData = await promise;
+            if (isMounted) {
+              setTrips(tripsData || []);
+              setLoading(false);
+            }
+          } catch {
+            if (isMounted) setLoading(false);
           }
-          return;
         }
       }
 
-      // Kick off a new fetch immediately
-      setLoading(true);
-      const promise = primeTripsCache();
-
-      if (!promise) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const tripsData = await promise;
-        if (isMounted) {
-          setTrips(tripsData || []);
-          setLoading(false);
-        }
-      } catch {
-        if (isMounted) {
-          setLoading(false);
+      // Load my stories count
+      if (isSignedIn) {
+        try {
+          const token = await getToken();
+          if (token) {
+            const { getMyStories } = await import("@/lib/api");
+            const storiesData = await getMyStories(token);
+            if (isMounted && storiesData?.items) {
+              setMyStoriesCount(storiesData.items.length);
+            }
+          }
+        } catch (error) {
+          console.error("Error loading my stories count:", error);
         }
       }
     };
@@ -209,15 +220,36 @@ const Timeline = () => {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [isSignedIn, getToken]);
 
-  // Load followed users
+  // Load followed users and suggestions
   useEffect(() => {
     let isMounted = true;
 
-    const loadFollowedUsers = async () => {
+    const loadFollowedAndSuggestions = async () => {
+      // If not signed in, we can only show suggestions based on trips, but we can't show "followed"
       if (!isSignedIn) {
-        setFollowedTravelers([]);
+         setFollowedTravelers([]);
+         // Generate suggestions from trips anyway
+         const uniqueUsers = new Map<string, FollowedTraveler>();
+         trips.forEach(trip => {
+          if (trip.ownerId && trip.author) {
+            if (!uniqueUsers.has(trip.ownerId)) {
+              uniqueUsers.set(trip.ownerId, {
+                userId: trip.ownerId,
+                fullName: trip.author,
+                imageUrl: trip.authorImage,
+                status: `نشر ${formatDate(trip.postedAt)}`,
+                tripCount: 1,
+                isFollowing: false,
+              });
+            } else {
+              const user = uniqueUsers.get(trip.ownerId)!;
+              user.tripCount += 1;
+            }
+          }
+        });
+        setSuggestedTravelers(Array.from(uniqueUsers.values()).slice(0, 10));
         return;
       }
 
@@ -226,41 +258,85 @@ const Timeline = () => {
         const token = await getToken();
         if (!token || !isMounted) return;
 
-        // For now, extract unique users from trips
-        // In production, this would be a dedicated API call
-        const uniqueUsers = new Map<string, FollowedTraveler>();
-        
+        // 1. Fetch who I am actually following
+        // We need an API for this. modifying lib/api.ts to include getUserFollowing
+        let followingIds = new Set<string>();
+        try {
+            const followingData = await getUserFollowing(userId!);
+            if (followingData && Array.isArray(followingData.following)) {
+                 // Simplified: assuming API returns array of user objects with id
+                 // If the API returns full profiles, map to IDs
+                 // Adjust based on actual API response structure
+                 // Checking getUserFollowing in API... it returns { following: [...] } or array?
+                 // Let's assume it returns { following: [{...}, ...] } based on typical Clerk/Backend pattern
+                 // Or we can just rely on the 'isFollowing' flag from trips if the backend provides it, 
+                 // but typically we need the list for the filter "Show Followed".
+                 
+                 // For now, let's assume we can get the list. 
+                 // If the API is not fully ready, we might need to rely on what we have.
+                 // But let's try to use the API we imported.
+                 if (followingData.users) {
+                     followingData.users.forEach((u: any) => followingIds.add(u.userId || u.id));
+                 } else if (Array.isArray(followingData)) {
+                     followingData.forEach((u: any) => followingIds.add(u.userId || u.id));
+                 }
+            }
+        } catch (e) {
+            console.warn("Could not fetch following list", e);
+        }
+
+        // 2. Generate Suggestions from trips (users I am NOT following and NOT myself)
+        const uniqueSuggestions = new Map<string, FollowedTraveler>();
+        const uniqueFollowing = new Map<string, FollowedTraveler>();
+
         trips.forEach(trip => {
           if (trip.ownerId && trip.ownerId !== userId && trip.author) {
-            if (!uniqueUsers.has(trip.ownerId)) {
-              uniqueUsers.set(trip.ownerId, {
-                userId: trip.ownerId,
-                fullName: trip.author,
-                imageUrl: trip.authorImage,
-                status: `نشر ${formatDate(trip.postedAt)}`,
-                tripCount: 1,
-                isFollowing: true,
-              });
-            } else {
-              const user = uniqueUsers.get(trip.ownerId)!;
-              user.tripCount += 1;
-            }
+             const isFollowing = followingIds.has(trip.ownerId) || trip.viewerFollows; // viewerFollows from trip data if available
+             
+             if (isFollowing) {
+                 if (!uniqueFollowing.has(trip.ownerId)) {
+                     uniqueFollowing.set(trip.ownerId, {
+                        userId: trip.ownerId,
+                        fullName: trip.author,
+                        imageUrl: trip.authorImage,
+                        status: `نشر ${formatDate(trip.postedAt)}`,
+                        tripCount: 1,
+                        isFollowing: true,
+                     });
+                 } else {
+                     uniqueFollowing.get(trip.ownerId)!.tripCount++;
+                 }
+             } else {
+                 if (!uniqueSuggestions.has(trip.ownerId)) {
+                     uniqueSuggestions.set(trip.ownerId, {
+                        userId: trip.ownerId,
+                        fullName: trip.author,
+                        imageUrl: trip.authorImage,
+                        status: `نشر ${formatDate(trip.postedAt)}`,
+                        tripCount: 1,
+                        isFollowing: false,
+                     });
+                 } else {
+                     uniqueSuggestions.get(trip.ownerId)!.tripCount++;
+                 }
+             }
           }
         });
 
         if (isMounted) {
-          setFollowedTravelers(Array.from(uniqueUsers.values()).slice(0, 10));
+          setFollowedTravelers(Array.from(uniqueFollowing.values()));
+          setSuggestedTravelers(Array.from(uniqueSuggestions.values()).slice(0, 10));
           setLoadingFollowed(false);
         }
       } catch (error) {
-        console.error('Error loading followed users:', error);
+        console.error('Error loading followed/suggested users:', error);
         if (isMounted) {
           setLoadingFollowed(false);
         }
       }
     };
 
-    loadFollowedUsers();
+    loadFollowedAndSuggestions();
 
     return () => {
       isMounted = false;
@@ -502,15 +578,30 @@ const Timeline = () => {
       }
 
       await toggleFollowUser(targetUserId, token);
-      
-      // Update local state
-      setFollowedTravelers((prev) =>
+
+      // Update local state in suggestions
+      setSuggestedTravelers((prev) =>
         prev.map((traveler) =>
           traveler.userId === targetUserId
             ? { ...traveler, isFollowing: !traveler.isFollowing }
             : traveler
         )
       );
+
+      // Also update followedTravelers list
+      // If we followed someone (now isFollowing=true), we *could* add them to followedTravelers,
+      // but simpler to just filter them out if we unfollowed.
+      // Actually, relying on state sync:
+      // If we unfollowed (removed from following), remove from followedTravelers if present.
+      setFollowedTravelers((prev) => {
+          const exists = prev.find(t => t.userId === targetUserId);
+          if (exists) {
+              // If it exists and we just toggled, we probably toggled to "false" (unfollow)
+              // So remove it.
+              return prev.filter(t => t.userId !== targetUserId);
+          }
+          return prev;
+      });
 
       toast({
         title: "تم التحديث",
@@ -797,7 +888,7 @@ const Timeline = () => {
           {/* Right Sidebar - Hidden on mobile/tablet, visible on xl+ */}
           <div className="hidden xl:block sticky top-24 h-fit">
             <RightSidebar
-              followedTravelers={followedTravelers}
+              followedTravelers={suggestedTravelers}
               onToggleFollow={handleToggleFollow}
               isLoading={loadingFollowed}
             />

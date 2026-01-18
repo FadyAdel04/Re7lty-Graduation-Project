@@ -48,6 +48,7 @@ const UserCard = ({ user, isFollowing: initialIsFollowing = false }: UserCardPro
       
       const res = await toggleFollowUser(user.clerkId, token);
       setIsFollowing(res.following);
+      if (onFollowToggle) onFollowToggle(res.following);
       toast({
         title: res.following ? "تمت المتابعة" : "تم إلغاء المتابعة",
         description: res.following 

@@ -3,13 +3,14 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { Search, Compass, Sparkles, Users, Plane, LayoutGrid } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { search, listTrips, getUserById } from "@/lib/api";
+import { search, listTrips, getUserById, getUserFollowing, toggleFollowUser } from "@/lib/api";
 import UserCard from "@/components/UserCard";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Trip } from "@/lib/trips-data";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MapPin, User as UserIcon } from "lucide-react";
+import { useAuth } from "@clerk/clerk-react";
 
 interface SearchResult {
   trips: any[];
@@ -24,9 +25,11 @@ const DiscoverPage = () => {
   const [searchResults, setSearchResults] = useState<SearchResult>({ trips: [], users: [] });
   const [suggestedTrips, setSuggestedTrips] = useState<any[]>([]);
   const [suggestedUsers, setSuggestedUsers] = useState<any[]>([]);
+  const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("trips");
+  const { isSignedIn, getToken, userId } = useAuth();
 
   const isSearchMode = query.trim().length > 0;
 
@@ -144,10 +147,42 @@ const DiscoverPage = () => {
     };
 
     fetchSuggestions();
+    fetchSuggestions();
   }, [query]);
+
+  // Fetch following list
+  useEffect(() => {
+    const fetchFollowing = async () => {
+        if (!isSignedIn || !userId) return;
+        try {
+            const token = await getToken();
+            const data = await getUserFollowing(userId, token || undefined);
+            const ids = new Set<string>();
+            if (data?.users) {
+                data.users.forEach((u: any) => ids.add(u.userId));
+            }
+            setFollowingIds(ids);
+        } catch (e) {
+            console.error("Failed to fetch following list", e);
+        }
+    };
+    fetchFollowing();
+  }, [isSignedIn, userId, getToken]);
 
   const handleUserClick = (clerkId: string) => {
     navigate(`/user/${clerkId}`);
+  };
+
+  const handleToggleFollow = (targetId: string, newStatus: boolean) => {
+      setFollowingIds(prev => {
+          const next = new Set(prev);
+          if (newStatus) {
+              next.add(targetId);
+          } else {
+              next.delete(targetId);
+          }
+          return next;
+      });
   };
 
   const handleTripClick = (tripId: string) => {
@@ -329,6 +364,8 @@ const DiscoverPage = () => {
                           followers: user.followers || 0,
                           tripsCount: user.tripsCount || 0
                         }} 
+                        isFollowing={followingIds.has(user.clerkId || user.id)}
+                        onFollowToggle={(newStatus) => handleToggleFollow(user.clerkId || user.id, newStatus)}
                       />
                     </div>
                   ))}

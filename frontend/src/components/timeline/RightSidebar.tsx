@@ -22,10 +22,10 @@ interface RightSidebarProps {
 const RightSidebar = ({ followedTravelers, onToggleFollow, isLoading }: RightSidebarProps) => {
   return (
     <aside className="space-y-4">
-      {/* Followed Travelers */}
+      {/* Suggested Travelers */}
       <Card className="shadow-sm">
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg">الأشخاص الذين تتابعهم</CardTitle>
+          <CardTitle className="text-lg">أشخاص قد تعرفهم</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {isLoading ? (
@@ -42,9 +42,9 @@ const RightSidebar = ({ followedTravelers, onToggleFollow, isLoading }: RightSid
             </div>
           ) : followedTravelers.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              <p className="text-sm">لا تتابع أي مسافرين بعد</p>
+              <p className="text-sm">لا توجد اقتراحات حالياً</p>
               <Link to="/discover" className="text-primary hover:underline text-sm mt-2 inline-block">
-                اكتشف مسافرين جدد
+                اكتشف المزيد
               </Link>
             </div>
           ) : (

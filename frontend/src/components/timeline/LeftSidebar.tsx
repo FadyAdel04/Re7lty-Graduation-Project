@@ -26,7 +26,7 @@ interface LeftSidebarProps {
   filters: TimelineFilters;
   onFiltersChange: (filters: TimelineFilters) => void;
   userStats?: {
-    countriesVisited: number;
+    citiesVisited: number;
     storiesShared: number;
     tripsCreated: number;
   };
@@ -177,8 +177,8 @@ const LeftSidebar = ({ filters, onFiltersChange, userStats, upcomingTrip }: Left
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">دول زرتها</span>
-              <span className="text-2xl font-bold text-primary">{userStats.countriesVisited}</span>
+              <span className="text-sm text-muted-foreground">المحافظات التى زرتها</span>
+              <span className="text-2xl font-bold text-primary">{userStats.citiesVisited}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground">قصص شاركتها</span>

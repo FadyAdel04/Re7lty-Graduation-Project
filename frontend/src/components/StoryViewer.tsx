@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { StoryUserGroup, StoryItem, markStoryViewed } from "@/lib/api";
-import { useAuth } from "@clerk/clerk-react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { StoryUserGroup, StoryItem, markStoryViewed, deleteStory } from "@/lib/api";
+import { useAuth, useUser } from "@clerk/clerk-react";
+import { ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 
 interface StoryViewerProps {
   group: StoryUserGroup | null;
@@ -13,7 +13,9 @@ interface StoryViewerProps {
 
 export function StoryViewer({ group, isOpen, onClose }: StoryViewerProps) {
   const { getToken } = useAuth();
+  const { user } = useUser();
   const [index, setIndex] = useState(0);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const stories = group?.stories ?? [];
   const current: StoryItem | undefined = stories[index];
@@ -57,13 +59,53 @@ export function StoryViewer({ group, isOpen, onClose }: StoryViewerProps) {
     }
   };
 
+  const handleDelete = async () => {
+    if (!current?._id) return;
+    if (!confirm("هل أنت متأكد من حذف هذه القصة؟")) return;
+
+    setIsDeleting(true);
+    try {
+      const token = await getToken();
+      if (!token) return;
+      await deleteStory(current._id, token);
+      
+      // If there are other stories, navigate or close
+      // Remove current from local list (visually) would be better but props are immutable
+      // So we rely on parent refresh or just close for now
+      // Actually, standard behavior: close immediately or show next.
+      // Since we can't mutate props.group.stories, let's just close the viewer 
+      // and maybe trigger a refresh if we could (but we can't easily here without callbacks).
+      // Ideally onClose should trigger a refresh in parent.
+      // For now, let's close.
+      onClose();
+      // To improve UX, we could try to go to next/prev locally if we copied stories to state.
+    } catch (error) {
+      console.error("Failed to delete story:", error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const isMyStory = user && group?.userId === user.id;
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[420px] p-3 sm:p-4">
-        <DialogHeader>
+        <DialogHeader className="flex flex-row items-center justify-between">
           <DialogTitle className="text-base sm:text-lg">
             {group?.fullName || "قصة"}
           </DialogTitle>
+          {isMyStory && (
+            <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                onClick={handleDelete}
+                disabled={isDeleting}
+            >
+                <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
         </DialogHeader>
         {current ? (
           <div className="space-y-3">
