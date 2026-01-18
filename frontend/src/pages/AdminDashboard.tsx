@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useUser } from "@clerk/clerk-react";
+import { useUser, useAuth } from "@clerk/clerk-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { adminService } from "@/services/adminService";
@@ -29,6 +29,7 @@ interface StatsState {
 
 const AdminDashboard = () => {
   const { user } = useUser();
+  const { getToken } = useAuth();
   const navigate = useNavigate();
   const [stats, setStats] = useState<StatsState>({
     pending: 0,
@@ -61,11 +62,12 @@ const AdminDashboard = () => {
 
   const fetchData = async () => {
     try {
+      const token = await getToken();
       const [statsData, submissionsData, companyStats, tripStats] = await Promise.all([
-        adminService.getSubmissionStats(),
-        adminService.getSubmissions('all'),
-        adminService.getCompanyStats(),
-        adminService.getTripStats()
+        adminService.getSubmissionStats(token || undefined),
+        adminService.getSubmissions(token || undefined, 'all'),
+        adminService.getCompanyStats(token || undefined),
+        adminService.getTripStats(token || undefined)
       ]);
       
       setStats({

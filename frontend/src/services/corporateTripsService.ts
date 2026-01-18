@@ -1,7 +1,9 @@
 import axios from 'axios';
 import { Company, Trip, TripFilters } from '@/types/corporateTrips';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+// Normalize API URL: remove trailing slashes to avoid double slashes in URLs
+const rawApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_URL = rawApiUrl.replace(/\/+$/, ''); // Remove trailing slashes
 
 export const corporateTripsService = {
     // Get all companies

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useUser } from "@clerk/clerk-react";
+import { useUser, useAuth } from "@clerk/clerk-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,7 @@ import Footer from "@/components/Footer";
 
 const SubmissionsPage = () => {
   const { user } = useUser();
+  const { getToken } = useAuth();
   const navigate = useNavigate();
   const [submissions, setSubmissions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,7 +32,8 @@ const SubmissionsPage = () => {
 
   const fetchSubmissions = async () => {
     try {
-      const data = await adminService.getSubmissions(filter === 'all' ? undefined : filter);
+      const token = await getToken();
+      const data = await adminService.getSubmissions(token || undefined, filter === 'all' ? undefined : filter);
       setSubmissions(data.submissions);
     } catch (error) {
       console.error('Error fetching submissions:', error);
@@ -43,7 +45,8 @@ const SubmissionsPage = () => {
   const handleApprove = async (id: string) => {
     if (confirm('هل تريد الموافقة على هذا الطلب؟')) {
       try {
-        await adminService.approveSubmission(id);
+        const token = await getToken();
+        await adminService.approveSubmission(id, token || undefined);
         fetchSubmissions();
         alert('تمت الموافقة على الطلب بنجاح');
       } catch (error) {
@@ -56,7 +59,8 @@ const SubmissionsPage = () => {
     const reason = prompt('سبب الرفض:');
     if (reason) {
       try {
-        await adminService.rejectSubmission(id, reason);
+        const token = await getToken();
+        await adminService.rejectSubmission(id, reason, token || undefined);
         fetchSubmissions();
         alert('تم رفض الطلب');
       } catch (error) {
@@ -68,7 +72,8 @@ const SubmissionsPage = () => {
   const handleDelete = async (id: string) => {
     if (confirm('هل تريد حذف هذا الطلب؟')) {
       try {
-        await adminService.deleteSubmission(id);
+        const token = await getToken();
+        await adminService.deleteSubmission(id, token || undefined);
         fetchSubmissions();
         alert('تم حذف الطلب');
       } catch (error) {
