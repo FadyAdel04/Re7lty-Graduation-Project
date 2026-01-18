@@ -22,6 +22,13 @@ export interface FoodPlace {
   rating: number;
   description?: string;
 }
+export interface Hotel {
+  name: string;
+  image: string;
+  rating: number;
+  description?: string;
+  priceRange?: string;
+}
 export interface TripDay {
   title: string;
   date?: string;
@@ -43,9 +50,11 @@ export interface Trip {
   shares: number;
   description: string;
   budget: string;
+  season?: 'winter' | 'summer' | 'fall' | 'spring';
   activities: TripActivity[];
   days: TripDay[];
   foodAndRestaurants: FoodPlace[];
+  hotels?: Hotel[];
   comments: Comment[];
   postedAt: string; // ISO date string
 }
@@ -148,42 +157,42 @@ export const egyptTrips: Trip[] = [
     description: "استمتع بأجمل شواطئ مصر وشاهد المياه الفيروزية الصافية",
     budget: "2000 جنيه",
     activities: [
-      { 
-        name: "شاطئ عجيبة", 
-        coordinates: { lat: 31.3560, lng: 27.2161 }, 
+      {
+        name: "شاطئ عجيبة",
+        coordinates: { lat: 31.3560, lng: 27.2161 },
         images: ["https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&h=600&fit=crop"],
-        day: 1 
+        day: 1
       },
-      { 
-        name: "شاطئ الأبيض", 
-        coordinates: { lat: 31.4101, lng: 27.0488 }, 
+      {
+        name: "شاطئ الأبيض",
+        coordinates: { lat: 31.4101, lng: 27.0488 },
         images: ["https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&h=600&fit=crop"],
-        day: 2 
+        day: 2
       },
-      { 
-        name: "كهف رومل", 
-        coordinates: { lat: 31.3564, lng: 27.2272 }, 
+      {
+        name: "كهف رومل",
+        coordinates: { lat: 31.3564, lng: 27.2272 },
         images: ["https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=800&h=600&fit=crop"],
-        day: 2 
+        day: 2
       },
-      { 
-        name: "جولة بالقوارب", 
-        coordinates: { lat: 31.3460, lng: 27.2110 }, 
+      {
+        name: "جولة بالقوارب",
+        coordinates: { lat: 31.3460, lng: 27.2110 },
         images: ["https://images.unsplash.com/photo-1506929562872-bb421503ef21?w=800&h=600&fit=crop"],
-        day: 3 
+        day: 3
       },
     ],
     days: [
       { title: "اليوم الأول", activities: [0] },
-      { title: "اليوم الثاني", activities: [1,2] },
+      { title: "اليوم الثاني", activities: [1, 2] },
       { title: "اليوم الثالث", activities: [3] },
     ],
     foodAndRestaurants: [
-      { 
-        name: "مطعم ابو خالد", 
+      {
+        name: "مطعم ابو خالد",
         image: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&h=600&fit=crop",
-        rating: 4.3, 
-        description: "أشهر مطاعم الأسماك الطازجة في مرسى مطروح." 
+        rating: 4.3,
+        description: "أشهر مطاعم الأسماك الطازجة في مرسى مطروح."
       }
     ],
     comments: [
@@ -209,17 +218,17 @@ export const egyptTrips: Trip[] = [
     description: "اكتشف كنوز الحضارة المصرية القديمة في مدينة المائة باب",
     budget: "3500 جنيه",
     activities: [
-      { 
-        name: "معبد حتشبسوت", 
-        coordinates: { lat: 25.7376, lng: 32.6065 }, 
+      {
+        name: "معبد حتشبسوت",
+        coordinates: { lat: 25.7376, lng: 32.6065 },
         images: ["https://images.unsplash.com/photo-1572252009286-268acec5ca0a?w=800&h=600&fit=crop"],
-        day: 1 
+        day: 1
       },
-      { 
-        name: "جولة بالمنطاد", 
-        coordinates: { lat: 25.7000, lng: 32.6500 }, 
+      {
+        name: "جولة بالمنطاد",
+        coordinates: { lat: 25.7000, lng: 32.6500 },
         images: ["https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=600&fit=crop"],
-        day: 2 
+        day: 2
       },
     ],
     days: [
@@ -251,29 +260,29 @@ export const egyptTrips: Trip[] = [
     description: "رحلة نوبية ساحرة على ضفاف النيل مع معابد فرعونية عريقة",
     budget: "2800 جنيه",
     activities: [
-      { 
-        name: "معبد فيلة", 
-        coordinates: { lat: 24.0262, lng: 32.8872 }, 
+      {
+        name: "معبد فيلة",
+        coordinates: { lat: 24.0262, lng: 32.8872 },
         images: ["https://images.unsplash.com/photo-1504851149312-7a075b496cc7?w=800&h=600&fit=crop"],
-        day: 1 
+        day: 1
       },
-      { 
-        name: "السد العالي", 
-        coordinates: { lat: 23.9702, lng: 32.8776 }, 
+      {
+        name: "السد العالي",
+        coordinates: { lat: 23.9702, lng: 32.8776 },
         images: ["https://images.unsplash.com/photo-1576675466969-38eeae4b41f6?w=800&h=600&fit=crop"],
-        day: 2 
+        day: 2
       },
-      { 
-        name: "جزيرة الفنتين", 
-        coordinates: { lat: 24.0903, lng: 32.8856 }, 
+      {
+        name: "جزيرة الفنتين",
+        coordinates: { lat: 24.0903, lng: 32.8856 },
         images: ["https://images.unsplash.com/photo-1506929562872-bb421503ef21?w=800&h=600&fit=crop"],
-        day: 3 
+        day: 3
       },
-      { 
-        name: "القرية النوبية", 
-        coordinates: { lat: 24.1001, lng: 32.8805 }, 
+      {
+        name: "القرية النوبية",
+        coordinates: { lat: 24.1001, lng: 32.8805 },
         images: ["https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=800&h=600&fit=crop"],
-        day: 4 
+        day: 4
       },
     ],
     days: [
@@ -283,7 +292,7 @@ export const egyptTrips: Trip[] = [
       { title: "اليوم الرابع", activities: [3] },
     ],
     foodAndRestaurants: [
-      
+
     ],
     comments: [
       { id: "c7", author: "ياسمين سعيد", content: "القرية النوبية رائعة والناس طيبين جداً", date: "منذ ٣ أيام", likes: 7 }
@@ -307,29 +316,29 @@ export const egyptTrips: Trip[] = [
     description: "استكشف الشعاب المرجانية الساحرة في البحر الأحمر",
     budget: "4000 جنيه",
     activities: [
-      { 
-        name: "الغوص", 
-        coordinates: { lat: 27.2579, lng: 33.8116 }, 
+      {
+        name: "الغوص",
+        coordinates: { lat: 27.2579, lng: 33.8116 },
         images: ["https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&h=600&fit=crop"],
-        day: 1 
+        day: 1
       },
-      { 
-        name: "جزيرة جفتون", 
-        coordinates: { lat: 27.2089, lng: 33.9640 }, 
+      {
+        name: "جزيرة جفتون",
+        coordinates: { lat: 27.2089, lng: 33.9640 },
         images: ["https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&h=600&fit=crop"],
-        day: 2 
+        day: 2
       },
-      { 
-        name: "رحلة سفاري", 
-        coordinates: { lat: 27.0132, lng: 33.8361 }, 
+      {
+        name: "رحلة سفاري",
+        coordinates: { lat: 27.0132, lng: 33.8361 },
         images: ["https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=600&fit=crop"],
-        day: 3 
+        day: 3
       },
-      { 
-        name: "السباحة مع الدلافين", 
-        coordinates: { lat: 27.2579, lng: 33.8100 }, 
+      {
+        name: "السباحة مع الدلافين",
+        coordinates: { lat: 27.2579, lng: 33.8100 },
         images: ["https://images.unsplash.com/photo-1576675466969-38eeae4b41f6?w=800&h=600&fit=crop"],
-        day: 4 
+        day: 4
       },
     ],
     days: [
@@ -339,11 +348,11 @@ export const egyptTrips: Trip[] = [
       { title: "اليوم الرابع", activities: [3] }
     ],
     foodAndRestaurants: [
-      { 
-        name: "مطعم حدوتة بحرية", 
+      {
+        name: "مطعم حدوتة بحرية",
         image: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&h=600&fit=crop",
-        rating: 4.7, 
-        description: "أفضل مطعم مأكولات بحرية وموقع رائع على البحر." 
+        rating: 4.7,
+        description: "أفضل مطعم مأكولات بحرية وموقع رائع على البحر."
       }
     ],
     comments: [
@@ -369,23 +378,23 @@ export const egyptTrips: Trip[] = [
     description: "بين الجبال والبحر، استمتع بجمال سيناء الساحر",
     budget: "3500 جنيه",
     activities: [
-      { 
-        name: "خليج نعمة", 
-        coordinates: { lat: 27.9158, lng: 34.3300 }, 
+      {
+        name: "خليج نعمة",
+        coordinates: { lat: 27.9158, lng: 34.3300 },
         images: ["https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&h=600&fit=crop"],
-        day: 1 
+        day: 1
       },
-      { 
-        name: "محمية رأس محمد", 
-        coordinates: { lat: 27.7236, lng: 34.2491 }, 
+      {
+        name: "محمية رأس محمد",
+        coordinates: { lat: 27.7236, lng: 34.2491 },
         images: ["https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=800&h=600&fit=crop"],
-        day: 2 
+        day: 2
       },
-      { 
-        name: "رحلة سفاري", 
-        coordinates: { lat: 27.9362, lng: 34.3757 }, 
+      {
+        name: "رحلة سفاري",
+        coordinates: { lat: 27.9362, lng: 34.3757 },
         images: ["https://images.unsplash.com/photo-1504851149312-7a075b496cc7?w=800&h=600&fit=crop"],
-        day: 3 
+        day: 3
       },
     ],
     days: [
@@ -419,35 +428,35 @@ export const egyptTrips: Trip[] = [
     description: "رحلة صحراوية فريدة مع ينابيع ساخنة وجبال خلابة",
     budget: "2200 جنيه",
     activities: [
-      { 
-        name: "الصحراء البيضاء", 
-        coordinates: { lat: 27.3800, lng: 28.0800 }, 
+      {
+        name: "الصحراء البيضاء",
+        coordinates: { lat: 27.3800, lng: 28.0800 },
         images: ["https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=600&fit=crop"],
-        day: 1 
+        day: 1
       },
-      { 
-        name: "العيون الساخنة", 
-        coordinates: { lat: 27.6905, lng: 28.9570 }, 
+      {
+        name: "العيون الساخنة",
+        coordinates: { lat: 27.6905, lng: 28.9570 },
         images: ["https://images.unsplash.com/photo-1572252009286-268acec5ca0a?w=800&h=600&fit=crop"],
-        day: 2 
+        day: 2
       },
-      { 
-        name: "التخييم", 
-        coordinates: { lat: 27.3905, lng: 28.3920 }, 
+      {
+        name: "التخييم",
+        coordinates: { lat: 27.3905, lng: 28.3920 },
         images: ["https://images.unsplash.com/photo-1506929562872-bb421503ef21?w=800&h=600&fit=crop"],
-        day: 3 
+        day: 3
       },
     ],
     days: [
       { title: "اليوم الأول", activities: [0] },
-      { title: "اليوم الثاني", activities: [1,2] },
+      { title: "اليوم الثاني", activities: [1, 2] },
     ],
     foodAndRestaurants: [
-      { 
-        name: "مطعم الواحة", 
+      {
+        name: "مطعم الواحة",
         image: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&h=600&fit=crop",
-        rating: 4.1, 
-        description: "أفضل مطعم محلي في الواحات البحرية يقدم أطباق البدو." 
+        rating: 4.1,
+        description: "أفضل مطعم محلي في الواحات البحرية يقدم أطباق البدو."
       }
     ],
     comments: [
@@ -472,29 +481,29 @@ export const egyptTrips: Trip[] = [
     description: "استرخ في أجواء بدوية هادئة مع أجمل مواقع الغوص",
     budget: "1800 جنيه",
     activities: [
-      { 
-        name: "Blue Hole", 
-        coordinates: { lat: 28.5721, lng: 34.5362 }, 
+      {
+        name: "Blue Hole",
+        coordinates: { lat: 28.5721, lng: 34.5362 },
         images: ["https://images.unsplash.com/photo-1568322445389-f64ac2515020?w=800&h=600&fit=crop"],
-        day: 1 
+        day: 1
       },
-      { 
-        name: "الكانيون", 
-        coordinates: { lat: 28.5772, lng: 34.5328 }, 
+      {
+        name: "الكانيون",
+        coordinates: { lat: 28.5772, lng: 34.5328 },
         images: ["https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=800&h=600&fit=crop"],
-        day: 2 
+        day: 2
       },
-      { 
-        name: "جبل موسى", 
-        coordinates: { lat: 28.5394, lng: 33.9756 }, 
+      {
+        name: "جبل موسى",
+        coordinates: { lat: 28.5394, lng: 33.9756 },
         images: ["https://images.unsplash.com/photo-1504851149312-7a075b496cc7?w=800&h=600&fit=crop"],
-        day: 3 
+        day: 3
       },
-      { 
-        name: "اليوغا على الشاطئ", 
-        coordinates: { lat: 28.5094, lng: 34.5089 }, 
+      {
+        name: "اليوغا على الشاطئ",
+        coordinates: { lat: 28.5094, lng: 34.5089 },
         images: ["https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800&h=600&fit=crop"],
-        day: 4 
+        day: 4
       },
     ],
     days: [

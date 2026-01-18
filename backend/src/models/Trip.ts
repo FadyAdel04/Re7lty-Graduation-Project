@@ -31,6 +31,14 @@ const FoodSchema = new Schema({
   description: String,
 }, { _id: false });
 
+const HotelSchema = new Schema({
+  name: String,
+  image: String,
+  rating: Number,
+  description: String,
+  priceRange: String,
+}, { _id: false });
+
 const TripSchema = new Schema({
   title: { type: String, required: true },
   destination: String,
@@ -54,6 +62,7 @@ const TripSchema = new Schema({
   activities: [ActivitySchema],
   days: [DaySchema],
   foodAndRestaurants: [FoodSchema],
+  hotels: [HotelSchema],
   comments: [CommentSchema],
   postedAt: { type: Date, default: () => new Date() },
   ownerId: { type: String, index: true }, // Clerk user id

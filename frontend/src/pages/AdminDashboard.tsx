@@ -44,7 +44,7 @@ const AdminDashboard = () => {
   useEffect(() => {
     // Check if user is admin (specific email)
     const checkAdmin = () => {
-      const adminEmail = 'e79442457@gmail.com';
+      const adminEmail = 'supermincraft52@gmail.com';
       const userEmail = user?.emailAddresses?.find(email => email.emailAddress === adminEmail);
       
       if (!userEmail) {

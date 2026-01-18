@@ -981,7 +981,7 @@ const UserProfile = () => {
             <TabsList className="w-full sm:w-auto rounded-full bg-muted/50">
               <TabsTrigger value="trips" className="rounded-full">رحلاتي</TabsTrigger>
               {isOwnProfile && (
-                <TabsTrigger value="ai-trips" className="rounded-full">رحلات الذكاء الاصطناعي</TabsTrigger>
+                <TabsTrigger value="ai-trips" className="rounded-full">اقتراحات مساعد الرحلات الذكى</TabsTrigger>
               )}
               <TabsTrigger value="saved" className="rounded-full">المحفوظات</TabsTrigger>
               <TabsTrigger value="liked" className="rounded-full">الإعجابات</TabsTrigger>
@@ -1007,6 +1007,7 @@ const UserProfile = () => {
                         authorImage={profileImage || undefined}
                         likes={trip.likes || 0}
                         ownerId={trip.ownerId}
+                        season={trip.season}
                       />
                     );
                   })}
@@ -1052,6 +1053,7 @@ const UserProfile = () => {
                           authorImage={profileImage || undefined}
                           likes={trip.likes || 0}
                           ownerId={trip.ownerId}
+                          season={trip.season}
                         />
                       );
                     })}
@@ -1087,6 +1089,7 @@ const UserProfile = () => {
                         author={trip.author}
                         likes={trip.likes || 0}
                         ownerId={trip.ownerId}
+                        season={trip.season}
                       />
                     );
                   })}
@@ -1125,6 +1128,7 @@ const UserProfile = () => {
                         author={trip.author}
                         likes={trip.likes || 0}
                         ownerId={trip.ownerId}
+                        season={trip.season}
                       />
                     );
                   })}

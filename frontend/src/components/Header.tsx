@@ -35,7 +35,7 @@ const Header = ({ onSearch }: HeaderProps) => {
   const location = useLocation();
   
   // Check if user is admin
-  const isAdmin = user?.emailAddresses?.some(email => email.emailAddress === 'e79442457@gmail.com');
+  const isAdmin = user?.emailAddresses?.some(email => email.emailAddress === 'supermincraft52@gmail.com');
 
   const handleUserButtonClick = () => {
     if (user?.id) {

@@ -15,7 +15,7 @@ import LocationMediaManager from "@/components/LocationMediaManager";
 import { useToast } from "@/hooks/use-toast";
 import { useUser, useAuth } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
-import { Trip, TripActivity, TripDay, FoodPlace } from "@/lib/trips-data";
+import { Trip, TripActivity, TripDay, FoodPlace, Hotel } from "@/lib/trips-data";
 import { createTrip } from "@/lib/api";
 import UploadProgressLoader from "@/components/UploadProgressLoader";
 
@@ -57,6 +57,9 @@ const CreateTrip = () => {
 
   // Step 4: Food and Restaurants
   const [foodPlaces, setFoodPlaces] = useState<FoodPlace[]>([]);
+
+  // Step 5: Hotels
+  const [hotels, setHotels] = useState<Hotel[]>([]);
 
   // Destination mapping
   const destinationMap: Record<string, string> = {
@@ -158,6 +161,30 @@ const CreateTrip = () => {
       const reader = new FileReader();
       reader.onloadend = () => {
         updateFoodPlace(index, "image", reader.result as string);
+      };
+      reader.readAsDataURL(files[0]);
+    }
+  };
+
+  const addHotel = () => {
+    setHotels([...hotels, { name: "", image: "", rating: 4.0, description: "", priceRange: "" }]);
+  };
+
+  const removeHotel = (index: number) => {
+    setHotels(hotels.filter((_, i) => i !== index));
+  };
+
+  const updateHotel = (index: number, field: keyof Hotel, value: string | number) => {
+    const updated = [...hotels];
+    updated[index] = { ...updated[index], [field]: value };
+    setHotels(updated);
+  };
+
+  const handleHotelImageUpload = (index: number, files: FileList | null) => {
+    if (files && files[0]) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        updateHotel(index, "image", reader.result as string);
       };
       reader.readAsDataURL(files[0]);
     }
@@ -403,6 +430,7 @@ const CreateTrip = () => {
           activities: day.activities.filter(aIdx => aIdx < activities.length),
         })),
         foodAndRestaurants: foodPlacesWithBase64.filter(fp => fp.image), // Only include places with valid images
+        hotels: hotels.filter(h => h.name && h.image), // Only include hotels with name and image
       };
       
       // Update progress to show processing
@@ -456,7 +484,8 @@ const CreateTrip = () => {
     { number: 2, title: "الأنشطة والمواقع" },
     { number: 3, title: "تنظيم الأيام" },
     { number: 4, title: "المطاعم والأكلات" },
-    { number: 5, title: "المراجعة النهائية" },
+    { number: 5, title: "الفنادق والإقامة" },
+    { number: 6, title: "المراجعة النهائية" },
   ];
 
   return (

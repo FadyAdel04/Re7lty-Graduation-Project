@@ -1,4 +1,4 @@
-import { Clock, Heart, Star } from "lucide-react";
+import { Clock, Heart, Star, Snowflake, Sun, Leaf, Cloud } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,13 +17,32 @@ interface TripCardProps {
   authorImage?: string; // Optional override for author avatar
   likes: number;
   ownerId?: string; // Clerk user ID for profile linking
+  season?: 'winter' | 'summer' | 'fall' | 'spring';
 }
 
-const TripCard = ({ id, title, destination, duration, rating, image, author, authorImage, likes, ownerId }: TripCardProps) => {
+const TripCard = ({ id, title, destination, duration, rating, image, author, authorImage, likes, ownerId, season }: TripCardProps) => {
   const [isLiked, setIsLiked] = useState(false);
   
   // Use ownerId for profile link if available, otherwise fallback to author name (for backward compatibility)
   const profileLink = ownerId ? `/user/${ownerId}` : `/profile/${author.replace(/\s+/g, "-")}`;
+  
+  // Season badge configuration
+  const getSeasonConfig = (season?: string) => {
+    switch (season) {
+      case 'winter':
+        return { label: 'شتاء', icon: Snowflake, color: 'bg-blue-500/90 text-white', emoji: '❄️' };
+      case 'summer':
+        return { label: 'صيف', icon: Sun, color: 'bg-orange-500/90 text-white', emoji: '☀️' };
+      case 'fall':
+        return { label: 'خريف', icon: Leaf, color: 'bg-amber-600/90 text-white', emoji: '🍂' };
+      case 'spring':
+        return { label: 'ربيع', icon: Cloud, color: 'bg-green-500/90 text-white', emoji: '🌸' };
+      default:
+        return null;
+    }
+  };
+  
+  const seasonConfig = getSeasonConfig(season);
 
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 group border-border/50">
@@ -38,10 +57,16 @@ const TripCard = ({ id, title, destination, duration, rating, image, author, aut
           <Badge className="absolute top-3 right-3 bg-background/90 text-foreground border-0 backdrop-blur-sm">
             {destination}
           </Badge>
+          {seasonConfig && (
+            <Badge className={`absolute top-3 left-3 ${seasonConfig.color} border-0 backdrop-blur-sm flex items-center gap-1.5 px-3 py-1.5`}>
+              <span className="text-base">{seasonConfig.emoji}</span>
+              <span className="font-semibold">{seasonConfig.label}</span>
+            </Badge>
+          )}
           <Button
             variant="ghost"
             size="icon"
-            className="absolute top-3 left-3 bg-background/90 backdrop-blur-sm hover:bg-background h-9 w-9 rounded-full"
+            className="absolute bottom-3 left-3 bg-background/90 backdrop-blur-sm hover:bg-background h-9 w-9 rounded-full"
             onClick={(e) => {
               e.preventDefault();
               setIsLiked(!isLiked);

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Trophy, TrendingUp, Heart, Medal, Award, Crown } from "lucide-react";
+import { Trophy, TrendingUp, Heart, Medal, Award, Crown, Gift } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Header from "@/components/Header";
@@ -218,6 +218,25 @@ const Leaderboard = () => {
           <p className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-2xl mx-auto px-4">
             اكتشف أفضل الرحلات الأكثر إعجاباً هذا الأسبوع
           </p>
+          
+          <div className="mt-8 p-6 bg-gradient-to-l from-yellow-500/10 to-amber-500/10 border border-yellow-500/20 rounded-2xl max-w-3xl mx-auto flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-right relative overflow-hidden group hover:border-yellow-500/40 transition-colors">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-yellow-500/10 rounded-full blur-2xl -mr-12 -mt-12 group-hover:bg-yellow-500/20 transition-colors"></div>
+            
+            <div className="p-4 bg-gradient-to-br from-yellow-100 to-amber-100 rounded-full shrink-0 shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-300">
+              <Gift className="w-8 h-8 text-yellow-600" />
+            </div>
+            
+            <div className="relative z-10">
+              <h3 className="font-bold text-lg text-yellow-800 mb-2 flex items-center justify-center sm:justify-start gap-2">
+                جائزة المركز الأول 🎁
+              </h3>
+              <p className="text-sm sm:text-base text-yellow-800/80 leading-relaxed">
+                سيفوز صاحب المركز الأول برحلة مجانية مقدمة من شركاتنا الموثوقة! 
+                <br className="hidden sm:block" />
+                شارك رحلاتك الآن واجمع التفاعلات والتعليقات لتزيد فرصك في الفوز بهذه الهدية المميزة.
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Top 3 Trips Podium */}

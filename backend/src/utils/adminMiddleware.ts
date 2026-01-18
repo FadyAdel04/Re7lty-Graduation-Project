@@ -15,7 +15,7 @@ declare global {
 
 /**
  * Middleware to verify if the authenticated user is the admin
- * Checks if user email matches: e79442457@gmail.com
+ * Checks if user email matches: supermincraft52@gmail.com
  */
 export const requireAdmin = async (
     req: Request,
@@ -32,7 +32,7 @@ export const requireAdmin = async (
         const user = await clerkClient.users.getUser(req.auth.userId);
 
         // Check if user email matches admin email
-        const adminEmail = 'e79442457@gmail.com';
+        const adminEmail = 'supermincraft52@gmail.com';
         const userEmail = user.emailAddresses.find(email => email.emailAddress === adminEmail);
 
         if (!userEmail) {
@@ -62,7 +62,7 @@ export const checkAdmin = async (
     try {
         if (req.auth?.userId) {
             const user = await clerkClient.users.getUser(req.auth.userId);
-            const adminEmail = 'e79442457@gmail.com';
+            const adminEmail = 'supermincraft52@gmail.com';
             const userEmail = user.emailAddresses.find(email => email.emailAddress === adminEmail);
             (req as any).isAdmin = !!userEmail;
         } else {

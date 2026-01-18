@@ -9,6 +9,7 @@ import { getTripPlan, type TripPlan } from "@/lib/travel-advisor-api";
 import { useToast } from "@/hooks/use-toast";
 import { createTrip } from "@/lib/api";
 import { useAuth } from "@clerk/clerk-react";
+import { getCurrentSeason } from "@/lib/season-utils";
 
 const CITIES = [
   'القاهرة',
@@ -35,6 +36,13 @@ const BUDGET_OPTIONS = [
 
 const TRIP_TYPES = ["تاريخية", "ساحلية", "مغامرات", "استرخاء", "غوص"];
 
+const SEASONS = [
+  { value: 'winter', label: 'شتاء', emoji: '❄️' },
+  { value: 'summer', label: 'صيف', emoji: '☀️' },
+  { value: 'fall', label: 'خريف', emoji: '🍂' },
+  { value: 'spring', label: 'ربيع', emoji: '🌸' },
+];
+
 type Message = {
   id: number;
   type: 'ai' | 'user';
@@ -42,7 +50,7 @@ type Message = {
   timestamp: Date;
 };
 
-type QuestionStep = 'city' | 'days' | 'tripType' | 'budget' | 'results' | 'complete';
+type QuestionStep = 'city' | 'days' | 'tripType' | 'season' | 'budget' | 'results' | 'complete';
 
 const TripAIChat = () => {
   const [messages, setMessages] = useState<Message[]>([
@@ -64,6 +72,7 @@ const TripAIChat = () => {
   const [city, setCity] = useState<string>('');
   const [days, setDays] = useState<string>('');
   const [tripType, setTripType] = useState<string>('');
+  const [season, setSeason] = useState<string>('');
   const [budget, setBudget] = useState<string>('');
   const [tripPlan, setTripPlan] = useState<TripPlan | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -106,6 +115,16 @@ const TripAIChat = () => {
   const handleTripTypeSelect = (selectedType: string) => {
     setTripType(selectedType);
     addMessage('user', selectedType);
+    setTimeout(() => {
+      addMessage('ai', 'ما الموسم المفضل لديك للرحلة؟');
+      setCurrentStep('season');
+    }, 500);
+  };
+
+  const handleSeasonSelect = (selectedSeason: string) => {
+    setSeason(selectedSeason);
+    const seasonInfo = SEASONS.find(s => s.value === selectedSeason);
+    addMessage('user', `${seasonInfo?.emoji} ${seasonInfo?.label}`);
     setTimeout(() => {
       addMessage('ai', 'ما ميزانيتك التقريبية للرحلة؟');
       setCurrentStep('budget');
@@ -243,6 +262,7 @@ const TripAIChat = () => {
         image: mainImage,
         description: `رحلة مخصصة إلى ${city} لمدة ${numDays} أيام. تتضمن ${selectedAttractionsList.length} معلم سياحي، ${selectedRestaurantsList.length} مطعم، و ${selectedHotelsList.length} فندق.`,
         budget: budget ? `${budget} جنيه مصري` : "غير محدد",
+        season: season || getCurrentSeason(), // Use selected season or fallback to current
         activities: activities,
         days: daysArray,
         foodAndRestaurants: foodAndRestaurants,
@@ -323,6 +343,24 @@ const TripAIChat = () => {
       );
     }
 
+    if (currentStep === 'season') {
+      return (
+        <div className="grid grid-cols-2 md:grid-cols-2 gap-2 mt-4">
+          {SEASONS.map((seasonOption) => (
+            <Button
+              key={seasonOption.value}
+              variant="outline"
+              className="h-auto py-3 text-sm hover:bg-primary hover:text-primary-foreground transition-all flex items-center justify-center gap-2"
+              onClick={() => handleSeasonSelect(seasonOption.value)}
+            >
+              <span className="text-lg">{seasonOption.emoji}</span>
+              <span>{seasonOption.label}</span>
+            </Button>
+          ))}
+        </div>
+      );
+    }
+
     if (currentStep === 'budget') {
       return (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-4">
@@ -347,7 +385,7 @@ const TripAIChat = () => {
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-muted/20">
       <Header />
       
-      <main className="flex-1 container mx-auto px-4 py-6 max-w-5xl">
+      <main className="flex-1 container mx-auto px-4 py-6 max-w-7xl">
         {/* Page Header */}
         <div className="text-center mb-6">
           <h1 className="text-3xl md:text-4xl font-bold mb-2 flex items-center justify-center gap-3">
@@ -357,262 +395,313 @@ const TripAIChat = () => {
           <p className="text-muted-foreground">دعني أساعدك في تخطيط رحلتك المثالية</p>
         </div>
 
-        {/* Chat Messages */}
-        <div className="bg-background rounded-2xl shadow-lg border p-4 md:p-6 mb-6 min-h-[400px] max-h-[600px] overflow-y-auto">
-          <div className="space-y-4">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                <div
-                  className={`max-w-[80%] md:max-w-[70%] rounded-2xl px-4 py-3 ${
-                    message.type === 'user'
-                      ? 'bg-primary text-primary-foreground rounded-br-sm'
-                      : 'bg-muted rounded-bl-sm'
-                  }`}
-                >
-                  <p className="text-sm md:text-base">{message.text}</p>
+        {/* Two Column Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-280px)]">
+          
+          {/* LEFT PANEL - Trip Results & Suggestions */}
+          <div className="order-2 lg:order-1 bg-gradient-to-br from-background via-background to-muted/20 rounded-2xl shadow-lg border p-6 overflow-y-auto">
+            {!tripPlan || currentStep !== 'complete' ? (
+              <div className="h-full flex flex-col items-center justify-center text-center space-y-4">
+                <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Sparkles className="h-12 w-12 text-primary animate-pulse" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold mb-2">خطة رحلتك ستظهر هنا</h3>
+                  <p className="text-muted-foreground">أجب عن الأسئلة في الجانب الأيمن لبدء التخطيط</p>
                 </div>
               </div>
-            ))}
-            
-            {isLoading && (
-              <div className="flex justify-start">
-                <div className="bg-muted rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span className="text-sm">جاري البحث...</span>
+            ) : (
+              <div className="space-y-6">
+                {/* Location Info Card */}
+                <div className="bg-gradient-to-r from-primary/20 via-primary/10 to-transparent p-5 rounded-xl border border-primary/30 shadow-sm">
+                  <h3 className="font-bold text-xl mb-2 flex items-center gap-2">
+                    <MapPin className="h-6 w-6 text-primary" />
+                    {tripPlan.location.name}
+                  </h3>
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    {tripPlan.location.latitude && tripPlan.location.longitude && (
+                      <span>📍 {tripPlan.location.latitude}, {tripPlan.location.longitude}</span>
+                    )}
+                    <span>📅 {days} {days === '1' ? 'يوم' : 'أيام'}</span>
+                    <span>💰 {BUDGET_OPTIONS.find(b => b.value === budget)?.label || budget}</span>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        </div>
 
-        {/* Multiple Choice Options */}
-        {renderMultipleChoice()}
+                {/* Summary Stats */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 text-center">
+                    <Camera className="h-5 w-5 text-blue-500 mx-auto mb-1" />
+                    <div className="text-2xl font-bold">{tripPlan.attractions.length}</div>
+                    <div className="text-xs text-muted-foreground">معالم سياحية</div>
+                  </div>
+                  <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-3 text-center">
+                    <Utensils className="h-5 w-5 text-orange-500 mx-auto mb-1" />
+                    <div className="text-2xl font-bold">{tripPlan.restaurants.length}</div>
+                    <div className="text-xs text-muted-foreground">مطاعم</div>
+                  </div>
+                  <div className="bg-purple-500/10 border border-purple-500/20 rounded-lg p-3 text-center">
+                    <Hotel className="h-5 w-5 text-purple-500 mx-auto mb-1" />
+                    <div className="text-2xl font-bold">{tripPlan.hotels.length}</div>
+                    <div className="text-xs text-muted-foreground">فنادق</div>
+                  </div>
+                </div>
 
-        {/* Trip Plan Results */}
-        {tripPlan && currentStep === 'complete' && (
-          <div className="mt-6 space-y-6">
-            {/* Location Info */}
-            <div className="bg-primary/10 p-4 rounded-lg border border-primary/20">
-              <h3 className="font-bold text-lg mb-2 flex items-center gap-2">
-                <MapPin className="h-5 w-5 text-primary" />
-                {tripPlan.location.name}
-              </h3>
-              {tripPlan.location.latitude && tripPlan.location.longitude && (
-                <p className="text-sm text-muted-foreground">
-                  الموقع: {tripPlan.location.latitude}, {tripPlan.location.longitude}
-                </p>
-              )}
-            </div>
-
-            {/* Attractions */}
-            {tripPlan.attractions.length > 0 && (
-              <div>
-                <h3 className="font-bold text-xl mb-4 flex items-center gap-2">
-                  <Camera className="h-6 w-6 text-primary" />
-                  المعالم السياحية ({tripPlan.attractions.length})
-                </h3>
-                <div className="grid gap-4 md:grid-cols-2">
-                  {tripPlan.attractions.map((attraction, idx) => {
-                    const isSelected = selectedAttractions.has(attraction.location_id || String(idx));
-                    return (
-                      <div
-                        key={attraction.location_id || idx}
-                        className={`border rounded-lg p-4 hover:shadow-md transition-all ${
-                          isSelected ? 'ring-2 ring-primary bg-primary/5' : ''
-                        }`}
-                      >
-                        <div className="flex gap-3">
-                          <Checkbox
-                            checked={isSelected}
-                            onCheckedChange={(checked) => {
+                {/* Attractions */}
+                {tripPlan.attractions.length > 0 && (
+                  <div>
+                    <h3 className="font-bold text-lg mb-3 flex items-center gap-2 sticky top-0 bg-background/95 backdrop-blur-sm py-2 z-10">
+                      <Camera className="h-5 w-5 text-primary" />
+                      المعالم السياحية
+                    </h3>
+                    <div className="space-y-3">
+                      {tripPlan.attractions.map((attraction, idx) => {
+                        const isSelected = selectedAttractions.has(attraction.location_id || String(idx));
+                        return (
+                          <div
+                            key={attraction.location_id || idx}
+                            className={`border rounded-xl p-3 hover:shadow-md transition-all cursor-pointer ${
+                              isSelected ? 'ring-2 ring-primary bg-primary/5 border-primary/30' : 'hover:border-primary/20'
+                            }`}
+                            onClick={() => {
                               const newSet = new Set(selectedAttractions);
-                              if (checked) {
-                                newSet.add(attraction.location_id || String(idx));
-                              } else {
+                              if (isSelected) {
                                 newSet.delete(attraction.location_id || String(idx));
+                              } else {
+                                newSet.add(attraction.location_id || String(idx));
                               }
                               setSelectedAttractions(newSet);
                             }}
-                            className="mt-1"
-                          />
-                          {attraction.photo?.images?.medium?.url && (
-                            <img
-                              src={attraction.photo.images.medium.url}
-                              alt={attraction.name}
-                              className="w-24 h-24 object-cover rounded"
-                            />
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-semibold mb-1 truncate">{attraction.name}</h4>
-                            {attraction.rating && (
-                              <div className="flex items-center gap-1 text-sm mb-1">
-                                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                                <span>{attraction.rating}</span>
-                                {attraction.num_reviews && (
-                                  <span className="text-muted-foreground">({attraction.num_reviews} تقييم)</span>
+                          >
+                            <div className="flex gap-3">
+                              <Checkbox
+                                checked={isSelected}
+                                className="mt-1"
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                              {attraction.photo?.images?.medium?.url && (
+                                <img
+                                  src={attraction.photo.images.medium.url}
+                                  alt={attraction.name}
+                                  className="w-20 h-20 object-cover rounded-lg"
+                                />
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-semibold mb-1 text-sm">{attraction.name}</h4>
+                                {attraction.rating && (
+                                  <div className="flex items-center gap-1 text-xs mb-1">
+                                    <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                                    <span>{attraction.rating}</span>
+                                    {attraction.num_reviews && (
+                                      <span className="text-muted-foreground">({attraction.num_reviews})</span>
+                                    )}
+                                  </div>
+                                )}
+                                {attraction.description && (
+                                  <p className="text-xs text-muted-foreground line-clamp-2">{attraction.description}</p>
                                 )}
                               </div>
-                            )}
-                            {attraction.description && (
-                              <p className="text-sm text-muted-foreground line-clamp-2">{attraction.description}</p>
-                            )}
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
-            {/* Restaurants */}
-            {tripPlan.restaurants.length > 0 && (
-              <div>
-                <h3 className="font-bold text-xl mb-4 flex items-center gap-2">
-                  <Utensils className="h-6 w-6 text-primary" />
-                  المطاعم ({tripPlan.restaurants.length})
-                </h3>
-                <div className="grid gap-4 md:grid-cols-2">
-                  {tripPlan.restaurants.map((restaurant, idx) => {
-                    const isSelected = selectedRestaurants.has(restaurant.location_id || String(idx));
-                    return (
-                      <div
-                        key={restaurant.location_id || idx}
-                        className={`border rounded-lg p-4 hover:shadow-md transition-all ${
-                          isSelected ? 'ring-2 ring-primary bg-primary/5' : ''
-                        }`}
-                      >
-                        <div className="flex gap-3">
-                          <Checkbox
-                            checked={isSelected}
-                            onCheckedChange={(checked) => {
+                {/* Restaurants */}
+                {tripPlan.restaurants.length > 0 && (
+                  <div>
+                    <h3 className="font-bold text-lg mb-3 flex items-center gap-2 sticky top-0 bg-background/95 backdrop-blur-sm py-2 z-10">
+                      <Utensils className="h-5 w-5 text-primary" />
+                      المطاعم
+                    </h3>
+                    <div className="space-y-3">
+                      {tripPlan.restaurants.map((restaurant, idx) => {
+                        const isSelected = selectedRestaurants.has(restaurant.location_id || String(idx));
+                        return (
+                          <div
+                            key={restaurant.location_id || idx}
+                            className={`border rounded-xl p-3 hover:shadow-md transition-all cursor-pointer ${
+                              isSelected ? 'ring-2 ring-primary bg-primary/5 border-primary/30' : 'hover:border-primary/20'
+                            }`}
+                            onClick={() => {
                               const newSet = new Set(selectedRestaurants);
-                              if (checked) {
-                                newSet.add(restaurant.location_id || String(idx));
-                              } else {
+                              if (isSelected) {
                                 newSet.delete(restaurant.location_id || String(idx));
+                              } else {
+                                newSet.add(restaurant.location_id || String(idx));
                               }
                               setSelectedRestaurants(newSet);
                             }}
-                            className="mt-1"
-                          />
-                          {restaurant.photo?.images?.medium?.url && (
-                            <img
-                              src={restaurant.photo.images.medium.url}
-                              alt={restaurant.name}
-                              className="w-24 h-24 object-cover rounded"
-                            />
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-semibold mb-1 truncate">{restaurant.name}</h4>
-                            {restaurant.rating && (
-                              <div className="flex items-center gap-1 text-sm mb-1">
-                                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                                <span>{restaurant.rating}</span>
+                          >
+                            <div className="flex gap-3">
+                              <Checkbox
+                                checked={isSelected}
+                                className="mt-1"
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                              {restaurant.photo?.images?.medium?.url && (
+                                <img
+                                  src={restaurant.photo.images.medium.url}
+                                  alt={restaurant.name}
+                                  className="w-20 h-20 object-cover rounded-lg"
+                                />
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-semibold mb-1 text-sm">{restaurant.name}</h4>
+                                {restaurant.rating && (
+                                  <div className="flex items-center gap-1 text-xs mb-1">
+                                    <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                                    <span>{restaurant.rating}</span>
+                                  </div>
+                                )}
+                                {restaurant.cuisine && restaurant.cuisine.length > 0 && (
+                                  <p className="text-xs text-muted-foreground line-clamp-1">
+                                    {restaurant.cuisine.map(c => c.name).filter(Boolean).join(", ")}
+                                  </p>
+                                )}
                               </div>
-                            )}
-                            {restaurant.cuisine && restaurant.cuisine.length > 0 && (
-                              <p className="text-xs text-muted-foreground">
-                                {restaurant.cuisine.map(c => c.name).filter(Boolean).join(", ")}
-                              </p>
-                            )}
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
-            {/* Hotels */}
-            {tripPlan.hotels.length > 0 && (
-              <div>
-                <h3 className="font-bold text-xl mb-4 flex items-center gap-2">
-                  <Hotel className="h-6 w-6 text-primary" />
-                  الفنادق ({tripPlan.hotels.length})
-                </h3>
-                <div className="grid gap-4 md:grid-cols-2">
-                  {tripPlan.hotels.map((hotel, idx) => {
-                    const isSelected = selectedHotels.has(hotel.location_id || String(idx));
-                    return (
-                      <div
-                        key={hotel.location_id || idx}
-                        className={`border rounded-lg p-4 hover:shadow-md transition-all ${
-                          isSelected ? 'ring-2 ring-primary bg-primary/5' : ''
-                        }`}
-                      >
-                        <div className="flex gap-3">
-                          <Checkbox
-                            checked={isSelected}
-                            onCheckedChange={(checked) => {
+                {/* Hotels */}
+                {tripPlan.hotels.length > 0 && (
+                  <div>
+                    <h3 className="font-bold text-lg mb-3 flex items-center gap-2 sticky top-0 bg-background/95 backdrop-blur-sm py-2 z-10">
+                      <Hotel className="h-5 w-5 text-primary" />
+                      الفنادق
+                    </h3>
+                    <div className="space-y-3">
+                      {tripPlan.hotels.map((hotel, idx) => {
+                        const isSelected = selectedHotels.has(hotel.location_id || String(idx));
+                        return (
+                          <div
+                            key={hotel.location_id || idx}
+                            className={`border rounded-xl p-3 hover:shadow-md transition-all cursor-pointer ${
+                              isSelected ? 'ring-2 ring-primary bg-primary/5 border-primary/30' : 'hover:border-primary/20'
+                            }`}
+                            onClick={() => {
                               const newSet = new Set(selectedHotels);
-                              if (checked) {
-                                newSet.add(hotel.location_id || String(idx));
-                              } else {
+                              if (isSelected) {
                                 newSet.delete(hotel.location_id || String(idx));
+                              } else {
+                                newSet.add(hotel.location_id || String(idx));
                               }
                               setSelectedHotels(newSet);
                             }}
-                            className="mt-1"
-                          />
-                          {hotel.photo?.images?.medium?.url && (
-                            <img
-                              src={hotel.photo.images.medium.url}
-                              alt={hotel.name}
-                              className="w-24 h-24 object-cover rounded"
-                            />
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-semibold mb-1 truncate">{hotel.name}</h4>
-                            {hotel.rating && (
-                              <div className="flex items-center gap-1 text-sm mb-1">
-                                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                                <span>{hotel.rating}</span>
+                          >
+                            <div className="flex gap-3">
+                              <Checkbox
+                                checked={isSelected}
+                                className="mt-1"
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                              {hotel.photo?.images?.medium?.url && (
+                                <img
+                                  src={hotel.photo.images.medium.url}
+                                  alt={hotel.name}
+                                  className="w-20 h-20 object-cover rounded-lg"
+                                />
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-semibold mb-1 text-sm">{hotel.name}</h4>
+                                {hotel.rating && (
+                                  <div className="flex items-center gap-1 text-xs mb-1">
+                                    <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                                    <span>{hotel.rating}</span>
+                                  </div>
+                                )}
+                                {hotel.price && (
+                                  <p className="text-xs font-medium text-primary">{hotel.price}</p>
+                                )}
                               </div>
-                            )}
-                            {hotel.price && (
-                              <p className="text-sm font-medium">{hotel.price}</p>
-                            )}
+                            </div>
                           </div>
-                        </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Create Trip Button - Fixed at bottom */}
+                <div className="sticky bottom-0 bg-gradient-to-t from-background via-background to-transparent pt-4 pb-2">
+                  <div className="bg-background/95 backdrop-blur-sm border rounded-xl p-4 shadow-lg">
+                    <div className="flex items-center justify-between gap-4 mb-3">
+                      <div className="text-sm text-muted-foreground flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-primary" />
+                        <span className="font-medium">{selectedAttractions.size + selectedRestaurants.size + selectedHotels.size}</span>
+                        عنصر محدد
                       </div>
-                    );
-                  })}
+                    </div>
+                    <Button
+                      onClick={handleCreateTrip}
+                      disabled={isCreatingTrip || (selectedAttractions.size === 0 && selectedRestaurants.size === 0 && selectedHotels.size === 0) || !isSignedIn}
+                      className="w-full gap-2 h-12 text-base font-semibold shadow-lg hover:shadow-xl transition-all"
+                      size="lg"
+                    >
+                      {isCreatingTrip ? (
+                        <>
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                          جاري الإنشاء...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="h-5 w-5" />
+                          إنشاء خطة الرحلة
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}
+          </div>
 
-            {/* Create Trip Button */}
-            <div className="sticky bottom-0 bg-background/95 backdrop-blur-sm border-t pt-4 pb-2 flex items-center justify-between gap-4">
-              <div className="text-sm text-muted-foreground flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4" />
-                {selectedAttractions.size + selectedRestaurants.size + selectedHotels.size} عنصر محدد
-              </div>
-              <Button
-                onClick={handleCreateTrip}
-                disabled={isCreatingTrip || (selectedAttractions.size === 0 && selectedRestaurants.size === 0 && selectedHotels.size === 0) || !isSignedIn}
-                className="gap-2"
-                size="lg"
-              >
-                {isCreatingTrip ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    جاري الإنشاء...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="h-4 w-4" />
-                    إنشاء خطة الرحلة
-                  </>
+          {/* RIGHT PANEL - Chat Interface & Options */}
+          <div className="order-1 lg:order-2 flex flex-col bg-gradient-to-br from-primary/5 via-background to-background rounded-2xl shadow-lg border overflow-hidden">
+            {/* Chat Messages Area */}
+            <div className="flex-1 p-4 md:p-6 overflow-y-auto">
+              <div className="space-y-4">
+                {messages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}
+                  >
+                    <div
+                      className={`max-w-[85%] rounded-2xl px-4 py-3 shadow-sm ${
+                        message.type === 'user'
+                          ? 'bg-primary text-primary-foreground rounded-br-sm'
+                          : 'bg-muted/80 backdrop-blur-sm rounded-bl-sm border'
+                      }`}
+                    >
+                      <p className="text-sm md:text-base leading-relaxed">{message.text}</p>
+                    </div>
+                  </div>
+                ))}
+                
+                {isLoading && (
+                  <div className="flex justify-start animate-in fade-in">
+                    <div className="bg-muted/80 backdrop-blur-sm border rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                      <span className="text-sm">جاري البحث...</span>
+                    </div>
+                  </div>
                 )}
-              </Button>
+              </div>
+            </div>
+
+            {/* Options Area */}
+            <div className="border-t bg-background/50 backdrop-blur-sm p-4">
+              {renderMultipleChoice()}
             </div>
           </div>
-        )}
+
+        </div>
       </main>
 
       <Footer />

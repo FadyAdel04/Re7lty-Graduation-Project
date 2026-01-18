@@ -24,7 +24,7 @@ const TripsManagementPage = () => {
 
   useEffect(() => {
     // Check if user is admin
-    const adminEmail = 'e79442457@gmail.com';
+    const adminEmail = 'supermincraft52@gmail.com';
     const isAdmin = user?.emailAddresses?.some(email => email.emailAddress === adminEmail);
     
     if (!isAdmin) {

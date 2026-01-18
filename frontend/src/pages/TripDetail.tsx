@@ -981,6 +981,58 @@ useEffect(() => {
                   </div>
                 )}
 
+              {/* Hotels & Accommodation */}
+              {trip.hotels && trip.hotels.length > 0 && (
+                <div className="mb-8">
+                  <h2 className="text-2xl font-bold mb-4">
+                    الفنادق وأماكن الإقامة
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    {trip.hotels.map((hotel: any, idx: number) => (
+                      <div
+                        key={idx}
+                        className="relative rounded-xl p-4 bg-secondary-light flex flex-col items-center text-center shadow"
+                      >
+                        <img
+                          src={hotel.image}
+                          alt={hotel.name}
+                          className="w-full h-32 object-cover rounded mb-2 border"
+                        />
+                        <div className="font-bold text-lg mb-1">
+                          {hotel.name}
+                        </div>
+                        <div className="flex items-center justify-center gap-1 mb-1">
+                          {[...Array(5)].map((_, i) => (
+                            <Star
+                              key={i}
+                              className={
+                                i < Math.round(hotel.rating)
+                                  ? "fill-primary text-primary"
+                                  : "text-gray-300"
+                              }
+                              size={18}
+                            />
+                          ))}
+                          <span className="text-sm text-muted-foreground">
+                            ({hotel.rating})
+                          </span>
+                        </div>
+                        {hotel.description && (
+                          <div className="text-sm text-muted-foreground">
+                            {hotel.description}
+                          </div>
+                        )}
+                        {hotel.priceRange && (
+                          <div className="text-sm font-semibold text-primary mt-2">
+                            {hotel.priceRange}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Modal map for restaurant */}
               <Dialog open={dialogRestaurantIdx !== null} onOpenChange={(o) => !o && setDialogRestaurantIdx(null)}>
                 <DialogContent className="sm:max-w-[720px]">
