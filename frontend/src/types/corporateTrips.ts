@@ -48,6 +48,7 @@ export interface Trip {
     likes?: number;
     maxGroupSize?: number;
     difficulty?: 'سهل' | 'متوسط' | 'صعب';
+    season?: string;
 }
 
 export interface TripFilters {
@@ -60,4 +61,5 @@ export interface TripFilters {
     companyId?: string;
     minRating?: number;
     searchQuery?: string;
+    season?: string;
 }

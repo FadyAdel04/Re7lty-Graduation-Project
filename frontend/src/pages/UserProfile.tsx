@@ -1004,6 +1004,7 @@ const UserProfile = () => {
                         rating={trip.rating}
                         image={trip.image}
                         author={trip.author}
+                        authorImage={profileImage || undefined}
                         likes={trip.likes || 0}
                         ownerId={trip.ownerId}
                       />
@@ -1048,6 +1049,7 @@ const UserProfile = () => {
                           rating={trip.rating}
                           image={trip.image}
                           author={trip.author}
+                          authorImage={profileImage || undefined}
                           likes={trip.likes || 0}
                           ownerId={trip.ownerId}
                         />

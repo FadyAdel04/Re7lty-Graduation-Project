@@ -204,6 +204,7 @@ useEffect(() => {
           saves: apiTrip.saves || 0,
           shares: apiTrip.shares || 0,
           description: apiTrip.description || '',
+          season: apiTrip.season || '',
           budget: apiTrip.budget || '',
           activities: apiTrip.activities || [],
           days: apiTrip.days || [],
@@ -598,9 +599,21 @@ useEffect(() => {
                   <h1 className="text-4xl font-bold text-gradient">
                     {trip.title}
                   </h1>
-                  <div className="flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-full">
-                    <Star className="h-5 w-5 fill-primary text-primary" />
-                    <span className="text-xl font-bold">{trip.rating}</span>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-full">
+                      <Star className="h-5 w-5 fill-primary text-primary" />
+                      <span className="text-xl font-bold">{trip.rating}</span>
+                    </div>
+                    {trip.season && (
+                      <Badge variant="secondary" className="text-lg py-1.5 px-4 bg-orange-100 text-orange-700 hover:bg-orange-200 gap-2">
+                         {
+                          trip.season === 'winter' ? '❄️ شتاء' :
+                          trip.season === 'summer' ? '☀️ صيف' :
+                          trip.season === 'fall' ? '🍂 خريف' :
+                          trip.season === 'spring' ? '🌸 ربيع' : trip.season
+                        }
+                      </Badge>
+                    )}
                   </div>
                 </div>
 
@@ -617,6 +630,7 @@ useEffect(() => {
                     <DollarSign className="h-5 w-5 text-primary" />
                     <span>{trip.budget}</span>
                   </div>
+
                 </div>
               </div>
 

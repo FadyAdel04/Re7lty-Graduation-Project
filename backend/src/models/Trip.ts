@@ -46,6 +46,11 @@ const TripSchema = new Schema({
   shares: { type: Number, default: 0 },
   description: String,
   budget: String,
+  season: {
+    type: String,
+    enum: ['winter', 'summer', 'fall', 'spring'],
+    required: false // Optional for backward compatibility with existing trips
+  },
   activities: [ActivitySchema],
   days: [DaySchema],
   foodAndRestaurants: [FoodSchema],

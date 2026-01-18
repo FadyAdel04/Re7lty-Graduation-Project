@@ -5,7 +5,7 @@ import Footer from "@/components/Footer";
 import { listTrips, toggleTripLove, toggleTripSave, toggleFollowUser } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Heart, MessageCircle, Share2, Bookmark, MapPin, Star, Eye } from "lucide-react";
+import { Heart, MessageCircle, Share2, Bookmark, MapPin, Star, Eye, Calendar } from "lucide-react";
 import TripComments from "@/components/TripComments";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { SignedIn, SignedOut, useAuth, useUser } from "@clerk/clerk-react";
@@ -478,6 +478,9 @@ const Timeline = () => {
       // In production, you'd check for a trip.type === 'tip' or similar
       return false;
     }
+    if (filters.season && filters.season !== 'all' && trip.season !== filters.season) {
+      return false;
+    }
     return true;
   });
 
@@ -600,8 +603,17 @@ const Timeline = () => {
                           <span className="truncate max-w-[160px] sm:max-w-none">{trip.destination}</span>
                         </div>
                       </div>
-                      <div className="text-xs text-muted-foreground mt-0.5">
-                        تقييم <span className="inline-flex items-center gap-1"><Star className="h-3 w-3 fill-primary text-primary" /> {trip.rating}</span>
+                        <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-3">
+                        <span className="inline-flex items-center gap-1"><Star className="h-3 w-3 fill-primary text-primary" /> {trip.rating}</span>
+                        {trip.season && (
+                          <span className="inline-flex items-center gap-1 text-orange-600 font-medium">
+                             <Calendar className="h-3 w-3" />
+                             {trip.season === 'winter' ? 'شتاء' :
+                              trip.season === 'summer' ? 'صيف' :
+                              trip.season === 'fall' ? 'خريف' :
+                              trip.season === 'spring' ? 'ربيع' : trip.season}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>

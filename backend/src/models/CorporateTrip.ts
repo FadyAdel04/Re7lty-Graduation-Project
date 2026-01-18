@@ -35,6 +35,11 @@ const CorporateTripSchema = new Schema({
         type: String,
         enum: ['سهل', 'متوسط', 'صعب']
     },
+    season: {
+        type: String,
+        enum: ['winter', 'summer', 'fall', 'spring'],
+        required: false // Optional for backward compatibility with existing trips
+    },
     isActive: { type: Boolean, default: true },
     createdBy: { type: String }, // Clerk ID of admin who created
 }, { timestamps: true });

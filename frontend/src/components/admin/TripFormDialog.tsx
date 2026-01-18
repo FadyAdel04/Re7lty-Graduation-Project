@@ -28,6 +28,7 @@ const TripFormDialog = ({ open, onOpenChange, onSuccess, companies, initialData 
     destination: "",
     duration: "",
     price: "",
+    season: "" as string, // winter, summer, fall, spring
     rating: 4.5,
     shortDescription: "",
     fullDescription: "",
@@ -56,6 +57,7 @@ const TripFormDialog = ({ open, onOpenChange, onSuccess, companies, initialData 
           itinerary: initialData.itinerary?.length > 0 ? initialData.itinerary : [{ day: 1, title: "", description: "" }],
           includedServices: initialData.includedServices?.length > 0 ? initialData.includedServices : [""],
           excludedServices: initialData.excludedServices?.length > 0 ? initialData.excludedServices : [""],
+          season: initialData.season || "",
         });
       } else {
         // Reset form
@@ -64,6 +66,7 @@ const TripFormDialog = ({ open, onOpenChange, onSuccess, companies, initialData 
           destination: "",
           duration: "",
           price: "",
+          season: "",
           rating: 4.5,
           shortDescription: "",
           fullDescription: "",
@@ -199,6 +202,23 @@ const TripFormDialog = ({ open, onOpenChange, onSuccess, companies, initialData 
                     required 
                     placeholder="1500 ريال"
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label>الموسم</Label>
+                  <Select 
+                    value={formData.season} 
+                    onValueChange={(val) => setFormData({...formData, season: val})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="اختر" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="winter">شتاء</SelectItem>
+                      <SelectItem value="summer">صيف</SelectItem>
+                      <SelectItem value="fall">خريف</SelectItem>
+                      <SelectItem value="spring">ربيع</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label>المستوى</Label>

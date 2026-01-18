@@ -98,6 +98,7 @@ router.get('/', async (req, res) => {
             destination,
             companyId,
             minRating,
+            season,
             limit = 100,
             skip = 0
         } = req.query;
@@ -106,6 +107,7 @@ router.get('/', async (req, res) => {
 
         if (destination) query.destination = destination;
         if (companyId) query.companyId = companyId;
+        if (season) query.season = season;
         if (minRating) query.rating = { $gte: Number(minRating) };
 
         const trips = await CorporateTrip.find(query)
@@ -151,10 +153,19 @@ router.get('/', async (req, res) => {
  */
 router.get('/:slug', async (req, res) => {
     try {
-        const trip = await CorporateTrip.findOne({
-            slug: req.params.slug,
-            isActive: true
-        }).populate('companyId');
+        const { slug } = req.params;
+        const isObjectId = slug.match(/^[0-9a-fA-F]{24}$/);
+
+        const query: any = {
+            isActive: true,
+            $or: [{ slug }]
+        };
+
+        if (isObjectId) {
+            query.$or.push({ _id: slug });
+        }
+
+        const trip = await CorporateTrip.findOne(query).populate('companyId');
 
         if (!trip) {
             return res.status(404).json({ error: 'Trip not found' });

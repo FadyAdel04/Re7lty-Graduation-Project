@@ -82,6 +82,7 @@ export const corporateTripsService = {
             const params: any = {};
             if (filters.destination) params.destination = filters.destination;
             if (filters.companyId) params.companyId = filters.companyId;
+            if (filters.season) params.season = filters.season;
             if (filters.minRating) params.minRating = filters.minRating;
 
             const response = await axios.get(`${API_URL}/api/corporate/trips`, { params });

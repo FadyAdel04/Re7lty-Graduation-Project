@@ -94,8 +94,8 @@ const App = () => (
             }
           />
           
-          {/* Corporate trip details route - must come before /trips/:id */}
-          <Route path="/trips/:tripSlug" element={<TripDetailsPage />} />
+          {/* Corporate trip details route - separate from user trips */}
+          <Route path="/corporate-trips/:tripSlug" element={<TripDetailsPage />} />
           
           {/* Admin routes - protected by email check */}
           <Route path="/admin/dashboard" element={<AdminDashboard />} />

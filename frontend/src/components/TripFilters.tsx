@@ -155,6 +155,31 @@ const TripFiltersComponent = ({
               </Select>
             </div>
 
+            {/* Season Filter */}
+            <div className="space-y-2">
+              <Label>الموسم</Label>
+              <Select
+                value={filters.season || "all"}
+                onValueChange={(value) =>
+                  onFiltersChange({
+                    ...filters,
+                    season: value === "all" ? undefined : value
+                  })
+                }
+              >
+                <SelectTrigger className="rounded-xl">
+                  <SelectValue placeholder="جميع المواسم" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">جميع المواسم</SelectItem>
+                  <SelectItem value="winter">❄️ شتاء</SelectItem>
+                  <SelectItem value="summer">☀️ صيف</SelectItem>
+                  <SelectItem value="fall">🍂 خريف</SelectItem>
+                  <SelectItem value="spring">🌸 ربيع</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Price Range Filter */}
             <div className="space-y-3">
               <Label>نطاق السعر</Label>

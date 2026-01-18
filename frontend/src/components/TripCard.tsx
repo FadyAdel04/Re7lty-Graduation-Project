@@ -14,11 +14,12 @@ interface TripCardProps {
   rating: number;
   image: string;
   author: string;
+  authorImage?: string; // Optional override for author avatar
   likes: number;
   ownerId?: string; // Clerk user ID for profile linking
 }
 
-const TripCard = ({ id, title, destination, duration, rating, image, author, likes, ownerId }: TripCardProps) => {
+const TripCard = ({ id, title, destination, duration, rating, image, author, authorImage, likes, ownerId }: TripCardProps) => {
   const [isLiked, setIsLiked] = useState(false);
   
   // Use ownerId for profile link if available, otherwise fallback to author name (for backward compatibility)
@@ -78,7 +79,7 @@ const TripCard = ({ id, title, destination, duration, rating, image, author, lik
             onClick={(e) => e.stopPropagation()}
           >
             <Avatar className="h-7 w-7">
-              <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${author}`} />
+              <AvatarImage src={authorImage || `https://api.dicebear.com/7.x/avataaars/svg?seed=${author}`} />
               <AvatarFallback>{author[0]}</AvatarFallback>
             </Avatar>
             <span className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">

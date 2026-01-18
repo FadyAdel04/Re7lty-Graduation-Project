@@ -169,6 +169,14 @@ const TripDetailsPage = () => {
                   <MapPin className="h-3 w-3" />
                   {trip.destination}
                 </Badge>
+                {trip.season && (
+                  <Badge variant="outline" className="gap-1 border-blue-200 text-blue-700 bg-blue-50">
+                    {trip.season === 'winter' ? '❄️ شتاء' :
+                     trip.season === 'summer' ? '☀️ صيف' :
+                     trip.season === 'fall' ? '🍂 خريف' :
+                     trip.season === 'spring' ? '🌸 ربيع' : trip.season}
+                  </Badge>
+                )}
                 {trip.difficulty && (
                   <Badge variant="secondary">
                     {trip.difficulty}

@@ -127,7 +127,7 @@ async function getActorSnapshot(userId: string) {
  */
 router.get('/', async (req, res) => {
   try {
-    const { q, city, sort = 'recent', page = '1', limit = '20' } = req.query as any;
+    const { q, city, season, sort = 'recent', page = '1', limit = '20' } = req.query as any;
     const filter: any = {};
     const authInfo = getAuth(req);
     const viewerId = authInfo.userId || undefined;
@@ -145,6 +145,7 @@ router.get('/', async (req, res) => {
     }
 
     if (city) filter.city = String(city);
+    if (season) filter.season = String(season);
     const skip = (Number(page) - 1) * Number(limit);
     const sortObj: Record<string, mongoose.SortOrder> =
       sort === 'likes' ? { likes: -1 } : { postedAt: -1 };

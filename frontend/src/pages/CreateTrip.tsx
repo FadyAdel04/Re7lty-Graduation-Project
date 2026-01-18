@@ -40,6 +40,7 @@ const CreateTrip = () => {
     city: "",
     duration: "",
     budget: "",
+    season: "" as string, // winter, summer, fall, spring
     description: "",
     rating: 4.5,
     coverImage: null as File | null,
@@ -395,6 +396,7 @@ const CreateTrip = () => {
         author: user?.fullName || user?.firstName || user?.username || "مستخدم",
         description: tripData.description,
         budget: tripData.budget,
+        season: tripData.season || undefined, // Only include if selected
         activities: finalActivities,
         days: days.map((day) => ({
           ...day,
@@ -584,6 +586,21 @@ const CreateTrip = () => {
                       />
                     </div>
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="season">الموسم (اختياري)</Label>
+                  <Select value={tripData.season} onValueChange={(value) => setTripData({ ...tripData, season: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="اختر الموسم المناسب للرحلة" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="winter">❄️ شتاء (Winter)</SelectItem>
+                      <SelectItem value="summer">☀️ صيف (Summer)</SelectItem>
+                      <SelectItem value="fall">🍂 خريف (Fall)</SelectItem>
+                      <SelectItem value="spring">🌸 ربيع (Spring)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">

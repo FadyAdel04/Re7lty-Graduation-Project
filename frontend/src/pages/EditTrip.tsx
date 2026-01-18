@@ -45,6 +45,7 @@ const EditTrip = () => {
     city: "",
     duration: "",
     budget: "",
+    season: "" as string, // winter, summer, fall, spring
     description: "",
     rating: 4.5,
     coverImage: null as File | null,
@@ -123,6 +124,7 @@ const EditTrip = () => {
           duration: trip.duration || "",
           budget: trip.budget || "",
           description: trip.description || "",
+          season: trip.season || "",
           rating: trip.rating || 4.5,
           coverImage: null,
           coverImageUrl: trip.image || "",
@@ -490,6 +492,7 @@ const EditTrip = () => {
           ...day,
           activities: day.activities.filter(aIdx => aIdx < activities.length),
         })),
+        season: tripData.season || undefined,
         foodAndRestaurants: foodPlacesWithBase64.filter(fp => fp.image),
       };
 
@@ -663,6 +666,22 @@ const EditTrip = () => {
                       />
                     </div>
                   </div>
+
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="season">الموسم (اختياري)</Label>
+                  <Select value={tripData.season} onValueChange={(value) => setTripData({ ...tripData, season: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="اختر الموسم المناسب للرحلة" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="winter">❄️ شتاء (Winter)</SelectItem>
+                      <SelectItem value="summer">☀️ صيف (Summer)</SelectItem>
+                      <SelectItem value="fall">🍂 خريف (Fall)</SelectItem>
+                      <SelectItem value="spring">🌸 ربيع (Spring)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">

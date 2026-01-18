@@ -1,4 +1,4 @@
-import { Clock, Star, MapPin, ArrowLeft } from "lucide-react";
+import { Clock, Star, MapPin, ArrowLeft, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +14,7 @@ interface TripCardEnhancedProps {
 const TripCardEnhanced = ({ trip, companyName, showCompanyBadge = false }: TripCardEnhancedProps) => {
   return (
     <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group border-gray-100 hover:border-orange-200 rounded-2xl">
-      <Link to={`/trips/${trip.id}`}>
+      <Link to={`/corporate-trips/${trip.id}`}>
         <div className="relative h-56 overflow-hidden">
           <img
             src={trip.images[0]}
@@ -57,6 +57,17 @@ const TripCardEnhanced = ({ trip, companyName, showCompanyBadge = false }: TripC
               <Clock className="h-4 w-4" />
               <span>{trip.duration}</span>
             </div>
+            {trip.season && (
+              <div className="flex items-center gap-1.5 text-orange-600">
+                <Calendar className="h-4 w-4" />
+                <span>
+                  {trip.season === 'winter' ? 'شتاء' :
+                   trip.season === 'summer' ? 'صيف' :
+                   trip.season === 'fall' ? 'خريف' :
+                   trip.season === 'spring' ? 'ربيع' : trip.season}
+                </span>
+              </div>
+            )}
             <div className="flex items-center gap-1">
               <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
               <span className="font-semibold text-gray-900">{trip.rating}</span>

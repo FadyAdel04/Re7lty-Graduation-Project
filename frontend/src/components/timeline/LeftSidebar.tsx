@@ -5,6 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { PlusCircle, MapPin, TrendingUp, Bookmark, Calendar } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export interface TimelineFilters {
   showMyStories: boolean;
@@ -12,6 +19,7 @@ export interface TimelineFilters {
   showRecommended: boolean;
   onlyTrips: boolean;
   onlyTips: boolean;
+  season?: string;
 }
 
 interface LeftSidebarProps {
@@ -30,8 +38,8 @@ interface LeftSidebarProps {
 }
 
 const LeftSidebar = ({ filters, onFiltersChange, userStats, upcomingTrip }: LeftSidebarProps) => {
-  const handleFilterChange = (key: keyof TimelineFilters, value: boolean) => {
-    onFiltersChange({ ...filters, [key]: value });
+  const handleFilterChange = (key: keyof TimelineFilters, value: boolean | string | undefined) => {
+    onFiltersChange({ ...filters, [key]: value } as TimelineFilters);
   };
 
   return (
@@ -109,6 +117,25 @@ const LeftSidebar = ({ filters, onFiltersChange, userStats, upcomingTrip }: Left
                 نصائح فقط
               </Label>
             </div>
+          </div>
+
+          <div className="border-t pt-3 mt-3">
+             <Label className="text-sm font-normal mb-2 block">فلترة حسب الموسم</Label>
+             <Select
+              value={filters.season || "all"}
+              onValueChange={(value) => handleFilterChange("season", value === "all" ? undefined : value)}
+            >
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue placeholder="كل المواسم" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">كل المواسم</SelectItem>
+                <SelectItem value="winter">شتاء</SelectItem>
+                <SelectItem value="summer">صيف</SelectItem>
+                <SelectItem value="fall">خريف</SelectItem>
+                <SelectItem value="spring">ربيع</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
