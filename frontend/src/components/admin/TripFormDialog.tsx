@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useAuth } from "@clerk/clerk-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +21,7 @@ interface TripFormDialogProps {
 }
 
 const TripFormDialog = ({ open, onOpenChange, onSuccess, companies, initialData }: TripFormDialogProps) => {
+  const { getToken } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<any>({
     title: "",
@@ -112,6 +114,7 @@ const TripFormDialog = ({ open, onOpenChange, onSuccess, companies, initialData 
     setLoading(true);
 
     try {
+      const token = await getToken();
       // Clean up data
       const processedData = {
         ...formData,
@@ -122,9 +125,9 @@ const TripFormDialog = ({ open, onOpenChange, onSuccess, companies, initialData 
       };
 
       if (initialData) {
-        await adminService.updateTrip(initialData._id, processedData);
+        await adminService.updateTrip(initialData._id, processedData, token || undefined);
       } else {
-        await adminService.createTrip(processedData);
+        await adminService.createTrip(processedData, token || undefined);
       }
 
       onSuccess();

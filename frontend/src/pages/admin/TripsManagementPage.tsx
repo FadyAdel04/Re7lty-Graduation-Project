@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useUser } from "@clerk/clerk-react";
+import { useUser, useAuth } from "@clerk/clerk-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +12,7 @@ import Footer from "@/components/Footer";
 
 const TripsManagementPage = () => {
   const { user } = useUser();
+  const { getToken } = useAuth();
   const navigate = useNavigate();
   const [trips, setTrips] = useState<any[]>([]);
   const [companies, setCompanies] = useState<any[]>([]);
@@ -36,9 +37,10 @@ const TripsManagementPage = () => {
 
   const fetchData = async () => {
     try {
+      const token = await getToken();
       const [tripsData, companiesData] = await Promise.all([
-        adminService.getAllTrips(),
-        adminService.getAllCompanies()
+        adminService.getAllTrips(token || undefined),
+        adminService.getAllCompanies(token || undefined)
       ]);
       setTrips(tripsData);
       setCompanies(companiesData);
@@ -61,7 +63,8 @@ const TripsManagementPage = () => {
 
   const handleToggleActive = async (id: string) => {
     try {
-      await adminService.toggleTripActive(id);
+      const token = await getToken();
+      await adminService.toggleTripActive(id, token || undefined);
       fetchData();
     } catch (error) {
       alert('حدث خطأ');
@@ -71,7 +74,8 @@ const TripsManagementPage = () => {
   const handleDelete = async (id: string) => {
     if (confirm('هل تريد حذف هذه الرحلة؟')) {
       try {
-        await adminService.deleteTrip(id);
+        const token = await getToken();
+        await adminService.deleteTrip(id, token || undefined);
         fetchData();
         alert('تم حذف الرحلة');
       } catch (error) {

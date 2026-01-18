@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useUser } from "@clerk/clerk-react";
+import { useUser, useAuth } from "@clerk/clerk-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +12,7 @@ import Footer from "@/components/Footer";
 
 const CompaniesManagementPage = () => {
   const { user } = useUser();
+  const { getToken } = useAuth();
   const navigate = useNavigate();
   const [companies, setCompanies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,7 +36,8 @@ const CompaniesManagementPage = () => {
 
   const fetchCompanies = async () => {
     try {
-      const data = await adminService.getAllCompanies();
+      const token = await getToken();
+      const data = await adminService.getAllCompanies(token || undefined);
       setCompanies(data);
     } catch (error) {
       console.error('Error fetching companies:', error);
@@ -56,7 +58,8 @@ const CompaniesManagementPage = () => {
 
   const handleToggleActive = async (id: string) => {
     try {
-      await adminService.toggleCompanyActive(id);
+      const token = await getToken();
+      await adminService.toggleCompanyActive(id, token || undefined);
       fetchCompanies();
     } catch (error) {
       alert('حدث خطأ');
@@ -66,7 +69,8 @@ const CompaniesManagementPage = () => {
   const handleDelete = async (id: string) => {
     if (confirm('هل تريد حذف هذه الشركة؟ سيتم إلغاء تفعيل جميع رحلاتها.')) {
       try {
-        await adminService.deleteCompany(id);
+        const token = await getToken();
+        await adminService.deleteCompany(id, token || undefined);
         fetchCompanies();
         alert('تم حذف الشركة');
       } catch (error) {

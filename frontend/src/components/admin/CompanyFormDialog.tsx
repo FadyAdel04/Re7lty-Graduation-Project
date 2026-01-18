@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useAuth } from "@clerk/clerk-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +26,7 @@ const GRADIENT_PRESETS = [
 ];
 
 const CompanyFormDialog = ({ open, onOpenChange, onSuccess, initialData }: CompanyFormDialogProps) => {
+  const { getToken } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -83,6 +85,7 @@ const CompanyFormDialog = ({ open, onOpenChange, onSuccess, initialData }: Compa
     setLoading(true);
 
     try {
+      const token = await getToken();
       // Process tags
       const processedData = {
         ...formData,
@@ -90,9 +93,9 @@ const CompanyFormDialog = ({ open, onOpenChange, onSuccess, initialData }: Compa
       };
 
       if (initialData) {
-        await adminService.updateCompany(initialData._id, processedData);
+        await adminService.updateCompany(initialData._id, processedData, token || undefined);
       } else {
-        await adminService.createCompany(processedData);
+        await adminService.createCompany(processedData, token || undefined);
       }
 
       onSuccess();
