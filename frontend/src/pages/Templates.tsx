@@ -76,8 +76,15 @@ const CorporateTrips = () => {
     return companies.find(c => c.id === companyId);
   };
 
-  const destinations = corporateTripsService.getDestinations();
-  const priceRange = corporateTripsService.getPriceRange();
+  // Dynamic Filter Data
+  const destinations = [...new Set(allTrips.map(trip => trip.destination).filter(Boolean))];
+  const durations = [...new Set(allTrips.map(trip => trip.duration).filter(Boolean))];
+  
+  const prices = allTrips.map(trip => parseInt(trip.price.replace(/[^0-9]/g, '')) || 0);
+  const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
+  const maxPrice = prices.length > 0 ? Math.max(...prices) : 10000;
+  
+  const priceRange = { min: minPrice, max: maxPrice };
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
@@ -222,6 +229,7 @@ const CorporateTrips = () => {
                 filters={filters}
                 onFiltersChange={setFilters}
                 destinations={destinations}
+                durations={durations}
                 companies={companies}
                 priceRange={priceRange}
               />
@@ -320,9 +328,16 @@ const CorporateTrips = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {companies.map((company) => (
-                <CompanyCard key={company.id} {...company} />
-              ))}
+              {companies.map((company) => {
+                const validTrips = allTrips.filter(t => t.companyId === company.id);
+                return (
+                  <CompanyCard 
+                    key={company.id} 
+                    {...company} 
+                    tripsCount={validTrips.length} 
+                  />
+                );
+              })}
             </div>
           )}
         </section>

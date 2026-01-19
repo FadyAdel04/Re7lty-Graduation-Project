@@ -14,6 +14,7 @@ import { getCurrentSeason } from "@/lib/season-utils";
 const CITIES = [
   'القاهرة',
   'الإسكندرية',
+  'مرسى مطروح',
   'الأقصر',
   'أسوان',
   'شرم الشيخ',
@@ -396,12 +397,12 @@ const TripAIChat = () => {
         </div>
 
         {/* Two Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-280px)]">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-auto lg:h-[calc(100vh-280px)]">
           
           {/* LEFT PANEL - Trip Results & Suggestions */}
-          <div className="order-2 lg:order-1 bg-gradient-to-br from-background via-background to-muted/20 rounded-2xl shadow-lg border p-6 overflow-y-auto">
+          <div className="order-2 lg:order-1 bg-gradient-to-br from-background via-background to-muted/20 rounded-2xl shadow-lg border p-4 md:p-6 overflow-y-auto h-auto lg:h-full min-h-[500px] lg:min-h-0">
             {!tripPlan || currentStep !== 'complete' ? (
-              <div className="h-full flex flex-col items-center justify-center text-center space-y-4">
+              <div className="h-full flex flex-col items-center justify-center text-center space-y-4 py-8 lg:py-0">
                 <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center">
                   <Sparkles className="h-12 w-12 text-primary animate-pulse" />
                 </div>
@@ -411,19 +412,19 @@ const TripAIChat = () => {
                 </div>
               </div>
             ) : (
-              <div className="space-y-6">
+              <div className="space-y-6 pb-20 lg:pb-0 relative">
                 {/* Location Info Card */}
                 <div className="bg-gradient-to-r from-primary/20 via-primary/10 to-transparent p-5 rounded-xl border border-primary/30 shadow-sm">
                   <h3 className="font-bold text-xl mb-2 flex items-center gap-2">
                     <MapPin className="h-6 w-6 text-primary" />
                     {tripPlan.location.name}
                   </h3>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
                     {tripPlan.location.latitude && tripPlan.location.longitude && (
-                      <span>📍 {tripPlan.location.latitude}, {tripPlan.location.longitude}</span>
+                      <span className="flex items-center gap-1">📍 {parseFloat(tripPlan.location.latitude).toFixed(4)}, {parseFloat(tripPlan.location.longitude).toFixed(4)}</span>
                     )}
-                    <span>📅 {days} {days === '1' ? 'يوم' : 'أيام'}</span>
-                    <span>💰 {BUDGET_OPTIONS.find(b => b.value === budget)?.label || budget}</span>
+                    <span className="flex items-center gap-1">📅 {days} {days === '1' ? 'يوم' : 'أيام'}</span>
+                    <span className="flex items-center gap-1">💰 {BUDGET_OPTIONS.find(b => b.value === budget)?.label || budget}</span>
                   </div>
                 </div>
 
@@ -449,7 +450,7 @@ const TripAIChat = () => {
                 {/* Attractions */}
                 {tripPlan.attractions.length > 0 && (
                   <div>
-                    <h3 className="font-bold text-lg mb-3 flex items-center gap-2 sticky top-0 bg-background/95 backdrop-blur-sm py-2 z-10">
+                    <h3 className="font-bold text-lg mb-3 flex items-center gap-2 sticky top-20 lg:top-0 bg-background/95 backdrop-blur-sm py-2 z-10">
                       <Camera className="h-5 w-5 text-primary" />
                       المعالم السياحية
                     </h3>
@@ -482,7 +483,7 @@ const TripAIChat = () => {
                                 <img
                                   src={attraction.photo.images.medium.url}
                                   alt={attraction.name}
-                                  className="w-20 h-20 object-cover rounded-lg"
+                                  className="w-20 h-20 object-cover rounded-lg shrink-0"
                                 />
                               )}
                               <div className="flex-1 min-w-0">
@@ -511,7 +512,7 @@ const TripAIChat = () => {
                 {/* Restaurants */}
                 {tripPlan.restaurants.length > 0 && (
                   <div>
-                    <h3 className="font-bold text-lg mb-3 flex items-center gap-2 sticky top-0 bg-background/95 backdrop-blur-sm py-2 z-10">
+                    <h3 className="font-bold text-lg mb-3 flex items-center gap-2 sticky top-20 lg:top-0 bg-background/95 backdrop-blur-sm py-2 z-10">
                       <Utensils className="h-5 w-5 text-primary" />
                       المطاعم
                     </h3>
@@ -544,7 +545,7 @@ const TripAIChat = () => {
                                 <img
                                   src={restaurant.photo.images.medium.url}
                                   alt={restaurant.name}
-                                  className="w-20 h-20 object-cover rounded-lg"
+                                  className="w-20 h-20 object-cover rounded-lg shrink-0"
                                 />
                               )}
                               <div className="flex-1 min-w-0">
@@ -572,7 +573,7 @@ const TripAIChat = () => {
                 {/* Hotels */}
                 {tripPlan.hotels.length > 0 && (
                   <div>
-                    <h3 className="font-bold text-lg mb-3 flex items-center gap-2 sticky top-0 bg-background/95 backdrop-blur-sm py-2 z-10">
+                    <h3 className="font-bold text-lg mb-3 flex items-center gap-2 sticky top-20 lg:top-0 bg-background/95 backdrop-blur-sm py-2 z-10">
                       <Hotel className="h-5 w-5 text-primary" />
                       الفنادق
                     </h3>
@@ -605,7 +606,7 @@ const TripAIChat = () => {
                                 <img
                                   src={hotel.photo.images.medium.url}
                                   alt={hotel.name}
-                                  className="w-20 h-20 object-cover rounded-lg"
+                                  className="w-20 h-20 object-cover rounded-lg shrink-0"
                                 />
                               )}
                               <div className="flex-1 min-w-0">
@@ -629,8 +630,8 @@ const TripAIChat = () => {
                 )}
 
                 {/* Create Trip Button - Fixed at bottom */}
-                <div className="sticky bottom-0 bg-gradient-to-t from-background via-background to-transparent pt-4 pb-2">
-                  <div className="bg-background/95 backdrop-blur-sm border rounded-xl p-4 shadow-lg">
+                <div className="fixed lg:sticky bottom-0 left-0 right-0 lg:left-auto lg:right-auto bg-gradient-to-t from-background via-background to-transparent pt-4 pb-4 px-4 lg:p-0 z-50 lg:z-auto">
+                  <div className="bg-background/95 backdrop-blur-sm border rounded-xl p-4 shadow-lg lg:mb-2 max-w-md mx-auto lg:max-w-none">
                     <div className="flex items-center justify-between gap-4 mb-3">
                       <div className="text-sm text-muted-foreground flex items-center gap-2">
                         <CheckCircle2 className="h-4 w-4 text-primary" />
@@ -663,7 +664,7 @@ const TripAIChat = () => {
           </div>
 
           {/* RIGHT PANEL - Chat Interface & Options */}
-          <div className="order-1 lg:order-2 flex flex-col bg-gradient-to-br from-primary/5 via-background to-background rounded-2xl shadow-lg border overflow-hidden">
+          <div className="order-1 lg:order-2 flex flex-col bg-gradient-to-br from-primary/5 via-background to-background rounded-2xl shadow-lg border overflow-hidden h-[85vh] lg:h-full">
             {/* Chat Messages Area */}
             <div className="flex-1 p-4 md:p-6 overflow-y-auto">
               <div className="space-y-4">

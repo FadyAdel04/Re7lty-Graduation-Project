@@ -12,8 +12,8 @@ const TripAIChatWidget = () => {
         size="lg"
         onClick={() => navigate('/trip-assistant')}
       >
-        <MessageCircle className="h-5 w-5 ml-2" /> 
-        مساعد الرحلات الذكي
+        <MessageCircle className="h-5 w-5 md:ml-2" /> 
+        <span className="hidden md:inline">مساعد الرحلات الذكي</span>
       </Button>
     </div>
   );

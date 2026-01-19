@@ -18,6 +18,7 @@ interface TripFiltersProps {
   filters: TripFilters;
   onFiltersChange: (filters: TripFilters) => void;
   destinations: string[];
+  durations: string[];
   companies: Company[];
   priceRange: { min: number; max: number };
 }
@@ -26,6 +27,7 @@ const TripFiltersComponent = ({
   filters,
   onFiltersChange,
   destinations,
+  durations,
   companies,
   priceRange
 }: TripFiltersProps) => {
@@ -63,7 +65,7 @@ const TripFiltersComponent = ({
       </Button>
 
       {isOpen && (
-        <Card className="absolute left-0 top-full mt-2 w-80 z-50 shadow-xl border-gray-200">
+        <Card className="absolute left-0 top-full mt-2 w-80 z-40 shadow-xl border-gray-200">
           <CardContent className="p-6 space-y-6">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-lg">الفلاتر</h3>
@@ -92,7 +94,7 @@ const TripFiltersComponent = ({
                 <SelectTrigger className="rounded-xl">
                   <SelectValue placeholder="جميع الوجهات" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[200]">
                   <SelectItem value="all">جميع الوجهات</SelectItem>
                   {destinations.map((dest) => (
                     <SelectItem key={dest} value={dest}>
@@ -118,7 +120,7 @@ const TripFiltersComponent = ({
                 <SelectTrigger className="rounded-xl">
                   <SelectValue placeholder="جميع الشركات" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[200]">
                   <SelectItem value="all">جميع الشركات</SelectItem>
                   {companies.map((company) => (
                     <SelectItem key={company.id} value={company.id}>
@@ -144,13 +146,13 @@ const TripFiltersComponent = ({
                 <SelectTrigger className="rounded-xl">
                   <SelectValue placeholder="جميع المدد" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[200]">
                   <SelectItem value="all">جميع المدد</SelectItem>
-                  <SelectItem value="يوم">يوم واحد</SelectItem>
-                  <SelectItem value="يومين">يومين</SelectItem>
-                  <SelectItem value="3">3 أيام</SelectItem>
-                  <SelectItem value="4">4 أيام</SelectItem>
-                  <SelectItem value="5">5 أيام أو أكثر</SelectItem>
+                  {durations.map((duration) => (
+                    <SelectItem key={duration} value={duration}>
+                      {duration}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -170,7 +172,7 @@ const TripFiltersComponent = ({
                 <SelectTrigger className="rounded-xl">
                   <SelectValue placeholder="جميع المواسم" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[200]">
                   <SelectItem value="all">جميع المواسم</SelectItem>
                   <SelectItem value="winter">❄️ شتاء</SelectItem>
                   <SelectItem value="summer">☀️ صيف</SelectItem>
@@ -201,8 +203,8 @@ const TripFiltersComponent = ({
                 />
               </div>
               <div className="flex items-center justify-between text-sm text-gray-600">
-                <span>{localPriceRange[0]} ر.س</span>
-                <span>{localPriceRange[1]} ر.س</span>
+                <span>{localPriceRange[0]} جنيه مصرى</span>
+                <span>{localPriceRange[1]} جنيه مصرى</span>
               </div>
             </div>
 
@@ -221,7 +223,7 @@ const TripFiltersComponent = ({
                 <SelectTrigger className="rounded-xl">
                   <SelectValue placeholder="جميع التقييمات" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[200]">
                   <SelectItem value="all">جميع التقييمات</SelectItem>
                   <SelectItem value="4.5">4.5+ نجوم</SelectItem>
                   <SelectItem value="4.0">4.0+ نجوم</SelectItem>

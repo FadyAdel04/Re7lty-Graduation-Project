@@ -3,6 +3,48 @@ import { Link } from "react-router-dom";
 import { MapPin, Globe, Search, ArrowDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
+import { useState, useEffect } from "react";
+
+const CountUp = ({ end, duration = 2000, separator = "" }: { end: number, duration?: number, separator?: string }) => {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    let startTime: number | null = null;
+    let animationFrame: number;
+
+    const animate = (timestamp: number) => {
+      if (!startTime) startTime = timestamp;
+      const progress = timestamp - startTime;
+      const percentage = Math.min(progress / duration, 1);
+      
+      // Easing function (easeOutExpo)
+      const easeOut = (x: number): number => {
+        return x === 1 ? 1 : 1 - Math.pow(2, -10 * x);
+      };
+
+      setCount(Math.floor(easeOut(percentage) * end));
+
+      if (progress < duration) {
+        animationFrame = requestAnimationFrame(animate);
+      } else {
+        setCount(end);
+      }
+    };
+
+    animationFrame = requestAnimationFrame(animate);
+
+    return () => cancelAnimationFrame(animationFrame);
+  }, [end, duration]);
+
+  return (
+    <span>
+      {separator 
+        ? count.toString().replace(/\B(?=(\d{3})+(?!\d))/g, separator) 
+        : count}
+    </span>
+  );
+};
+
 const Hero = () => {
   return (
     <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
@@ -59,17 +101,21 @@ const Hero = () => {
         {/* Floating Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 max-w-5xl mx-auto mt-20">
           {[
-            { number: "98%", label: "رضا العملاء" },
-            { number: "+5,000", label: "رحلة موثقة" },
-            { number: "8", label: "وجهات سياحية" },
-            { number: "+2,500", label: "مسافر نشط" },
+            { value: 98, suffix: "%", label: "رضا العملاء" },
+            { value: 5000, prefix: "+", separator: ",", label: "رحلة موثقة" },
+            { value: 10, label: "وجهات سياحية" },
+            { value: 2500, prefix: "+", separator: ",", label: "مسافر نشط" },
           ].map((stat, index) => (
             <div 
               key={index} 
               className="p-6 rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-xl hover:bg-white/10 transition-all duration-300 group"
             >
-              <div className="text-3xl sm:text-4xl font-bold text-white mb-2 group-hover:scale-110 transition-transform duration-300 font-numeric">
-                {stat.number}
+              <div className="text-3xl sm:text-4xl font-bold text-white mb-2 group-hover:scale-110 transition-transform duration-300 font-numeric dir-ltr">
+                <span className="flex items-center justify-center gap-1">
+                  {stat.prefix}
+                  <CountUp end={stat.value} duration={2000} separator={stat.separator} />
+                  {stat.suffix}
+                </span>
               </div>
               <div className="text-sm sm:text-base text-gray-300 font-medium">
                 {stat.label}

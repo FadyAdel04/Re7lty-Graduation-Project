@@ -18,6 +18,10 @@ const AdminHeader = () => {
         
         {/* Admin User Menu */}
         <div className="flex items-center gap-4">
+          <Link to="/" className="text-sm font-medium text-gray-600 hover:text-orange-600 transition-colors flex items-center gap-1">
+            العودة للموقع
+          </Link>
+          <div className="h-4 w-px bg-gray-200 hidden md:block" />
           <span className="text-sm font-medium text-gray-600 hidden md:block">
             مدير النظام
           </span>
