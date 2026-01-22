@@ -155,9 +155,9 @@ const AdminUsers = () => {
               {filteredUsers.map((user) => (
                 <div
                   key={user._id}
-                  className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                  className="flex flex-col md:flex-row items-center md:justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors gap-4"
                 >
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-4 w-full md:w-auto">
                     <img
                       src={user.imageUrl}
                       alt={user.fullName}
@@ -172,7 +172,7 @@ const AdminUsers = () => {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-6">
+                  <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6 w-full md:w-auto mt-4 md:mt-0">
                     <div className="text-center">
                       <p className="text-sm text-gray-600">الرحلات</p>
                       <p className="text-lg font-bold text-gray-900">{user.trips}</p>
@@ -195,7 +195,7 @@ const AdminUsers = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => navigate(`/profile/${user._id}`)}
+                      onClick={() => navigate(`/user/${user._id}`)}
                     >
                       عرض الملف
                     </Button>

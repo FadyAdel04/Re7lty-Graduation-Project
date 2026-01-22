@@ -82,20 +82,41 @@ export const adminService = {
     },
 
     async getSubmissionStats(token?: string) {
-        const response = await axios.get(`${API_URL}/api/submissions/admin/stats`, {
-            headers: await getAuthHeaders(token),
-            withCredentials: true
-        });
-        return response.data;
+        // Use new dedicated analytics endpoint
+        try {
+            const response = await axios.get(`${API_URL}/api/analytics/submissions`, {
+                headers: await getAuthHeaders(token),
+                withCredentials: true
+            });
+            // Transform to expected format [{name, value}]
+            const stats = response.data;
+            return [
+                { name: 'تمت الموافقة', value: stats.find((s: any) => s.status === 'approved')?.count || 0 },
+                { name: 'قيد الانتظار', value: stats.find((s: any) => s.status === 'pending')?.count || 0 },
+                { name: 'مرفوضة', value: stats.find((s: any) => s.status === 'rejected')?.count || 0 }
+            ];
+        } catch (error) {
+            console.error('Error fetching submission stats:', error);
+            return [];
+        }
     },
 
     // Company Management
     async getCompanyStats(token?: string) {
-        const response = await axios.get(`${API_URL}/api/corporate/companies/admin/stats`, {
-            headers: await getAuthHeaders(token),
-            withCredentials: true
-        });
-        return response.data;
+        // Use new dedicated analytics endpoint
+        try {
+            const response = await axios.get(`${API_URL}/api/analytics/companies/activity`, {
+                headers: await getAuthHeaders(token),
+                withCredentials: true
+            });
+            return [
+                { name: 'شركات نشطة', value: response.data.active || 0 },
+                { name: 'شركات مجمدة', value: response.data.inactive || 0 }
+            ];
+        } catch (error) {
+            console.error('Error fetching company stats:', error);
+            return [];
+        }
     },
 
     async getAllCompanies(token?: string) {
@@ -276,48 +297,50 @@ export const adminService = {
         }
     },
 
-    async getDailySales(token?: string) {
-        // Use weekly activity data for daily sales
+    async getDailyActivity(token?: string) {
         try {
             const weeklyData = await this.getWeeklyActivity(token);
+            // Return trips and reactions per day
             return weeklyData.map((day: any) => ({
                 day: day.dayName,
-                sales: day.trips * 5000 + day.reactions * 100 // Mock revenue calculation
+                trips: day.trips,
+                reactions: day.reactions,
+                users: day.users
             }));
         } catch (error) {
             return [];
         }
     },
 
-    async getWeeklySales(token?: string) {
-        // Aggregate weekly data into weeks
+    async getWeeklyUserGrowth(token?: string) {
         try {
             const weeklyData = await this.getWeeklyActivity(token);
-            const weeks = ['الأسبوع 1'];
-            const totalSales = weeklyData.reduce((sum: number, day: any) =>
-                sum + (day.trips * 5000 + day.reactions * 100), 0
-            );
-            return [{ week: weeks[0], sales: totalSales }];
+            // For now, since we only have 7 days of data, we'll map days to "growth"
+            // In a real app with more history, this would group by weeks
+            return weeklyData.map((day: any) => ({
+                week: day.dayName, // Using day name for now as we don't have historical weeks
+                users: day.users
+            }));
         } catch (error) {
             return [];
         }
     },
 
-    async getOrderStatus(token?: string) {
-        // Mock data based on real metrics - can be enhanced later
+    async getCompositionStats(token?: string) {
         try {
             const analytics = await this.getAnalytics(token);
-            const total = analytics.totalTrips || 100;
+            const totalTrips = analytics.totalTrips || 0;
+            const corporateTrips = analytics.totalCorporateTrips || 0;
+            const regularTrips = totalTrips - corporateTrips;
+
             return [
-                { name: 'مؤكد', value: Math.floor(total * 0.65) },
-                { name: 'قيد التنفيذ', value: Math.floor(total * 0.25) },
-                { name: 'ملغي', value: Math.floor(total * 0.10) }
+                { name: 'رحلات شخصية', value: regularTrips },
+                { name: 'رحلات شركات', value: corporateTrips }
             ];
         } catch (error) {
             return [
-                { name: 'مؤكد', value: 145 },
-                { name: 'قيد التنفيذ', value: 67 },
-                { name: 'ملغي', value: 23 }
+                { name: 'رحلات شخصية', value: 0 },
+                { name: 'رحلات شركات', value: 0 }
             ];
         }
     },

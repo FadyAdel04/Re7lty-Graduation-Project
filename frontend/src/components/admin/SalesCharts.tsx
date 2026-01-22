@@ -4,16 +4,16 @@ import BarChart from './charts/BarChart';
 import PieChart from './charts/PieChart';
 
 interface SalesChartsProps {
-  dailySalesData: { day: string; sales: number; }[];
-  weeklySalesData: { week: string; sales: number; }[];
-  orderStatusData: { name: string; value: number; }[];
+  dailyActivityData: any[];
+  userGrowthData: any[];
+  compositionData: any[];
   loading?: boolean;
 }
 
 const SalesCharts: React.FC<SalesChartsProps> = ({
-  dailySalesData,
-  weeklySalesData,
-  orderStatusData,
+  dailyActivityData,
+  userGrowthData,
+  compositionData,
   loading = false
 }) => {
   if (loading) {
@@ -30,32 +30,33 @@ const SalesCharts: React.FC<SalesChartsProps> = ({
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Daily Sales Chart */}
+      {/* Daily Activity Chart (Trips) */}
       <LineChart
-        data={dailySalesData}
+        data={dailyActivityData}
         xKey="day"
-        yKey="sales"
-        title="مبيعات الرحلات اليومية (آخر 7 أيام)"
+        yKey="trips"
+        title="الرحلات المضافة يومياً (آخر 7 أيام)"
         color="#3b82f6"
-        formatValue={(value) => `${value.toLocaleString('ar-EG')} جنيه`}
+        yAxisLabel="عدد الرحلات"
+        formatValue={(value) => `${value}`}
       />
 
-      {/* Weekly Sales Chart */}
+      {/* User Growth Chart */}
       <BarChart
-        data={weeklySalesData}
+        data={userGrowthData}
         xKey="week"
-        yKey="sales"
-        title="مبيعات الرحلات الأسبوعية (آخر 4 أسابيع)"
+        yKey="users"
+        title="المستخدمين الجدد (آخر 7 أيام)"
         color="#10b981"
-        formatValue={(value) => `${value.toLocaleString('ar-EG')} جنيه`}
+        formatValue={(value) => `${value}`}
       />
 
-      {/* Order Status Chart */}
+      {/* Composition Chart */}
       <div className="lg:col-span-2">
         <PieChart
-          data={orderStatusData}
-          title="حالة الطلبات"
-          colors={['#10b981', '#f59e0b', '#ef4444']}
+          data={compositionData}
+          title="توزيع الرحلات (شخصية vs شركات)"
+          colors={['#8b5cf6', '#f59e0b']}
         />
       </div>
     </div>

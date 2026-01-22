@@ -158,7 +158,7 @@ const SubmissionsPage = () => {
             {submissions.map((submission) => (
               <Card key={submission._id}>
                 <CardHeader>
-                  <div className="flex items-start justify-between">
+                  <div className="flex flex-col md:flex-row md:items-start justify-between gap-2">
                     <div>
                       <CardTitle className="text-xl">{submission.companyName}</CardTitle>
                       <p className="text-sm text-gray-500 mt-1">

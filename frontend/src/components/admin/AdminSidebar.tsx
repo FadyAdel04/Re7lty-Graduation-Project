@@ -6,11 +6,26 @@ import {
   Building2,
   BarChart3,
   Users,
+  Settings,
   AlertCircle,
-  Settings
+  ChevronLeft,
+  ChevronRight,
+  X
 } from 'lucide-react';
 
-const AdminSidebar = () => {
+interface AdminSidebarProps {
+  isOpen: boolean;
+  toggleSidebar: () => void;
+  isMobile: boolean;
+  closeMobileSidebar: () => void;
+}
+
+const AdminSidebar: React.FC<AdminSidebarProps> = ({ 
+  isOpen, 
+  toggleSidebar, 
+  isMobile,
+  closeMobileSidebar
+}) => {
   const location = useLocation();
 
   const navItems = [
@@ -72,12 +87,57 @@ const AdminSidebar = () => {
     return location.pathname.startsWith(path);
   };
 
+
   return (
-    <aside className="w-64 bg-white border-l border-gray-200 min-h-screen sticky top-0 right-0">
-      <div className="p-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-6">لوحة التحكم</h2>
-        
-        <nav className="space-y-2">
+    <>
+      {/* Mobile Overlay */}
+      {isMobile && isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={closeMobileSidebar}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside 
+        className={`
+          fixed lg:sticky top-0 right-0 h-screen bg-white border-l border-gray-200 
+          transition-all duration-300 ease-in-out z-50
+          ${isOpen ? 'w-64' : 'w-20'}
+          ${isMobile 
+            ? isOpen ? 'translate-x-0' : 'translate-x-full' 
+            : 'translate-x-0'
+          }
+        `}
+      >
+        <div className="h-full flex flex-col">
+          {/* Header & Toggle */}
+          <div className={`p-6 flex items-center ${isOpen ? 'justify-between' : 'justify-center'}`}>
+            {isOpen && (
+              <h2 className="text-xl font-bold text-gray-900 whitespace-nowrap">
+                لوحة التحكم
+              </h2>
+            )}
+            
+            {/* Desktop Toggle */}
+            <button 
+              onClick={toggleSidebar}
+              className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hidden lg:block"
+            >
+              {isOpen ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+            </button>
+
+            {/* Mobile Close */}
+            <button 
+              onClick={closeMobileSidebar}
+              className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 lg:hidden"
+            >
+              <X size={20} />
+            </button>
+          </div>
+          
+          {/* Navigation */}
+          <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-2">
           {navItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.path);
@@ -87,21 +147,33 @@ const AdminSidebar = () => {
                 key={item.path}
                 to={item.path}
                 className={`
-                  flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200
+                  flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 group relative
                   ${active 
                     ? `${item.bgColor} ${item.color} font-semibold shadow-sm` 
                     : 'text-gray-600 hover:bg-gray-50'
                   }
+                  ${!isOpen && 'justify-center'}
                 `}
               >
-                <Icon className={`h-5 w-5 ${active ? item.color : 'text-gray-400'}`} />
-                <span className="text-sm">{item.name}</span>
+                <Icon className={`h-6 w-6 shrink-0 ${active ? item.color : 'text-gray-400'}`} />
+                
+                {isOpen ? (
+                  <span className="text-sm font-medium whitespace-nowrap overflow-hidden transition-all duration-300 opacity-100">
+                    {item.name}
+                  </span>
+                ) : (
+                  /* Tooltip for collapsed state */
+                  <div className="absolute right-full mr-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 transition-opacity">
+                    {item.name}
+                  </div>
+                )}
               </Link>
             );
           })}
-        </nav>
-      </div>
-    </aside>
+            </nav>
+        </div>
+      </aside>
+    </>
   );
 };
 

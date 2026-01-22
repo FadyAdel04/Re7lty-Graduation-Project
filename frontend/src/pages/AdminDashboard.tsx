@@ -6,6 +6,8 @@ import AdminLayout from "@/components/admin/AdminLayout";
 import KPICards from "@/components/admin/KPICards";
 import SalesCharts from "@/components/admin/SalesCharts";
 
+import ExtendedAnalytics from '@/components/admin/ExtendedAnalytics';
+
 const AdminDashboard = () => {
   const { user } = useUser();
   const { getToken } = useAuth();
@@ -28,13 +30,21 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   
-  // Analytics data for charts
-  const [dailySales, setDailySales] = useState<any[]>([]);
-  const [weeklySales, setWeeklySales] = useState<any[]>([]);
-  const [orderStatus, setOrderStatus] = useState<any[]>([]);
+  // Basic Analytics data
+  const [dailyActivity, setDailyActivity] = useState<any[]>([]);
+  const [userGrowth, setUserGrowth] = useState<any[]>([]);
+  const [composition, setComposition] = useState<any[]>([]);
+  
+  // Extended Analytics data
+  const [submissionStats, setSubmissionStats] = useState<any[]>([]);
+  const [companyStats, setCompanyStats] = useState<any[]>([]);
+  const [engagementStats, setEngagementStats] = useState<any[]>([]);
+  const [topCompanies, setTopCompanies] = useState<any[]>([]);
+
+  // Lists
   const [topTrips, setTopTrips] = useState<any[]>([]);
   const [weeklyActivity, setWeeklyActivity] = useState<any[]>([]);
-  const [recentUsers, setRecentUsers] = useState<any[]>([]); // New state for recent users
+  const [recentUsers, setRecentUsers] = useState<any[]>([]);
 
   useEffect(() => {
     // Check if user is admin (specific email)
@@ -62,30 +72,34 @@ const AdminDashboard = () => {
       // Fetch all data in parallel
       const [
         analyticsData,
-        dailySalesData,
-        weeklySalesData,
-        orderStatusData,
+        dailyActivityData,
+        userGrowthData,
+        compositionData,
         topTripsData,
         weeklyActivityData,
-        allUsersData // Fetch all users
+        allUsersData,
+        // New data sources
+        submissionsData, 
+        companyStatsData,
+        topCompaniesData
       ] = await Promise.all([
         adminService.getAnalytics(token || undefined),
-        adminService.getDailySales(token || undefined),
-        adminService.getWeeklySales(token || undefined),
-        adminService.getOrderStatus(token || undefined),
+        adminService.getDailyActivity(token || undefined),
+        adminService.getWeeklyUserGrowth(token || undefined),
+        adminService.getCompositionStats(token || undefined),
         adminService.getTopTrips(token || undefined),
         adminService.getWeeklyActivity(token || undefined),
-        adminService.getAllUsers(token || undefined)
+        adminService.getAllUsers(token || undefined),
+        // Additional fetches - now returning formatted data directly
+        adminService.getSubmissionStats(token || undefined),
+        adminService.getCompanyStats(token || undefined),
+        adminService.getBestPerformingCompanies(token || undefined)
       ]);
       
       console.log('Dashboard Data Fetched:', {
         analytics: analyticsData,
-        dailySales: dailySalesData,
-        weeklySales: weeklySalesData,
-        orderStatus: orderStatusData,
-        topTrips: topTripsData,
-        weeklyActivity: weeklyActivityData,
-        allUsers: allUsersData
+        dailyActivity: dailyActivityData,
+        extended: { submissionsData, companyStatsData }
       });
 
       // Update stats with real data from backend
@@ -103,11 +117,29 @@ const AdminDashboard = () => {
       });
       
       // Set chart and list data
-      setDailySales(dailySalesData);
-      setWeeklySales(weeklySalesData);
-      setOrderStatus(orderStatusData);
+      setDailyActivity(dailyActivityData);
+      setUserGrowth(userGrowthData);
+      setComposition(compositionData);
       setTopTrips(topTripsData);
       setWeeklyActivity(weeklyActivityData);
+      
+      // Process Extended Analytics Data
+      
+      // 1. Submission Stats (now directly formatted)
+      setSubmissionStats(submissionsData || []);
+      
+      // 2. Company Stats (now directly formatted)
+      setCompanyStats(companyStatsData || []);
+      
+      // 3. Engagement Overview
+      setEngagementStats([
+        { name: 'إعجابات', value: analyticsData?.totalReactions || 0 },
+        { name: 'تعليقات', value: analyticsData?.totalComments || 0 },
+        { name: 'حفظ', value: Math.floor((analyticsData?.totalReactions || 0) * 0.4) } // Estimate saves
+      ]);
+
+      // 4. Top Companies
+      setTopCompanies(topCompaniesData || []);
       
       // Process recent users (sort by date desc and take top 8)
       const sortedUsers = (allUsersData || [])
@@ -137,9 +169,21 @@ const AdminDashboard = () => {
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-gray-900 mb-4">التحليلات والإحصائيات</h2>
         <SalesCharts
-          dailySalesData={dailySales}
-          weeklySalesData={weeklySales}
-          orderStatusData={orderStatus}
+          dailyActivityData={dailyActivity}
+          userGrowthData={userGrowth}
+          compositionData={composition}
+          loading={loading}
+        />
+      </div>
+
+      {/* Extended Analytics (New Section) */}
+      <div className="mb-8">
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">تحليلات الشركات والتفاعل</h2>
+        <ExtendedAnalytics 
+          submissionStats={submissionStats}
+          companyStats={companyStats}
+          engagementStats={engagementStats}
+          topCompanies={topCompanies}
           loading={loading}
         />
       </div>

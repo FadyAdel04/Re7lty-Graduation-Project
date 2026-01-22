@@ -8,6 +8,7 @@ import { adminService } from "@/services/adminService";
 import { Plus, Edit, Trash2, ToggleLeft, ToggleRight } from "lucide-react";
 import CompanyFormDialog from "@/components/admin/CompanyFormDialog";
 import AdminLayout from "@/components/admin/AdminLayout";
+import SubmissionsModal from "@/components/admin/SubmissionsModal";
 
 const CompaniesManagementPage = () => {
   const { user } = useUser();
@@ -19,6 +20,7 @@ const CompaniesManagementPage = () => {
   
   // Dialog State
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isSubmissionsOpen, setIsSubmissionsOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState<any>(null);
 
   useEffect(() => {
@@ -86,21 +88,41 @@ const CompaniesManagementPage = () => {
   return (
     <AdminLayout>
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">إدارة الشركات</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">إدارة الشركات</h1>
           <p className="text-gray-600">عرض وتعديل الشركات السياحية</p>
         </div>
-        <Button className="bg-orange-600 hover:bg-orange-700" onClick={handleCreate}>
-          <Plus className="h-4 w-4 ml-2" />
-          إضافة شركة
-        </Button>
+        <div className="flex gap-3 w-full md:w-auto">
+          <Button 
+            variant="outline" 
+            className="flex-1 md:flex-none"
+            onClick={() => setIsSubmissionsOpen(true)}
+          >
+            <span className="relative">
+              إدارة الطلبات
+              {recentSubmissions.filter(s => s.status === 'pending').length > 0 && (
+                <span className="absolute -top-1 -right-2 h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse" />
+              )}
+            </span>
+          </Button>
+          <Button 
+            className="bg-orange-600 hover:bg-orange-700 flex-1 md:flex-none" 
+            onClick={handleCreate}
+          >
+            <Plus className="h-4 w-4 ml-2" />
+            إضافة شركة
+          </Button>
+        </div>
       </div>
 
       {/* Recent Submissions Section */}
       <Card className="mb-8">
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>أحدث الطلبات</CardTitle>
+          <Button variant="link" size="sm" onClick={() => setIsSubmissionsOpen(true)}>
+             عرض الكل
+          </Button>
         </CardHeader>
         <CardContent>
           {recentSubmissions.length === 0 ? (
@@ -108,12 +130,12 @@ const CompaniesManagementPage = () => {
           ) : (
             <div className="space-y-4">
               {recentSubmissions.map((submission: any) => (
-                <div key={submission._id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                <div key={submission._id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors gap-4">
                   <div>
                     <h4 className="font-bold text-gray-900">{submission.companyName}</h4>
                     <p className="text-sm text-gray-500">{submission.email}</p>
                   </div>
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
                     <span className={`px-3 py-1 text-xs rounded-full font-medium ${
                       submission.status === 'approved' ? 'bg-green-100 text-green-700' :
                       submission.status === 'rejected' ? 'bg-red-100 text-red-700' :
@@ -122,7 +144,7 @@ const CompaniesManagementPage = () => {
                       {submission.status === 'approved' ? 'موافق عليه' :
                        submission.status === 'rejected' ? 'مرفوض' : 'قيد الانتظار'}
                     </span>
-                    <Button variant="outline" size="sm" onClick={() => navigate('/admin/submissions')}>
+                    <Button variant="outline" size="sm" onClick={() => setIsSubmissionsOpen(true)}>
                       تفاصيل
                     </Button>
                   </div>
@@ -150,7 +172,7 @@ const CompaniesManagementPage = () => {
             <Card key={company._id} className={!company.isActive ? 'opacity-60' : ''}>
               <CardContent className="p-6">
                 <div className="flex items-start justify-between mb-4">
-                  <div className={`h-16 w-16 rounded-2xl bg-gradient-to-br ${company.color} flex items-center justify-center text-white font-bold text-xl shadow-lg`}>
+                  <div className={`h-16 w-16 rounded-2xl bg-gradient-to-br ${company.color} flex items-center justify-center text-white font-bold text-xl shadow-lg shrink-0 overflow-hidden`}>
                     {company.logo.startsWith('http') ? (
                        <img src={company.logo} alt={company.name} className="w-full h-full object-cover" />
                      ) : (
@@ -162,18 +184,18 @@ const CompaniesManagementPage = () => {
                   </Badge>
                 </div>
 
-                <h3 className="text-xl font-bold text-gray-900 mb-2">{company.name}</h3>
-                <p className="text-gray-500 text-sm mb-4 line-clamp-2">{company.description}</p>
+                <h3 className="text-xl font-bold text-gray-900 mb-2 truncate" title={company.name}>{company.name}</h3>
+                <p className="text-gray-500 text-sm mb-4 line-clamp-2 min-h-[40px]">{company.description}</p>
 
                 <div className="space-y-2 mb-4 text-sm">
-                  <p className="text-gray-600">
-                    <strong>التقييم:</strong> {company.rating} ⭐
+                  <p className="text-gray-600 flex justify-between">
+                    <strong>التقييم:</strong> <span>{company.rating} ⭐</span>
                   </p>
-                  <p className="text-gray-600">
-                    <strong>عدد الرحلات:</strong> {company.tripsCount}
+                  <p className="text-gray-600 flex justify-between">
+                    <strong>عدد الرحلات:</strong> <span>{company.tripsCount}</span>
                   </p>
-                  <p className="text-gray-600">
-                    <strong>الهاتف:</strong> {company.contactInfo.phone}
+                  <p className="text-gray-600 flex justify-between">
+                    <strong>الهاتف:</strong> <span className="truncate ml-2" dir="ltr">{company.contactInfo.phone}</span>
                   </p>
                 </div>
 
@@ -181,21 +203,27 @@ const CompaniesManagementPage = () => {
                   <Button 
                     size="sm" 
                     variant="outline"
+                    className="flex-1"
                     onClick={() => handleToggleActive(company._id)}
+                    title={company.isActive ? 'تعطيل' : 'تفعيل'}
                   >
                     {company.isActive ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
                   </Button>
                   <Button 
                     size="sm" 
                     variant="outline"
+                    className="flex-1"
                     onClick={() => handleEdit(company)}
+                    title="تعديل"
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
                   <Button 
                     size="sm" 
                     variant="destructive"
+                    className="flex-1"
                     onClick={() => handleDelete(company._id)}
+                    title="حذف"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -211,6 +239,14 @@ const CompaniesManagementPage = () => {
         onOpenChange={setIsDialogOpen}
         initialData={editingCompany}
         onSuccess={fetchData}
+      />
+
+      <SubmissionsModal 
+        open={isSubmissionsOpen}
+        onOpenChange={(open) => {
+          setIsSubmissionsOpen(open);
+          if (!open) fetchData(); // Refresh recent list when closed
+        }}
       />
     </AdminLayout>
   );

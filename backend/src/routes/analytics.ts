@@ -4,6 +4,7 @@ import { Trip } from "../models/Trip";
 import { TripLove } from "../models/TripLove";
 import { CorporateCompany } from "../models/CorporateCompany";
 import { CorporateTrip } from "../models/CorporateTrip";
+import { CompanySubmission } from "../models/CompanySubmission";
 import { requireAuthStrict, getAuth } from "../utils/auth";
 
 const router = Router();
@@ -219,6 +220,64 @@ router.get('/top-trips', requireAuthStrict, async (req, res) => {
     } catch (error: any) {
         console.error('Error fetching top trips:', error);
         res.status(500).json({ error: 'Failed to fetch top trips', message: error.message });
+    }
+});
+
+/**
+ * GET /api/analytics/submissions
+ * Get company submission statistics
+ */
+router.get('/submissions', requireAuthStrict, async (req, res) => {
+    try {
+        const { userId } = getAuth(req);
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        const submissionStats = await CompanySubmission.aggregate([
+            {
+                $group: {
+                    _id: '$status',
+                    count: { $sum: 1 }
+                }
+            }
+        ]);
+
+        const formattedStats = submissionStats.map(stat => ({
+            status: stat._id,
+            count: stat.count
+        }));
+
+        res.json(formattedStats);
+    } catch (error: any) {
+        console.error('Error fetching submission stats:', error);
+        res.status(500).json({ error: 'Failed to fetch submission stats', message: error.message });
+    }
+});
+
+/**
+ * GET /api/analytics/companies/activity
+ * Get company activity statistics
+ */
+router.get('/companies/activity', requireAuthStrict, async (req, res) => {
+    try {
+        const { userId } = getAuth(req);
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        const [activeCompanies, inactiveCompanies] = await Promise.all([
+            CorporateCompany.countDocuments({ isActive: true }),
+            CorporateCompany.countDocuments({ isActive: false })
+        ]);
+
+        res.json({
+            active: activeCompanies,
+            inactive: inactiveCompanies
+        });
+    } catch (error: any) {
+        console.error('Error fetching company activity:', error);
+        res.status(500).json({ error: 'Failed to fetch company activity', message: error.message });
     }
 });
 
