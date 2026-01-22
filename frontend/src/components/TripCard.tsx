@@ -1,10 +1,11 @@
-import { Clock, Heart, Star, Snowflake, Sun, Leaf, Cloud } from "lucide-react";
+import { Clock, Heart, Star, Snowflake, Sun, Leaf, Cloud, Flag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Link } from "react-router-dom";
 import { useState } from "react";
+import ReportTripDialog from "@/components/ReportTripDialog";
 
 interface TripCardProps {
   id: string;
@@ -74,6 +75,23 @@ const TripCard = ({ id, title, destination, duration, rating, image, author, aut
           >
             <Heart className={`h-4 w-4 ${isLiked ? 'fill-destructive text-destructive' : ''}`} />
           </Button>
+
+          {/* Report Button - visible on hover or if card is active */}
+          <div className="absolute top-3 right-12 opacity-0 group-hover:opacity-100 transition-opacity duration-300" onClick={(e) => e.preventDefault()}>
+            <ReportTripDialog 
+              tripId={id} 
+              tripTitle={title}
+              trigger={
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="bg-background/90 backdrop-blur-sm hover:bg-destructive hover:text-white h-8 w-8 rounded-full"
+                >
+                  <Flag className="h-3.5 w-3.5" />
+                </Button>
+              }
+            />
+          </div>
         </div>
         
         <CardContent className="p-5 space-y-3">

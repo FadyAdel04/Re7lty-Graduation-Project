@@ -34,6 +34,7 @@ import CompaniesManagementPage from "./pages/admin/CompaniesManagementPage";
 import TripsManagementPage from "./pages/admin/TripsManagementPage";
 import AdminUsers from "./pages/admin/AdminUsers";
 import ReportsPage from "./pages/admin/ReportsPage";
+import ComplaintsPage from "./pages/admin/ComplaintsPage";
 
 const queryClient = new QueryClient();
 
@@ -106,6 +107,7 @@ const AppContent = () => {
         <Route path="/admin/trips" element={<TripsManagementPage />} />
         <Route path="/admin/users" element={<AdminUsers />} />
         <Route path="/admin/reports" element={<ReportsPage />} />
+        <Route path="/admin/complaints" element={<ComplaintsPage />} />
         
         {/* Trip detail route - must come after /trips/edit/:id to avoid conflicts */}
         <Route path="/trips/:id" element={<TripDetail />} />

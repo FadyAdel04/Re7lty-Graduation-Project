@@ -14,6 +14,8 @@ import corporateCompaniesRouter from "./routes/corporateCompanies";
 import corporateTripsRouter from "./routes/corporateTrips";
 import analyticsRouter from "./routes/analytics";
 import adminUsersRouter from "./routes/adminUsers";
+import complaintsRouter from "./routes/complaints";
+import contentReportsRouter from "./routes/contentReports";
 import { connectToDatabase } from "./db";
 import mongoose from "mongoose";
 
@@ -950,6 +952,10 @@ export function createApp() {
     // Analytics routes (admin only)
     app.use("/api/analytics", analyticsRouter);
     app.use("/api/admin/users", adminUsersRouter);
+
+    // Complaints and Content Reports
+    app.use("/api/complaints", complaintsRouter);
+    app.use("/api/content-reports", contentReportsRouter);
 
     app.use("/api", (req, res) => {
         res.status(404).json({ error: "Not Found", path: req.path });

@@ -5,9 +5,10 @@ import Footer from "@/components/Footer";
 import { listTrips, toggleTripLove, toggleTripSave, toggleFollowUser, getUserFollowing } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Heart, MessageCircle, Share2, Bookmark, MapPin, Star, Eye, Calendar } from "lucide-react";
+import { Heart, MessageCircle, Share2, Bookmark, MapPin, Star, Eye, Calendar, Flag } from "lucide-react";
 import TripComments from "@/components/TripComments";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import ReportTripDialog from "@/components/ReportTripDialog";
 import { SignedIn, SignedOut, useAuth, useUser } from "@clerk/clerk-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -796,6 +797,19 @@ const Timeline = () => {
                           <span className="ml-1 sm:ml-2 hidden md:inline">رحلتهم</span>
                         </Button>
                       </Link>
+
+                       {/* Report Button */}
+                       <SignedIn>
+                        <ReportTripDialog 
+                          tripId={tripId} 
+                          tripTitle={trip.title}
+                          trigger={
+                            <Button variant="ghost" size="sm" className="rounded-full px-2 sm:px-3 text-muted-foreground hover:text-destructive">
+                              <Flag className="h-4 w-4" />
+                            </Button>
+                          }
+                        />
+                       </SignedIn>
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
                       <SignedIn>

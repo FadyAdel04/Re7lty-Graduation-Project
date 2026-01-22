@@ -7,10 +7,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Mail, Phone, MapPin, Send } from "lucide-react";
+import { Mail, Phone, MapPin, Send, Loader2 } from "lucide-react";
+import { complaintsService } from "@/services/complaintsService";
+// import { useAuth } from "@clerk/clerk-react"; // Moved to next block for safer replacement
+
+import { useAuth } from "@clerk/clerk-react";
 
 const Contact = () => {
   const { toast } = useToast();
+  const { getToken } = useAuth();
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -18,7 +24,7 @@ const Contact = () => {
     message: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.name || !formData.email || !formData.message) {
@@ -30,19 +36,32 @@ const Contact = () => {
       return;
     }
 
-    // In a real application, you would send this to your backend
-    toast({
-      title: "تم الإرسال",
-      description: "شكراً لتواصلك معنا. سنرد عليك في أقرب وقت ممكن.",
-    });
+    setLoading(true);
+    try {
+      const token = await getToken();
+      await complaintsService.submitComplaint(formData, token || undefined);
+      
+      toast({
+        title: "تم الإرسال",
+        description: "شكراً لتواصلك معنا. سنرد عليك في أقرب وقت ممكن.",
+      });
 
-    // Reset form
-    setFormData({
-      name: "",
-      email: "",
-      subject: "",
-      message: "",
-    });
+      // Reset form
+      setFormData({
+        name: "",
+        email: "",
+        subject: "",
+        message: "",
+      });
+    } catch (error: any) {
+      toast({
+        title: "خطأ",
+        description: error.response?.data?.error || "فشل إرسال الرسالة. يرجى المحاولة مرة أخرى.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -149,9 +168,18 @@ const Contact = () => {
                   required
                 />
               </div>
-              <Button type="submit" className="w-full sm:w-auto">
-                <Send className="h-4 w-4 ml-2" />
-                إرسال الرسالة
+              <Button type="submit" className="w-full sm:w-auto" disabled={loading}>
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                    جاري الإرسال...
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-4 w-4 ml-2" />
+                    إرسال الرسالة
+                  </>
+                )}
               </Button>
             </form>
           </CardContent>

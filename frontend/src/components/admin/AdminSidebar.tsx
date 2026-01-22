@@ -70,13 +70,6 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
       icon: AlertCircle,
       color: 'text-red-600',
       bgColor: 'bg-red-50'
-    },
-    {
-      name: 'الإعدادات',
-      path: '/admin/settings',
-      icon: Settings,
-      color: 'text-gray-600',
-      bgColor: 'bg-gray-50'
     }
   ];
 
