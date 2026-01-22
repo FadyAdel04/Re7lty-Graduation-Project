@@ -14,6 +14,7 @@ const NotificationSchema = new Schema(
     message: { type: String, required: true },
     tripId: { type: Schema.Types.ObjectId, ref: "Trip" },
     commentId: { type: Schema.Types.ObjectId },
+    link: String,
     metadata: Schema.Types.Mixed,
     isRead: { type: Boolean, default: false },
   },

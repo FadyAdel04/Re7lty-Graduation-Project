@@ -28,7 +28,9 @@ const NotificationBell = () => {
 
   const handleNotificationClick = async (notification: any) => {
     await markAsRead(notification.id);
-    if (notification.tripId) {
+    if (notification.link) {
+      navigate(notification.link);
+    } else if (notification.tripId) {
       navigate(`/trips/${notification.tripId}`);
     } else if (notification.actorId) {
       navigate(`/user/${notification.actorId}`);

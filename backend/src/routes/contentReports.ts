@@ -2,6 +2,7 @@ import express from 'express';
 import { getAuth } from '@clerk/express';
 import ContentReport from '../models/ContentReport';
 import { Trip } from '../models/Trip';
+import { Notification as NotificationModel } from '../models/Notification';
 
 const router = express.Router();
 
@@ -142,14 +143,43 @@ router.patch('/:id', requireAuth, async (req, res) => {
         const report = await ContentReport.findByIdAndUpdate(
             id,
             updateData,
-            { new: true }
-        ).populate('tripId', 'title destination author');
+            { new: false }
+        ).populate('tripId', 'title');
 
         if (!report) {
             return res.status(404).json({ error: 'Report not found' });
         }
 
-        res.json(report);
+        const { userId: adminId } = getAuth(req);
+
+        // Send notification if status changed
+        if (status && status !== report.status && report.reportedBy && adminId) {
+            let message = "";
+            const tripTitle = (report.tripId as any)?.title || "Unknown Trip";
+
+            if (status === 'resolved') {
+                message = `تمت مراجعة بلاغك بخصوص الرحلة "${tripTitle}" واتخاذ الإجراء اللازم. شكراً لمساعدتك في الحفاظ على أمان مجتمعنا!`;
+            } else if (status === 'dismissed') {
+                message = `تمت مراجعة بلاغك بخصوص الرحلة "${tripTitle}". لم نجد أي انتهاك في الوقت الحالي، ولكننا نقدر يقظتك.`;
+            }
+
+            if (message) {
+                await NotificationModel.create({
+                    recipientId: report.reportedBy,
+                    actorId: adminId,
+                    actorName: "إدارة رحلتي",
+                    actorImage: "/assets/logo.png",
+                    type: "system",
+                    message: message,
+                    isRead: false,
+                    tripId: (report.tripId as any)?._id,
+                    link: `/trips/${(report.tripId as any)?._id}`
+                });
+            }
+        }
+
+        const updatedReport = await ContentReport.findById(id).populate('tripId', 'title destination author');
+        res.json(updatedReport);
     } catch (error: any) {
         console.error('Error updating report:', error);
         res.status(500).json({ error: 'Failed to update report', message: error.message });

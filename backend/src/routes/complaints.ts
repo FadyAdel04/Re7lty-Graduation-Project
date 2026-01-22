@@ -13,7 +13,7 @@ const requireAuthStrict = (req: express.Request, res: express.Response, next: ex
     next();
 };
 
-import { Notification } from '../models/Notification';
+import { Notification as NotificationModel } from '../models/Notification';
 
 /**
  * POST /api/complaints
@@ -114,19 +114,21 @@ router.patch('/:id', requireAuthStrict, async (req, res) => {
             const subjectPreview = complaint.subject || "No Subject";
 
             if (status === 'resolved') {
-                message = `Your inquiry "${subjectPreview}" has been marked as resolved. Thank you for helping us improve the platform!`;
+                message = `تم حل استفسارك بخصوص "${subjectPreview}". شكراً لمساعدتك في تحسين المنصة!`;
             } else if (status === 'dismissed') {
-                message = `Your inquiry "${subjectPreview}" has been reviewed and closed. Thank you for your feedback.`;
+                message = `تمت مراجعة وإغلاق استفسارك بخصوص "${subjectPreview}". شكراً لملاحظاتك.`;
             }
 
             if (message) {
-                await Notification.create({
+                await NotificationModel.create({
                     recipientId: complaint.userId,
                     actorId: adminId,
-                    actorName: "Re7lty Support",
+                    actorName: "دعم رحلتي",
+                    actorImage: "/assets/logo.png",
                     type: "system",
                     message: message,
                     isRead: false,
+                    link: "/contact"
                 });
             }
         }
