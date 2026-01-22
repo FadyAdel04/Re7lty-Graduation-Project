@@ -14,7 +14,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 interface LineChartProps {
   data: any[];
   xKey: string;
-  yKey: string;
+  yKey?: string; // Optional for backward compatibility
+  lines?: Array<{ key: string; name: string; color: string }>; // For multiple lines
   title: string;
   color?: string;
   yAxisLabel?: string;
@@ -25,11 +26,15 @@ const LineChart: React.FC<LineChartProps> = ({
   data,
   xKey,
   yKey,
+  lines,
   title,
   color = '#3b82f6',
   yAxisLabel,
   formatValue = (value) => value.toLocaleString('ar-EG')
 }) => {
+  // Use lines if provided, otherwise fall back to single yKey
+  const lineConfigs = lines || (yKey ? [{ key: yKey, name: yKey, color }] : []);
+
   return (
     <Card>
       <CardHeader>
@@ -63,14 +68,18 @@ const LineChart: React.FC<LineChartProps> = ({
             <Legend 
               wrapperStyle={{ direction: 'rtl', paddingTop: '10px' }}
             />
-            <Line 
-              type="monotone" 
-              dataKey={yKey} 
-              stroke={color} 
-              strokeWidth={2}
-              dot={{ fill: color, r: 4 }}
-              activeDot={{ r: 6 }}
-            />
+            {lineConfigs.map((lineConfig) => (
+              <Line 
+                key={lineConfig.key}
+                type="monotone" 
+                dataKey={lineConfig.key}
+                name={lineConfig.name}
+                stroke={lineConfig.color} 
+                strokeWidth={2}
+                dot={{ fill: lineConfig.color, r: 4 }}
+                activeDot={{ r: 6 }}
+              />
+            ))}
           </RechartsLineChart>
         </ResponsiveContainer>
       </CardContent>

@@ -365,5 +365,24 @@ export const adminService = {
             console.error('Error fetching best performing companies:', error);
             return [];
         }
+    },
+
+    async getReportsData(token?: string, period?: string, startDate?: string, endDate?: string) {
+        try {
+            const params: any = {};
+            if (period) params.period = period;
+            if (startDate) params.startDate = startDate;
+            if (endDate) params.endDate = endDate;
+
+            const response = await axios.get(`${API_URL}/api/analytics/reports`, {
+                params,
+                headers: await getAuthHeaders(token),
+                withCredentials: true
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching reports data:', error);
+            throw error;
+        }
     }
 };

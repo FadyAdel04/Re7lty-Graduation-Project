@@ -1,12 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUser, useAuth } from "@clerk/clerk-react";
+import { Heart, Bookmark, Users as UsersIcon, Plane, ThumbsUp } from "lucide-react";
 import { adminService } from "@/services/adminService";
 import AdminLayout from "@/components/admin/AdminLayout";
 import KPICards from "@/components/admin/KPICards";
-import SalesCharts from "@/components/admin/SalesCharts";
-
-import ExtendedAnalytics from '@/components/admin/ExtendedAnalytics';
 
 const AdminDashboard = () => {
   const { user } = useUser();
@@ -162,30 +160,43 @@ const AdminDashboard = () => {
     <AdminLayout>
       {/* KPI Cards */}
       <div className="mb-8">
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">الإحصائيات</h2>
         <KPICards stats={stats} loading={loading} />
       </div>
 
-      {/* Sales Charts */}
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">التحليلات والإحصائيات</h2>
-        <SalesCharts
-          dailyActivityData={dailyActivity}
-          userGrowthData={userGrowth}
-          compositionData={composition}
-          loading={loading}
-        />
-      </div>
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div 
+          onClick={() => navigate('/admin/companies')}
+          className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-white cursor-pointer hover:shadow-lg transition-shadow"
+        >
+          <h3 className="text-lg font-semibold mb-2">إدارة الشركات</h3>
+          <p className="text-purple-100 text-sm">عرض وتعديل الشركات السياحية</p>
+        </div>
 
-      {/* Extended Analytics (New Section) */}
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">تحليلات الشركات والتفاعل</h2>
-        <ExtendedAnalytics 
-          submissionStats={submissionStats}
-          companyStats={companyStats}
-          engagementStats={engagementStats}
-          topCompanies={topCompanies}
-          loading={loading}
-        />
+        <div 
+          onClick={() => navigate('/admin/trips')}
+          className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 text-white cursor-pointer hover:shadow-lg transition-shadow"
+        >
+          <h3 className="text-lg font-semibold mb-2">إدارة الرحلات</h3>
+          <p className="text-green-100 text-sm">إدارة رحلات الشركات</p>
+        </div>
+
+        <div 
+          onClick={() => navigate('/admin/users')}
+          className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 text-white cursor-pointer hover:shadow-lg transition-shadow"
+        >
+          <h3 className="text-lg font-semibold mb-2">إدارة المستخدمين</h3>
+          <p className="text-blue-100 text-sm">عرض وإدارة المستخدمين</p>
+        </div>
+
+        <div 
+          onClick={() => navigate('/admin/reports')}
+          className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-6 text-white cursor-pointer hover:shadow-lg transition-shadow"
+        >
+          <h3 className="text-lg font-semibold mb-2">التقارير التفصيلية</h3>
+          <p className="text-orange-100 text-sm">تقارير شاملة مع تصدير PDF</p>
+        </div>
       </div>
 
       {/* Top Trips Section */}
@@ -206,11 +217,17 @@ const AdminDashboard = () => {
                   </div>
                   <div className="flex items-center gap-4">
                     <div className="text-center">
-                      <p className="text-xs text-gray-500">إعجابات</p>
+                      <p className="text-xs text-gray-500 flex items-center gap-1 justify-center">
+                        <Heart className="h-3 w-3" />
+                        إعجابات
+                      </p>
                       <p className="font-bold text-green-600">{trip.likes || 0}</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-xs text-gray-500">حفظ</p>
+                      <p className="text-xs text-gray-500 flex items-center gap-1 justify-center">
+                        <Bookmark className="h-3 w-3" />
+                        حفظ
+                      </p>
                       <p className="font-bold text-blue-600">{trip.saves || 0}</p>
                     </div>
                   </div>
@@ -221,7 +238,7 @@ const AdminDashboard = () => {
           )}
         </div>
 
-        {/* Weekly Growth Chart (using weekly activity data) */}
+        {/* Weekly Activity */}
         <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
           <h3 className="text-lg font-bold text-gray-900 mb-4">النشاط الأسبوعي</h3>
            {loading ? (
@@ -233,10 +250,19 @@ const AdminDashboard = () => {
                {weeklyActivity.map((day: any, index: number) => (
                  <div key={index} className="flex items-center justify-between border-b border-gray-100 pb-3 last:border-0 last:pb-0">
                     <p className="font-medium text-gray-900">{day.dayName}</p>
-                    <div className="flex gap-4 text-sm">
-                       <span className="text-blue-600">مستخدمين: {day.users}</span>
-                       <span className="text-purple-600">رحلات: {day.trips}</span>
-                       <span className="text-red-600">تفاعلات: {day.reactions}</span>
+                    <div className="flex gap-3 sm:gap-4 text-sm">
+                       <span className="flex items-center gap-1 text-blue-600">
+                         <UsersIcon className="h-4 w-4" />
+                         {day.users}
+                       </span>
+                       <span className="flex items-center gap-1 text-purple-600">
+                         <Plane className="h-4 w-4" />
+                         {day.trips}
+                       </span>
+                       <span className="flex items-center gap-1 text-red-600">
+                         <ThumbsUp className="h-4 w-4" />
+                         {day.reactions}
+                       </span>
                     </div>
                  </div>
                ))}
