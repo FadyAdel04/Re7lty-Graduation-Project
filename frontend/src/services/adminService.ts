@@ -209,5 +209,138 @@ export const adminService = {
             }
         );
         return response.data;
+    },
+
+    // Analytics Methods (using new analytics endpoints)
+    async getAnalytics(token?: string) {
+        try {
+            const response = await axios.get(`${API_URL}/api/analytics/overview`, {
+                headers: await getAuthHeaders(token),
+                withCredentials: true
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching analytics:', error);
+            // Return default structure to avoid breaking the dashboard
+            return {
+                totalUsers: 0,
+                weeklyActiveUsers: 0,
+                totalTrips: 0,
+                weeklyTrips: 0,
+                totalReactions: 0,
+                weeklyReactions: 0,
+                totalComments: 0,
+                weeklyComments: 0,
+                totalCompanies: 0,
+                totalCorporateTrips: 0
+            };
+        }
+    },
+
+    async getWeeklyActivity(token?: string) {
+        try {
+            const response = await axios.get(`${API_URL}/api/analytics/weekly-activity`, {
+                headers: await getAuthHeaders(token),
+                withCredentials: true
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching weekly activity:', error);
+            return [];
+        }
+    },
+
+    async getAllUsers(token?: string) {
+        try {
+            const response = await axios.get(`${API_URL}/api/analytics/users/all`, {
+                headers: await getAuthHeaders(token),
+                withCredentials: true
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching all users:', error);
+            return [];
+        }
+    },
+
+    async getTopTrips(token?: string, limit: number = 5) {
+        try {
+            const response = await axios.get(`${API_URL}/api/analytics/top-trips?limit=${limit}`, {
+                headers: await getAuthHeaders(token),
+                withCredentials: true
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching top trips:', error);
+            return [];
+        }
+    },
+
+    async getDailySales(token?: string) {
+        // Use weekly activity data for daily sales
+        try {
+            const weeklyData = await this.getWeeklyActivity(token);
+            return weeklyData.map((day: any) => ({
+                day: day.dayName,
+                sales: day.trips * 5000 + day.reactions * 100 // Mock revenue calculation
+            }));
+        } catch (error) {
+            return [];
+        }
+    },
+
+    async getWeeklySales(token?: string) {
+        // Aggregate weekly data into weeks
+        try {
+            const weeklyData = await this.getWeeklyActivity(token);
+            const weeks = ['الأسبوع 1'];
+            const totalSales = weeklyData.reduce((sum: number, day: any) =>
+                sum + (day.trips * 5000 + day.reactions * 100), 0
+            );
+            return [{ week: weeks[0], sales: totalSales }];
+        } catch (error) {
+            return [];
+        }
+    },
+
+    async getOrderStatus(token?: string) {
+        // Mock data based on real metrics - can be enhanced later
+        try {
+            const analytics = await this.getAnalytics(token);
+            const total = analytics.totalTrips || 100;
+            return [
+                { name: 'مؤكد', value: Math.floor(total * 0.65) },
+                { name: 'قيد التنفيذ', value: Math.floor(total * 0.25) },
+                { name: 'ملغي', value: Math.floor(total * 0.10) }
+            ];
+        } catch (error) {
+            return [
+                { name: 'مؤكد', value: 145 },
+                { name: 'قيد التنفيذ', value: 67 },
+                { name: 'ملغي', value: 23 }
+            ];
+        }
+    },
+
+    async getBestPerformingTrips(token?: string, limit: number = 10) {
+        return this.getTopTrips(token, limit);
+    },
+
+    async getBestPerformingCompanies(token?: string, limit: number = 10) {
+        try {
+            const response = await axios.get(`${API_URL}/api/corporate/companies/admin/all`, {
+                headers: await getAuthHeaders(token),
+                withCredentials: true
+            });
+
+            // Sort by tripsCount and return top performers
+            const companies = response.data || [];
+            return companies
+                .sort((a: any, b: any) => (b.tripsCount || 0) - (a.tripsCount || 0))
+                .slice(0, limit);
+        } catch (error) {
+            console.error('Error fetching best performing companies:', error);
+            return [];
+        }
     }
 };

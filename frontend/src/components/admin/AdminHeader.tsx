@@ -12,7 +12,7 @@ const AdminHeader = () => {
              <LayoutDashboard className="h-6 w-6 text-white" />
           </div>
           <span className="text-xl font-bold bg-gradient-to-r from-orange-600 to-orange-800 bg-clip-text text-transparent">
-            لوحة الأدمن
+            Re7lty Admin Dashboard
           </span>
         </Link>
         
