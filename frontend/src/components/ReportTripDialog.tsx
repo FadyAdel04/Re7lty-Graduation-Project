@@ -15,7 +15,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import { Flag, Loader2, AlertTriangle } from "lucide-react";
 import { contentReportsService } from "@/services/contentReportsService";
-import { useUser } from "@clerk/clerk-react";
+import { useUser, useAuth } from "@clerk/clerk-react";
 
 interface ReportTripDialogProps {
   tripId: string;
@@ -25,6 +25,7 @@ interface ReportTripDialogProps {
 
 const ReportTripDialog = ({ tripId, tripTitle, trigger }: ReportTripDialogProps) => {
   const { user } = useUser();
+  const { getToken } = useAuth();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -45,7 +46,8 @@ const ReportTripDialog = ({ tripId, tripTitle, trigger }: ReportTripDialogProps)
 
     setLoading(true);
     try {
-      await contentReportsService.submitReport(tripId, reason, description);
+    const token = await getToken();
+      await contentReportsService.submitReport(tripId, reason, description, token || undefined);
       
       toast({
         title: "تم استلام البلاغ",

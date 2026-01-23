@@ -1,97 +1,32 @@
-import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Building2, CheckCircle2 } from "lucide-react";
-import Podium from "@/components/Podium";
-import { listTrips } from "@/lib/api";
+import AISection from "@/components/home/AISection";
+import DiscoverSection from "@/components/home/DiscoverSection";
+import HowItWorksSection from "@/components/home/HowItWorksSection";
+import DiscoverUsersTripsSection from "@/components/home/DiscoverUsersTripsSection";
+
 
 const Index = () => {
-  const [trips, setTrips] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  // Fetch real data from API (reusing logic from Leaderboard)
-  useEffect(() => {
-    const fetchTrips = async () => {
-      try {
-        setLoading(true);
-        const response = await listTrips({ sort: 'likes', limit: 50 });
-        
-        const tripsArray = Array.isArray(response?.items) ? response.items : [];
-        
-        // Calculate comprehensive engagement score
-        // Loves = 1 point, Comments = 2 points, Saves = 1.5 points
-        const tripsWithScore = tripsArray.map((trip: any) => {
-          const lovesCount = trip.lovedBy?.length || trip.loves || trip.likes || 0;
-          const savesCount = trip.savedBy?.length || trip.saves || 0;
-          
-          return {
-            ...trip,
-            // Normalize for the Podium component
-            id: trip._id,
-            image: trip.image || '/placeholder-trip.jpg',
-            author: trip.author || 'مسافر',
-            loves: lovesCount,
-            comments: trip.comments?.length || 0,
-            saves: savesCount,
-            engagementScore: 
-              lovesCount * 1 + 
-              (trip.comments?.length || 0) * 2 + 
-              savesCount * 1.5
-          };
-        });
-        
-        // Sort by engagement score (highest first)
-        const sortedTrips = tripsWithScore.sort((a: any, b: any) => b.engagementScore - a.engagementScore);
-        
-        setTrips(sortedTrips.slice(0, 3)); // Only need top 3
-      } catch (err) {
-        console.error('Failed to fetch homepage trips:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTrips();
-  }, []);
-
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background text-right" dir="rtl">
       <Header />
       <main>
         <Hero />
 
-        {/* Weekly Top Section */}
-        <section className="py-20 bg-muted/30">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-12 animate-fade-up">
-              <h2 className="text-3xl md:text-4xl font-bold mb-3 text-gray-900">المتصدرين هذا الأسبوع 🏆</h2>
-              <p className="text-muted-foreground text-lg">أفضل الرحلات والمسافرين الأكثر نشاطاً في مجتمعنا</p>
-            </div>
-            
-            <div className="mb-16 min-h-[300px] flex items-center justify-center">
-               {loading ? (
-                 <div className="flex flex-col items-center gap-4">
-                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
-                   <p className="text-muted-foreground">جاري تحميل المتصدرين...</p>
-                 </div>
-               ) : (
-                 <Podium trips={trips} />
-               )}
-            </div>
+        {/* How It Works Section */}
+        <HowItWorksSection />
 
-            <div className="text-center animate-fade-up" style={{ animationDelay: "0.2s" }}>
-              <Link to="/leaderboard">
-                <Button size="lg" className="rounded-full px-8 h-12 text-base bg-white border-2 border-orange-500 text-orange-600 hover:bg-orange-50 hover:text-orange-700 shadow-sm hover:shadow-md transition-all">
-                  عرض لوحة المتصدرين الكاملة
-                  <ArrowLeft className="mr-2 h-5 w-5" />
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </section>
+        {/* AI Showcase Section */}
+        <AISection />
+
+
+
+        {/* Discover Users Trips Section */}
+        <DiscoverUsersTripsSection />
 
         {/* Corporate Trips Teaser */}
         <section className="py-20 bg-gradient-to-br from-gray-900 to-gray-800 text-white relative overflow-hidden">
@@ -157,6 +92,9 @@ const Index = () => {
             </div>
           </div>
         </section>
+
+        {/* Discovery Map Teaser */}
+        <DiscoverSection />
 
       </main>
       <Footer />

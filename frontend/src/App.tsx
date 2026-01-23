@@ -35,6 +35,7 @@ import TripsManagementPage from "./pages/admin/TripsManagementPage";
 import AdminUsers from "./pages/admin/AdminUsers";
 import ReportsPage from "./pages/admin/ReportsPage";
 import ComplaintsPage from "./pages/admin/ComplaintsPage";
+import { NotificationProvider } from "./contexts/NotificationContext";
 
 const queryClient = new QueryClient();
 
@@ -130,7 +131,9 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <AppContent />
+        <NotificationProvider>
+          <AppContent />
+        </NotificationProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

@@ -245,3 +245,34 @@ All colors MUST be HSL.
     animation: slide-up 0.5s ease-out;
   }
 }
+
+@keyframes glowPulse {
+  0% {
+    opacity: 0.4;
+    transform: scale(0.95);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.1);
+  }
+  100% {
+    opacity: 0.4;
+    transform: scale(0.95);
+  }
+}
+
+.glow-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 9999px;
+  background: linear-gradient(
+    90deg,
+    rgba(249, 115, 22, 0.6),
+    rgba(255, 159, 67, 0.6),
+    rgba(249, 115, 22, 0.6)
+  );
+  filter: blur(14px);
+  animation: glowPulse 2.8s ease-in-out infinite;
+  z-index: 0;
+}
