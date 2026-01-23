@@ -156,9 +156,17 @@ export const corporateTripsService = {
         whatsapp: string;
         tripTypes: string;
         message?: string;
-    }) {
+    }, token?: string) {
         try {
-            const response = await axios.post(`${API_URL}/api/submissions`, data);
+            const headers: any = { 'Content-Type': 'application/json' };
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            const response = await axios.post(`${API_URL}/api/submissions`, data, {
+                headers,
+                withCredentials: true
+            });
             return response.data;
         } catch (error) {
             console.error('Error submitting company registration:', error);

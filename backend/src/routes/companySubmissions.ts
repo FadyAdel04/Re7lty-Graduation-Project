@@ -82,13 +82,23 @@ const router = express.Router();
  *       400:
  *         description: Missing required fields
  */
-router.post('/', async (req, res) => {
+import { getAuth } from '@clerk/express';
+import { Notification as NotificationModel } from '../models/Notification';
+
+// ... (existing code)
+
+/**
+ * POST /submissions
+ * Create a new company submission
+ */
+router.post('/', ClerkExpressRequireAuth(), async (req, res) => {
     try {
         // Set CORS headers explicitly for this endpoint
         res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
         res.header('Access-Control-Allow-Credentials', 'true');
 
         const { companyName, email, phone, whatsapp, tripTypes, message } = req.body;
+        const { userId } = getAuth(req);
 
         // Validation
         if (!companyName || !email || !phone || !whatsapp || !tripTypes) {
@@ -100,6 +110,7 @@ router.post('/', async (req, res) => {
 
         // Create submission
         const submission = new CompanySubmission({
+            userId,
             companyName,
             email,
             phone,
@@ -125,6 +136,109 @@ router.post('/', async (req, res) => {
         res.status(500).json({ error: 'Failed to create submission' });
     }
 });
+
+// ... (stats route)
+
+/**
+ * PUT /admin/:id/approve
+ * Approve a submission
+ */
+router.put('/admin/:id/approve', ClerkExpressRequireAuth(), requireAdmin, async (req, res) => {
+    try {
+        const { adminNotes } = req.body;
+        const { userId: adminId } = getAuth(req);
+
+        const submission = await CompanySubmission.findByIdAndUpdate(
+            req.params.id,
+            {
+                status: 'approved',
+                processedBy: req.auth?.userId,
+                processedAt: new Date(),
+                adminNotes: adminNotes || ''
+            },
+            { new: true }
+        );
+
+        if (!submission) {
+            return res.status(404).json({ error: 'Submission not found' });
+        }
+
+        // Send notification
+        if (submission.userId && adminId) {
+            await NotificationModel.create({
+                recipientId: submission.userId,
+                actorId: adminId,
+                actorName: "إدارة رحلتي",
+                actorImage: "/assets/logo.png",
+                type: "system",
+                message: `تهانينا! تمت الموافقة على طلب انضمام شركتكم "${submission.companyName}". مرحباً بكم كشركاء في رحلتي!`,
+                isRead: false,
+                link: `/company/dashboard` // Or wherever they should go
+            });
+        }
+
+        res.json({
+            success: true,
+            message: 'Submission approved successfully',
+            submission
+        });
+    } catch (error) {
+        console.error('Error approving submission:', error);
+        res.status(500).json({ error: 'Failed to approve submission' });
+    }
+});
+
+/**
+ * PUT /admin/:id/reject
+ * Reject a submission
+ */
+router.put('/admin/:id/reject', ClerkExpressRequireAuth(), requireAdmin, async (req, res) => {
+    try {
+        const { rejectionReason, adminNotes } = req.body;
+        const { userId: adminId } = getAuth(req);
+
+        const submission = await CompanySubmission.findByIdAndUpdate(
+            req.params.id,
+            {
+                status: 'rejected',
+                rejectionReason: rejectionReason || 'No reason provided',
+                processedBy: req.auth?.userId,
+                processedAt: new Date(),
+                adminNotes: adminNotes || ''
+            },
+            { new: true }
+        );
+
+        if (!submission) {
+            return res.status(404).json({ error: 'Submission not found' });
+        }
+
+        // Send notification
+        if (submission.userId && adminId) {
+            await NotificationModel.create({
+                recipientId: submission.userId,
+                actorId: adminId,
+                actorName: "إدارة رحلتي",
+                actorImage: "/assets/logo.png",
+                type: "system",
+                message: `نأسف لإبلاغكم أنه تم رفض طلب انضمام شركتكم "${submission.companyName}". السبب: ${rejectionReason || 'غير محدد'}`,
+                isRead: false,
+                link: `/contact`
+            });
+        }
+
+        res.json({
+            success: true,
+            message: 'Submission rejected',
+            submission
+        });
+    } catch (error) {
+        console.error('Error rejecting submission:', error);
+        res.status(500).json({ error: 'Failed to reject submission' });
+    }
+});
+
+// ... (delete route)
 
 /**
  * @swagger

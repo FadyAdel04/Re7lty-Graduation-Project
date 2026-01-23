@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { Star, Building2, Phone, Send, CheckCircle2, Award, Users, BarChart3, Sparkles } from "lucide-react";
+import { useAuth } from "@clerk/clerk-react";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +20,8 @@ import { corporateTripsService } from "@/services/corporateTripsService";
 import hero from "@/assets/companiesHero.webp";
 
 const CorporateTrips = () => {
+  const { getToken, isSignedIn } = useAuth();
+  const { toast } = useToast();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [allTrips, setAllTrips] = useState<Trip[]>([]);
   const [filteredTrips, setFilteredTrips] = useState<Trip[]>([]);
@@ -405,6 +409,16 @@ const CorporateTrips = () => {
 
                 <form className="space-y-5" onSubmit={async (e) => {
                   e.preventDefault();
+                  
+                  if (!isSignedIn) {
+                    toast({
+                      title: "تنبيه",
+                      description: "يجب تسجيل الدخول لإرسال طلب تسجيل الشركة.",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+
                   const form = e.currentTarget;
                   const formData = new FormData(form);
                   const submitBtn = form.querySelector('button[type="submit"]') as HTMLButtonElement;
@@ -424,7 +438,8 @@ const CorporateTrips = () => {
                   };
 
                   try {
-                    await corporateTripsService.submitCompanyRegistration(data);
+                    const token = await getToken();
+                    await corporateTripsService.submitCompanyRegistration(data, token || undefined);
                     alert('تم إرسال طلبك بنجاح! سنتواصل معك قريباً.');
                     form.reset();
                   } catch (error) {

@@ -1,6 +1,7 @@
 import mongoose, { Schema, model } from "mongoose";
 
 const CompanySubmissionSchema = new Schema({
+    userId: { type: String, required: true, index: true },
     companyName: { type: String, required: true },
     email: { type: String, required: true },
     phone: { type: String, required: true },

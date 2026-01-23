@@ -15,7 +15,7 @@ import { useAuth } from "@clerk/clerk-react";
 
 const Contact = () => {
   const { toast } = useToast();
-  const { getToken } = useAuth();
+  const { getToken, isSignedIn } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -26,6 +26,15 @@ const Contact = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!isSignedIn) {
+      toast({
+        title: "تنبيه",
+        description: "يجب تسجيل الدخول لإرسال رسالة ولتلقي التحديثات والإشعارات.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     if (!formData.name || !formData.email || !formData.message) {
       toast({
