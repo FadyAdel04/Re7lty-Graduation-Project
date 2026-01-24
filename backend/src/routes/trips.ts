@@ -463,7 +463,6 @@ router.post('/', requireAuthStrict, async (req, res) => {
           return a;
         }));
       }
-
       // Process food and restaurant images
       if (Array.isArray(out.foodAndRestaurants)) {
         out.foodAndRestaurants = await Promise.all(out.foodAndRestaurants.map(async (f: any) => {
@@ -472,6 +471,18 @@ router.post('/', requireAuthStrict, async (req, res) => {
             nf.image = await persistBase64(nf.image, "foods");
           }
           return nf;
+        }));
+      }
+
+
+      // Process hotel images
+      if (Array.isArray(out.hotels)) {
+        out.hotels = await Promise.all(out.hotels.map(async (h: any) => {
+          const nh = { ...h };
+          if (typeof nh.image === 'string' && nh.image.startsWith('data:')) {
+            nh.image = await persistBase64(nh.image, "hotels");
+          }
+          return nh;
         }));
       }
 
@@ -1127,6 +1138,15 @@ router.put('/:id', requireAuthStrict, async (req, res) => {
             nf.image = await persistBase64(nf.image, "foods");
           }
           return nf;
+        }));
+      }
+      if (Array.isArray(out.hotels)) {
+        out.hotels = await Promise.all(out.hotels.map(async (h: any) => {
+          const nh = { ...h };
+          if (typeof nh.image === 'string' && nh.image.startsWith('data:')) {
+            nh.image = await persistBase64(nh.image, "hotels");
+          }
+          return nh;
         }));
       }
       return out;

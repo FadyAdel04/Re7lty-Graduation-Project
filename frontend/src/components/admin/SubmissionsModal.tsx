@@ -1,12 +1,26 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/clerk-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { adminService } from "@/services/adminService";
-import { CheckCircle, XCircle, Trash2, Loader2, MessageSquare } from "lucide-react";
+import { 
+  CheckCircle, 
+  XCircle, 
+  Trash2, 
+  Loader2, 
+  MessageSquare, 
+  Clock, 
+  Mail, 
+  Phone, 
+  ShieldCheck,
+  ChevronRight,
+  ClipboardList
+} from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 interface SubmissionsModalProps {
   open: boolean;
@@ -20,9 +34,7 @@ const SubmissionsModal = ({ open, onOpenChange }: SubmissionsModalProps) => {
   const [filter, setFilter] = useState('all');
 
   useEffect(() => {
-    if (open) {
-      fetchSubmissions();
-    }
+    if (open) fetchSubmissions();
   }, [open, filter]);
 
   const fetchSubmissions = async () => {
@@ -44,9 +56,8 @@ const SubmissionsModal = ({ open, onOpenChange }: SubmissionsModalProps) => {
         const token = await getToken();
         await adminService.approveSubmission(id, token || undefined);
         fetchSubmissions();
-        alert('تمت الموافقة على الطلب بنجاح');
       } catch (error) {
-        alert('حدث خطأ أثناء الموافقة');
+        alert('حدث خطأ');
       }
     }
   };
@@ -58,9 +69,8 @@ const SubmissionsModal = ({ open, onOpenChange }: SubmissionsModalProps) => {
         const token = await getToken();
         await adminService.rejectSubmission(id, reason, token || undefined);
         fetchSubmissions();
-        alert('تم رفض الطلب');
       } catch (error) {
-        alert('حدث خطأ أثناء الرفض');
+        alert('حدث خطأ');
       }
     }
   };
@@ -71,196 +81,180 @@ const SubmissionsModal = ({ open, onOpenChange }: SubmissionsModalProps) => {
         const token = await getToken();
         await adminService.deleteSubmission(id, token || undefined);
         fetchSubmissions();
-        alert('تم حذف الطلب');
       } catch (error) {
-        alert('حدث خطأ أثناء الحذف');
+        alert('حدث خطأ');
       }
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    const styles = {
-      pending: 'bg-yellow-100 text-yellow-700',
-      approved: 'bg-green-100 text-green-700',
-      rejected: 'bg-red-100 text-red-700'
-    };
-    const labels = {
-      pending: 'قيد الانتظار',
-      approved: 'موافق عليه',
-      rejected: 'مرفوض'
-    };
-    return <Badge className={styles[status as keyof typeof styles]}>{labels[status as keyof typeof labels]}</Badge>;
+  const statusMap = {
+    pending: { label: 'قيد الانتظار', color: 'text-orange-600', bg: 'bg-orange-50' },
+    approved: { label: 'موافق عليه', color: 'text-emerald-600', bg: 'bg-emerald-50' },
+    rejected: { label: 'مرفوض', color: 'text-rose-600', bg: 'bg-rose-50' }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0">
-        <DialogHeader className="px-6 py-4 border-b">
-          <DialogTitle className="text-2xl font-bold flex items-center gap-2">
-            <MessageSquare className="h-6 w-6 text-orange-600" />
-            إدارة طلبات الانضمام
-          </DialogTitle>
-          <DialogDescription>
-             مراجعة واعتماد طلبات تسجيل الشركات الجديدة
-          </DialogDescription>
+      <DialogContent className="max-w-5xl h-[85vh] flex flex-col p-0 overflow-hidden border-0 rounded-[2.5rem] shadow-2xl" dir="rtl">
+        <DialogHeader className="px-10 pt-10 pb-6 border-b border-gray-100 bg-white">
+          <div className="flex items-center gap-4 mb-2">
+             <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                <ClipboardList className="w-6 h-6" />
+             </div>
+             <div>
+                <DialogTitle className="text-2xl font-black text-gray-900 font-cairo leading-none">طلبات الانضمام</DialogTitle>
+                <DialogDescription className="text-sm font-bold text-gray-400 mt-1">مراجعة والتحقق من ملفات تعريف الشركات المتقدمة.</DialogDescription>
+             </div>
+          </div>
+          
+          <div className="flex gap-2 mt-6 overflow-x-auto pb-2 scrollbar-none">
+             {[
+               { id: 'all', label: 'الكل' },
+               { id: 'pending', label: 'قيد الانتظار' },
+               { id: 'approved', label: 'المقبولة' },
+               { id: 'rejected', label: 'المرفوضة' }
+             ].map((btn) => (
+                <button
+                  key={btn.id}
+                  onClick={() => setFilter(btn.id)}
+                  className={cn(
+                    "px-6 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all whitespace-nowrap",
+                    filter === btn.id ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100" : "bg-gray-50 text-gray-400 hover:bg-gray-100 hover:text-gray-600 font-bold"
+                  )}
+                >
+                   {btn.label}
+                </button>
+             ))}
+          </div>
         </DialogHeader>
 
-        {/* Filters */}
-        <div className="px-6 py-4 bg-gray-50 border-b flex gap-2 overflow-x-auto">
-          <Button 
-            variant={filter === 'all' ? 'default' : 'outline'}
-            onClick={() => setFilter('all')}
-            size="sm"
-            className="whitespace-nowrap"
-          >
-            الكل
-          </Button>
-          <Button 
-            variant={filter === 'pending' ? 'default' : 'outline'}
-            onClick={() => setFilter('pending')}
-            size="sm"
-            className="whitespace-nowrap"
-          >
-            قيد الانتظار
-          </Button>
-          <Button 
-            variant={filter === 'approved' ? 'default' : 'outline'}
-            onClick={() => setFilter('approved')}
-            size="sm"
-            className="whitespace-nowrap"
-          >
-            موافق عليها
-          </Button>
-          <Button 
-            variant={filter === 'rejected' ? 'default' : 'outline'}
-            onClick={() => setFilter('rejected')}
-            size="sm"
-            className="whitespace-nowrap"
-          >
-            مرفوضة
-          </Button>
-        </div>
+        <ScrollArea className="flex-1 px-10 py-8 bg-[#FDFDFF]">
+           {loading ? (
+             <div className="space-y-6">
+                {[1,2,3].map(i => <div key={i} className="h-44 bg-white border border-gray-100 rounded-[2rem] animate-pulse" />)}
+             </div>
+           ) : submissions.length === 0 ? (
+             <div className="text-center py-20">
+                <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                   <ShieldCheck className="w-10 h-10 text-gray-200" />
+                </div>
+                <h3 className="text-xl font-black text-gray-900 leading-none mb-2">لا توجد طلبات هنا</h3>
+                <p className="text-gray-400 font-bold text-sm">لم يتم العثor على أي شركة في هذا التصنيف حالياً.</p>
+             </div>
+           ) : (
+             <div className="space-y-6">
+                <AnimatePresence mode="popLayout">
+                   {submissions.map((s, idx) => {
+                     const status = statusMap[s.status as keyof typeof statusMap];
+                     return (
+                       <motion.div
+                         key={s._id}
+                         initial={{ opacity: 0, y: 20 }}
+                         animate={{ opacity: 1, y: 0 }}
+                         transition={{ delay: idx * 0.05 }}
+                       >
+                          <Card className="border border-gray-100 shadow-xl shadow-gray-200/20 rounded-[2rem] overflow-hidden group hover:border-indigo-100 hover:shadow-indigo-500/5 transition-all">
+                             <CardContent className="p-0">
+                                <div className="flex flex-col md:flex-row">
+                                   <div className={cn("w-full md:w-2", status.bg.replace('/50', ''))} />
+                                   <div className="flex-1 p-6">
+                                      <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
+                                         <div className="flex items-center gap-4">
+                                            <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 font-black text-xl shadow-inner group-hover:scale-110 transition-transform">
+                                               {s.companyName[0]}
+                                            </div>
+                                            <div>
+                                               <h4 className="text-lg font-black text-gray-900 mb-1 group-hover:text-indigo-600 transition-colors leading-none">{s.companyName}</h4>
+                                               <div className="flex items-center gap-3">
+                                                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5 leading-none">
+                                                     <Clock className="w-3 h-3" />
+                                                     منذ {new Date(s.createdAt).toLocaleDateString('ar-EG')}
+                                                  </span>
+                                                  <Badge className={cn("px-2.5 py-0.5 rounded-full border-0 font-black text-[9px] uppercase shadow-inner", status.bg, status.color)}>
+                                                     {status.label}
+                                                  </Badge>
+                                               </div>
+                                            </div>
+                                         </div>
 
-        {/* List */}
-        <ScrollArea className="flex-1 p-6 bg-slate-50/50">
-          {loading ? (
-            <div className="flex flex-col items-center justify-center py-20">
-              <Loader2 className="h-10 w-10 text-orange-500 animate-spin mb-4" />
-              <p className="text-gray-500">جاري تحميل الطلبات...</p>
-            </div>
-          ) : submissions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <div className="h-20 w-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                 <MessageSquare className="h-10 w-10 text-gray-400" />
-              </div>
-              <p className="text-lg font-medium text-gray-900">لا توجد طلبات</p>
-              <p className="text-gray-500">لم يتم العثور على طلبات في هذه الفئة</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {submissions.map((submission) => (
-                <Card key={submission._id} className="overflow-hidden border shadow-sm hover:shadow-md transition-shadow">
-                  <div className={`h-1.5 w-full ${
-                    submission.status === 'approved' ? 'bg-green-500' :
-                    submission.status === 'rejected' ? 'bg-red-500' : 'bg-yellow-500'
-                  }`} />
-                  <CardHeader className="pb-3">
-                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                      <div>
-                        <CardTitle className="text-xl font-bold text-gray-900">{submission.companyName}</CardTitle>
-                        <p className="text-sm text-gray-500 mt-1 flex items-center gap-2">
-                           <span>تم التقديم: {new Date(submission.createdAt).toLocaleDateString('ar-SA')}</span>
-                        </p>
-                      </div>
-                      {getStatusBadge(submission.status)}
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4 p-4 bg-gray-50 rounded-lg">
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">البريد الإلكتروني</p>
-                        <p className="font-medium text-sm break-all">{submission.email}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">الهاتف</p>
-                        <p className="font-medium text-sm" dir="ltr">{submission.phone}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">واتساب</p>
-                        <p className="font-medium text-sm" dir="ltr">{submission.whatsapp}</p>
-                      </div>
-                       <div>
-                        <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">نوع الرحلات</p>
-                        <p className="font-medium text-sm">{submission.tripTypes}</p>
-                      </div>
-                    </div>
-                    
-                    {submission.message && (
-                      <div className="mb-6">
-                        <p className="text-sm font-medium text-gray-700 mb-2">رسالة الشركة:</p>
-                        <div className="bg-white border rounded-md p-3 text-sm text-gray-600 leading-relaxed">
-                          {submission.message}
-                        </div>
-                      </div>
-                    )}
+                                         <div className="flex items-center gap-2">
+                                            {s.status === 'pending' ? (
+                                              <>
+                                                 <Button 
+                                                   size="sm" 
+                                                   className="h-10 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[10px] gap-2 shadow-lg shadow-emerald-100"
+                                                   onClick={() => handleApprove(s._id)}
+                                                 >
+                                                    <CheckCircle className="w-3.5 h-3.5" />
+                                                    قبول
+                                                 </Button>
+                                                 <Button 
+                                                   size="sm" 
+                                                   variant="ghost"
+                                                   className="h-10 px-5 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 font-black text-[10px] gap-2 border-0"
+                                                   onClick={() => handleReject(s._id)}
+                                                 >
+                                                    <XCircle className="w-3.5 h-3.5" />
+                                                    رفض
+                                                 </Button>
+                                              </>
+                                            ) : (
+                                              <Button 
+                                                size="sm" 
+                                                variant="ghost"
+                                                className="h-10 w-10 rounded-xl bg-gray-50 text-gray-400 hover:bg-rose-50 hover:text-rose-600 p-0"
+                                                onClick={() => handleDelete(s._id)}
+                                              >
+                                                 <Trash2 className="w-4 h-4" />
+                                              </Button>
+                                            )}
+                                         </div>
+                                      </div>
 
-                    {submission.status === 'pending' && (
-                      <div className="flex flex-wrap gap-3 pt-2 border-t mt-4">
-                        <Button 
-                          size="sm" 
-                          className="bg-green-600 hover:bg-green-700 text-white"
-                          onClick={() => handleApprove(submission._id)}
-                        >
-                          <CheckCircle className="h-4 w-4 ml-2" />
-                          موافقة وانشاء حساب
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="destructive"
-                          onClick={() => handleReject(submission._id)}
-                        >
-                          <XCircle className="h-4 w-4 ml-2" />
-                          رفض الطلب
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          className="mr-auto text-gray-500 hover:text-red-600 hover:bg-red-50 hover:border-red-200"
-                          onClick={() => handleDelete(submission._id)}
-                        >
-                          <Trash2 className="h-4 w-4 ml-2" />
-                          حذف نهائي
-                        </Button>
-                      </div>
-                    )}
+                                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                                         {[
+                                           { icon: Mail, label: 'البريد', value: s.email },
+                                           { icon: Phone, label: 'الهاتف', value: s.phone },
+                                           { icon: ShieldCheck, label: 'التخصص', value: s.tripTypes }
+                                         ].map((item, i) => (
+                                            <div key={i} className="flex gap-3">
+                                               <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center shrink-0">
+                                                  <item.icon className="w-3.5 h-3.5 text-indigo-400" />
+                                               </div>
+                                               <div className="min-w-0">
+                                                  <p className="text-[10px] font-black text-gray-300 uppercase leading-none mb-1">{item.label}</p>
+                                                  <p className="text-xs font-bold text-gray-700 truncate leading-none">{item.value}</p>
+                                               </div>
+                                            </div>
+                                         ))}
+                                      </div>
 
-                    {submission.status === 'rejected' && submission.rejectionReason && (
-                      <div className="mt-4 p-3 bg-red-50 border border-red-100 rounded-lg text-sm text-red-700">
-                        <strong>سبب الرفض:</strong> {submission.rejectionReason}
-                      </div>
-                    )}
-                     {submission.status !== 'pending' && (
-                        <div className="flex justify-end pt-2 border-t mt-4">
-                           <Button 
-                          size="sm" 
-                          variant="ghost"
-                          className="text-gray-400 hover:text-red-600"
-                          onClick={() => handleDelete(submission._id)}
-                        >
-                          <Trash2 className="h-4 w-4 ml-2" />
-                          حذف من القائمة
-                        </Button>
-                        </div>
-                     )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
+                                      {s.message && (
+                                        <div className="mt-6 p-4 rounded-2xl bg-indigo-50/30 border border-indigo-100/20 text-xs font-bold text-indigo-700 leading-relaxed">
+                                           {s.message}
+                                        </div>
+                                      )}
+                                   </div>
+                                </div>
+                             </CardContent>
+                          </Card>
+                       </motion.div>
+                     );
+                   })}
+                </AnimatePresence>
+             </div>
+           )}
         </ScrollArea>
-        <DialogFooter className="px-6 py-4 border-t">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>إغلاق</Button>
-        </DialogFooter>
+        
+        <div className="px-10 py-6 border-t border-gray-100 bg-white flex justify-end">
+           <Button 
+            variant="ghost" 
+            className="rounded-xl font-black text-sm text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all"
+            onClick={() => onOpenChange(false)}
+           >
+              إغلاق النافذة
+           </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );

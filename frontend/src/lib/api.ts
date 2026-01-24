@@ -11,6 +11,7 @@ export type CreateTripInput = {
   activities: any[];
   days: any[];
   foodAndRestaurants: any[];
+  hotels: any[];
   isAIGenerated?: boolean;
 };
 
@@ -413,8 +414,8 @@ export async function updateTrip(id: string, input: CreateTripInput, token?: str
   return await res.json();
 }
 
-export async function search(query: string, limit: number = 10) {
-  const res = await fetch(`${BASE}/api/search?q=${encodeURIComponent(query)}&limit=${limit}`);
+export async function search(query: string, limit: number = 10, sort: 'recent' | 'likes' = 'recent') {
+  const res = await fetch(`${BASE}/api/search?q=${encodeURIComponent(query)}&limit=${limit}&sort=${sort}`);
   if (!res.ok) {
     const errorText = await res.text();
     throw new Error(errorText || 'Failed to search');

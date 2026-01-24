@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
-import { MapPin, Calendar, DollarSign, Image as ImageIcon, Plus, Trash2, ArrowRight, ArrowLeft, Check, Star, Utensils } from "lucide-react";
+import { useParams, useLocation, useNavigate } from "react-router-dom";
+import { MapPin, Calendar, DollarSign, Image as ImageIcon, Plus, Trash2, ArrowRight, ArrowLeft, Check, Star, Utensils, Clock, Sparkles } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
+import { Badge } from "@/components/ui/badge";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import TripMapEditor from "@/components/TripMapEditor";
@@ -15,8 +17,7 @@ import { TripLocation } from "@/components/TripMapEditor";
 import LocationMediaManager from "@/components/LocationMediaManager";
 import { useToast } from "@/hooks/use-toast";
 import { useUser, useAuth } from "@clerk/clerk-react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { TripActivity, TripDay, FoodPlace } from "@/lib/trips-data";
+import { TripActivity, TripDay, FoodPlace, Hotel } from "@/lib/trips-data";
 import { getTrip, updateTrip } from "@/lib/api";
 import UploadProgressLoader from "@/components/UploadProgressLoader";
 
@@ -62,6 +63,9 @@ const EditTrip = () => {
 
   // Step 4: Food and Restaurants
   const [foodPlaces, setFoodPlaces] = useState<FoodPlace[]>([]);
+
+  // Step 5: Hotels
+  const [hotels, setHotels] = useState<Hotel[]>([]);
 
   // Destination mapping
   const destinationMap: Record<string, string> = {
@@ -191,6 +195,18 @@ const EditTrip = () => {
           }));
           setFoodPlaces(loadedFoodPlaces);
         }
+
+        // Populate hotels
+        if (trip.hotels && trip.hotels.length > 0) {
+          const loadedHotels: Hotel[] = trip.hotels.map((hotel: any) => ({
+            name: hotel.name || "",
+            image: hotel.image || "",
+            rating: hotel.rating || 4.0,
+            description: hotel.description || "",
+            priceRange: hotel.priceRange || "",
+          }));
+          setHotels(loadedHotels);
+        }
       } catch (error: any) {
         console.error("Error loading trip:", error);
         toast({
@@ -267,6 +283,30 @@ const EditTrip = () => {
       const reader = new FileReader();
       reader.onloadend = () => {
         updateFoodPlace(index, "image", reader.result as string);
+      };
+      reader.readAsDataURL(files[0]);
+    }
+  };
+
+  const addHotel = () => {
+    setHotels([...hotels, { name: "", image: "", rating: 4.0, description: "", priceRange: "" }]);
+  };
+
+  const removeHotel = (index: number) => {
+    setHotels(hotels.filter((_, i) => i !== index));
+  };
+
+  const updateHotel = (index: number, field: keyof Hotel, value: string | number) => {
+    const updated = [...hotels];
+    updated[index] = { ...updated[index], [field]: value };
+    setHotels(updated);
+  };
+
+  const handleHotelImageUpload = (index: number, files: FileList | null) => {
+    if (files && files[0]) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        updateHotel(index, "image", reader.result as string);
       };
       reader.readAsDataURL(files[0]);
     }
@@ -494,6 +534,7 @@ const EditTrip = () => {
         })),
         season: tripData.season || undefined,
         foodAndRestaurants: foodPlacesWithBase64.filter(fp => fp.image),
+        hotels: hotels.filter(h => h.name && h.image),
       };
 
       await updateTrip(id, payload as any, token || undefined);
@@ -525,7 +566,8 @@ const EditTrip = () => {
     { number: 2, title: "الأنشطة والمواقع" },
     { number: 3, title: "تنظيم الأيام" },
     { number: 4, title: "المطاعم والأكلات" },
-    { number: 5, title: "المراجعة النهائية" },
+    { number: 5, title: "الفنادق والإقامة" },
+    { number: 6, title: "المراجعة النهائية" },
   ];
 
   if (loading) {
@@ -541,7 +583,7 @@ const EditTrip = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#F8FAFC] font-cairo text-right" dir="rtl">
       {uploadProgress.show && (
         <UploadProgressLoader
           totalItems={uploadProgress.total}
@@ -552,598 +594,538 @@ const EditTrip = () => {
       )}
       <Header />
       
-      <main className="py-12">
-        <div className="container mx-auto px-4 max-w-4xl">
-          {/* Header */}
-          <div className="text-center mb-12 animate-slide-up">
-            <h1 className="text-4xl font-bold mb-4">
-              تعديل <span className="text-gradient">رحلتك</span>
-            </h1>
-            <p className="text-muted-foreground text-lg">
-              قم بتحديث معلومات رحلتك
-            </p>
-          </div>
+      <main className="pb-24">
+        {/* 1. Cinematic Hero Header */}
+        <section className="relative h-[300px] w-full overflow-hidden bg-indigo-900">
+           <div className="absolute inset-0 z-0">
+              <img src="https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&q=80" alt="" className="w-full h-full object-cover opacity-30 mix-blend-overlay" />
+              <div className="absolute inset-0 bg-gradient-to-b from-indigo-900/40 via-indigo-900/70 to-[#F8FAFC]" />
+           </div>
+           
+           <div className="container mx-auto px-4 relative z-10 h-full flex flex-col items-center justify-center pt-10">
+              <h1 className="text-4xl md:text-5xl font-black text-white mb-4 animate-slide-up">
+                 تحديث <span className="text-orange-500">رحلتك</span>
+              </h1>
+              <p className="text-indigo-100 text-lg font-bold max-w-2xl text-center">قم بتعديل وتحسين تفاصيل مغامرتك المسجلة</p>
+           </div>
+        </section>
 
-          {/* Progress Bar */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-4 overflow-x-auto">
-              {steps.map((step) => (
-                <div key={step.number} className="flex items-center flex-1 min-w-0">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all flex-shrink-0 ${
-                        currentStep >= step.number
-                          ? 'bg-gradient-hero text-white'
-                          : 'bg-muted text-muted-foreground'
-                      }`}
-                    >
-                      {currentStep > step.number ? <Check className="h-5 w-5" /> : step.number}
-                    </div>
-                    <span className={`text-sm font-medium hidden sm:inline truncate ${
-                      currentStep >= step.number ? 'text-foreground' : 'text-muted-foreground'
-                    }`}>
-                      {step.title}
-                    </span>
-                  </div>
-                  {step.number < 5 && (
-                    <div className={`h-1 flex-1 mx-2 rounded flex-shrink-0 ${
-                      currentStep > step.number ? 'bg-gradient-hero' : 'bg-muted'
-                    }`} />
-                  )}
-                </div>
-              ))}
+        {/* 2. Steps Indicator */}
+        <div className="container mx-auto px-4 -mt-16 relative z-20">
+           <div className="max-w-5xl mx-auto mb-10">
+              <Card className="border-0 shadow-2xl rounded-[3rem] bg-white/90 backdrop-blur-xl overflow-hidden p-6 md:p-8">
+                 <div className="flex flex-wrap items-center justify-between gap-4 px-4">
+                    {steps.map((step) => {
+                       const isActive = currentStep === step.number;
+                       const isCompleted = currentStep > step.number;
+                       
+                       return (
+                         <div 
+                           key={step.number} 
+                           className={cn(
+                             "flex items-center gap-3 transition-all duration-300",
+                             step.number <= currentStep ? "opacity-100" : "opacity-40"
+                           )}
+                         >
+                            <div className={cn(
+                              "w-10 h-10 rounded-2xl flex items-center justify-center font-black transition-all duration-500",
+                              isActive ? "bg-orange-600 text-white shadow-xl shadow-orange-200 scale-110" : 
+                              isCompleted ? "bg-emerald-500 text-white" : "bg-gray-100 text-gray-400"
+                            )}>
+                               {isCompleted ? <Check className="w-5 h-5" /> : step.number}
+                            </div>
+                            <span className={cn("hidden xl:block text-sm font-black", isActive ? "text-gray-900" : "text-gray-500")}>
+                               {step.title}
+                            </span>
+                            {step.number < 6 && (
+                              <div className="hidden 2xl:block w-6 h-0.5 bg-gray-100 mx-1" />
+                            )}
+                         </div>
+                       );
+                    })}
+                 </div>
+              </Card>
             </div>
-          </div>
+         </div>
+            <div className="max-w-4xl mx-auto">
 
-          {/* Step 1: Basic Information */}
-          {currentStep === 1 && (
-            <Card className="shadow-float-lg animate-slide-up">
-              <CardHeader>
-                <CardTitle>معلومات الرحلة</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="title">عنوان الرحلة *</Label>
-                  <Input
-                    id="title"
-                    placeholder="مثال: جولة ساحلية في الإسكندرية"
-                    className="text-lg"
-                    value={tripData.title}
-                    onChange={(e) => setTripData({ ...tripData, title: e.target.value })}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="destination">الوجهة *</Label>
-                  <div className="relative">
-                    <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground z-10" />
-                    <Select value={tripData.destination} onValueChange={(value) => {
-                      const city = destinationMap[value] || value;
-                      setTripData({ ...tripData, destination: value, city });
-                    }}>
-                      <SelectTrigger className="pr-10">
-                        <SelectValue placeholder="اختر المدينة" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="alexandria">الإسكندرية</SelectItem>
-                        <SelectItem value="matrouh">مرسى مطروح</SelectItem>
-                        <SelectItem value="luxor">الأقصر</SelectItem>
-                        <SelectItem value="aswan">أسوان</SelectItem>
-                        <SelectItem value="hurghada">الغردقة</SelectItem>
-                        <SelectItem value="sharm">شرم الشيخ</SelectItem>
-                        <SelectItem value="dahab">دهب</SelectItem>
-                        <SelectItem value="bahariya">الواحات البحرية</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="duration">المدة *</Label>
-                    <div className="relative">
-                      <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                      <Input
-                        id="duration"
-                        placeholder="٣ أيام"
-                        className="pr-10"
-                        value={tripData.duration}
-                        onChange={(e) => setTripData({ ...tripData, duration: e.target.value })}
-                      />
+           {/* Step 1: Basic Information */}
+           {currentStep === 1 && (
+              <Card className="border-0 shadow-2xl rounded-[3rem] overflow-hidden bg-white animate-in fade-in slide-in-from-bottom-5 duration-700">
+                 <div className="p-10 space-y-8">
+                    <div className="space-y-4">
+                       <Label className="text-xl font-black text-gray-900 pr-2">عنوان الرحلة</Label>
+                       <Input 
+                         className="h-16 rounded-2xl bg-gray-50 border-gray-100 text-xl font-bold px-6 focus:bg-white transition-all"
+                         placeholder="مثال: جولة تاريخية في معابد الأقصر"
+                         value={tripData.title}
+                         onChange={(e) => setTripData({ ...tripData, title: e.target.value })}
+                       />
                     </div>
-                  </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="budget">الميزانية *</Label>
-                    <div className="relative">
-                      <DollarSign className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                      <Input
-                        id="budget"
-                        placeholder="1500 جنيه"
-                        className="pr-10"
-                        value={tripData.budget}
-                        onChange={(e) => setTripData({ ...tripData, budget: e.target.value })}
-                      />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                       <div className="space-y-4">
+                          <Label className="text-xl font-black text-gray-900 pr-2">الوجهة</Label>
+                          <Select value={tripData.destination} onValueChange={(v) => {
+                             const city = destinationMap[v] || v;
+                             setTripData({...tripData, destination: v, city});
+                          }}>
+                             <SelectTrigger className="h-16 rounded-2xl bg-gray-50 border-gray-100 text-lg font-bold">
+                                <SelectValue placeholder="اختر المدينة" />
+                             </SelectTrigger>
+                             <SelectContent>
+                                <SelectItem value="alexandria">الإسكندرية</SelectItem>
+                                <SelectItem value="matrouh">مرسى مطروح</SelectItem>
+                                <SelectItem value="luxor">الأقصر</SelectItem>
+                                <SelectItem value="aswan">أسوان</SelectItem>
+                                <SelectItem value="hurghada">الغردقة</SelectItem>
+                                <SelectItem value="sharm">شرم الشيخ</SelectItem>
+                                <SelectItem value="dahab">دهب</SelectItem>
+                                <SelectItem value="bahariya">الواحات البحرية</SelectItem>
+                             </SelectContent>
+                          </Select>
+                       </div>
+                       <div className="space-y-4">
+                          <Label className="text-xl font-black text-gray-900 pr-2">الموسم (اختياري)</Label>
+                          <Select value={tripData.season} onValueChange={(v) => setTripData({...tripData, season: v})}>
+                             <SelectTrigger className="h-16 rounded-2xl bg-gray-50 border-gray-100 text-lg font-bold">
+                                <SelectValue placeholder="أي وقت في السنة؟" />
+                             </SelectTrigger>
+                             <SelectContent>
+                                <SelectItem value="winter">❄️ الشتاء</SelectItem>
+                                <SelectItem value="summer">☀️ الصيف</SelectItem>
+                                <SelectItem value="fall">🍂 الخريف</SelectItem>
+                                <SelectItem value="spring">🌸 الربيع</SelectItem>
+                             </SelectContent>
+                          </Select>
+                       </div>
                     </div>
-                  </div>
 
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="season">الموسم (اختياري)</Label>
-                  <Select value={tripData.season} onValueChange={(value) => setTripData({ ...tripData, season: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="اختر الموسم المناسب للرحلة" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="winter">❄️ شتاء (Winter)</SelectItem>
-                      <SelectItem value="summer">☀️ صيف (Summer)</SelectItem>
-                      <SelectItem value="fall">🍂 خريف (Fall)</SelectItem>
-                      <SelectItem value="spring">🌸 ربيع (Spring)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="description">الوصف *</Label>
-                  <Textarea
-                    id="description"
-                    placeholder="اكتب وصفاً شاملاً لرحلتك..."
-                    rows={5}
-                    value={tripData.description}
-                    onChange={(e) => setTripData({ ...tripData, description: e.target.value })}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="rating">التقييم المتوقع (اختياري)</Label>
-                  <div className="flex items-center gap-3">
-                    <Slider
-                      value={[tripData.rating]}
-                      onValueChange={([value]) => setTripData({ ...tripData, rating: value })}
-                      min={1}
-                      max={5}
-                      step={0.1}
-                      className="flex-1"
-                    />
-                    <div className="flex items-center gap-1 min-w-[80px]">
-                      <Star className="h-4 w-4 fill-primary text-primary" />
-                      <span className="font-semibold">{tripData.rating.toFixed(1)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>صورة الغلاف *</Label>
-                  {tripData.coverImageUrl || tripData.coverImage ? (
-                    <div className="relative rounded-xl overflow-hidden">
-                      <img
-                        src={tripData.coverImageUrl || (tripData.coverImage ? URL.createObjectURL(tripData.coverImage) : "")}
-                        alt="Cover"
-                        className="w-full h-48 object-cover"
-                      />
-                      <button
-                        onClick={() => setTripData({ ...tripData, coverImage: null, coverImageUrl: "" })}
-                        className="absolute top-2 right-2 bg-destructive text-destructive-foreground p-2 rounded-full"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <label className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary transition-colors cursor-pointer block">
-                      <ImageIcon className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-                      <p className="text-sm text-muted-foreground mb-2">
-                        اسحب وأفلت الصورة هنا، أو انقر للاختيار
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        PNG, JPG حتى 10MB
-                      </p>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => handleCoverImageUpload(e.target.files)}
-                      />
-                    </label>
-                  )}
-                </div>
-
-                <div className="flex gap-4 pt-6">
-                  <Button variant="outline" className="flex-1" onClick={() => navigate(`/trips/${id}`)}>
-                    إلغاء
-                  </Button>
-                  <Button className="flex-1" onClick={nextStep}>
-                    التالي: الأنشطة والمواقع
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Step 2: Activities & Locations */}
-          {currentStep === 2 && (
-            <Card className="shadow-float-lg animate-slide-up">
-              <CardHeader>
-                <CardTitle>الأنشطة والمواقع</CardTitle>
-                <p className="text-sm text-muted-foreground mt-2">
-                  أضف المواقع والأنشطة على الخريطة أو يدوياً مع الإحداثيات والصور
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">الخريطة التفاعلية</h3>
-                  <TripMapEditor
-                    locations={locations}
-                    route={[] as [number, number][]}
-                    onLocationsChange={setLocations}
-                    onRouteChange={() => {}}
-                    destination={tripData.destination}
-                  />
-                </div>
-
-                <div className="border-t pt-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold">إضافة موقع يدوياً</h3>
-                    <p className="text-sm text-muted-foreground">
-                      أو استخدم النموذج أدناه لإضافة موقع بالإحداثيات يدوياً
-                    </p>
-                  </div>
-                </div>
-
-                {locations.length > 0 && (
-                  <div className="border-t pt-6">
-                    <h3 className="text-lg font-semibold mb-4">إدارة الصور للمواقع</h3>
-                    <LocationMediaManager
-                      locations={locations}
-                      onLocationsChange={setLocations}
-                    />
-                  </div>
-                )}
-
-                {locations.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground border border-dashed rounded-xl">
-                    <MapPin className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p className="font-semibold mb-2">لا توجد مواقع بعد</p>
-                    <p className="text-sm">انقر على الخريطة أعلاه أو استخدم زر "إضافة موقع يدوياً" لإضافة موقع</p>
-                  </div>
-                )}
-
-                {locations.length > 0 && (
-                  <div className="bg-muted/50 rounded-xl p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-semibold flex items-center gap-2">
-                          <MapPin className="h-5 w-5 text-primary" />
-                          تم إضافة {locations.length} موقع
-                        </p>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          تأكد من إضافة اسم و صور لكل موقع
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex gap-4 pt-6">
-                  <Button variant="outline" className="flex-1" onClick={prevStep}>
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                    السابق
-                  </Button>
-                  <Button className="flex-1" onClick={nextStep} disabled={locations.length === 0}>
-                    التالي: تنظيم الأيام
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Step 3: Organize Days */}
-          {currentStep === 3 && (
-            <Card className="shadow-float-lg animate-slide-up">
-              <CardHeader>
-                <CardTitle>تنظيم الأيام</CardTitle>
-                <p className="text-sm text-muted-foreground mt-2">
-                  نظم الأنشطة في أيام محددة من رحلتك
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <Label>الأيام</Label>
-                  <Button variant="outline" size="sm" onClick={addDay}>
-                    <Plus className="h-4 w-4 ml-2" />
-                    إضافة يوم
-                  </Button>
-                </div>
-
-                {days.length === 0 && (
-                  <div className="text-center py-8">
-                    <Button onClick={addDay} variant="outline">
-                      <Plus className="h-4 w-4 ml-2" />
-                      أضف أول يوم
-                    </Button>
-                  </div>
-                )}
-
-                <div className="space-y-4">
-                  {days.map((day, dayIndex) => (
-                    <Card key={dayIndex} className="border-2">
-                      <CardHeader>
-                        <div className="flex items-center justify-between">
-                          <Input
-                            value={day.title}
-                            onChange={(e) => updateDayTitle(dayIndex, e.target.value)}
-                            className="text-lg font-bold border-0 focus-visible:ring-0"
-                            placeholder={`اليوم ${dayIndex + 1}`}
-                          />
-                          {days.length > 1 && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => removeDay(dayIndex)}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          )}
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {activities.map((activity, activityIndex) => (
-                            <Button
-                              key={activityIndex}
-                              variant={day.activities.includes(activityIndex) ? "default" : "outline"}
-                              className="justify-start h-auto p-3"
-                              onClick={() => toggleActivityInDay(dayIndex, activityIndex)}
-                            >
-                              <div className="flex items-center gap-2 w-full">
-                                <Check className={`h-4 w-4 ${day.activities.includes(activityIndex) ? "opacity-100" : "opacity-0"}`} />
-                                <span className="text-right flex-1">{activity.name}</span>
-                              </div>
-                            </Button>
-                          ))}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-
-                <div className="flex gap-4 pt-6">
-                  <Button variant="outline" className="flex-1" onClick={prevStep}>
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                    السابق
-                  </Button>
-                  <Button className="flex-1" onClick={nextStep}>
-                    التالي: المطاعم والأكلات
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Step 4: Food & Restaurants */}
-          {currentStep === 4 && (
-            <Card className="shadow-float-lg animate-slide-up">
-              <CardHeader>
-                <CardTitle>المطاعم والأكلات</CardTitle>
-                <p className="text-sm text-muted-foreground mt-2">
-                  أضف المطاعم والأكلات المميزة التي جربتها (اختياري)
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <Label>المطاعم</Label>
-                  <Button variant="outline" size="sm" onClick={addFoodPlace}>
-                    <Plus className="h-4 w-4 ml-2" />
-                    إضافة مطعم
-                  </Button>
-                </div>
-
-                {foodPlaces.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Utensils className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>لا توجد مطاعم بعد. يمكنك إضافتها الآن أو تخطي هذه الخطوة.</p>
-                  </div>
-                )}
-
-                <div className="space-y-4">
-                  {foodPlaces.map((place, index) => (
-                    <Card key={index} className="border">
-                      <CardContent className="pt-6 space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label>اسم المطعم *</Label>
-                            <Input
-                              value={place.name}
-                              onChange={(e) => updateFoodPlace(index, "name", e.target.value)}
-                              placeholder="مثال: مطعم محمد أحمد"
-                            />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                       <div className="space-y-4">
+                          <Label className="text-xl font-black text-gray-900 pr-2">المدة</Label>
+                          <div className="relative">
+                             <Clock className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 w-6 h-6" />
+                             <Input className="h-16 rounded-2xl bg-gray-50 border-gray-100 pr-14 text-lg font-bold" placeholder="مثال: ٣ أيام" value={tripData.duration} onChange={(e) => setTripData({...tripData, duration: e.target.value})} />
                           </div>
-                          <div className="space-y-2">
-                            <Label>التقييم</Label>
-                            <div className="flex items-center gap-3">
-                              <Slider
-                                value={[place.rating]}
-                                onValueChange={([value]) => updateFoodPlace(index, "rating", value)}
-                                min={1}
-                                max={5}
-                                step={0.1}
-                                className="flex-1"
-                              />
-                              <div className="flex items-center gap-1 min-w-[80px]">
-                                <Star className="h-4 w-4 fill-primary text-primary" />
-                                <span className="font-semibold">{place.rating.toFixed(1)}</span>
-                              </div>
-                            </div>
+                       </div>
+                       <div className="space-y-4">
+                          <Label className="text-xl font-black text-gray-900 pr-2">الميزانية</Label>
+                          <div className="relative">
+                             <DollarSign className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 w-6 h-6" />
+                             <Input className="h-16 rounded-2xl bg-gray-50 border-gray-100 pr-14 text-lg font-bold" placeholder="مثال: ٢٠٠٠ ج.م" value={tripData.budget} onChange={(e) => setTripData({...tripData, budget: e.target.value})} />
                           </div>
-                        </div>
+                       </div>
+                    </div>
 
-                        <div className="space-y-2">
-                          <Label>الوصف</Label>
-                          <Textarea
-                            value={place.description || ""}
-                            onChange={(e) => updateFoodPlace(index, "description", e.target.value)}
-                            placeholder="وصف المطعم أو الأكلة المميزة..."
-                            rows={3}
-                          />
-                        </div>
+                    <div className="space-y-4">
+                       <Label className="text-xl font-black text-gray-900 pr-2">ما قصتك في هذه الرحلة؟</Label>
+                       <Textarea 
+                         className="rounded-[2rem] bg-gray-50 border-gray-100 text-lg font-medium p-8 min-h-[200px] focus:bg-white transition-all"
+                         placeholder="صِف تجاربك، مشاعرك، والنصائح التي تود مشاركتها..."
+                         value={tripData.description}
+                         onChange={(e) => setTripData({ ...tripData, description: e.target.value })}
+                       />
+                    </div>
 
-                        <div className="space-y-2">
-                          <Label>صورة المطعم *</Label>
-                          {place.image ? (
-                            <div className="relative rounded-lg overflow-hidden">
-                              <img
-                                src={place.image}
-                                alt={place.name}
-                                className="w-full h-48 object-cover"
-                              />
-                              <button
-                                onClick={() => updateFoodPlace(index, "image", "")}
-                                className="absolute top-2 right-2 bg-destructive text-destructive-foreground p-2 rounded-full"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
-                            </div>
+                    <div className="space-y-4">
+                       <Label className="text-xl font-black text-gray-900 pr-2">صورة الغلاف</Label>
+                       <div className="relative group">
+                          {tripData.coverImageUrl ? (
+                             <div className="relative h-64 rounded-[2.5rem] overflow-hidden">
+                                <img src={tripData.coverImageUrl} className="w-full h-full object-cover" />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                   <label className="bg-white text-indigo-600 px-8 py-3 rounded-2xl font-black cursor-pointer hover:scale-105 transition-transform">
+                                      تغيير الصورة
+                                      <input type="file" className="hidden" accept="image/*" onChange={(e) => handleCoverImageUpload(e.target.files)} />
+                                   </label>
+                                </div>
+                             </div>
                           ) : (
-                            <label className="border-2 border-dashed border-border rounded-lg p-4 text-center hover:border-primary transition-colors cursor-pointer block">
-                              <ImageIcon className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                              <p className="text-xs text-muted-foreground">اضغط لاختيار صورة</p>
-                              <input
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                onChange={(e) => handleFoodImageUpload(index, e.target.files)}
-                              />
-                            </label>
+                             <label className="flex flex-col items-center justify-center h-64 border-2 border-dashed border-gray-200 rounded-[2.5rem] bg-gray-50 hover:bg-white hover:border-indigo-400 transition-all cursor-pointer">
+                                <ImageIcon className="w-12 h-12 text-gray-300 mb-4" />
+                                <span className="text-gray-400 font-bold">اختر صورة ملهمة لرحلتك</span>
+                                <input type="file" className="hidden" accept="image/*" onChange={(e) => handleCoverImageUpload(e.target.files)} />
+                             </label>
                           )}
+                       </div>
+                    </div>
+
+                    <div className="flex gap-4 pt-8">
+                       <Button onClick={() => navigate(`/trips/${id}`)} variant="outline" className="h-20 flex-1 rounded-[2rem] font-black text-xl border-gray-100">إلغاء</Button>
+                       <Button onClick={nextStep} className="h-20 flex-1 rounded-[2rem] bg-indigo-600 text-white font-black text-xl shadow-xl shadow-indigo-100 hover:scale-[1.02] transition-transform">
+                          التالي: الأنشطة
+                          <ArrowLeft className="h-5 w-5 mr-3" />
+                       </Button>
+                    </div>
+                 </div>
+              </Card>
+           )}
+
+           {/* Step 2: Activities & Map */}
+           {currentStep === 2 && (
+             <div className="animate-in fade-in slide-in-from-bottom-6 duration-700">
+               <Card className="border-0 shadow-2xl rounded-[3rem] overflow-hidden bg-white">
+                  <CardHeader className="bg-indigo-50/50 p-10 border-b border-indigo-100/50">
+                     <CardTitle className="text-3xl font-black text-gray-900 flex items-center gap-4">
+                        <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white">
+                           <MapPin className="w-6 h-6" />
+                        </div>
+                        تحديد المواقع والأنشطة
+                     </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-10 space-y-10">
+                     <div className="rounded-[3rem] overflow-hidden shadow-inner border-8 border-white bg-gray-100 aspect-video relative">
+                       <TripMapEditor
+                         locations={locations}
+                         route={[] as [number, number][]}
+                         onLocationsChange={setLocations}
+                         onRouteChange={() => {}}
+                         destination={tripData.destination}
+                       />
+                     </div>
+
+                     {locations.length > 0 && (
+                        <div className="space-y-6">
+                           <h3 className="text-2xl font-black text-gray-900 px-2">إدارة صور المواقع <span className="text-indigo-600">({locations.length})</span></h3>
+                           <LocationMediaManager locations={locations} onLocationsChange={setLocations} />
+                        </div>
+                     )}
+
+                     <div className="flex gap-4 pt-10">
+                        <Button variant="outline" onClick={prevStep} className="h-16 rounded-[1.5rem] px-10 font-black border-gray-100">السابق</Button>
+                        <Button onClick={nextStep} className="flex-1 h-16 rounded-[1.5rem] bg-orange-600 text-white text-xl font-black shadow-2xl shadow-orange-100">
+                           متابعة تنظيم الأيام
+                           <ArrowLeft className="mr-3 w-6 h-6" />
+                        </Button>
+                     </div>
+                  </CardContent>
+               </Card>
+             </div>
+           )}
+
+           {/* Step 3: Organize Days */}
+           {currentStep === 3 && (
+             <div className="animate-in fade-in slide-in-from-bottom-6 duration-700">
+               <Card className="border-0 shadow-2xl rounded-[3rem] overflow-hidden bg-white">
+                  <CardHeader className="bg-emerald-50/50 p-10">
+                     <CardTitle className="text-3xl font-black text-gray-900">جدولة الرحلة</CardTitle>
+                     <p className="text-gray-500 font-bold mt-2">قم بزيادة جودة رحلتك بتنظيم المواقع حسب الأيام.</p>
+                  </CardHeader>
+                  <CardContent className="p-10 space-y-10">
+                     <div className="flex gap-3 overflow-x-auto pb-4 no-scrollbar">
+                        {days.map((day, dIdx) => (
+                           <Button 
+                             key={dIdx} 
+                             onClick={() => setCurrentDay(dIdx + 1)}
+                             variant={currentDay === dIdx + 1 ? "default" : "outline"}
+                             className={cn(
+                               "h-16 rounded-2xl px-10 font-black gap-3 shrink-0 transition-all", 
+                               currentDay === dIdx + 1 ? "bg-emerald-600 text-white shadow-xl shadow-emerald-100" : "border-gray-100 text-gray-400 hover:bg-emerald-50 hover:text-emerald-600"
+                             )}
+                           >
+                              {day.title}
+                              {day.activities.length > 0 && <span className="bg-white/20 px-3 py-1 rounded-full text-sm">{day.activities.length}</span>}
+                           </Button>
+                        ))}
+                        <Button onClick={addDay} variant="ghost" className="h-16 w-16 rounded-2xl border-4 border-dashed border-gray-100 text-gray-300 p-0"><Plus className="w-8 h-8" /></Button>
+                     </div>
+
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                        <div className="space-y-6">
+                           <h4 className="text-xl font-black text-gray-800 flex items-center gap-2">الأنشطة المتاحة <Badge className="bg-orange-50 text-orange-600 border-orange-100">{activities.length}</Badge></h4>
+                           <div className="space-y-4">
+                              {activities.map((act, idx) => {
+                                 const isAssigned = days.some(d => d.activities.includes(idx));
+                                 const isCurrentDay = days[currentDay-1]?.activities.includes(idx);
+                                 
+                                 return (
+                                   <button 
+                                     key={idx} 
+                                     onClick={() => toggleActivityInDay(currentDay-1, idx)}
+                                     className={cn(
+                                       "w-full p-5 rounded-3xl border-2 text-right transition-all flex items-center justify-between group",
+                                       isCurrentDay ? "border-emerald-500 bg-emerald-50/50 shadow-lg" : 
+                                       isAssigned ? "opacity-30 border-gray-50 filter grayscale" : "border-gray-50 hover:border-orange-100 hover:bg-orange-50/20"
+                                     )}
+                                   >
+                                      <div className="flex items-center gap-4">
+                                         <div className="w-14 h-14 rounded-2xl overflow-hidden shadow-sm bg-white border-2 border-white"><img src={act.images?.[0]} className="w-full h-full object-cover" /></div>
+                                         <span className="font-black text-gray-700 text-lg">{act.name}</span>
+                                      </div>
+                                      {isCurrentDay ? <div className="bg-emerald-500 text-white rounded-full p-1.5"><Check className="w-4 h-4" /></div> : <Plus className="w-6 h-6 text-gray-200 group-hover:text-orange-400 transition-colors" />}
+                                   </button>
+                                 );
+                              })}
+                           </div>
                         </div>
 
-                        {foodPlaces.length > 1 && (
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => removeFoodPlace(index)}
-                            className="w-full"
-                          >
-                            <Trash2 className="h-4 w-4 ml-2" />
-                            حذف المطعم
-                          </Button>
-                        )}
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-
-                <div className="flex gap-4 pt-6">
-                  <Button variant="outline" className="flex-1" onClick={prevStep}>
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                    السابق
-                  </Button>
-                  <Button className="flex-1" onClick={nextStep}>
-                    التالي: المراجعة النهائية
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Step 5: Review & Submit */}
-          {currentStep === 5 && (
-            <Card className="shadow-float-lg animate-slide-up">
-              <CardHeader>
-                <CardTitle>المراجعة النهائية</CardTitle>
-                <p className="text-sm text-muted-foreground mt-2">
-                  راجع معلومات رحلتك قبل الحفظ
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <h3 className="text-xl font-bold">المعلومات الأساسية</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-muted-foreground">العنوان</Label>
-                      <p className="font-semibold">{tripData.title}</p>
-                    </div>
-                    <div>
-                      <Label className="text-muted-foreground">الوجهة</Label>
-                      <p className="font-semibold">{tripData.city}</p>
-                    </div>
-                    <div>
-                      <Label className="text-muted-foreground">المدة</Label>
-                      <p className="font-semibold">{tripData.duration}</p>
-                    </div>
-                    <div>
-                      <Label className="text-muted-foreground">الميزانية</Label>
-                      <p className="font-semibold">{tripData.budget}</p>
-                    </div>
-                  </div>
-                  <div>
-                    <Label className="text-muted-foreground">الوصف</Label>
-                    <p className="mt-1">{tripData.description}</p>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h3 className="text-xl font-bold">الأنشطة ({activities.length})</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {activities.map((activity, idx) => (
-                      <div key={idx} className="p-3 border rounded-lg">
-                        <p className="font-semibold">{activity.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {activity.coordinates.lat.toFixed(4)}, {activity.coordinates.lng.toFixed(4)}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h3 className="text-xl font-bold">الأيام ({days.length})</h3>
-                  <div className="space-y-2">
-                    {days.map((day, idx) => (
-                      <div key={idx} className="p-3 border rounded-lg">
-                        <p className="font-semibold mb-2">{day.title}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {day.activities.length} نشاط
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {foodPlaces.length > 0 && (
-                  <div className="space-y-4">
-                    <h3 className="text-xl font-bold">المطاعم ({foodPlaces.filter(fp => fp.name).length})</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {foodPlaces.filter(fp => fp.name).map((place, idx) => (
-                        <div key={idx} className="p-3 border rounded-lg">
-                          <p className="font-semibold">{place.name}</p>
-                          <div className="flex items-center gap-1 mt-1">
-                            <Star className="h-4 w-4 fill-primary text-primary" />
-                            <span className="text-sm">{place.rating.toFixed(1)}</span>
-                          </div>
+                        <div className="bg-indigo-900 rounded-[3rem] p-10 text-white shadow-2xl relative overflow-hidden">
+                           <div className="relative z-10">
+                              <h4 className="text-2xl font-black text-indigo-100 mb-8 flex items-center gap-3">
+                                 <div className="w-10 h-10 bg-indigo-500/50 rounded-xl flex items-center justify-center text-white"><Clock className="w-5 h-5" /></div>
+                                 خطة {days[currentDay-1]?.title}
+                              </h4>
+                              {days[currentDay - 1]?.activities.length === 0 ? (
+                                 <div className="py-20 text-center space-y-4">
+                                    <div className="w-20 h-20 bg-indigo-800 rounded-full flex items-center justify-center mx-auto text-indigo-400 italic">...</div>
+                                    <p className="text-indigo-400 font-bold text-lg">لم تقم بإضافة أي أنشطة لهذا اليوم بعد.</p>
+                                 </div>
+                              ) : (
+                                 <div className="space-y-4">
+                                    {days[currentDay-1]?.activities.map((actIdx) => (
+                                      <div key={actIdx} className="p-5 bg-white/10 backdrop-blur-md rounded-[1.5rem] flex items-center justify-between border border-white/10 group">
+                                         <span className="text-xl font-black">{activities[actIdx].name}</span>
+                                         <button onClick={() => toggleActivityInDay(currentDay-1, actIdx)} className="text-white/20 hover:text-red-400 transition-colors"><Trash2 className="w-5 h-5" /></button>
+                                      </div>
+                                    ))}
+                                 </div>
+                              )}
+                           </div>
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                     </div>
 
-                <div className="flex gap-4 pt-6">
-                  <Button variant="outline" className="flex-1" onClick={prevStep} disabled={isSaving}>
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                    السابق
-                  </Button>
-                  <Button className="flex-1" onClick={handleSubmit} size="lg" disabled={isSaving}>
-                    <Check className="h-5 w-5 ml-2" />
-                    {isSaving ? "جاري الحفظ..." : "حفظ التعديلات"}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                     <div className="flex gap-4 pt-10">
+                        <Button variant="outline" onClick={prevStep} className="h-16 rounded-[1.5rem] px-10 font-black border-gray-100">السابق</Button>
+                        <Button onClick={nextStep} className="flex-1 h-16 rounded-[1.5rem] bg-orange-600 text-white text-xl font-black shadow-2xl shadow-orange-100">
+                           متابعة إلى المطاعم
+                           <ArrowLeft className="mr-3 w-6 h-6" />
+                        </Button>
+                     </div>
+                  </CardContent>
+               </Card>
+             </div>
+           )}
+
+           {/* Step 4: Food & Restaurants */}
+           {currentStep === 4 && (
+             <div className="animate-in fade-in slide-in-from-bottom-6 duration-700">
+               <Card className="border-0 shadow-2xl rounded-[3rem] overflow-hidden bg-white">
+                  <CardHeader className="bg-orange-50/50 p-10 border-b border-orange-100/50 flex flex-row items-center justify-between">
+                     <CardTitle className="text-3xl font-black text-gray-900 flex items-center gap-4">
+                        <Utensils className="w-8 h-8 text-orange-600" />
+                        المطاعم وتجارب الطعام
+                     </CardTitle>
+                     <Button onClick={addFoodPlace} className="bg-orange-600 hover:bg-orange-700 h-14 rounded-2xl px-8 font-black gap-2">
+                        <Plus className="w-5 h-5" /> إضافة مطعم
+                     </Button>
+                  </CardHeader>
+                  <CardContent className="p-10 space-y-10">
+                     {foodPlaces.length === 0 ? (
+                        <div className="py-20 text-center space-y-6">
+                           <div className="w-24 h-24 bg-orange-50 rounded-[2.5rem] flex items-center justify-center mx-auto">
+                              <Utensils className="w-10 h-10 text-orange-200" />
+                           </div>
+                           <p className="text-gray-400 font-bold text-xl">لم تضف أي تجارب طعام بعد. يمكنك تخطي هذه الخطوة أو البدء الآن.</p>
+                        </div>
+                     ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                           {foodPlaces.map((place, idx) => (
+                              <Card key={idx} className="border-0 bg-gray-50/50 rounded-[2.5rem] overflow-hidden group hover:bg-white hover:shadow-2xl transition-all border border-transparent hover:border-orange-100">
+                                 <div className="p-8 space-y-6">
+                                    <div className="flex justify-between items-start">
+                                       <div className="space-y-4 flex-1">
+                                          <Input 
+                                            placeholder="اسم المطعم" 
+                                            value={place.name} 
+                                            onChange={e => updateFoodPlace(idx, 'name', e.target.value)}
+                                            className="h-14 rounded-xl border-gray-100 font-black text-lg"
+                                          />
+                                          <div className="flex items-center gap-4">
+                                             <Star className="w-5 h-5 text-amber-400 fill-amber-400" />
+                                             <Slider
+                                               value={[place.rating]}
+                                               onValueChange={([val]) => updateFoodPlace(idx, 'rating', val)}
+                                               min={1} max={5} step={0.5}
+                                               className="flex-1"
+                                             />
+                                             <span className="font-black text-gray-700 min-w-[30px]">{place.rating}</span>
+                                          </div>
+                                       </div>
+                                       <Button variant="ghost" onClick={() => removeFoodPlace(idx)} className="text-red-300 hover:text-red-500 mr-2"><Trash2 className="w-5 h-5" /></Button>
+                                    </div>
+                                    <Textarea 
+                                      placeholder="لماذا تنصح بهذا المطعم؟ ما هي الأطباق المميزة؟" 
+                                      value={place.description}
+                                      onChange={e => updateFoodPlace(idx, 'description', e.target.value)}
+                                      className="rounded-2xl border-gray-100 font-medium min-h-[100px]"
+                                    />
+                                    <div className="relative group/img aspect-video rounded-3xl overflow-hidden border-4 border-white shadow-lg">
+                                       {place.image ? (
+                                          <>
+                                             <img src={place.image} className="w-full h-full object-cover" />
+                                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
+                                                <label className="cursor-pointer bg-white text-orange-600 px-6 py-2 rounded-xl font-black">
+                                                   تغيير الصورة
+                                                   <input type="file" className="hidden" accept="image/*" onChange={e => handleFoodImageUpload(idx, e.target.files)} />
+                                                </label>
+                                             </div>
+                                          </>
+                                       ) : (
+                                          <label className="flex flex-col items-center justify-center w-full h-full bg-white cursor-pointer hover:bg-orange-50 transition-colors">
+                                             <ImageIcon className="w-8 h-8 text-orange-200 mb-2" />
+                                             <span className="text-gray-400 font-bold text-sm">أضف صورة لذيذة</span>
+                                             <input type="file" className="hidden" accept="image/*" onChange={e => handleFoodImageUpload(idx, e.target.files)} />
+                                          </label>
+                                       )}
+                                    </div>
+                                 </div>
+                              </Card>
+                           ))}
+                        </div>
+                     )}
+
+                     <div className="flex gap-4 pt-10">
+                        <Button variant="outline" onClick={prevStep} className="h-16 rounded-[1.5rem] px-10 font-black border-gray-100">السابق</Button>
+                        <Button onClick={nextStep} className="flex-1 h-16 rounded-[1.5rem] bg-orange-600 text-white text-xl font-black shadow-2xl shadow-orange-100">
+                           متابعة إلى الفنادق
+                           <ArrowLeft className="mr-3 w-6 h-6" />
+                        </Button>
+                     </div>
+                  </CardContent>
+               </Card>
+             </div>
+           )}
+
+           {/* Step 5: Hotels & Stay */}
+           {currentStep === 5 && (
+             <div className="animate-in fade-in slide-in-from-bottom-6 duration-700">
+               <Card className="border-0 shadow-2xl rounded-[3rem] overflow-hidden bg-white">
+                  <CardHeader className="bg-blue-50/50 p-10 border-b border-blue-100/50 flex flex-row items-center justify-between">
+                     <CardTitle className="text-3xl font-black text-gray-900 flex items-center gap-4">
+                        <Sparkles className="w-8 h-8 text-blue-600" />
+                        الإقامة والفنادق
+                     </CardTitle>
+                     <Button onClick={addHotel} className="bg-blue-600 hover:bg-blue-700 h-14 rounded-2xl px-8 font-black gap-2">
+                        <Plus className="w-5 h-5" /> إضافة فندق
+                     </Button>
+                  </CardHeader>
+                  <CardContent className="p-10 space-y-10">
+                     {hotels.length === 0 ? (
+                        <div className="py-20 text-center space-y-6">
+                           <div className="w-24 h-24 bg-blue-50 rounded-[2.5rem] flex items-center justify-center mx-auto">
+                              <Sparkles className="w-10 h-10 text-blue-200" />
+                           </div>
+                           <p className="text-gray-400 font-bold text-xl">أين كانت إقامتك؟ أضف الفنادق لزيادة جودة رحلتك.</p>
+                        </div>
+                     ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                           {hotels.map((hotel, idx) => (
+                              <Card key={idx} className="border-0 bg-gray-50/50 rounded-[2.5rem] overflow-hidden group hover:bg-white hover:shadow-2xl transition-all border border-transparent hover:border-blue-100">
+                                 <div className="p-8 space-y-6">
+                                    <div className="flex justify-between items-start">
+                                       <div className="space-y-4 flex-1">
+                                          <Input 
+                                            placeholder="اسم الفندق" 
+                                            value={hotel.name} 
+                                            onChange={e => updateHotel(idx, 'name', e.target.value)}
+                                            className="h-14 rounded-xl border-gray-100 font-black text-lg"
+                                          />
+                                          <div className="flex items-center gap-4">
+                                             <Star className="w-5 h-5 text-amber-400 fill-amber-400" />
+                                             <Slider
+                                               value={[hotel.rating]}
+                                               onValueChange={([val]) => updateHotel(idx, 'rating', val)}
+                                               min={1} max={5} step={0.5}
+                                               className="flex-1"
+                                             />
+                                             <span className="font-black text-gray-700 min-w-[30px]">{hotel.rating}</span>
+                                          </div>
+                                          <Input 
+                                            placeholder="مستوى السعر (مثلاً: اقتصادي، فاخر..)" 
+                                            value={hotel.priceRange} 
+                                            onChange={e => updateHotel(idx, 'priceRange', e.target.value)}
+                                            className="h-12 rounded-xl border-gray-100 font-bold text-sm"
+                                          />
+                                       </div>
+                                       <Button variant="ghost" onClick={() => removeHotel(idx)} className="text-red-300 hover:text-red-500 mr-2"><Trash2 className="w-5 h-5" /></Button>
+                                    </div>
+                                    <Textarea 
+                                      placeholder="وصف الإقامة أو نصائح بخصوص الغرف.." 
+                                      value={hotel.description}
+                                      onChange={e => updateHotel(idx, 'description', e.target.value)}
+                                      className="rounded-2xl border-gray-100 font-medium min-h-[100px]"
+                                    />
+                                    <div className="relative group/img aspect-video rounded-3xl overflow-hidden border-4 border-white shadow-lg">
+                                       {hotel.image ? (
+                                          <>
+                                             <img src={hotel.image} className="w-full h-full object-cover" />
+                                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
+                                                <label className="cursor-pointer bg-white text-blue-600 px-6 py-2 rounded-xl font-black">
+                                                   تغيير الصورة
+                                                   <input type="file" className="hidden" accept="image/*" onChange={e => handleHotelImageUpload(idx, e.target.files)} />
+                                                </label>
+                                             </div>
+                                          </>
+                                       ) : (
+                                          <label className="flex flex-col items-center justify-center w-full h-full bg-white cursor-pointer hover:bg-blue-50 transition-colors">
+                                             <ImageIcon className="w-8 h-8 text-blue-200 mb-2" />
+                                             <span className="text-gray-400 font-bold text-sm">أضف صورة للفندق</span>
+                                             <input type="file" className="hidden" accept="image/*" onChange={e => handleHotelImageUpload(idx, e.target.files)} />
+                                          </label>
+                                       )}
+                                    </div>
+                                 </div>
+                              </Card>
+                           ))}
+                        </div>
+                     )}
+
+                     <div className="flex gap-4 pt-10">
+                        <Button variant="outline" onClick={prevStep} className="h-16 rounded-[1.5rem] px-10 font-black border-gray-100">السابق</Button>
+                        <Button onClick={nextStep} className="flex-1 h-16 rounded-[1.5rem] bg-orange-600 text-white text-xl font-black shadow-2xl shadow-orange-100">
+                           المراجعة النهائية
+                           <ArrowLeft className="mr-3 w-6 h-6" />
+                        </Button>
+                     </div>
+                  </CardContent>
+               </Card>
+             </div>
+           )}
+
+           {/* Step 6: Review & Submit */}
+           {currentStep === 6 && (
+             <div className="animate-in fade-in slide-in-from-bottom-6 duration-700">
+               <Card className="border-0 shadow-2xl rounded-[3rem] overflow-hidden bg-white">
+                  <CardHeader className="bg-gray-900 p-10 text-white">
+                     <CardTitle className="text-3xl font-black flex items-center gap-4">
+                        <Check className="w-8 h-8 text-emerald-500" />
+                        المراجعة النهائية
+                     </CardTitle>
+                     <p className="text-gray-400 font-bold mt-2">راجع معلوماتك قبل حفظ التحديثات.</p>
+                  </CardHeader>
+                  <CardContent className="p-10 space-y-12">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                        <div className="space-y-6">
+                           <h4 className="text-xl font-black text-gray-900 border-b-4 border-orange-500 pb-2 w-fit">المعلومات الأساسية</h4>
+                           <div className="space-y-4">
+                              <div className="flex justify-between border-b border-gray-50 pb-3"><span className="text-gray-400 font-bold">العنوان:</span> <span className="font-black text-gray-700">{tripData.title}</span></div>
+                              <div className="flex justify-between border-b border-gray-50 pb-3"><span className="text-gray-400 font-bold">الوجهة:</span> <span className="font-black text-gray-700">{tripData.city}</span></div>
+                              <div className="flex justify-between border-b border-gray-50 pb-3"><span className="text-gray-400 font-bold">المدة:</span> <span className="font-black text-gray-700">{tripData.duration}</span></div>
+                              <div className="flex justify-between border-b border-gray-50 pb-3"><span className="text-gray-400 font-bold">الميزانية:</span> <span className="font-black text-gray-700">{tripData.budget}</span></div>
+                           </div>
+                        </div>
+                        <div className="space-y-6">
+                           <h4 className="text-xl font-black text-gray-900 border-b-4 border-indigo-500 pb-2 w-fit">الإحصائيات</h4>
+                           <div className="space-y-4">
+                              <div className="flex justify-between border-b border-gray-50 pb-3"><span className="text-gray-400 font-bold">المواقع المختارة:</span> <span className="font-black text-indigo-600">{locations.length} مواقع</span></div>
+                              <div className="flex justify-between border-b border-gray-50 pb-3"><span className="text-gray-400 font-bold">عدد الأيام المنظمة:</span> <span className="font-black text-emerald-600">{days.length} أيام</span></div>
+                              <div className="flex justify-between border-b border-gray-50 pb-3"><span className="text-gray-400 font-bold">المطاعم:</span> <span className="font-black text-orange-600">{foodPlaces.length} أماكن</span></div>
+                              <div className="flex justify-between border-b border-gray-50 pb-3"><span className="text-gray-400 font-bold">الفنادق:</span> <span className="font-black text-blue-600">{hotels.length} فندق</span></div>
+                           </div>
+                        </div>
+                     </div>
+
+                     <div className="flex gap-4 pt-10">
+                        <Button variant="outline" onClick={prevStep} className="h-20 rounded-[2rem] px-10 font-black border-gray-100" disabled={isSaving}>السابق</Button>
+                        <Button onClick={handleSubmit} disabled={isSaving} className="flex-1 h-20 rounded-[2rem] bg-emerald-600 text-white text-2xl font-black shadow-2xl shadow-emerald-100 hover:scale-[1.02] transition-transform">
+                           {isSaving ? "جاري الحفظ..." : "حفظ التعديلات ونشر الرحلة ✨"}
+                        </Button>
+                     </div>
+                  </CardContent>
+               </Card>
+             </div>
+           )}
         </div>
       </main>
 

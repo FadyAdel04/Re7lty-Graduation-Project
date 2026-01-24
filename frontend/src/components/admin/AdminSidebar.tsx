@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import {
   LayoutDashboard,
   Plane,
@@ -10,8 +11,11 @@ import {
   AlertCircle,
   ChevronLeft,
   ChevronRight,
-  X
+  X,
+  PlusCircle,
+  FileCheck
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface AdminSidebarProps {
   isOpen: boolean;
@@ -30,142 +34,160 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
 
   const navItems = [
     {
-      name: 'لوحة التحكم',
+      name: 'نظرة عامة',
       path: '/admin/dashboard',
       icon: LayoutDashboard,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50'
+      color: 'text-indigo-600',
+      bgColor: 'bg-indigo-50/50'
     },
     {
-      name: 'الرحلات',
+      name: 'إدارة الرحلات',
       path: '/admin/trips',
       icon: Plane,
-      color: 'text-green-600',
-      bgColor: 'bg-green-50'
+      color: 'text-emerald-600',
+      bgColor: 'bg-emerald-50/50'
     },
     {
-      name: 'الشركات',
+      name: 'إدارة الشركات',
       path: '/admin/companies',
       icon: Building2,
       color: 'text-purple-600',
-      bgColor: 'bg-purple-50'
+      bgColor: 'bg-purple-50/50'
     },
     {
-      name: 'التقارير والإحصائيات',
+      name: 'التحليلات',
       path: '/admin/reports',
       icon: BarChart3,
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-50'
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-50/50'
     },
     {
       name: 'المستخدمين',
       path: '/admin/users',
       icon: Users,
-      color: 'text-cyan-600',
-      bgColor: 'bg-cyan-50'
+      color: 'text-orange-600',
+      bgColor: 'bg-orange-50/50'
     },
     {
-      name: 'الشكاوى والبلاغات',
+      name: 'الطلبات',
+      path: '/admin/submissions',
+      icon: FileCheck,
+      color: 'text-pink-600',
+      bgColor: 'bg-pink-50/50'
+    },
+    {
+      name: 'البلاغات و الرسائل',
       path: '/admin/complaints',
       icon: AlertCircle,
-      color: 'text-red-600',
-      bgColor: 'bg-red-50'
+      color: 'text-rose-600',
+      bgColor: 'bg-rose-50/50'
     }
   ];
 
   const isActive = (path: string) => {
-    if (path === '/admin') {
-      return location.pathname === '/admin';
-    }
+    if (path === '/admin') return location.pathname === '/admin';
     return location.pathname.startsWith(path);
   };
-
 
   return (
     <>
       {/* Mobile Overlay */}
       {isMobile && isOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={closeMobileSidebar}
+        <motion.div 
+           initial={{ opacity: 0 }}
+           animate={{ opacity: 1 }}
+           className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-[70] lg:hidden"
+           onClick={closeMobileSidebar}
         />
       )}
 
       {/* Sidebar */}
-      <aside 
-        className={`
-          fixed lg:sticky top-0 right-0 h-screen bg-white border-l border-gray-200 
-          transition-all duration-300 ease-in-out z-50
-          ${isOpen ? 'w-64' : 'w-20'}
-          ${isMobile 
-            ? isOpen ? 'translate-x-0' : 'translate-x-full' 
-            : 'translate-x-0'
-          }
-        `}
+      <motion.aside 
+        initial={false}
+        animate={{ width: isOpen ? 280 : 88 }}
+        className={cn(
+          "fixed lg:fixed top-0 right-0 h-screen bg-white/80 backdrop-blur-2xl border-l border-gray-100 shadow-2xl transition-all duration-300 z-[80]",
+          isMobile && !isOpen && "translate-x-full"
+        )}
       >
-        <div className="h-full flex flex-col">
-          {/* Header & Toggle */}
-          <div className={`p-6 flex items-center ${isOpen ? 'justify-between' : 'justify-center'}`}>
-            {isOpen && (
-              <h2 className="text-xl font-bold text-gray-900 whitespace-nowrap">
-                لوحة التحكم
-              </h2>
-            )}
-            
-            {/* Desktop Toggle */}
-            <button 
-              onClick={toggleSidebar}
-              className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hidden lg:block"
-            >
-              {isOpen ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
-            </button>
+        <div className="h-full flex flex-col relative">
+          
+          {/* Collapse/Expand Toggle (Desktop Only) */}
+          <button 
+             onClick={toggleSidebar}
+             className="absolute -left-3 top-24 w-6 h-12 bg-white border border-gray-100 rounded-full hidden lg:flex items-center justify-center text-gray-400 hover:text-indigo-600 hover:shadow-lg transition-all z-[90]"
+          >
+             {isOpen ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+          </button>
 
-            {/* Mobile Close */}
-            <button 
-              onClick={closeMobileSidebar}
-              className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 lg:hidden"
-            >
-              <X size={20} />
-            </button>
+          {/* Sidebar Header */}
+          <div className={cn("p-8 mb-4", !isOpen && "flex justify-center")}>
+             {isOpen ? (
+               <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest">القائمة الرئيسية</h3>
+                  {isMobile && <X size={20} className="text-gray-400" onClick={closeMobileSidebar} />}
+               </div>
+             ) : (
+                <div className="w-8 h-1 bg-gray-100 rounded-full" />
+             )}
           </div>
           
           {/* Navigation */}
-          <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-2">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const active = isActive(item.path);
-            
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`
-                  flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 group relative
-                  ${active 
-                    ? `${item.bgColor} ${item.color} font-semibold shadow-sm` 
-                    : 'text-gray-600 hover:bg-gray-50'
-                  }
-                  ${!isOpen && 'justify-center'}
-                `}
-              >
-                <Icon className={`h-6 w-6 shrink-0 ${active ? item.color : 'text-gray-400'}`} />
-                
-                {isOpen ? (
-                  <span className="text-sm font-medium whitespace-nowrap overflow-hidden transition-all duration-300 opacity-100">
-                    {item.name}
-                  </span>
-                ) : (
-                  /* Tooltip for collapsed state */
-                  <div className="absolute right-full mr-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 transition-opacity">
-                    {item.name}
-                  </div>
-                )}
-              </Link>
-            );
-          })}
-            </nav>
+          <nav className="flex-1 overflow-y-auto px-4 space-y-2 custom-scrollbar">
+            {navItems.map((item) => {
+              const active = isActive(item.path);
+              const Icon = item.icon;
+              
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={cn(
+                    "flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 group relative",
+                    active 
+                      ? `${item.bgColor} ${item.color} font-black shadow-sm` 
+                      : "text-gray-500 font-bold hover:bg-gray-50 hover:text-gray-900",
+                    !isOpen && "justify-center px-0"
+                  )}
+                >
+                  <Icon className={cn("h-5 w-5 shrink-0 transition-transform duration-500", active ? "scale-110" : "group-hover:rotate-12")} />
+                  
+                  {isOpen && (
+                    <span className="text-sm whitespace-nowrap">{item.name}</span>
+                  )}
+
+                  {!isOpen && (
+                    <div className="absolute right-full mr-4 px-3 py-1.5 bg-gray-900 text-white text-[10px] font-black rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-[100] translate-x-1 group-hover:translate-x-0 transition-all">
+                      {item.name}
+                    </div>
+                  )}
+
+                  {active && (
+                    <motion.div 
+                      layoutId="sidebar-active-indicator"
+                      className="absolute left-2 w-1.5 h-6 bg-current rounded-full"
+                    />
+                  )}
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* Quick Support Badge */}
+          {isOpen && (
+            <div className="p-6">
+               <div className="bg-indigo-600 rounded-3xl p-5 text-white relative overflow-hidden group">
+                  <div className="absolute -top-4 -left-4 w-20 h-20 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700" />
+                  <p className="text-[10px] font-black text-indigo-100 uppercase mb-1">مرحبا بك يمكنك الان </p>
+                  <h4 className="text-sm font-black mb-3 text-white"> التحكم كامل فى منصه Re7lty</h4>
+                  <button className="w-full py-2 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-black transition-colors">
+                     افتح الدليل
+                  </button>
+               </div>
+            </div>
+          )}
         </div>
-      </aside>
+      </motion.aside>
     </>
   );
 };

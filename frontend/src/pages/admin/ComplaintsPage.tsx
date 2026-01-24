@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Loader2, 
@@ -15,13 +14,18 @@ import {
   AlertTriangle,
   Mail,
   Trash2,
-  ExternalLink
+  ExternalLink,
+  ChevronRight,
+  ShieldAlert,
+  Inbox
 } from "lucide-react";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import { complaintsService } from "@/services/complaintsService";
 import { contentReportsService } from "@/services/contentReportsService";
 import { Link, useNavigate } from "react-router-dom";
 import AdminLayout from "@/components/admin/AdminLayout";
+import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 // Types
 interface Complaint {
@@ -58,23 +62,17 @@ const ComplaintsPage = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("complaints");
   
-  // State
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [reports, setReports] = useState<ContentReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  // Check admin access
   useEffect(() => {
     const adminEmail = 'supermincraft52@gmail.com';
     const isAdmin = user?.emailAddresses?.some(email => email.emailAddress === adminEmail);
-    
-    if (user && !isAdmin) {
-      navigate('/');
-    }
+    if (user && !isAdmin) navigate('/');
   }, [user, navigate]);
 
-  // Fetch data
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -101,17 +99,10 @@ const ComplaintsPage = () => {
   };
 
   useEffect(() => {
-    if (user) {
-      fetchData();
-    }
+    if (user) fetchData();
   }, [activeTab, user]);
 
-  // Actions
-  const handleUpdateStatus = async (
-    id: string, 
-    type: 'complaint' | 'report', 
-    status: 'resolved' | 'dismissed' | 'pending'
-  ) => {
+  const handleUpdateStatus = async (id: string, type: 'complaint' | 'report', status: 'resolved' | 'dismissed' | 'pending') => {
     setActionLoading(id);
     try {
       const token = await getToken();
@@ -126,13 +117,14 @@ const ComplaintsPage = () => {
       }
 
       toast({
-        title: "تم التحديث",
-        description: "تم تحديث الحالة بنجاح",
+        title: "تم تحديث الحالة بنجاح",
+        description: `تم تغيير حالة ${type === 'complaint' ? 'الرسالة' : 'البلاغ'} إلى ${statusMap[status].label}`,
+        className: "bg-white border-indigo-100 rounded-[1.5rem] shadow-2xl",
       });
     } catch (error) {
       toast({
-        title: "خطأ",
-        description: "فشل تحديث الحالة",
+        title: "حدث خطأ غير متوقع",
+        description: "فشل تحديث الحالة، يرجى المحاولة مرة أخرى.",
         variant: "destructive",
       });
     } finally {
@@ -141,8 +133,7 @@ const ComplaintsPage = () => {
   };
 
   const handleDelete = async (id: string, type: 'complaint' | 'report') => {
-    if (!confirm("هل أنت متأكد من الحذف؟ لا يمكن التراجع عن هذا الإجراء.")) return;
-
+    if (!confirm("هل أنت متأكد من الحذف؟")) return;
     setActionLoading(id);
     try {
       const token = await getToken();
@@ -155,15 +146,16 @@ const ComplaintsPage = () => {
         await contentReportsService.deleteReport(id, token);
         setReports(prev => prev.filter(r => r._id !== id));
       }
-
+      
       toast({
-        title: "تم الحذف",
-        description: "تم الحذف بنجاح",
+        title: "تم الحذف نهائياً",
+        description: `تم حذف ${type === 'complaint' ? 'الرسالة' : 'البلاغ'} من النظام.`,
+        className: "bg-white border-rose-100 rounded-[1.5rem] shadow-2xl",
       });
     } catch (error) {
       toast({
-        title: "خطأ",
-        description: "فشل الحذف",
+        title: "خطأ في الحذف",
+        description: "لا يمكن حذف هذا البند حالياً.",
         variant: "destructive",
       });
     } finally {
@@ -171,225 +163,220 @@ const ComplaintsPage = () => {
     }
   };
 
-  // Render Helpers
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'resolved':
-        return <Badge className="bg-green-500 hover:bg-green-600">تم الحل</Badge>;
-      case 'dismissed':
-        return <Badge variant="secondary">تم التجاهل</Badge>;
-      default:
-        return <Badge variant="destructive">قيد الانتظار</Badge>;
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("ar-EG", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+  const statusMap = {
+    pending: { label: 'قيد الانتظار', color: 'text-rose-600', bg: 'bg-rose-50' },
+    resolved: { label: 'تم الحل', color: 'text-emerald-600', bg: 'bg-emerald-50' },
+    dismissed: { label: 'تم التجاهل', color: 'text-gray-500', bg: 'bg-gray-100' }
   };
 
   return (
     <AdminLayout>
-      <div className="space-y-6" dir="rtl">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">مركز الدعم والإبلاغات</h1>
-            <p className="text-muted-foreground mt-1">إدارة رسائل التواصل وبلاغات المحتوى</p>
-          </div>
+      <div className="max-w-7xl mx-auto space-y-10" dir="rtl">
+        
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+           <div>
+              <h1 className="text-3xl font-black text-gray-900 mb-2 font-cairo">مركز <span className="text-indigo-600">البلاغات</span></h1>
+              <p className="text-gray-500 font-bold text-sm">إدارة شكاوى المستخدمين والتبليغ عن المحتوى المخالف.</p>
+           </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-2 mb-8">
-            <TabsTrigger value="complaints" className="flex items-center gap-2">
-              <MessageSquare className="h-4 w-4" />
-              رسائل التواصل
+          <TabsList className="h-16 bg-white border border-gray-100 p-2 rounded-2xl gap-2 w-full max-w-sm mb-10 overflow-hidden">
+            <TabsTrigger 
+              value="complaints" 
+              className="flex-1 h-full rounded-xl data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg shadow-indigo-100 font-black text-sm gap-2 transition-all"
+            >
+              <Inbox className="h-4 w-4" />
+              الرسائل
             </TabsTrigger>
-            <TabsTrigger value="reports" className="flex items-center gap-2">
-              <Flag className="h-4 w-4" />
-              بلاغات المحتوى
+            <TabsTrigger 
+              value="reports" 
+              className="flex-1 h-full rounded-xl data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg shadow-indigo-100 font-black text-sm gap-2 transition-all"
+            >
+              <ShieldAlert className="h-4 w-4" />
+              البلاغات
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="complaints" className="space-y-4">
+          <TabsContent value="complaints">
             {loading ? (
-              <div className="flex justify-center p-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <div className="grid gap-6">
+                 {[1,2].map(i => <div key={i} className="h-64 bg-white rounded-[2.5rem] animate-pulse shadow-sm" />)}
               </div>
             ) : complaints.length === 0 ? (
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center p-12 text-muted-foreground">
-                  <Mail className="h-12 w-12 mb-4 opacity-20" />
-                  <p>لا توجد رسائل حالياً</p>
-                </CardContent>
-              </Card>
+              <div className="text-center py-32 bg-white rounded-[2.5rem] border border-gray-50 shadow-sm">
+                 <Mail className="h-16 w-16 text-gray-200 mx-auto mb-4" />
+                 <h3 className="text-xl font-black text-gray-900">لا توجد رسائل</h3>
+                 <p className="text-gray-400 font-bold">صندوق الرسائل فارغ تماماً.</p>
+              </div>
             ) : (
-              <div className="grid gap-4">
-                {complaints.map((complaint) => (
-                  <Card key={complaint._id} className="overflow-hidden">
-                    <CardHeader className="bg-muted/30 pb-3">
-                      <div className="flex flex-col sm:flex-row justify-between items-start gap-4 sm:gap-0">
-                        <div className="flex items-center gap-2">
-                          {getStatusBadge(complaint.status)}
-                          <span className="text-sm text-muted-foreground flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {formatDate(complaint.createdAt)}
-                          </span>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                            onClick={() => handleDelete(complaint._id, 'complaint')}
-                            disabled={actionLoading === complaint._id}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                      <CardTitle className="text-xl mt-2">{complaint.subject || 'بدون عنوان'}</CardTitle>
-                      <CardDescription className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                        <span className="font-semibold text-foreground">{complaint.name}</span>
-                        <span className="hidden sm:inline">•</span>
-                        <span>{complaint.email}</span>
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="pt-4">
-                      <div className="bg-muted/20 p-4 rounded-md mb-4 whitespace-pre-wrap text-sm leading-relaxed">
-                        {complaint.message}
-                      </div>
-                      
-                      <div className="flex flex-wrap gap-2 justify-end border-t pt-4">
-                        {complaint.status !== 'resolved' && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200"
-                            onClick={() => handleUpdateStatus(complaint._id, 'complaint', 'resolved')}
-                            disabled={actionLoading === complaint._id}
-                          >
-                            <CheckCircle2 className="h-4 w-4 ml-2" />
-                            تحديد كمحلول
-                          </Button>
-                        )}
-                        {complaint.status !== 'dismissed' && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-gray-600 hover:text-gray-700"
-                            onClick={() => handleUpdateStatus(complaint._id, 'complaint', 'dismissed')}
-                            disabled={actionLoading === complaint._id}
-                          >
-                            <XCircle className="h-4 w-4 ml-2" />
-                            تجاهل
-                          </Button>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+              <div className="grid gap-8">
+                <AnimatePresence>
+                   {complaints.map((c, idx) => (
+                    <motion.div
+                      key={idx}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: idx * 0.05 }}
+                    >
+                       <Card className="border-0 shadow-2xl shadow-gray-200/40 rounded-[2.5rem] overflow-hidden group">
+                          <CardContent className="p-8">
+                             <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-6">
+                                <div className="flex items-center gap-4">
+                                   <div className="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-inner group-hover:scale-110 transition-transform duration-500">
+                                      <MessageSquare className="w-6 h-6" />
+                                   </div>
+                                   <div>
+                                      <div className="flex items-center gap-3 mb-1">
+                                         <h4 className="text-xl font-black text-gray-900">{c.subject || 'رسالة تواصل'}</h4>
+                                         <Badge className={cn("px-3 py-1 rounded-full border-0 font-black text-[10px] uppercase shadow-inner", statusMap[c.status as keyof typeof statusMap].bg, statusMap[c.status as keyof typeof statusMap].color)}>
+                                            {statusMap[c.status as keyof typeof statusMap].label}
+                                         </Badge>
+                                      </div>
+                                      <p className="text-xs font-bold text-gray-400 flex items-center gap-2">
+                                         <span className="text-indigo-600 font-black">{c.name}</span>
+                                         <span>•</span>
+                                         <span>{c.email}</span>
+                                      </p>
+                                   </div>
+                                </div>
+                                 <div className="flex items-center gap-2">
+                                    <div className="flex bg-gray-50 p-1 rounded-xl border border-gray-100">
+                                       {(['pending', 'resolved', 'dismissed'] as const).map((st) => (
+                                          <button
+                                            key={st}
+                                            onClick={() => handleUpdateStatus(c._id, 'complaint', st)}
+                                            disabled={actionLoading === c._id || c.status === st}
+                                            className={cn(
+                                               "px-3 py-1.5 rounded-lg text-[10px] font-black transition-all",
+                                               c.status === st 
+                                                ? "bg-white text-gray-900 shadow-sm" 
+                                                : "text-gray-400 hover:text-gray-600"
+                                            )}
+                                          >
+                                             {statusMap[st].label}
+                                          </button>
+                                       ))}
+                                    </div>
+                                    <Button 
+                                       size="sm"
+                                       variant="ghost" 
+                                       className="h-10 w-10 rounded-xl bg-rose-50 text-rose-500 hover:bg-rose-100 p-0"
+                                       onClick={() => handleDelete(c._id, 'complaint')}
+                                    >
+                                       <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                 </div>
+                              </div>
+
+                             <div className="p-6 rounded-3xl bg-gray-50/50 border border-gray-100 font-bold text-gray-700 text-sm leading-relaxed mb-4">
+                                {c.message}
+                             </div>
+                             <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest px-2 flex items-center gap-1.5">
+                                <Clock className="w-3 h-3" />
+                                {new Date(c.createdAt).toLocaleDateString('ar-EG')}
+                             </p>
+                          </CardContent>
+                       </Card>
+                    </motion.div>
+                   ))}
+                </AnimatePresence>
               </div>
             )}
           </TabsContent>
 
-          <TabsContent value="reports" className="space-y-4">
-            {loading ? (
-              <div className="flex justify-center p-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            ) : reports.length === 0 ? (
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center p-12 text-muted-foreground">
-                  <Flag className="h-12 w-12 mb-4 opacity-20" />
-                  <p>لا توجد بلاغات حالياً</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid gap-4">
-                {reports.map((report) => (
-                  <Card key={report._id} className="overflow-hidden">
-                    <CardHeader className="bg-muted/30 pb-3">
-                      <div className="flex flex-col sm:flex-row justify-between items-start gap-4 sm:gap-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {getStatusBadge(report.status)}
-                          <Badge variant="outline" className="border-orange-200 text-orange-700 bg-orange-50">
-                            {report.reason === 'spam' ? 'احتيال/Spam' : 
-                             report.reason === 'inappropriate' ? 'غير لائق' : 
-                             report.reason === 'misleading' ? 'مضلل' : 'أخرى'}
-                          </Badge>
-                          <span className="text-sm text-muted-foreground flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {formatDate(report.createdAt)}
-                          </span>
-                        </div>
-                        <div className="flex gap-2">
-                           <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                            onClick={() => handleDelete(report._id, 'report')}
-                            disabled={actionLoading === report._id}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                      <CardTitle className="text-lg mt-2 flex items-center gap-2">
-                        <AlertTriangle className="h-5 w-5 text-orange-500" />
-                        بلاغ عن رحلة: {report.tripId ? report.tripId.title : 'رحلة محذوفة'}
-                      </CardTitle>
-                      {report.tripId && (
-                        <CardDescription>
-                          <Link to={`/trips/${report.tripId._id}`} className="flex items-center gap-1 text-primary hover:underline w-fit">
-                            عرض الرحلة <ExternalLink className="h-3 w-3" />
-                          </Link>
-                        </CardDescription>
-                      )}
-                    </CardHeader>
-                    <CardContent className="pt-4">
-                      {report.description && (
-                        <div className="bg-muted/20 p-4 rounded-md mb-4 text-sm">
-                          <span className="font-semibold block mb-1">تفاصيل البلاغ:</span>
-                          {report.description}
-                        </div>
-                      )}
-                      
-                      <div className="flex flex-wrap gap-2 justify-end border-t pt-4">
-                         {report.status !== 'resolved' && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200"
-                            onClick={() => handleUpdateStatus(report._id, 'report', 'resolved')}
-                            disabled={actionLoading === report._id}
-                          >
-                            <CheckCircle2 className="h-4 w-4 ml-2" />
-                            تحديد كمحلول
-                          </Button>
-                        )}
-                        {report.status !== 'dismissed' && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-gray-600 hover:text-gray-700"
-                            onClick={() => handleUpdateStatus(report._id, 'report', 'dismissed')}
-                            disabled={actionLoading === report._id}
-                          >
-                            <XCircle className="h-4 w-4 ml-2" />
-                            تجاهل
-                          </Button>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
+          <TabsContent value="reports">
+             {loading ? (
+                <div className="grid gap-6">
+                   {[1,2].map(i => <div key={i} className="h-64 bg-white rounded-[2.5rem] animate-pulse shadow-sm" />)}
+                </div>
+             ) : reports.length === 0 ? (
+               <div className="text-center py-32 bg-white rounded-[2.5rem] border border-gray-50 shadow-sm">
+                  <ShieldAlert className="h-16 w-16 text-gray-200 mx-auto mb-4" />
+                  <h3 className="text-xl font-black text-gray-900">لا توجد بلاغات</h3>
+                  <p className="text-gray-400 font-bold">لم يبلغ أحد عن أي محتوى حتى الآن.</p>
+               </div>
+             ) : (
+               <div className="grid gap-8">
+                  <AnimatePresence>
+                     {reports.map((r, idx) => (
+                       <motion.div
+                         key={idx}
+                         initial={{ opacity: 0, x: 20 }}
+                         animate={{ opacity: 1, x: 0 }}
+                         transition={{ delay: idx * 0.05 }}
+                       >
+                          <Card className="border-0 shadow-2xl shadow-gray-200/40 rounded-[2.5rem] overflow-hidden group">
+                             <CardContent className="p-8">
+                                <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-6">
+                                   <div className="flex items-center gap-4">
+                                      <div className="w-14 h-14 rounded-2xl bg-rose-50 flex items-center justify-center text-rose-600 shadow-inner group-hover:scale-110 transition-transform duration-500">
+                                         <AlertTriangle className="w-6 h-6" />
+                                      </div>
+                                      <div>
+                                         <div className="flex items-center gap-3 mb-1">
+                                            <h4 className="text-xl font-black text-gray-900">بلاغ عن رحلة: {r.tripId?.title || 'رحلة محذوفة'}</h4>
+                                            <Badge className={cn("px-3 py-1 rounded-full border-0 font-black text-[10px] uppercase shadow-inner", statusMap[r.status as keyof typeof statusMap].bg, statusMap[r.status as keyof typeof statusMap].color)}>
+                                               {statusMap[r.status as keyof typeof statusMap].label}
+                                            </Badge>
+                                         </div>
+                                         <div className="flex items-center gap-3 text-xs font-bold text-gray-400">
+                                            <span className="bg-orange-50 text-orange-600 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase">
+                                               {r.reason === 'spam' ? 'احتيال' : r.reason === 'inappropriate' ? 'غير لائق' : 'مضلل'}
+                                            </span>
+                                            {r.tripId && (
+                                              <Link to={`/trips/${r.tripId._id}`} className="text-indigo-600 hover:underline flex items-center gap-1 font-black">
+                                                 رابط الرحلة <ExternalLink className="h-3 w-3" />
+                                              </Link>
+                                            )}
+                                         </div>
+                                      </div>
+                                   </div>
+                                    <div className="flex items-center gap-2">
+                                       <div className="flex bg-gray-50 p-1 rounded-xl border border-gray-100">
+                                          {(['pending', 'resolved', 'dismissed'] as const).map((st) => (
+                                             <button
+                                               key={st}
+                                               onClick={() => handleUpdateStatus(r._id, 'report', st)}
+                                               disabled={actionLoading === r._id || r.status === st}
+                                               className={cn(
+                                                  "px-3 py-1.5 rounded-lg text-[10px] font-black transition-all",
+                                                  r.status === st 
+                                                   ? "bg-white text-gray-900 shadow-sm" 
+                                                   : "text-gray-400 hover:text-gray-600"
+                                               )}
+                                             >
+                                                {statusMap[st].label}
+                                             </button>
+                                          ))}
+                                       </div>
+                                       <Button 
+                                          size="sm"
+                                          variant="ghost" 
+                                          className="h-10 w-10 rounded-xl bg-rose-50 text-rose-500 hover:bg-rose-100 p-0"
+                                          onClick={() => handleDelete(r._id, 'report')}
+                                       >
+                                          <Trash2 className="h-4 w-4" />
+                                       </Button>
+                                    </div>
+                                 </div>
+
+                                <div className="p-6 rounded-3xl bg-rose-50/30 border border-rose-100 font-bold text-gray-700 text-sm leading-relaxed mb-4">
+                                   <span className="text-[10px] font-black text-rose-400 block mb-1 uppercase tracking-widest">وصف البلاغ</span>
+                                   {r.description || 'لا يوجد وصف معمق'}
+                                </div>
+                                <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest px-2 flex items-center gap-1.5">
+                                   <Clock className="w-3 h-3" />
+                                   {new Date(r.createdAt).toLocaleDateString('ar-EG')}
+                                </p>
+                             </CardContent>
+                          </Card>
+                       </motion.div>
+                     ))}
+                  </AnimatePresence>
+               </div>
+             )}
           </TabsContent>
         </Tabs>
       </div>

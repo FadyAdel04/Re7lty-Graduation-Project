@@ -4,6 +4,7 @@ import { getNotifications, markNotificationRead, markAllNotificationsRead } from
 import { toast } from "sonner";
 import { createPusherClient } from "@/lib/pusher-client";
 import type Pusher from "pusher-js";
+import { Bell, X } from "lucide-react";
 import notificationSound from "@/assets/notifications.mp3";
 
 const PUSHER_KEY = import.meta.env.VITE_PUSHER_KEY;
@@ -132,14 +133,27 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     const handler = (payload: NotificationItem) => {
       console.log("Received notification payload:", payload);
       playNotificationSound();
-      toast("إشعار جديد", {
-        description: payload.message,
+      
+      toast.custom((t) => (
+        <div className="bg-white/90 backdrop-blur-xl border border-indigo-100 rounded-[1.5rem] p-4 shadow-2xl flex items-start gap-4 animate-in slide-in-from-bottom-5 duration-500 max-w-sm w-full">
+           <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-100 shrink-0">
+              <Bell className="w-6 h-6" />
+           </div>
+           <div className="flex-1 pt-1">
+              <h4 className="font-black text-gray-900 text-sm mb-1">إشعار جديد</h4>
+              <p className="text-xs font-bold text-gray-500 leading-relaxed">{payload.message}</p>
+           </div>
+           <button onClick={() => toast.dismiss(t)} className="text-gray-300 hover:text-gray-500 transition-colors">
+              <X className="w-4 h-4" />
+           </button>
+        </div>
+      ), {
+        duration: 5000,
+        position: 'bottom-left'
       });
       
       setNotifications((prev) => {
-        // Prevent duplicates ensuring we process unique IDs if needed
         if (prev.some(n => n.id === payload.id)) return prev;
-        
         const next = [payload, ...prev].slice(0, 50);
         syncUnreadCount(next);
         return next;

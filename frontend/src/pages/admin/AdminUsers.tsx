@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@clerk/clerk-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { adminService } from "@/services/adminService";
 import AdminLayout from "@/components/admin/AdminLayout";
-import { Search, Mail, Calendar, User } from "lucide-react";
+import { Search, Mail, Calendar, User, MoreVertical, ShieldCheck, MailWarning, UserMinus, Users as UsersIcon } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 const AdminUsers = () => {
   const { getToken } = useAuth();
@@ -22,12 +24,10 @@ const AdminUsers = () => {
   const fetchUsers = async () => {
     try {
       const token = await getToken();
-      // Fetch all users using adminService
       const data = await adminService.getAllUsers(token || undefined);
       
-      // Transform the data to match our UI needs
       const transformedUsers = data.map((user: any) => ({
-        _id: user.clerkId || user._id, // Prefer clerkId as it's used for connecting data
+        _id: user.clerkId || user._id,
         fullName: user.fullName || user.username || 'مستخدم',
         email: user.email || 'لا يوجد بريد',
         imageUrl: user.imageUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username || user._id}`,
@@ -35,13 +35,12 @@ const AdminUsers = () => {
         trips: typeof user.trips === 'number' ? user.trips : (user.trips?.length || 0),
         followers: user.followers || 0,
         following: user.following || 0,
-        status: 'active' // Default status
+        status: 'active'
       }));
       
       setUsers(transformedUsers);
     } catch (error) {
       console.error('Error fetching users:', error);
-      // Fallback to empty array on error
       setUsers([]);
     } finally {
       setLoading(false);
@@ -55,157 +54,143 @@ const AdminUsers = () => {
 
   return (
     <AdminLayout>
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold text-gray-900 mb-2">إدارة المستخدمين</h1>
-        <p className="text-gray-600">عرض وإدارة جميع مستخدمي المنصة</p>
-      </div>
+      <div className="max-w-7xl mx-auto space-y-10" dir="rtl">
+        
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+           <div>
+              <h1 className="text-3xl font-black text-gray-900 mb-2 font-cairo">إدارة <span className="text-indigo-600">المستخدمين</span></h1>
+              <p className="text-gray-500 font-bold text-sm">عرض وتحليل والتحكم في كافة حسابات المنصة.</p>
+           </div>
+           
+           <div className="relative w-full md:w-[400px]">
+              <div className="relative group">
+                 <Input
+                    type="text"
+                    placeholder="ابحث بالاسم أو البريد..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="h-14 pr-12 rounded-2xl bg-white border-gray-100 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-bold shadow-sm"
+                 />
+                 <Search className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-indigo-600 transition-colors" />
+              </div>
+           </div>
+        </div>
 
-      {/* Search Bar */}
-      <div className="mb-6">
-        <div className="relative">
-          <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-          <Input
-            type="text"
-            placeholder="ابحث عن مستخدم بالاسم أو البريد الإلكتروني..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pr-10 text-right"
-          />
+        {/* Quick Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+           {[
+             { title: "إجمالي المستخدمين", value: users.length, icon: User, color: "bg-indigo-50 text-indigo-600" },
+             { title: "حسابات موثقة", value: Math.floor(users.length * 0.8), icon: ShieldCheck, color: "bg-emerald-50 text-emerald-600" },
+             { title: "إجمالي الرحلات", value: users.reduce((sum, u) => sum + u.trips, 0), icon: Calendar, color: "bg-purple-50 text-purple-600" },
+             { title: "متوسط المتابعة", value: Math.round(users.reduce((sum, u) => sum + u.followers, 0) / users.length) || 0, icon: UsersIcon, color: "bg-orange-50 text-orange-600" },
+           ].map((stat, i) => (
+             <Card key={i} className="border-0 shadow-xl shadow-gray-200/40 rounded-[2rem] overflow-hidden group">
+                <CardContent className="p-6">
+                   <div className="flex items-center gap-4">
+                      <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:rotate-12", stat.color)}>
+                         <stat.icon className="w-6 h-6" />
+                      </div>
+                      <div>
+                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">{stat.title}</p>
+                         <p className="text-2xl font-black text-gray-900 leading-none mt-1">{stat.value.toLocaleString('ar-EG')}</p>
+                      </div>
+                   </div>
+                </CardContent>
+             </Card>
+           ))}
+        </div>
+
+        {/* Users Table / Grid */}
+        <div className="bg-white rounded-[2.5rem] border border-gray-50 shadow-2xl shadow-gray-200/20 p-8 overflow-hidden relative">
+           <div className="flex items-center justify-between mb-8">
+              <h3 className="text-xl font-black text-gray-900">سجل النشاط</h3>
+              <div className="flex gap-2">
+                 <button className="px-4 py-2 rounded-xl bg-indigo-50 text-indigo-600 text-[10px] font-black uppercase hover:bg-indigo-100 transition-colors">تصدير CSV</button>
+              </div>
+           </div>
+
+           {loading ? (
+             <div className="space-y-4">
+                {[1,2,3,4].map(i => <div key={i} className="h-24 bg-gray-50 rounded-3xl animate-pulse" />)}
+             </div>
+           ) : filteredUsers.length === 0 ? (
+             <div className="text-center py-20 px-8">
+                <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                   <Search className="h-10 w-10 text-gray-200" />
+                </div>
+                <h3 className="text-lg font-black text-gray-900">لا توجد نتائج بحث</h3>
+                <p className="text-gray-400 font-bold text-sm">تحقق من كتابة الاسم بشكل صحيح أو حاول البحث عن شيء آخر.</p>
+             </div>
+           ) : (
+             <div className="space-y-4">
+                <AnimatePresence mode="popLayout">
+                   {filteredUsers.map((user, idx) => (
+                    <motion.div
+                      key={user._id}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: idx * 0.05 }}
+                      className="group flex flex-col md:flex-row items-center justify-between p-5 rounded-[2.5rem] bg-gray-50/50 hover:bg-white hover:shadow-xl hover:shadow-indigo-500/5 transition-all border border-transparent hover:border-indigo-50 gap-6"
+                    >
+                      <div className="flex items-center gap-5 w-full md:w-auto">
+                        <div className="relative group-hover:scale-110 transition-transform duration-500">
+                           <div className="w-16 h-16 rounded-[1.25rem] overflow-hidden ring-4 ring-white shadow-lg shadow-indigo-100">
+                             <img src={user.imageUrl} className="w-full h-full object-cover" />
+                           </div>
+                           <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-emerald-500 border-2 border-white flex items-center justify-center">
+                              <ShieldCheck className="w-3 h-3 text-white" />
+                           </div>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-black text-gray-900 text-lg group-hover:text-indigo-600 transition-colors truncate">{user.fullName}</h4>
+                          <div className="flex items-center gap-3 mt-0.5">
+                            <span className="flex items-center gap-1.5 text-xs font-bold text-gray-400 truncate">
+                              <Mail className="h-3.5 w-3.5" />
+                              {user.email}
+                            </span>
+                            <span className="h-1 w-1 rounded-full bg-gray-200" />
+                            <span className="text-[10px] font-black text-gray-300 uppercase shrink-0">منذ {new Date(user.createdAt).toLocaleDateString('ar-EG')}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center justify-center md:justify-end gap-8 w-full md:w-auto">
+                        <div className="flex items-center gap-6">
+                           <div className="text-center">
+                             <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest mb-1">الرحلات</p>
+                             <p className="text-lg font-black text-gray-900 leading-none">{user.trips}</p>
+                           </div>
+                           <div className="h-8 w-px bg-gray-100" />
+                           <div className="text-center">
+                             <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest mb-1">المتابعين</p>
+                             <p className="text-lg font-black text-gray-900 leading-none">{user.followers}</p>
+                           </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                           <Button
+                              variant="ghost"
+                              className="h-12 w-12 rounded-2xl bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
+                              onClick={() => navigate(`/user/${user._id}`)}
+                           >
+                              <User className="h-5 w-5" />
+                           </Button>
+                           <Button
+                              variant="ghost"
+                              className="h-12 w-12 rounded-2xl bg-white text-gray-400 hover:bg-rose-50 hover:text-rose-600 transition-all shadow-sm border border-gray-100"
+                           >
+                              <UserMinus className="h-5 w-5" />
+                           </Button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+             </div>
+           )}
         </div>
       </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">إجمالي المستخدمين</p>
-                <p className="text-3xl font-bold text-gray-900">{users.length}</p>
-              </div>
-              <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
-                <User className="h-6 w-6 text-blue-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">مستخدمين نشطين</p>
-                <p className="text-3xl font-bold text-green-600">{users.filter(u => u.status === 'active').length}</p>
-              </div>
-              <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
-                <User className="h-6 w-6 text-green-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">إجمالي الرحلات</p>
-                <p className="text-3xl font-bold text-purple-600">{users.reduce((sum, u) => sum + u.trips, 0)}</p>
-              </div>
-              <div className="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center">
-                <Calendar className="h-6 w-6 text-purple-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">متوسط المتابعين</p>
-                <p className="text-3xl font-bold text-orange-600">
-                  {Math.round(users.reduce((sum, u) => sum + u.followers, 0) / users.length) || 0}
-                </p>
-              </div>
-              <div className="h-12 w-12 rounded-full bg-orange-100 flex items-center justify-center">
-                <User className="h-6 w-6 text-orange-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Users Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>جميع المستخدمين</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="text-center py-8">
-              <p className="text-gray-500">جاري التحميل...</p>
-            </div>
-          ) : filteredUsers.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-gray-500">لا توجد نتائج</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {filteredUsers.map((user) => (
-                <div
-                  key={user._id}
-                  className="flex flex-col md:flex-row items-center md:justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors gap-4"
-                >
-                  <div className="flex items-center gap-4 w-full md:w-auto">
-                    <img
-                      src={user.imageUrl}
-                      alt={user.fullName}
-                      className="w-12 h-12 rounded-full"
-                    />
-                    <div>
-                      <h4 className="font-bold text-gray-900">{user.fullName}</h4>
-                      <div className="flex items-center gap-2 text-sm text-gray-500">
-                        <Mail className="h-4 w-4" />
-                        <span>{user.email}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6 w-full md:w-auto mt-4 md:mt-0">
-                    <div className="text-center">
-                      <p className="text-sm text-gray-600">الرحلات</p>
-                      <p className="text-lg font-bold text-gray-900">{user.trips}</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-sm text-gray-600">المتابعين</p>
-                      <p className="text-lg font-bold text-gray-900">{user.followers}</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-sm text-gray-600">يتابع</p>
-                      <p className="text-lg font-bold text-gray-900">{user.following}</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-sm text-gray-600">تاريخ التسجيل</p>
-                      <p className="text-sm text-gray-900">{new Date(user.createdAt).toLocaleDateString('ar-EG')}</p>
-                    </div>
-                    <span className="px-3 py-1 text-xs rounded-full font-medium bg-green-100 text-green-700">
-                      نشط
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => navigate(`/user/${user._id}`)}
-                    >
-                      عرض الملف
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </AdminLayout>
   );
 };

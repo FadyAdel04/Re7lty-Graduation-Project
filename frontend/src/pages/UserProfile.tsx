@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
+import { cn } from "@/lib/utils";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import TripCard from "@/components/TripCard";
@@ -8,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, Calendar, Users, Heart, Settings, Camera, Edit2, Save, X, LogOut, Bookmark, MessageCircle, Award, Crown, Gem } from "lucide-react";
+import { MapPin, Calendar, Users, Heart, Settings, Camera, Edit2, Save, X, LogOut, Bookmark, MessageCircle, Award, Crown, Gem, LayoutGrid, Sparkles, Image as ImageIcon } from "lucide-react";
 import { useUser, useAuth, useClerk } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -16,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import TripAIChatWidget from "@/components/TripAIChatWidget";
 import {
   Dialog,
   DialogContent,
@@ -23,6 +25,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   getUserTrips,
   getUserById,
@@ -725,603 +733,295 @@ const UserProfile = () => {
 
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#F8FAFC] font-cairo text-right" dir="rtl">
       <Header />
       
-      <main>
-        {/* Cover Image */}
-        <div className="relative h-64 sm:h-80 lg:h-96 overflow-hidden group bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-800 dark:to-gray-900">
-          {coverImage ? (
-            <img
-              src={coverImage}
-              alt="Cover"
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                // If the image fails to load, hide it
-                (e.target as HTMLImageElement).style.display = 'none';
-              }}
-            />
-          ) : null}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-          
-          {isOwnProfile && !isEditingCover && (
-            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-              <Button
-                variant="secondary"
-                size="icon"
-                className="rounded-full"
-                onClick={() => setIsEditingCover(true)}
-              >
-                <Camera className="h-5 w-5" />
-              </Button>
-            </div>
-          )}
+      <main className="pb-20">
+        {/* 1. Cinematic Header Section */}
+        <section className="relative h-[400px] w-full overflow-hidden">
+           {/* Background Image */}
+           <div className="absolute inset-0 z-0">
+              {coverImage ? (
+                <img src={coverImage} alt="" className="w-full h-full object-cover transform scale-105 transition-transform duration-[10s]" />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-indigo-900 via-indigo-800 to-purple-900" />
+              )}
+              <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-[#F8FAFC]" />
+           </div>
 
-          {/* Cover Image Dialog */}
-          {isOwnProfile && (
-            <Dialog open={isEditingCover} onOpenChange={setIsEditingCover}>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>تغيير صورة الغلاف</DialogTitle>
-                  <DialogDescription>
-                    اختر صورة جديدة لصورة الغلاف
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <Label htmlFor="cover-upload">صورة الغلاف</Label>
-                  <input
-                    id="cover-upload"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleCoverImageChange}
-                    className="w-full"
-                  />
-                </div>
-              </DialogContent>
-            </Dialog>
-          )}
-        </div>
+           {/* Change Cover Trigger (Own Profile) */}
+           {isOwnProfile && (
+             <button 
+               onClick={() => setIsEditingCover(true)}
+               className="absolute top-6 left-6 z-20 flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-white text-sm font-bold hover:bg-white/20 transition-all shadow-xl"
+             >
+                <Camera className="w-4 h-4" />
+                تغيير الغلاف
+             </button>
+           )}
+        </section>
 
-        {/* Profile Info */}
-        <div className="container mx-auto px-4 -mt-20 sm:-mt-24 relative z-10 pb-8">
-          <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-end">
-            <div className="relative group">
-              <Avatar className="h-32 w-32 sm:h-40 sm:w-40 border-4 border-background shadow-lg">
-                <AvatarImage src={profileImage || undefined} />
-                <AvatarFallback className="text-4xl">
-                  {fullName.charAt(0) || "?"}
-                </AvatarFallback>
-              </Avatar>
+        {/* 2. Profile Overlapping Content */}
+        <div className="container mx-auto px-4 -mt-24 relative z-10">
+           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
               
-              {isOwnProfile && isEditing && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                  <label htmlFor="profile-upload" className="cursor-pointer">
-                    <Camera className="h-8 w-8 text-white" />
-                  </label>
-                  <input
-                    id="profile-upload"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleProfileImageChange}
-                    className="hidden"
-                  />
-                </div>
-              )}
-            </div>
-
-            <div className="flex-1 space-y-4">
-              {!isEditing ? (
-                <Card className="bg-background/95 backdrop-blur-sm shadow-lg">
-                  <CardHeader>
-                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <h1 className="text-3xl font-bold">{fullName}</h1>
-                          {userBadge && (
-                            <Badge className={userBadge.className}>
-                              {userBadge.icon}
-                              {userBadge.label}
-                            </Badge>
+              {/* LEFT SIDE: Identity Card (4 cols) */}
+              <div className="lg:col-span-4 space-y-6">
+                 <Card className="border-0 shadow-2xl rounded-[2.5rem] overflow-hidden bg-white/80 backdrop-blur-xl">
+                    <CardContent className="p-8 flex flex-col items-center text-center">
+                       {/* Avatar with Ring */}
+                       <div className="relative mb-6">
+                          <div className="p-1 rounded-full bg-gradient-to-tr from-orange-400 to-yellow-500 shadow-xl">
+                             <Avatar className="h-32 w-32 sm:h-40 sm:w-40 border-4 border-white">
+                                <AvatarImage src={profileImage || undefined} />
+                                <AvatarFallback className="text-4xl bg-orange-50 text-orange-600 font-black">
+                                  {fullName?.charAt(0) || "?"}
+                                </AvatarFallback>
+                             </Avatar>
+                          </div>
+                          {isOwnProfile && isEditing && (
+                            <label htmlFor="profile-upload" className="absolute bottom-2 right-2 p-3 bg-indigo-600 rounded-full text-white shadow-lg cursor-pointer hover:bg-indigo-700 transition-all">
+                               <Camera className="w-5 h-5" />
+                               <input id="profile-upload" type="file" accept="image/*" onChange={handleProfileImageChange} className="hidden" />
+                            </label>
                           )}
-                        </div>
-                        <p className="text-muted-foreground leading-relaxed">{bio || "لا يوجد وصف..."}</p>
-                      </div>
-                      
-                      <div className="flex gap-2">
-                        {isOwnProfile ? (
-                          <>
-                            <Button
-                              onClick={() => {
-                                setIsStoryDialogOpen(true);
-                                void loadMyStories();
-                              }}
-                              variant="default"
-                              className="rounded-full"
-                            >
-                              <Camera className="h-4 w-4 ml-2" />
-                              إضافة قصة
-                            </Button>
-                            <Button 
-                              onClick={() => setIsEditing(true)}
-                              variant="outline"
-                              className="rounded-full"
-                            >
-                              <Edit2 className="h-4 w-4 ml-2" />
-                              تعديل الملف الشخصي
-                            </Button>
-                            <Button 
-                              onClick={handleSignOut}
-                              variant="destructive"
-                              className="rounded-full"
-                            >
-                              <LogOut className="h-4 w-4 ml-2" />
-                              تسجيل الخروج
-                            </Button>
-                          </>
-                        ) : (
-                          <Button
-                            variant={isFollowingUser ? "secondary" : "default"}
-                            className="rounded-full"
-                            onClick={handleToggleFollow}
-                            disabled={isFollowLoading}
-                          >
-                            <Users className="h-4 w-4 ml-2" />
-                            {isFollowLoading
-                              ? "جاري المتابعة..."
-                              : isFollowingUser
-                                ? "إلغاء المتابعة"
-                                : "متابعة"}
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mt-4">
-                      <div className="flex items-center gap-1.5">
-                        <MapPin className="h-4 w-4 text-primary" />
-                        <span>{location || "لا يوجد موقع"}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <Calendar className="h-4 w-4 text-secondary" />
-                        <span>انضم {getJoinDate()}</span>
-                      </div>
-                    </div>
-                  </CardHeader>
-                </Card>
-              ) : (
-                <Card className="bg-background/95 backdrop-blur-sm shadow-lg">
-                  <CardHeader>
-                    <CardTitle>تعديل الملف الشخصي</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="fullName">الاسم الكامل</Label>
-                      <Input
-                        id="fullName"
-                        value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
-                        placeholder="الاسم الكامل"
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="bio">نبذة عني</Label>
-                      <Textarea
-                        id="bio"
-                        value={bio}
-                        onChange={(e) => setBio(e.target.value)}
-                        placeholder="اكتب نبذة عنك..."
-                        rows={4}
-                      />
-                    </div>
+                       </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="location">الموقع</Label>
-                      <Input
-                        id="location"
-                        value={location}
-                        onChange={(e) => setLocation(e.target.value)}
-                        placeholder="المدينة، الدولة"
-                      />
-                    </div>
+                       {/* User Identity */}
+                       <div className="space-y-2 mb-6 text-center">
+                          <div className="flex items-center justify-center gap-2">
+                             <h1 className="text-3xl font-black text-gray-900">{fullName}</h1>
+                             {userBadge && (
+                               <TooltipProvider>
+                                  <Tooltip>
+                                     <TooltipTrigger>
+                                        <div className={cn("p-1.5 rounded-lg shadow-sm", userBadge.className)}>
+                                           {userBadge.icon}
+                                        </div>
+                                     </TooltipTrigger>
+                                     <TooltipContent className="font-cairo font-bold">
+                                        {userBadge.label}
+                                     </TooltipContent>
+                                  </Tooltip>
+                               </TooltipProvider>
+                             )}
+                          </div>
+                          <div className="flex items-center justify-center gap-1.5 text-orange-600 font-bold text-sm bg-orange-50 px-3 py-1 rounded-full mx-auto w-fit">
+                             <MapPin className="h-3.5 w-3.5" />
+                             {location || "رحالة جائل"}
+                          </div>
+                       </div>
 
-                    <div className="flex gap-2">
-                      <Button 
-                        onClick={handleSaveProfile}
-                        className="flex-1"
-                      >
-                        <Save className="h-4 w-4 ml-2" />
-                        حفظ
-                      </Button>
-                      <Button 
-                        onClick={handleCancelEdit}
-                        variant="outline"
-                        className="flex-1"
-                      >
-                        <X className="h-4 w-4 ml-2" />
-                        إلغاء
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+                       {/* Bio Section */}
+                       <p className="text-gray-500 leading-relaxed font-light mb-8 italic">
+                          "{bio || "لا يوجد وصف حالياً.. هذا الرحالة مشغول باستكشاف العالم."}"
+                       </p>
 
-              {/* Stats */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="bg-background rounded-2xl p-4 border border-border/50 text-center">
-                  <div className="text-2xl font-bold text-primary">{stats.trips}</div>
-                  <div className="text-xs text-muted-foreground">رحلة</div>
-                </div>
-                <button 
-                  onClick={handleOpenFollowers}
-                  className="bg-background rounded-2xl p-4 border border-border/50 text-center hover:bg-muted/50 transition-colors cursor-pointer"
-                >
-                  <div className="text-2xl font-bold text-secondary">{stats.followers}</div>
-                  <div className="text-xs text-muted-foreground">متابع</div>
-                </button>
-                <button 
-                  onClick={handleOpenFollowing}
-                  className="bg-background rounded-2xl p-4 border border-border/50 text-center hover:bg-muted/50 transition-colors cursor-pointer"
-                >
-                  <div className="text-2xl font-bold text-primary">{stats.following}</div>
-                  <div className="text-xs text-muted-foreground">يتابع</div>
-                </button>
-                <div className="bg-background rounded-2xl p-4 border border-border/50 text-center">
-                  <div className="text-2xl font-bold text-secondary">{stats.likes}</div>
-                  <div className="text-xs text-muted-foreground">إعجاب</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Content Tabs */}
-        <div className="container mx-auto px-4 py-8">
-          <Tabs defaultValue="trips" className="w-full">
-            <TabsList className="w-full sm:w-auto rounded-full bg-muted/50">
-              <TabsTrigger value="trips" className="rounded-full">رحلاتي</TabsTrigger>
-              {isOwnProfile && (
-                <TabsTrigger value="ai-trips" className="rounded-full">اقتراحات مساعد الرحلات الذكى</TabsTrigger>
-              )}
-              <TabsTrigger value="saved" className="rounded-full">المحفوظات</TabsTrigger>
-              <TabsTrigger value="liked" className="rounded-full">الإعجابات</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="trips" className="mt-8">
-              {isLoadingTrips ? (
-                <TripSkeletonLoader count={3} variant="card" />
-              ) : userTrips.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {userTrips.map((trip) => {
-                    const tripId = String(trip._id || trip.id);
-                    return (
-                      <TripCard 
-                        key={tripId} 
-                        id={tripId}
-                        title={trip.title}
-                        destination={trip.destination}
-                        duration={trip.duration}
-                        rating={trip.rating}
-                        image={trip.image}
-                        author={trip.author}
-                        authorImage={profileImage || undefined}
-                        likes={trip.likes || 0}
-                        ownerId={trip.ownerId}
-                        season={trip.season}
-                      />
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="text-center py-16">
-                  <Calendar className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">
-                    {isOwnProfile ? "لا توجد رحلات بعد" : "لا توجد رحلات لهذا المستخدم"}
-                  </h3>
-                  <p className="text-muted-foreground mb-4">
-                    {isOwnProfile 
-                      ? "ابدأ بمشاركة أول رحلة لك!" 
-                      : "لم يقم هذا العضو بمشاركة أي رحلات حتى الآن."}
-                  </p>
-                  {isOwnProfile && (
-                    <Button onClick={() => navigate("/trips/new")}>
-                      أنشئ رحلة جديدة
-                    </Button>
-                  )}
-                </div>
-              )}
-            </TabsContent>
-
-            {isOwnProfile && (
-              <TabsContent value="ai-trips" className="mt-8">
-                {isLoadingAITrips ? (
-                  <TripSkeletonLoader count={3} variant="card" />
-                ) : aiTrips.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {aiTrips.map((trip) => {
-                      const tripId = String(trip._id || trip.id);
-                      return (
-                        <TripCard 
-                          key={tripId} 
-                          id={tripId}
-                          title={trip.title}
-                          destination={trip.destination}
-                          duration={trip.duration}
-                          rating={trip.rating}
-                          image={trip.image}
-                          author={trip.author}
-                          authorImage={profileImage || undefined}
-                          likes={trip.likes || 0}
-                          ownerId={trip.ownerId}
-                          season={trip.season}
-                        />
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="text-center py-16">
-                    <MessageCircle className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
-                    <h3 className="text-xl font-semibold mb-2">لا توجد رحلات ذكاء اصطناعي بعد</h3>
-                    <p className="text-muted-foreground mb-4">
-                      استخدم مساعد الرحلات الذكي لإنشاء رحلات مخصصة
-                    </p>
-                  </div>
-                )}
-              </TabsContent>
-            )}
-
-            <TabsContent value="saved" className="mt-8">
-              {isLoadingSaved ? (
-                <TripSkeletonLoader count={3} variant="card" />
-              ) : savedTrips.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {savedTrips.map((trip) => {
-                    const tripId = String(trip._id || trip.id);
-                    return (
-                      <TripCard
-                        key={tripId}
-                        id={tripId}
-                        title={trip.title}
-                        destination={trip.destination}
-                        duration={trip.duration}
-                        rating={trip.rating}
-                        image={trip.image}
-                        author={trip.author}
-                        likes={trip.likes || 0}
-                        ownerId={trip.ownerId}
-                        season={trip.season}
-                      />
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="text-center py-16">
-                  <Bookmark className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">
-                    {isOwnProfile ? "لا توجد رحلات محفوظة" : "لا توجد رحلات محفوظة لهذا المستخدم"}
-                  </h3>
-                  <p className="text-muted-foreground">
-                    {isOwnProfile
-                      ? "ابدأ بحفظ رحلاتك المفضلة لتظهر هنا"
-                      : "لم يقم هذا العضو بحفظ أي رحلات حتى الآن"}
-                  </p>
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="liked" className="mt-8">
-              {isLoadingLoved ? (
-                <TripSkeletonLoader count={3} variant="card" />
-              ) : lovedTrips.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {lovedTrips.map((trip) => {
-                    const tripId = String(trip._id || trip.id);
-                    return (
-                      <TripCard
-                        key={tripId}
-                        id={tripId}
-                        title={trip.title}
-                        destination={trip.destination}
-                        duration={trip.duration}
-                        rating={trip.rating}
-                        image={trip.image}
-                        author={trip.author}
-                        likes={trip.likes || 0}
-                        ownerId={trip.ownerId}
-                        season={trip.season}
-                      />
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="text-center py-16">
-                  <Heart className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">
-                    {isOwnProfile ? "لا توجد رحلات مُعجب بها" : "لا توجد إعجابات لهذا المستخدم"}
-                  </h3>
-                  <p className="text-muted-foreground">
-                    {isOwnProfile
-                      ? "اكتشف رحلات جديدة وابدأ بالإعجاب بها"
-                      : "لم يقم هذا العضو بالإعجاب بأي رحلات بعد"}
-                  </p>
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
-        </div>
-      </main>
-
-
-
-      {/* Add Story Dialog */}
-      {isOwnProfile && (
-        <Dialog open={isStoryDialogOpen} onOpenChange={(open) => {
-          setIsStoryDialogOpen(open);
-          if (!open) resetStoryForm();
-        }}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>إضافة قصة جديدة</DialogTitle>
-              <DialogDescription>
-                اختر صورة أو فيديو وأضف وصفاً قصيراً ليظهر لمتابعيك خلال ٢٤ ساعة.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={loadMyStories}
-                  disabled={isLoadingMyStories}
-                >
-                  {isLoadingMyStories ? "جاري تحميل قصصك..." : "تحديث قائمة القصص الخاصة بي"}
-                </Button>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="story-media">الصورة أو الفيديو</Label>
-                <input
-                  id="story-media"
-                  type="file"
-                  accept="image/*,video/*"
-                  onChange={handleStoryFileChange}
-                  className="w-full"
-                />
-              </div>
-              {myStories.length > 0 && (
-                <div className="space-y-2">
-                  <Label>قصصي الحالية</Label>
-                  <div className="space-y-2 max-h-64 overflow-y-auto border rounded-lg p-2">
-                    {myStories.map((story) => (
-                      <div key={story._id} className="flex items-center gap-3 text-sm">
-                        <div className="h-12 w-12 rounded-md overflow-hidden bg-muted flex-shrink-0">
-                          {story.mediaType === "video" ? (
-                            <video src={story.mediaUrl} className="h-full w-full object-cover" />
+                       {/* Action Buttons */}
+                       <div className="w-full space-y-3">
+                          {!isEditing ? (
+                             <>
+                                {isOwnProfile ? (
+                                   <div className="grid grid-cols-1 gap-3">
+                                      <Button onClick={() => setIsStoryDialogOpen(true)} className="h-12 rounded-2xl bg-orange-600 hover:bg-orange-700 text-white font-bold gap-2 shadow-lg shadow-orange-200">
+                                         <Sparkles className="w-5 h-5" />
+                                         نشر قصة (Story)
+                                      </Button>
+                                      <div className="grid grid-cols-2 gap-3">
+                                         <Button onClick={() => setIsEditing(true)} variant="outline" className="h-12 rounded-2xl border-gray-100 hover:bg-gray-50 font-bold gap-2">
+                                            <Edit2 className="w-4 h-4" />
+                                            تعديل
+                                         </Button>
+                                         <Button onClick={handleSignOut} variant="outline" className="h-12 rounded-2xl border-red-50 text-red-500 hover:bg-red-50 font-bold gap-2">
+                                            <LogOut className="w-4 h-4" />
+                                            خروج
+                                         </Button>
+                                      </div>
+                                   </div>
+                                ) : (
+                                   <Button 
+                                     onClick={handleToggleFollow} 
+                                     disabled={isFollowLoading}
+                                     className={cn(
+                                       "w-full h-14 rounded-2xl text-lg font-black gap-3 transition-all",
+                                       isFollowingUser ? "bg-white border-2 border-indigo-100 text-indigo-600 hover:bg-indigo-50" : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl shadow-indigo-100"
+                                     )}
+                                   >
+                                      <Users className="w-6 h-6" />
+                                      {isFollowingUser ? "متابَع" : "متابعة"}
+                                   </Button>
+                                )}
+                             </>
                           ) : (
-                            <img src={story.mediaUrl} alt={story.caption || ""} className="h-full w-full object-cover" />
+                             <div className="space-y-4 text-right">
+                                <div className="space-y-2">
+                                   <Label className="font-bold">الاسم الكامل</Label>
+                                   <Input value={fullName} onChange={e => setFullName(e.target.value)} className="rounded-xl border-gray-100 h-12" />
+                                </div>
+                                <div className="space-y-2">
+                                   <Label className="font-bold">الموقع</Label>
+                                   <Input value={location} onChange={e => setLocation(e.target.value)} className="rounded-xl border-gray-100 h-12" />
+                                </div>
+                                <div className="space-y-2">
+                                   <Label className="font-bold">النبذة الشخصية</Label>
+                                   <Textarea value={bio} onChange={e => setBio(e.target.value)} className="rounded-xl border-gray-100 min-h-[100px]" />
+                                </div>
+                                <div className="flex gap-2 pt-2">
+                                   <Button onClick={handleSaveProfile} className="flex-1 h-12 rounded-xl bg-orange-600 text-white">حفظ</Button>
+                                   <Button onClick={handleCancelEdit} variant="outline" className="flex-1 h-12 rounded-xl">إلغاء</Button>
+                                </div>
+                             </div>
                           )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="truncate">{story.caption || "بدون وصف"}</p>
-                          <p className="text-xs text-muted-foreground">
-                            المشاهدات: {(story as any).viewedByCount ?? 0}
-                          </p>
-                          {storyViewersById[story._id]?.length ? (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              آخر المشاهدين:{" "}
-                              {storyViewersById[story._id]
-                                .slice(0, 3)
-                                .map((v) => v.fullName)
-                                .join("، ")}
-                              {storyViewersById[story._id].length > 3 ? " وغيرهم..." : ""}
-                            </p>
-                          ) : null}
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <Button
-                            variant="outline"
-                            size="lg"
-                            onClick={async () => {
-                              try {
-                                const token = await getToken();
-                                if (!token) return;
-                                const data = await getStoryViewers(story._id, token);
-                                setStoryViewersById((prev) => ({
-                                  ...prev,
-                                  [story._id]: data.viewers,
-                                }));
-                                if (!data.viewers.length) {
-                                  toast({
-                                    title: "لا يوجد مشاهدين بعد",
-                                    description: "لم يشاهد أحد هذه القصة حتى الآن.",
-                                  });
-                                }
-                              } catch (error) {
-                                console.error("Error loading story viewers:", error);
-                                toast({
-                                  title: "خطأ",
-                                  description: "تعذر تحميل قائمة المشاهدين",
-                                  variant: "destructive",
-                                });
-                              }
-                            }}
-                          >
-                            عرض المشاهدين
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="lg"
-                            onClick={async () => {
-                              try {
-                                const token = await getToken();
-                                if (!token) return;
-                                await deleteStory(story._id, token);
-                                setMyStories((prev) => prev.filter((s) => s._id !== story._id));
-                              } catch (error) {
-                                console.error("Error deleting story:", error);
-                              }
-                            }}
-                          >
-                            حذف
-                          </Button>
-                        </div>
-                      </div>
+                       </div>
+                    </CardContent>
+                 </Card>
+
+                 {/* Premium Stats Grid */}
+                 <div className="grid grid-cols-2 gap-4">
+                    {[
+                       { label: "رحـلـة", val: stats.trips, icon: <MapPin />, color: "text-orange-600", bg: "bg-orange-50", click: null },
+                       { label: "مـتـابـع", val: stats.followers, icon: <Users />, color: "text-indigo-600", bg: "bg-indigo-50", click: handleOpenFollowers },
+                       { label: "يـتـابـع", val: stats.following, icon: <Users />, color: "text-emerald-600", bg: "bg-emerald-50", click: handleOpenFollowing },
+                       { label: "إعـجـاب", val: stats.likes, icon: <Heart />, color: "text-red-600", bg: "bg-red-50", click: null },
+                    ].map((stat, i) => (
+                       <button 
+                         key={stat.label}
+                         onClick={stat.click || undefined}
+                         disabled={!stat.click}
+                         className={cn(
+                           "p-5 rounded-[1.8rem] bg-white border border-gray-50 shadow-sm flex flex-col items-center gap-2 transition-all group",
+                           stat.click ? "hover:shadow-lg hover:border-indigo-100 cursor-pointer" : "cursor-default"
+                         )}
+                       >
+                          <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center mb-1", stat.bg, stat.color)}>
+                             {stat.icon}
+                          </div>
+                          <span className="text-2xl font-black text-gray-900">{stat.val}</span>
+                          <span className="text-xs text-gray-400 font-bold uppercase tracking-widest">{stat.label}</span>
+                       </button>
                     ))}
-                  </div>
-                </div>
-              )}
-              {storyMedia && (
-                <div className="rounded-lg overflow-hidden border">
-                  {storyMediaType === "video" ? (
-                    <video
-                      src={storyMedia}
-                      controls
-                      className="w-full max-h-72 object-contain bg-black"
-                    />
-                  ) : (
-                    <img
-                      src={storyMedia}
-                      alt="Story preview"
-                      className="w-full max-h-72 object-cover"
-                    />
-                  )}
-                </div>
-              )}
-              <div className="space-y-2">
-                <Label htmlFor="story-caption">الوصف (اختياري)</Label>
-                <Textarea
-                  id="story-caption"
-                  value={storyCaption}
-                  onChange={(e) => setStoryCaption(e.target.value)}
-                  placeholder="اكتب وصفاً قصيراً للستوري..."
-                  rows={3}
-                />
+                 </div>
               </div>
-              <div className="flex gap-2 justify-end pt-2">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setIsStoryDialogOpen(false);
-                    resetStoryForm();
-                  }}
-                  disabled={isPublishingStory}
-                >
-                  إلغاء
-                </Button>
-                <Button
-                  onClick={handlePublishStory}
-                  disabled={isPublishingStory || !storyMedia || !storyMediaType}
-                >
-                  {isPublishingStory ? "جاري النشر..." : "نشر القصة"}
-                </Button>
+
+              {/* RIGHT SIDE: Content Sections (8 cols) */}
+              <div className="lg:col-span-8 space-y-8">
+                 <Card className="border-0 shadow-lg rounded-[2.5rem] bg-white p-2">
+                    <Tabs defaultValue="trips" className="w-full">
+                       <TabsList className="w-full justify-start gap-4 bg-transparent p-4 h-auto border-b border-gray-50 flex-wrap">
+                          {[
+                            { id: "trips", label: "الرحلات العامة", icon: <LayoutGrid className="w-4 h-4" /> },
+                            { id: "ai-trips", label: "مساعد الرحلات الذكى ", icon: <Sparkles className="w-4 h-4" />, hide: !isOwnProfile },
+                            { id: "saved", label: "المحفوظات", icon: <Bookmark className="w-4 h-4" /> },
+                            { id: "liked", label: "الإعجابات", icon: <Heart className="w-4 h-4" /> },
+                          ].filter(t => !t.hide).map(tab => (
+                             <TabsTrigger 
+                               key={tab.id} 
+                               value={tab.id}
+                               className="data-[state=active]:bg-orange-600 data-[state=active]:text-white data-[state=active]:shadow-lg rounded-2xl px-6 py-3 font-bold transition-all gap-2"
+                             >
+                                {tab.icon}
+                                {tab.label}
+                             </TabsTrigger>
+                          ))}
+                       </TabsList>
+
+                       {["trips", "ai-trips", "saved", "liked"].map(tabId => (
+                          <TabsContent key={tabId} value={tabId} className="p-6 transition-all animate-in fade-in slide-in-from-bottom-4">
+                             {/* Shared Trip Grid Logic */}
+                             {renderTabContent(tabId)}
+                          </TabsContent>
+                       ))}
+                    </Tabs>
+                 </Card>
               </div>
-            </div>
+
+           </div>
+        </div>
+
+        {/* Global Floating Elements */}
+        {isOwnProfile && <TripAIChatWidget />}
+
+        {/* Dialogs */}
+        <Dialog open={isEditingCover} onOpenChange={setIsEditingCover}>
+          <DialogContent className="font-cairo rounded-[2rem]">
+             <DialogHeader>
+                <DialogTitle className="text-right">تغيير صورة الغلاف</DialogTitle>
+                <DialogDescription className="text-right">سيظهر هذا الغلاف في الجزء العلوي من ملفك الشخصي.</DialogDescription>
+             </DialogHeader>
+             <div className="py-6 flex flex-col items-center justify-center border-2 border-dashed border-indigo-100 rounded-3xl group transition-colors hover:bg-indigo-50">
+                 <ImageIcon className="w-12 h-12 text-indigo-300 mb-4 group-hover:scale-110 transition-transform" />
+                 <input id="cover-upload" type="file" accept="image/*" onChange={handleCoverImageChange} className="hidden" />
+                 <label htmlFor="cover-upload" className="cursor-pointer bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold hover:bg-indigo-700">اختيار صورة</label>
+             </div>
           </DialogContent>
         </Dialog>
-      )}
+
+        {isStoryDialogOpen && (
+          <Dialog open={isStoryDialogOpen} onOpenChange={setIsStoryDialogOpen}>
+            <DialogContent className="max-w-2xl font-cairo rounded-[2rem]">
+                <DialogHeader>
+                  <DialogTitle className="text-right">إضافة قضة رحلة جديدة (Story)</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-6 pt-4 text-right">
+                   <div className="aspect-[9/16] max-h-[400px] w-full bg-gray-50 rounded-[2rem] border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden relative group">
+                      {storyMedia ? (
+                         <>
+                            {storyMediaType === 'video' ? <video src={storyMedia} className="h-full w-full object-cover" /> : <img src={storyMedia} className="h-full w-full object-cover" />}
+                            <button onClick={resetStoryForm} className="absolute top-4 left-4 p-2 bg-black/50 text-white rounded-full z-10"><X className="w-4 h-4" /></button>
+                         </>
+                      ) : (
+                         <div className="flex flex-col items-center">
+                            <Camera className="w-12 h-12 text-gray-300 mb-3" />
+                            <input type="file" id="story-up" className="hidden" accept="image/*,video/*" onChange={handleStoryFileChange} />
+                            <label htmlFor="story-up" className="px-6 py-2 bg-indigo-600 text-white rounded-full font-bold cursor-pointer transition-transform hover:scale-105">اختر ميديا</label>
+                         </div>
+                      )}
+                   </div>
+                   <Textarea placeholder="أضف وصفاً جذاباً لقصتك..." value={storyCaption} onChange={e => setStoryCaption(e.target.value)} className="rounded-2xl border-gray-100 min-h-[100px]" />
+                   <Button onClick={handlePublishStory} disabled={isPublishingStory || !storyMedia} className="w-full h-14 rounded-2xl bg-orange-600 hover:bg-orange-700 text-white text-lg font-black shadow-xl shadow-orange-100">
+                      {isPublishingStory ? "جاري النشر..." : "نشر الستوري الآن"}
+                   </Button>
+                </div>
+            </DialogContent>
+          </Dialog>
+        )}
+      </main>
 
       <Footer />
     </div>
   );
+
+  function renderTabContent(tabId: string) {
+    const loading = tabId === 'trips' ? isLoadingTrips : tabId === 'saved' ? isLoadingSaved : tabId === 'liked' ? isLoadingLoved : isLoadingAITrips;
+    const data = tabId === 'trips' ? userTrips : tabId === 'saved' ? savedTrips : tabId === 'liked' ? lovedTrips : aiTrips;
+
+    if (loading) return <TripSkeletonLoader count={3} variant="card" />;
+
+    if (!data.length) {
+      return (
+        <div className="text-center py-20 flex flex-col items-center">
+           <div className="w-24 h-24 rounded-full bg-gray-50 flex items-center justify-center mb-6">
+              {tabId === 'trips' ? <LayoutGrid className="text-gray-200 w-12 h-12" /> : <Bookmark className="text-gray-200 w-12 h-12" />}
+           </div>
+           <h3 className="text-xl font-bold text-gray-900 mb-2">لا يوجد محتوى هنا بعد</h3>
+           <p className="text-gray-500 font-light">استكشف الموقع واملأ صفحتك بأفضل التجارب والذكريات.</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        {data.map((trip: any) => (
+          <TripCard 
+            key={trip._id || trip.id} 
+            {...trip} 
+            id={trip._id || trip.id} 
+            authorImage={profileImage || trip.authorImage}
+          />
+        ))}
+      </div>
+    );
+  }
 };
 
 export default UserProfile;

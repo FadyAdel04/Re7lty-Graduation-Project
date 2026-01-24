@@ -213,7 +213,7 @@ router.get('/top-trips', requireAuthStrict, async (req, res) => {
         const topTrips = await Trip.find({})
             .sort({ likes: -1 })
             .limit(limit)
-            .select('title destination likes saves author ownerId')
+            .select('title destination likes saves author ownerId image images activities')
             .lean();
 
         res.json(topTrips);
@@ -404,7 +404,7 @@ router.get('/reports', requireAuthStrict, async (req, res) => {
             Trip.find({ createdAt: { $gte: start, $lte: end } })
                 .sort({ likes: -1 })
                 .limit(10)
-                .select('title destination likes saves author ownerId createdAt images')
+                .select('title destination likes saves author ownerId createdAt image images activities')
                 .lean(),
 
             // Top companies

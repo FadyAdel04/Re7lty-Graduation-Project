@@ -60,11 +60,19 @@ export function formatTripMedia(trip: any, req: any, viewerId?: string) {
     )
     : [];
 
+  const hotels = Array.isArray(plain.hotels)
+    ? plain.hotels.map((h: any) => ({
+      ...h,
+      image: toAbsoluteUrl(h?.image, req) || h?.image,
+    }))
+    : [];
+
   return {
     ...plain,
     image,
     activities,
     foodAndRestaurants,
+    hotels,
     comments,
   };
 }

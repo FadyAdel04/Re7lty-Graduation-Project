@@ -276,3 +276,73 @@ All colors MUST be HSL.
   animation: glowPulse 2.8s ease-in-out infinite;
   z-index: 0;
 }
+
+/* Hero Animations */
+@keyframes gradient-x {
+  0%, 100% {
+    background-size: 200% 200%;
+    background-position: left center;
+  }
+  50% {
+    background-size: 200% 200%;
+    background-position: right center;
+  }
+}
+
+.animate-gradient-x {
+  animation: gradient-x 3s ease infinite;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.8s ease-out forwards;
+}
+
+@keyframes fade-left {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-fade-left {
+  animation: fade-left 0.8s ease-out forwards;
+}
+
+@keyframes move-x {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(5px);
+  }
+}
+
+.animate-move-x {
+  animation: move-x 1s ease-in-out infinite;
+}
+
+.fixed-bg-effect {
+  background-attachment: fixed;
+}
+
+@media (max-width: 768px) {
+  .fixed-bg-effect {
+    background-attachment: scroll; /* Better performance on mobile */
+  }
+}
+

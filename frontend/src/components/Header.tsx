@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from "react";
-import { Search, MapPin, Menu, Trophy, Compass, Briefcase, Home, Plus, X, Sparkles, Globe, Shield } from "lucide-react";
+import { Search, MapPin, Menu, Trophy, Compass, Briefcase, Home, Plus, X, Sparkles, Globe, Shield, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-const logo = "/assets/logo.png";
+import { motion, AnimatePresence } from "framer-motion";
 import { search } from "@/lib/api";
 import {
   Sheet,
@@ -12,8 +12,11 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { SignedIn, SignedOut, SignInButton, UserButton, useUser } from "@clerk/clerk-react";
+import { SignedIn, SignedOut, SignInButton, useUser } from "@clerk/clerk-react";
 import NotificationBell from "@/components/NotificationBell";
+import { cn } from "@/lib/utils";
+
+const logo = "/assets/logo.png";
 
 interface HeaderProps {
   onSearch?: (query: string) => void;
@@ -27,29 +30,32 @@ const Header = ({ onSearch }: HeaderProps) => {
   const [userResults, setUserResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const mobileSearchRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
   const location = useLocation();
-  
+
+  // Handle scroll effect
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   // Check if user is admin
   const isAdmin = user?.emailAddresses?.some(email => email.emailAddress === 'supermincraft52@gmail.com');
 
   const handleUserButtonClick = () => {
-    if (user?.id) {
-      navigate(`/user/${user.id}`);
-    }
+    if (user?.id) navigate(`/user/${user.id}`);
   };
 
   const handleSearch = async (value: string) => {
     setSearchValue(value);
     onSearch?.(value);
 
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
 
     if (!value.trim()) {
       setSearchResults([]);
@@ -68,7 +74,6 @@ const Header = ({ onSearch }: HeaderProps) => {
         setSearchResults(results.trips || []);
         setUserResults(results.users || []);
       } catch (error) {
-        console.error('Search error:', error);
         setSearchResults([]);
         setUserResults([]);
       } finally {
@@ -101,366 +106,288 @@ const Header = ({ onSearch }: HeaderProps) => {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        searchContainerRef.current &&
-        !searchContainerRef.current.contains(event.target as Node)
-      ) {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
         setShowDropdown(false);
       }
-      
-      // Close mobile search if clicking outside
-      if (
-        mobileSearchOpen &&
-        mobileSearchRef.current &&
-        !mobileSearchRef.current.contains(event.target as Node) &&
-        !(event.target as Element).closest('button[data-mobile-search-trigger]')
-      ) {
+      if (mobileSearchOpen && mobileSearchRef.current && !mobileSearchRef.current.contains(event.target as Node) && !(event.target as Element).closest('button[data-mobile-search-trigger]')) {
         setMobileSearchOpen(false);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
-      }
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [mobileSearchOpen]);
 
   const NavItem = ({ to, icon: Icon, label, exact = false }: { to: string; icon: any; label: string; exact?: boolean }) => {
     const isActive = exact ? location.pathname === to : location.pathname.startsWith(to);
     return (
-      <Link to={to} className="relative group px-1">
-        <div className={`
-          flex items-center gap-2 px-3 py-2 rounded-full transition-all duration-300
-          ${isActive 
-            ? "text-orange-600 font-bold bg-orange-50" 
-            : "text-[#333] hover:text-orange-600 hover:bg-gray-50/50"
-          }
-        `}>
-          <Icon className={`h-4 w-4 transition-transform duration-300 ${isActive ? "scale-110" : "group-hover:scale-110"}`} />
+      <Link to={to} className="relative group flex flex-col items-center">
+        <div className={cn(
+          "flex items-center gap-2 px-4 py-2 rounded-2xl transition-all duration-500",
+          isActive 
+            ? "text-indigo-600 font-black bg-indigo-50/50" 
+            : "text-gray-500 font-bold hover:text-indigo-600 hover:bg-gray-50/50"
+        )}>
+          <Icon className={cn("h-4.5 w-4.5 transition-transform duration-500", isActive ? "scale-110" : "group-hover:rotate-12")} />
           <span className="text-sm">{label}</span>
         </div>
         {isActive && (
-          <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/3 h-[2px] bg-orange-500 rounded-full animate-in fade-in zoom-in duration-300" />
+          <motion.div 
+            layoutId="header-active"
+            className="absolute -bottom-1 w-1/2 h-1 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full"
+          />
         )}
       </Link>
     );
   };
 
-  // Search Results Component
-  const SearchResultsList = () => (
-    <div className={`
-      bg-white shadow-xl border border-gray-100 overflow-hidden z-50 animate-in fade-in-0 zoom-in-95 duration-200
-      ${mobileSearchOpen 
-        ? "fixed inset-x-0 top-[calc(5rem+1px)] rounded-b-3xl max-h-[60vh] border-t-0" 
-        : "absolute top-full right-0 mt-2 w-full rounded-2xl"
-      }
-    `}>
-      {isSearching ? (
-        <div className="p-8 text-center text-gray-400">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500 mx-auto mb-2" />
-          <p className="text-xs">جاري البحث...</p>
-        </div>
-      ) : (searchResults.length > 0 || userResults.length > 0) ? (
-        <div className="max-h-[60vh] overflow-y-auto py-2">
-          {/* Trips Section */}
-          {searchResults.length > 0 && (
-            <div className="mb-2">
-              <div className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">الرحلات</div>
-              {searchResults.map((trip) => (
-                <button
-                  key={trip._id || trip.id}
-                  onClick={() => handleTripClick(String(trip._id || trip.id))}
-                  className="w-full px-4 py-2 hover:bg-orange-50 transition-colors flex items-center gap-3 text-right"
-                >
-                  <div className="h-10 w-10 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
-                    {trip.image ? (
-                      <img src={trip.image} alt="" className="h-full w-full object-cover" />
-                    ) : (
-                      <MapPin className="h-5 w-5 m-auto text-gray-400" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-800 truncate">{trip.title}</p>
-                    <p className="text-xs text-gray-500 truncate">{trip.destination || trip.city}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-
-          {searchResults.length > 0 && userResults.length > 0 && <div className="h-px bg-gray-100 mx-4 my-2" />}
-
-          {/* Users Section */}
-          {userResults.length > 0 && (
-            <div>
-              <div className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">المسافرون</div>
-              {userResults.map((u) => (
-                <button
-                  key={u.clerkId}
-                  onClick={() => handleUserClick(u.clerkId)}
-                  className="w-full px-4 py-2 hover:bg-orange-50 transition-colors flex items-center gap-3 text-right"
-                >
-                  <div className="h-8 w-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center font-bold text-xs flex-shrink-0">
-                    {u.imageUrl ? (
-                      <img src={u.imageUrl} alt="" className="h-full w-full rounded-full object-cover" />
-                    ) : (
-                      (u.fullName?.[0] || 'U')
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-800 truncate">{u.fullName || u.username}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="p-8 text-center text-gray-400">
-          <Search className="h-8 w-8 mx-auto mb-2 opacity-20" />
-          <p className="text-sm">لا توجد نتائج</p>
-        </div>
-      )}
-    </div>
-  );
-
   return (
-    <header className="sticky top-0 z-50 w-full bg-[#FFFFFF] border-b border-gray-100 shadow-sm">
-      <div className="container mx-auto px-4 sm:px-6 h-20 md:h-[5rem]">
-        {/* Mobile Search Overlay */}
-        {mobileSearchOpen && (
-          <div ref={mobileSearchRef} className="absolute inset-0 bg-white z-50 flex items-center px-4 animate-in fade-in slide-in-from-top-2">
-            <Search className="h-5 w-5 text-gray-400 ml-3" />
-            <Input
-              autoFocus
-              type="text"
-              placeholder="ابحث عن رحلة، مدينة، أو نشاط..."
-              value={searchValue}
-              onChange={(e) => handleSearch(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleSearchSubmit();
-                }
-              }}
-              className="flex-1 border-none shadow-none focus-visible:ring-0 bg-transparent text-base"
-            />
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => {
-                setMobileSearchOpen(false);
-                setSearchValue("");
-                setSearchResults([]);
-              }}
-              className="mr-2"
-            >
-              <X className="h-5 w-5 text-gray-500" />
-            </Button>
-            {/* Show results for mobile */}
-            {(showDropdown && searchValue.trim().length > 0) && (
-              <div className="absolute top-20 left-0 right-0 px-4">
-                 <SearchResultsList />
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Standard Header Content */}
-        <div className={`flex items-center justify-between h-full gap-4 ${mobileSearchOpen ? 'invisible' : ''}`}>
+    <header className={cn(
+      "sticky top-0 z-[100] w-full transition-all duration-500 font-cairo",
+      scrolled 
+        ? "bg-white/80 backdrop-blur-xl border-b border-gray-100 shadow-xl shadow-indigo-500/5 h-[4.5rem]" 
+        : "bg-white border-b border-transparent h-24"
+    )} dir="rtl">
+      <div className="container mx-auto px-4 h-full">
+        
+        {/* Main Content Area */}
+        <div className="flex items-center justify-between h-full gap-8">
           
-          {/* Right Section: Logo */}
-          <Link to="/" className="flex items-center flex-shrink-0 order-1 group">
+          {/* 1. Logo Section */}
+          <Link to="/" className="flex items-center flex-shrink-0 group relative">
+            <div className="absolute -inset-4 bg-indigo-500/10 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
             <img
               src={logo}
               alt="رحلتي"
-              className="h-14 md:h-20 w-auto transition-transform duration-300 group-hover:scale-105 object-contain"
+              className="h-14 md:h-20 w-auto transition-all duration-700 group-hover:scale-105 group-hover:-rotate-3 object-contain relative z-10"
             />
           </Link>
 
-          {/* Center Section: Navigation Link + Search */}
-          <div className="flex-1 hidden lg:flex items-center justify-center gap-3 xl:gap-6 order-2">
+          {/* 2. Navigation & Search (Centered Container) */}
+          <div className="hidden lg:flex flex-1 items-center justify-center gap-6">
             
             {/* Nav Links */}
-            <nav className="flex items-center gap-1">
+            <nav className="flex items-center gap-2">
               <NavItem to="/" icon={Home} label="الرئيسية" exact={true} />
               <NavItem to="/discover" icon={Sparkles} label="اكتشف" />
               <NavItem to="/timeline" icon={Compass} label="الرحلات" />
-              
-              <NavItem to="/templates" icon={Briefcase} label="الباقات" />
-              
-              <Link to="/leaderboard" className="relative group px-1">
-                <div className={`
-                  flex items-center gap-2 px-3 py-2 rounded-full transition-all duration-300
-                  ${location.pathname === "/leaderboard" 
-                    ? "text-orange-600 font-bold bg-orange-50" 
-                    : "text-[#333] hover:text-orange-600 hover:bg-gray-50/50"
-                  }
-                `}>
-                  <Trophy className={`h-4 w-4 ${
-                    location.pathname === "/leaderboard" ? "fill-orange-600/20" : ""
-                  }`} />
-                  <span className="text-sm">المتصدرين</span>
-                </div>
-              </Link>
-              
-              {/* Admin Link - Only visible to admin */}
-              {isAdmin && (
-                <NavItem to="/admin/dashboard" icon={Shield} label="لوحة التحكم" />
-              )}
+              <NavItem to="/templates" icon={Briefcase} label="الشركات" />
+              <NavItem to="/leaderboard" icon={Trophy} label="المتصدرين" />
+              {isAdmin && <NavItem to="/admin/dashboard" icon={Shield} label="لوحة التحكم" />}
             </nav>
 
-            {/* Separator */}
-            <div className="h-6 w-px bg-gray-200" />
-
-            {/* Search Bar */}
-            <div className="relative w-[320px]" ref={searchContainerRef}>
+            {/* Premium Search Bar */}
+            <div className="relative w-full max-w-[320px]" ref={searchContainerRef}>
               <div className="relative group">
                 <Input
                   type="text"
-                  placeholder="ابحث عن رحلة..."
+                  placeholder="ابحث عن مغامرتك..."
                   value={searchValue}
                   onChange={(e) => handleSearch(e.target.value)}
-                  onFocus={() => {
-                    if (searchValue.trim()) setShowDropdown(true);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      handleSearchSubmit();
-                    }
-                  }}
-                  className="w-full pl-4 pr-10 py-2 h-10 bg-gray-50/50 border-gray-200 rounded-full focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-sm placeholder:text-gray-400"
+                  onFocus={() => { if (searchValue.trim()) setShowDropdown(true); }}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleSearchSubmit(); }}
+                  className="w-full h-11 px-12 bg-gray-50/80 border-gray-100 rounded-2xl focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/50 transition-all text-sm font-bold shadow-sm placeholder:text-gray-400 text-right"
                 />
-                <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-orange-500 transition-colors" />
+                <Search className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-indigo-600 transition-colors" />
+                
+                {/* Search Results Dropdown */}
+                <AnimatePresence>
+                  {showDropdown && searchValue.trim() && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      className="absolute top-full right-0 mt-3 w-full bg-white rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-gray-50 overflow-hidden z-50 py-2"
+                    >
+                      {isSearching ? (
+                        <div className="p-8 text-center flex flex-col items-center gap-3">
+                           <div className="w-8 h-8 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin" />
+                           <p className="text-sm font-black text-gray-400">نبحث لك عن الأفضل...</p>
+                        </div>
+                      ) : (searchResults.length > 0 || userResults.length > 0) ? (
+                        <div className="max-h-[60vh] overflow-y-auto">
+                          {searchResults.length > 0 && (
+                            <div className="mb-2">
+                              <span className="px-5 py-2 text-[10px] font-black text-indigo-400 uppercase tracking-widest">الرحلات الأكثر طلباً</span>
+                              {searchResults.map((trip) => (
+                                <button
+                                  key={trip._id || trip.id}
+                                  onClick={() => handleTripClick(String(trip._id || trip.id))}
+                                  className="w-full px-5 py-3 hover:bg-indigo-50 transition-all flex items-center gap-4 text-right group/res"
+                                >
+                                  <div className="h-12 w-12 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0 shadow-inner group-hover/res:scale-110 transition-transform">
+                                    {trip.image ? <img src={trip.image} className="h-full w-full object-cover" /> : <MapPin className="h-6 w-6 m-auto text-gray-300" />}
+                                  </div>
+                                  <div className="flex-1">
+                                    <p className="text-sm font-black text-gray-800 truncate">{trip.title}</p>
+                                    <p className="text-xs text-indigo-500 font-bold">{trip.destination || trip.city}</p>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                          {userResults.length > 0 && (
+                            <div className="pt-2 border-t border-gray-50">
+                              <span className="px-5 py-2 text-[10px] font-black text-orange-400 uppercase tracking-widest">المستكشفون</span>
+                              {userResults.map((u) => (
+                                <button
+                                  key={u.clerkId}
+                                  onClick={() => handleUserClick(u.clerkId)}
+                                  className="w-full px-5 py-3 hover:bg-orange-50 transition-all flex items-center gap-4 text-right"
+                                >
+                                  <div className="h-10 w-10 rounded-full bg-orange-100 border-2 border-white shadow-sm overflow-hidden flex-shrink-0">
+                                    {u.imageUrl ? <img src={u.imageUrl} className="h-full w-full object-cover" /> : <span className="m-auto font-black text-orange-600">{u.fullName?.[0]}</span>}
+                                  </div>
+                                  <p className="text-sm font-black text-gray-800">{u.fullName || u.username}</p>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="p-10 text-center space-y-3">
+                           <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto">
+                              <Search className="h-8 w-8 text-gray-200" />
+                           </div>
+                           <p className="text-sm font-black text-gray-400">لم نجد ما تبحث عنه، جرب كلمات أخرى</p>
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
-
-              {/* Search Results Dropdown */}
-              {showDropdown && (searchValue.trim().length > 0) && (
-                <SearchResultsList />
-              )}
             </div>
-
           </div>
 
-          {/* Left Section: Actions */}
-          <div className="flex items-center gap-2 sm:gap-3 order-3">
+          {/* 3. Action Buttons & Profile */}
+          <div className="flex items-center gap-4 order-3">
             
-            {/* Mobile Search Toggle */}
-            <div className="lg:hidden relative">
-               <Button
-                 variant="ghost" 
-                 size="icon"
-                 data-mobile-search-trigger
-                 className="rounded-full text-gray-600 hover:bg-orange-50 hover:text-orange-600"
-                 onClick={() => setMobileSearchOpen(true)}
-               >
-                 <Search className="h-5 w-5" />
-               </Button>
+            <div className="lg:hidden flex items-center gap-2">
+              <Button variant="ghost" size="icon" className="rounded-2xl hover:bg-indigo-50 text-gray-500 hover:text-indigo-600 transition-colors" onClick={() => setMobileSearchOpen(true)}>
+                <Search className="h-5 w-5" />
+              </Button>
             </div>
 
             <SignedIn>
-              <div className="text-gray-600 hover:text-orange-600 transition-colors">
-                <NotificationBell />
-              </div>
-            </SignedIn>
+              <NotificationBell />
+              
+              <Link to="/trips/new" className="hidden sm:block">
+                <Button className="h-12 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm gap-2 shadow-lg shadow-indigo-100 hover:shadow-indigo-200 transition-all duration-300">
+                  <Plus className="h-5 w-5" />
+                  أنشئ رحلة
+                </Button>
+              </Link>
 
-            {/* Create Trip CTA */}
-            <SignedIn>
-               <Link to="/trips/new" className="hidden sm:block">
-                 <Button className="rounded-full bg-gradient-to-r from-orange-400 to-orange-500 hover:from-orange-500 hover:to-orange-600 text-white shadow-lg shadow-orange-500/20 hover:shadow-orange-500/30 transition-all duration-300 border-0 h-10 px-6">
-                   <Plus className="h-5 w-5 ml-2" />
-                   <span className="font-semibold">أنشئ رحلة</span>
-                 </Button>
-               </Link>
-            </SignedIn>
-
-            {/* Profile */}
-            <SignedIn>
-              <div 
-                className="hidden sm:flex items-center gap-2 pr-1 pl-1 py-1 rounded-full cursor-pointer hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-100"
-                onClick={handleUserButtonClick}
-              >
+              <div className="group relative flex items-center gap-3 pl-1 pr-4 py-1.5 rounded-2xl bg-gray-50/50 hover:bg-indigo-50 transition-all cursor-pointer border border-transparent hover:border-indigo-100/50" onClick={handleUserButtonClick}>
                 <div className="text-right hidden md:block">
-                   <p className="text-xs text-gray-500 px-2 font-medium">حسابي</p>
+                  <p className="text-[10px] font-black text-indigo-400 leading-none mb-1">المسافر</p>
+                  <p className="text-xs font-black text-gray-700 leading-none">{user?.firstName}</p>
                 </div>
-                <div className="h-9 w-9 rounded-full ring-2 ring-white shadow-sm overflow-hidden">
-                   <img 
-                     src={user?.imageUrl} 
-                     alt={user?.fullName || "User"} 
-                     className="h-full w-full object-cover"
-                   />
+                <div className="h-10 w-10 rounded-xl overflow-hidden shadow-md ring-2 ring-white group-hover:ring-indigo-100 transition-all">
+                  <img src={user?.imageUrl} alt="Profile" className="h-full w-full object-cover" />
                 </div>
               </div>
             </SignedIn>
 
             <SignedOut>
               <SignInButton mode="modal">
-                <Button className="rounded-full bg-gray-900 text-white hover:bg-black">
-                  تسجيل الدخول
+                <Button className="h-12 px-8 rounded-2xl bg-gray-900 hover:bg-black text-white font-black text-sm transition-all shadow-xl shadow-gray-200">
+                  انضم إلينا
                 </Button>
               </SignInButton>
             </SignedOut>
 
-            {/* Mobile Menu Trigger */}
+            {/* Mobile Sidebar */}
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="lg:hidden -ml-2 text-gray-600">
+                <Button variant="ghost" size="icon" className="lg:hidden h-12 w-12 rounded-2xl bg-gray-50 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600">
                   <Menu className="h-6 w-6" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-[300px] sm:w-[400px]">
-                <SheetHeader>
-                  <SheetTitle className="text-right">القائمة</SheetTitle>
+              <SheetContent side="right" className="w-80 font-cairo" dir="rtl">
+                <SheetHeader className="text-right mb-8">
+                  <SheetTitle className="text-2xl font-black">القائمة</SheetTitle>
                 </SheetHeader>
-                <div className="mt-6 space-y-2">
-                  <Link to="/" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-orange-50 text-gray-700 hover:text-orange-600 transition-colors">
-                    <Home className="h-5 w-5" />
-                    الرئيسية
-                  </Link>
-                  <Link to="/timeline" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-orange-50 text-gray-700 hover:text-orange-600 transition-colors">
-                    <Compass className="h-5 w-5" />
-                    استكشف الرحلات
-                  </Link>
-                  <Link to="/discover" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-orange-50 text-gray-700 hover:text-orange-600 transition-colors">
-                    <Sparkles className="h-5 w-5" />
-                    استكشف
-                  </Link>
-                  <Link to="/templates" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-orange-50 text-gray-700 hover:text-orange-600 transition-colors">
-                    <Briefcase className="h-5 w-5" />
-                    رحلات الشركات
-                  </Link>
-                  <Link to="/leaderboard" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-orange-50 text-gray-700 hover:text-orange-600 transition-colors">
-                    <Trophy className="h-5 w-5" />
-                    المتصدرين
-                  </Link>
-                  
-                  {/* Admin Link - Mobile */}
+                <nav className="space-y-2">
+                  {[
+                    { to: "/", icon: Home, label: "الرئيسية" },
+                    { to: "/discover", icon: Sparkles, label: "اكتشف" },
+                    { to: "/timeline", icon: Compass, label: "الرحلات" },
+                    { to: "/templates", icon: Briefcase, label: "الشركات" },
+                    { to: "/leaderboard", icon: Trophy, label: "المتصدرين" },
+                  ].map((item, idx) => (
+                    <Link key={idx} to={item.to} className="flex items-center gap-4 p-4 rounded-2xl text-gray-500 font-bold hover:bg-indigo-50 hover:text-indigo-600 transition-all">
+                      <item.icon className="h-6 w-6" />
+                      {item.label}
+                    </Link>
+                  ))}
                   {isAdmin && (
-                    <Link to="/admin/dashboard" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-orange-50 text-gray-700 hover:text-orange-600 transition-colors">
-                      <Shield className="h-5 w-5" />
+                    <Link to="/admin/dashboard" className="flex items-center gap-4 p-4 rounded-2xl text-rose-500 font-bold hover:bg-rose-50 transition-all">
+                      <Shield className="h-6 w-6" />
                       لوحة التحكم
                     </Link>
                   )}
                   
-                  <div className="my-4 h-px bg-gray-100" />
-                  
-                  <SignedIn>
-                    <Link to="/trips/new" className="block">
-                      <Button className="w-full justify-center rounded-xl bg-orange-500 hover:bg-orange-600 text-white">
-                        <Plus className="h-5 w-5 ml-2" />
-                        أنشئ رحلة
-                      </Button>
-                    </Link>
-                  </SignedIn>
-                </div>
+                  <div className="pt-8 mt-8 border-t border-gray-100">
+                    <SignedIn>
+                       <Link to="/trips/new">
+                        <Button className="w-full h-14 rounded-2xl bg-indigo-600 text-white font-black flex items-center justify-center gap-3">
+                          <Plus className="h-5 w-5" />
+                          ابدأ رحلة جديدة
+                        </Button>
+                       </Link>
+                    </SignedIn>
+                  </div>
+                </nav>
               </SheetContent>
             </Sheet>
 
           </div>
         </div>
       </div>
+
+      {/* Mobile Search Overlay */}
+      <AnimatePresence>
+        {mobileSearchOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-white z-[200] p-6 lg:hidden"
+          >
+            <div className="flex items-center gap-3 mb-8">
+               <div className="flex-1 relative">
+                  <Search className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-indigo-500" />
+                  <Input
+                    autoFocus
+                    placeholder="ابحث عن رحلة..."
+                    value={searchValue}
+                    onChange={(e) => handleSearch(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleSearchSubmit(); }}
+                    className="h-14 pr-12 rounded-2xl bg-gray-50 border-0 font-black"
+                  />
+               </div>
+               <Button variant="ghost" size="icon" onClick={() => setMobileSearchOpen(false)} className="h-14 w-14 rounded-2xl bg-gray-50">
+                  <X className="h-6 w-6" />
+               </Button>
+            </div>
+            {/* Mobile Results */}
+            <div className="overflow-y-auto h-full pb-20">
+               {isSearching ? (
+                 <div className="flex justify-center p-12"><div className="w-10 h-10 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin" /></div>
+               ) : (searchResults.length > 0 || userResults.length > 0) ? (
+                 <div className="space-y-8">
+                  {searchResults.map(trip => (
+                    <div key={trip.id} onClick={() => handleTripClick(trip.id)} className="flex items-center gap-4 active:scale-95 transition-transform">
+                       <div className="w-16 h-16 rounded-2xl overflow-hidden bg-indigo-50"><img src={trip.image} className="w-full h-full object-cover" /></div>
+                       <div><p className="font-black text-gray-900">{trip.title}</p><p className="text-sm text-indigo-500 font-bold">{trip.destination}</p></div>
+                    </div>
+                  ))}
+                 </div>
+               ) : <p className="text-center text-gray-400 font-bold py-12">ابدأ الكتابة للبحث عن مغامرتك...</p>}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   );
 };

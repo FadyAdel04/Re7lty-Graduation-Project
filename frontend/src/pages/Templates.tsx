@@ -17,7 +17,7 @@ import TripFilters from "@/components/TripFilters";
 import TripCardSkeleton from "@/components/TripCardSkeleton";
 import { Company, Trip, TripFilters as TripFiltersType } from "@/types/corporateTrips";
 import { corporateTripsService } from "@/services/corporateTripsService";
-import hero from "@/assets/companiesHero.webp";
+import CompanyHero from "@/components/CompanyHero";
 
 const CorporateTrips = () => {
   const { getToken, isSignedIn } = useAuth();
@@ -96,61 +96,7 @@ const CorporateTrips = () => {
       
       <main>
         {/* 1. Hero Section */}
-        <section className="relative overflow-hidden min-h-[600px] flex items-center justify-center pt-20 pb-20">
-          {/* Background Image & Overlay */}
-          <div className="absolute inset-0 z-0">
-            <img 
-              src={hero}
-              alt="Travel Background" 
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/70" />
-          </div>
-
-          <div className="container mx-auto px-4 text-center relative z-10 text-white">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 mb-6 animate-in fade-in-50 slide-in-from-bottom-4 duration-700">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
-              </span>
-              <span className="text-sm font-medium text-orange-100">شراكات موثوقة وعروض حصرية</span>
-            </div>
-            
-            <h1 className="text-4xl md:text-5xl lg:text-7xl font-bold mb-6 leading-tight tracking-tight">
-              باقات 
-              <span className="relative mx-3 inline-block">
-                <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-orange-200">الشركات</span>
-                <span className="absolute -bottom-2 right-0 w-full h-3 bg-orange-600/30 -skew-x-12 rounded-sm" />
-              </span>
-              السياحية
-            </h1>
-            
-            <p className="text-lg md:text-xl text-gray-200 max-w-2xl mx-auto mb-10 leading-relaxed font-light">
-              منصة تجمع لك أفضل شركات السياحة في مكان واحد. قارن بين العروض، تصفح البرامج المميزة، واحجز رحلتك المثالية بكل ثقة.
-            </p>
-            
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-in fade-in-50 slide-in-from-bottom-8 duration-1000 delay-200">
-              <Button 
-                size="lg" 
-                className="rounded-full px-8 h-14 text-lg bg-orange-600 hover:bg-orange-700 text-white shadow-lg shadow-orange-600/30 w-full sm:w-auto transition-all hover:scale-105" 
-                onClick={() => document.getElementById('featured-trips')?.scrollIntoView({ behavior: 'smooth' })}
-              >
-                تصفح العروض الآن
-              </Button>
-              <Button 
-                size="lg" 
-                variant="outline" 
-                className="rounded-full px-8 h-14 text-lg border-white/30 bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm w-full sm:w-auto transition-all hover:scale-105" 
-                onClick={() => document.getElementById('register-company')?.scrollIntoView({ behavior: 'smooth' })}
-              >
-                سجل كشركة سياحية
-              </Button>
-            </div>
-          </div>
-          
-          {/* Decorative bottom fade */}
-          <div className="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-t from-gray-50 to-transparent pointer-events-none" />
-        </section>
+        <CompanyHero />
 
         {/* 2. Logo Slider Section */}
         <section className="py-10 bg-white border-y border-gray-100 overflow-hidden">

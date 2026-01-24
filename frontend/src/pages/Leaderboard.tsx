@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
-import { Trophy, TrendingUp, Heart, Medal, Award, Crown, Gift } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Trophy, TrendingUp, Heart, Medal, Award, Crown, Gift, Sparkles, Star, Users, ArrowRight, Wallet, PlaneTakeoff, ShieldCheck } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Fireworks from "@/components/Fireworks";
 import { listTrips } from "@/lib/api";
 import { Link } from "react-router-dom";
+import { cn } from "@/lib/utils";
 
 const Leaderboard = () => {
   const [showFireworks, setShowFireworks] = useState(true);
@@ -14,37 +16,26 @@ const Leaderboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Hide fireworks after 3 seconds
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowFireworks(false);
-    }, 6000);
+    }, 8000);
     return () => clearTimeout(timer);
   }, []);
 
-  // Fetch trips from API
   useEffect(() => {
     const fetchTrips = async () => {
       try {
         setLoading(true);
         const response = await listTrips({ sort: 'likes', limit: 50 });
-        console.log('API Response:', response);
-        console.log('Response items:', response?.items);
-        
-        // Calculate engagement score for each trip
         const tripsArray = Array.isArray(response?.items) ? response.items : [];
-        console.log('Trips array length:', tripsArray.length);
         
-        // Calculate comprehensive engagement score
-        // Loves = 1 point, Comments = 2 points (more engagement), Saves = 1.5 points
         const tripsWithScore = tripsArray.map((trip: any) => {
-          // Handle different API response formats for loves/likes
           const lovesCount = trip.lovedBy?.length || trip.loves || trip.likes || 0;
           const savesCount = trip.savedBy?.length || trip.saves || 0;
           
           return {
             ...trip,
-            // Normalize the field names
             loves: lovesCount,
             saves: savesCount,
             engagementScore: 
@@ -54,18 +45,7 @@ const Leaderboard = () => {
           };
         });
         
-        // Sort by engagement score (highest first)
         const sortedTrips = tripsWithScore.sort((a: any, b: any) => b.engagementScore - a.engagementScore);
-        console.log('Top 3 trips with scores:', sortedTrips.slice(0, 3).map((t: any) => ({
-          title: t.title,
-          loves: t.loves,
-          lovedBy: t.lovedBy?.length,
-          comments: t.comments?.length || 0,
-          saves: t.saves,
-          savedBy: t.savedBy?.length,
-          score: t.engagementScore
-        })));
-        
         setTrips(sortedTrips.slice(0, 10));
         setError(null);
       } catch (err: any) {
@@ -79,76 +59,98 @@ const Leaderboard = () => {
     fetchTrips();
   }, []);
 
-  // Podium component for top 3
-  const PodiumItem = ({ 
-    rank, 
-    trip
-  }: { 
-    rank: number; 
-    trip: any;
-  }) => {
-    const heights = {
-      1: 'h-48 sm:h-56 md:h-64',
-      2: 'h-40 sm:h-48 md:h-52',
-      3: 'h-32 sm:h-40 md:h-44'
+  const PodiumItem = ({ rank, trip }: { rank: number; trip: any }) => {
+    const configs = {
+      1: {
+        height: 'h-64 sm:h-80',
+        bg: 'bg-gradient-to-t from-yellow-600/20 via-yellow-500/10 to-transparent',
+        border: 'border-yellow-500/40',
+        icon: <Crown className="h-10 w-10 text-yellow-500 animate-bounce" />,
+        shadow: 'shadow-yellow-500/30',
+        label: 'الأول',
+        medal: '🥇',
+        reward: 'رحلة مجانية كاملة ✈️',
+        rewardColor: 'bg-yellow-500'
+      },
+      2: {
+        height: 'h-48 sm:h-60',
+        bg: 'bg-gradient-to-t from-gray-400/20 via-gray-300/10 to-transparent',
+        border: 'border-gray-400/40',
+        icon: <Medal className="h-8 w-8 text-gray-400" />,
+        shadow: 'shadow-gray-400/20',
+        label: 'الثاني',
+        medal: '🥈',
+        reward: 'خصم 50% شامل 🎟️',
+        rewardColor: 'bg-gray-500'
+      },
+      3: {
+        height: 'h-40 sm:h-52',
+        bg: 'bg-gradient-to-t from-amber-700/20 via-amber-600/10 to-transparent',
+        border: 'border-amber-700/40',
+        icon: <Award className="h-7 w-7 text-amber-700" />,
+        shadow: 'shadow-amber-700/20',
+        label: 'الثالث',
+        medal: '🥉',
+        reward: 'خصم 30% شامل 🎫',
+        rewardColor: 'bg-amber-700'
+      }
     };
 
-    const gradients = {
-      1: 'from-yellow-400 via-yellow-500 to-yellow-600',
-      2: 'from-gray-300 via-gray-400 to-gray-500',
-      3: 'from-amber-600 via-amber-700 to-amber-800'
-    };
-
-    const icons = {
-      1: <Crown className="h-8 w-8 text-white" />,
-      2: <Medal className="h-7 w-7 text-white" />,
-      3: <Award className="h-6 w-6 text-white" />
-    };
-
+    const config = configs[rank as keyof typeof configs];
     const order = rank === 1 ? 'order-2' : rank === 2 ? 'order-1' : 'order-3';
-    const animationDelay = rank === 1 ? 'delay-0' : rank === 2 ? 'delay-100' : 'delay-200';
 
     return (
-      <div className={`flex-1 flex flex-col items-center ${order} animate-slide-up ${animationDelay} min-w-0`}>
-        {/* Content above podium */}
-        <div className="mb-2 sm:mb-4 text-center px-1">
-          <Link to={`/trips/${trip._id}`} className="block group">
-            <div className="relative mb-2 sm:mb-3">
-              <img 
-                src={trip.image || '/placeholder-trip.jpg'} 
-                alt={trip.title} 
-                className="w-20 h-20 sm:w-28 sm:h-28 md:w-38 md:h-38 lg:w-44 lg:h-44 xl:w-48 xl:h-48 rounded-full object-cover border-2 sm:border-4 border-white shadow-xl group-hover:scale-110 transition-transform duration-300"
-              />
-              <div className={`absolute -top-1 -right-1 sm:-top-2 sm:-right-2 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br ${gradients[rank as keyof typeof gradients]} flex items-center justify-center shadow-lg`}>
-                <div className="scale-75 sm:scale-100">{icons[rank as keyof typeof icons]}</div>
-              </div>
+      <div className={cn(
+        "flex-1 flex flex-col items-center group perspective-1000",
+        order
+      )}>
+        <div className="mb-6 text-center transform group-hover:-translate-y-2 transition-transform duration-500 w-full">
+          <Link to={`/trips/${trip._id}`} className="relative inline-block">
+            <div className={cn(
+              "relative w-24 h-24 sm:w-36 sm:h-36 rounded-[2rem] overflow-hidden ring-4 transition-all duration-500 shadow-2xl",
+              rank === 1 ? "ring-yellow-500 scale-110" : "ring-white/50"
+            )}>
+              <img src={trip.image || '/placeholder-trip.jpg'} alt={trip.title} className="w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
-            <h3 className="font-bold text-xs sm:text-sm md:text-base mb-1 line-clamp-2 group-hover:text-primary transition-colors px-1">{trip.title}</h3>
-            <p className="text-xs sm:text-sm text-muted-foreground mb-1 sm:mb-2">{trip.author || 'مسافر'}</p>
-            <div className="flex items-center gap-1 sm:gap-2 flex-wrap justify-center">
-              <Badge variant="secondary" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1.5 sm:px-2">
-                <Heart className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-                {trip.loves || 0}
-              </Badge>
-              {(trip.comments?.length || 0) > 0 && (
-                <Badge variant="outline" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1.5 sm:px-2">
-                  💬 {trip.comments?.length || 0}
-                </Badge>
-              )}
-              {(trip.saves || 0) > 0 && (
-                <Badge variant="outline" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1.5 sm:px-2">
-                  🔖 {trip.saves || 0}
-                </Badge>
-              )}
+            <div className="absolute -top-3 -right-3 bg-white w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg border border-gray-100 transform rotate-12">
+               <span className="text-2xl">{config.medal}</span>
             </div>
           </Link>
+          <div className="mt-4 space-y-1">
+             <h3 className="font-bold text-gray-900 group-hover:text-primary transition-colors line-clamp-1 max-w-[120px] sm:max-w-[180px] mx-auto text-sm sm:text-xl">
+               {trip.title}
+             </h3>
+             <Badge className={cn("text-[10px] sm:text-xs py-1 rounded-lg border-0 text-white", config.rewardColor)}>
+                {config.reward}
+             </Badge>
+          </div>
         </div>
 
-        {/* Podium base */}
-        <div className={`w-full ${heights[rank as keyof typeof heights]} bg-gradient-to-br ${gradients[rank as keyof typeof gradients]} rounded-t-xl sm:rounded-t-2xl shadow-2xl flex flex-col items-center justify-center relative overflow-hidden group hover:shadow-3xl transition-shadow duration-300`}>
-          <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
-          <div className="text-3xl sm:text-5xl md:text-6xl font-bold text-white opacity-20 mb-1 sm:mb-2">{rank}</div>
-          <div className="text-white font-bold text-sm sm:text-base md:text-lg px-2 text-center">المركز {rank === 1 ? 'الأول' : rank === 2 ? 'الثاني' : 'الثالث'}</div>
+        <div className={cn(
+          "w-full rounded-t-[2.5rem] border-t-8 border-x-4 relative overflow-hidden transition-all duration-700 shadow-[0_-20px_50px_rgba(0,0,0,0.1)]",
+          config.height,
+          config.bg,
+          config.border,
+          rank === 1 ? "z-10 scale-105" : "z-0"
+        )}>
+           <div className="absolute inset-0 bg-white/5 backdrop-blur-[4px]" />
+           <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
+              <span className="text-6xl sm:text-8xl font-black text-white/10 select-none">{rank}</span>
+              <div className="mt-2 flex flex-col items-center gap-3">
+                 <div className="p-4 bg-white/10 rounded-3xl backdrop-blur-xl border border-white/30 shadow-inner">
+                    {config.icon}
+                 </div>
+                 <div className="text-center">
+                    <p className="text-white text-xs sm:text-sm font-bold opacity-80 mb-1">المركز</p>
+                    <p className="text-white text-lg sm:text-2xl font-black tracking-widest">{config.label}</p>
+                 </div>
+              </div>
+           </div>
+           
+           <div className="absolute inset-0 overflow-hidden">
+              <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/30 to-transparent skew-x-12" />
+           </div>
         </div>
       </div>
     );
@@ -156,160 +158,227 @@ const Leaderboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background text-right" dir="rtl">
         <Header />
         <main className="container mx-auto px-4 py-12">
           <div className="text-center">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-hero mb-4">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 mb-4 animate-pulse">
               <Trophy className="h-10 w-10 text-white" />
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              <span className="text-gradient">لوحة المتصدرين</span>
-            </h1>
-            <div className="mt-8">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-              <p className="mt-4 text-muted-foreground">جاري تحميل البيانات...</p>
-            </div>
+            <h1 className="text-4xl md:text-5xl font-bold mb-4 font-cairo">لوحة المتصدرين</h1>
+            <p className="mt-4 text-muted-foreground animate-bounce font-cairo">جاري تحميل أبطال رحلتي...</p>
           </div>
         </main>
         <Footer />
       </div>
     );
   }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="container mx-auto px-4 py-12">
-          <div className="text-center">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-hero mb-4">
-              <Trophy className="h-10 w-10 text-white" />
-            </div>
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              <span className="text-gradient">لوحة المتصدرين</span>
-            </h1>
-            <div className="mt-8 p-6 bg-destructive/10 rounded-lg max-w-md mx-auto">
-              <p className="text-destructive">{error}</p>
-            </div>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
-  const topTrips = trips.slice(0, 3);
-  const remainingTrips = trips.slice(3, 10);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#F8FAFC] font-cairo text-right" dir="rtl">
       {showFireworks && <Fireworks />}
       <Header />
-      <main className="container mx-auto px-4 py-12">
-        {/* Header */}
-        <div className="text-center mb-8 sm:mb-10 md:mb-12 animate-slide-up px-4">
-          <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-hero mb-3 sm:mb-4">
-            <Trophy className="h-8 w-8 sm:h-10 sm:w-10 text-white" />
-          </div>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4">
-            <span className="text-gradient">لوحة المتصدرين</span>
-          </h1>
-          <p className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-2xl mx-auto px-4">
-            اكتشف أفضل الرحلات الأكثر إعجاباً هذا الأسبوع
-          </p>
-          
-          <div className="mt-8 p-6 bg-gradient-to-l from-yellow-500/10 to-amber-500/10 border border-yellow-500/20 rounded-2xl max-w-3xl mx-auto flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-right relative overflow-hidden group hover:border-yellow-500/40 transition-colors">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-yellow-500/10 rounded-full blur-2xl -mr-12 -mt-12 group-hover:bg-yellow-500/20 transition-colors"></div>
-            
-            <div className="p-4 bg-gradient-to-br from-yellow-100 to-amber-100 rounded-full shrink-0 shadow-lg relative z-10 group-hover:scale-110 transition-transform duration-300">
-              <Gift className="w-8 h-8 text-yellow-600" />
-            </div>
-            
-            <div className="relative z-10">
-              <h3 className="font-bold text-lg text-yellow-800 mb-2 flex items-center justify-center sm:justify-start gap-2">
-                جائزة المركز الأول 🎁
-              </h3>
-              <p className="text-sm sm:text-base text-yellow-800/80 leading-relaxed">
-                سيفوز صاحب المركز الأول برحلة مجانية مقدمة من شركاتنا الموثوقة! 
-                <br className="hidden sm:block" />
-                شارك رحلاتك الآن واجمع التفاعلات والتعليقات لتزيد فرصك في الفوز بهذه الهدية المميزة.
+      
+      <main className="container mx-auto px-4 py-12 pb-24 max-w-7xl">
+        
+        {/* 1. Page Header - NEW IMMERSIVE DESIGN */}
+        <section className="relative w-full h-[500px] flex items-center justify-center overflow-hidden mb-16 px-4 -mt-12 rounded-b-[4rem]">
+           {/* Background Image Layer */}
+           <div className="absolute inset-0 z-0">
+              <img 
+                src="/assets/hero-2.png" 
+                alt="Hall of Fame" 
+                className="w-full h-full object-cover transform scale-105 brightness-[0.3]"
+              />
+              <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-[#F8FAFC]/10" />
+           </div>
+
+           {/* Content Layer */}
+           <div className="relative z-10 max-w-4xl text-center space-y-8 animate-in mt-10 fade-in zoom-in duration-1000">
+              <div className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 text-white text-sm font-bold shadow-2xl mx-auto">
+                <Sparkles className="w-5 h-5 text-yellow-500 animate-pulse" />
+                قائمة الشرف الذهبية
+              </div>
+
+              <div className="space-y-4">
+                <h1 className="text-5xl md:text-8xl font-black text-white leading-tight tracking-tighter">
+                  أساطير <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-orange-500 to-yellow-600">الرحلة</span>
+                </h1>
+                <div className="flex items-center justify-center gap-4">
+                   <div className="h-px w-12 bg-gradient-to-r from-transparent to-white/50" />
+                   <p className="text-gray-300 text-lg md:text-2xl font-light italic">
+                     حيث يخلد المبدعون تجاربهم الاستثنائية
+                   </p>
+                   <div className="h-px w-12 bg-gradient-to-l from-transparent to-white/50" />
+                </div>
+              </div>
+
+              <p className="text-gray-400 text-base md:text-lg max-w-2xl mx-auto leading-relaxed">
+                هنا نحتفل بأفضل 10 رحالة أثروا مجتمعنا بقصصهم الملهمة وتجاربهم التي لا تُنسى. تنافس، شارك، وتربع على عرش الصدارة.
               </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Top 3 Trips Podium */}
-        {topTrips.length >= 3 && (
-          <div className="mb-12 sm:mb-16 px-2 sm:px-4">
-            <h2 className="text-2xl sm:text-3xl font-bold text-center mb-6 sm:mb-8 flex items-center justify-center gap-2 sm:gap-3">
-              <TrendingUp className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
-              <span className="text-gradient">أفضل الرحلات</span>
-            </h2>
-            <div className="flex items-end justify-center gap-2 sm:gap-3 md:gap-4 max-w-5xl mx-auto mb-6 sm:mb-8">
-              {topTrips.map((trip, index) => (
-                <PodiumItem key={trip._id} rank={index + 1} trip={trip} />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Remaining Rankings (4-10) */}
-        {remainingTrips.length > 0 && (
-          <div className="max-w-3xl mx-auto px-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                  <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-                  باقي الرحلات المتصدرة
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {remainingTrips.map((trip, index) => (
-                  <Link key={trip._id} to={`/trips/${trip._id}`} className="block">
-                    <div className="flex items-center gap-2 sm:gap-3 md:gap-4 p-2 sm:p-3 md:p-4 rounded-lg sm:rounded-xl hover:bg-secondary-light transition-all duration-300 hover:scale-[1.02]">
-                      {/* Rank Badge */}
-                      <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-sm sm:text-base bg-muted text-foreground">
-                        {index + 4}
+              
+              <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
+                 <div className="flex -space-x-3 space-x-reverse">
+                    {[1,2,3,4,5].map(i => (
+                      <div key={i} className="w-10 h-10 rounded-full border-2 border-white/20 bg-gray-800 overflow-hidden shadow-lg">
+                        <img src={`https://i.pravatar.cc/100?img=${i+30}`} alt="user" />
                       </div>
+                    ))}
+                 </div>
+                 <p className="text-white/80 text-sm">انضم لـ <span className="text-yellow-500 font-bold">+2000</span> رحّال مبدع</p>
+              </div>
+           </div>
 
-                      {/* Trip Image */}
-                      <img src={trip.image || '/placeholder-trip.jpg'} alt={trip.title} className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 rounded-lg object-cover flex-shrink-0" />
+           {/* Decorative floating elements */}
+           <div className="absolute top-1/4 left-10 w-20 h-20 bg-yellow-500/10 rounded-full blur-3xl animate-pulse" />
+           <div className="absolute bottom-1/4 right-10 w-32 h-32 bg-orange-600/10 rounded-full blur-3xl animate-pulse-slow" />
+        </section>
 
-                      {/* Trip Info */}
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-bold text-sm sm:text-base mb-0.5 sm:mb-1 truncate">{trip.title}</h3>
-                        <p className="text-xs sm:text-sm text-muted-foreground mb-1 sm:mb-2 truncate">{trip.author?.fullName || 'مسافر'}</p>
-                        <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
-                          <Badge variant="secondary" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1.5 sm:px-2">
-                            <Heart className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-                            {trip.loves || 0}
-                          </Badge>
-                          {(trip.comments?.length || 0) > 0 && (
-                            <Badge variant="outline" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1.5 sm:px-2">
-                              💬 {trip.comments?.length || 0}
-                            </Badge>
-                          )}
-                          {(trip.saves || 0) > 0 && (
-                            <Badge variant="outline" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1.5 sm:px-2">
-                              🔖 {trip.saves || 0}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
+        <section className="mb-32">
+           <div className="bg-gray-900 rounded-[3rem] p-8 md:p-16 shadow-3xl relative overflow-hidden group border border-white/5">
+              <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-orange-600/10 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/4" />
+              <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-yellow-400/5 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/4" />
+
+              <div className="relative z-10 space-y-12">
+                 <div className="flex flex-col md:flex-row items-end justify-between gap-6 pb-8 border-b border-white/10">
+                    <div className="space-y-3 text-right">
+                       <h2 className="text-3xl md:text-6xl font-black text-white">جوائزنا لكل فوز</h2>
+                       <p className="text-gray-400 text-lg sm:text-xl">تكريماً لإبداعكم، جهزنا لكم مفاجآت لا تُنسى هذا الأسبوع</p>
                     </div>
-                  </Link>
+                    <Link to="/trips/new">
+                    <Button  size="lg" className="rounded-full bg-orange-600 hover:bg-orange-700 text-white px-8 h-14 text-lg">
+                       ابدأ المشاركة الآن
+                       <ArrowRight className="mr-2 w-6 h-6" />
+                    </Button>
+                    </Link>
+                 </div>
+
+                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <Card className="bg-white/5 border-yellow-500/30 backdrop-blur-xl rounded-[2.5rem] p-8 hover:bg-white/10 transition-colors border-2 group/card overflow-hidden relative">
+                       <div className="absolute top-0 right-0 p-4">
+                          <Crown className="w-12 h-12 text-yellow-500 opacity-20 group-hover/card:opacity-40 transition-opacity" />
+                       </div>
+                       <div className="w-16 h-16 bg-yellow-500 rounded-3xl flex items-center justify-center mb-6 shadow-lg shadow-yellow-500/20">
+                          <PlaneTakeoff className="w-8 h-8 text-white" />
+                       </div>
+                       <h3 className="text-2xl font-black text-white mb-3">المركز الأول</h3>
+                       <p className="text-yellow-500 font-bold text-lg mb-4">رحلة مجانية بالكامل</p>
+                       <p className="text-gray-400 text-sm leading-relaxed">
+                          سفر وإقامة مدفوعة بالكامل مقدمة من شركائنا الموثقين لأي وجهة من اختيارك داخل مصر.
+                       </p>
+                    </Card>
+
+                    <Card className="bg-white/5 border-gray-400/30 backdrop-blur-xl rounded-[2.5rem] p-8 hover:bg-white/10 transition-colors group/card relative">
+                       <div className="w-16 h-16 bg-gray-400 rounded-3xl flex items-center justify-center mb-6 shadow-lg shadow-gray-400/20">
+                          <Wallet className="w-8 h-8 text-white" />
+                       </div>
+                       <h3 className="text-2xl font-black text-white mb-3">المركز الثاني</h3>
+                       <p className="text-gray-300 font-bold text-lg mb-4">خصم 50% شامل</p>
+                       <p className="text-gray-400 text-sm leading-relaxed">
+                          قسيمة خصم بقيمة نصف تكلفة أي رحلة تختارها من منصتنا، صالحة لمدة 3 أشهر.
+                       </p>
+                    </Card>
+
+                    <Card className="bg-white/5 border-amber-700/30 backdrop-blur-xl rounded-[2.5rem] p-8 hover:bg-white/10 transition-colors group/card relative">
+                       <div className="w-16 h-16 bg-amber-700 rounded-3xl flex items-center justify-center mb-6 shadow-lg shadow-amber-700/20">
+                          <Gift className="w-8 h-8 text-white" />
+                       </div>
+                       <h3 className="text-2xl font-black text-white mb-3">المركز الثالث</h3>
+                       <p className="text-amber-600 font-bold text-lg mb-4">خصم 30% شامل</p>
+                       <p className="text-gray-400 text-sm leading-relaxed">
+                          قسيمة خصم مميزة تساعدك في رحلتك القادمة بأي برامج تختارها من شركاتنا المتنوعة.
+                       </p>
+                    </Card>
+                 </div>
+              </div>
+           </div>
+        </section>
+
+        {trips.length >= 3 && (
+          <section className="mb-32">
+             <div className="text-center mb-16">
+                <h2 className="text-3xl sm:text-5xl font-black text-gray-900 flex items-center justify-center gap-4">
+                   🏆 منصة التتويج
+                </h2>
+                <p className="text-gray-500 text-lg mt-4">ثلاث رحلات استثنائية خطفت الأنظار هذا الأسبوع</p>
+             </div>
+             
+             <div className="flex items-end justify-center gap-3 sm:gap-8 max-w-6xl mx-auto px-4">
+                {trips.slice(0, 3).map((trip, idx) => (
+                  <PodiumItem key={trip._id} rank={idx + 1} trip={trip} />
                 ))}
-              </CardContent>
-            </Card>
-          </div>
+             </div>
+          </section>
         )}
+
+        <section className="max-w-4xl mx-auto">
+           <div className="bg-white rounded-[3rem] shadow-3xl border border-gray-100 overflow-hidden relative">
+              <div className="p-8 border-b border-gray-50 flex items-center justify-between bg-gray-50/50">
+                 <h3 className="font-black text-2xl flex items-center gap-3">
+                    <TrendingUp className="w-7 h-7 text-orange-600" />
+                    باقي الرحلات (4-10)
+                 </h3>
+                 <div className="flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-yellow-500 animate-pulse" />
+                    <span className="text-gray-400 text-sm font-bold">الافضل فى الأسبوع</span>
+                 </div>
+              </div>
+              
+              <div className="divide-y divide-gray-50">
+                 {trips.slice(3, 10).map((trip, index) => (
+                   <Link 
+                     key={trip._id} 
+                     to={`/trips/${trip._id}`} 
+                     className="block p-6 sm:p-8 hover:bg-orange-50/30 transition-all group relative overflow-hidden"
+                   >
+                     <div className="absolute top-0 left-0 w-2 h-full bg-orange-600 transform -translate-x-full group-hover:translate-x-0 transition-transform" />
+
+                     <div className="flex items-center gap-6 sm:gap-8">
+                        <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center font-black text-xl text-gray-400 group-hover:bg-gray-900 group-hover:text-white transition-all transform group-hover:rotate-6">
+                           {index + 4}
+                        </div>
+
+                        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-[1.5rem] overflow-hidden shadow-md group-hover:shadow-xl transition-all">
+                           <img src={trip.image || '/placeholder-trip.jpg'} alt="" className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" />
+                        </div>
+
+                        <div className="flex-1 min-w-0 text-right">
+                           <h4 className="font-black text-gray-900 truncate text-lg sm:text-2xl group-hover:text-orange-600 transition-colors">
+                              {trip.title}
+                           </h4>
+                           <div className="flex items-center gap-2 mt-1 justify-end">
+                              <span className="text-gray-500 font-medium text-sm sm:text-base">{trip.author || 'رحالة'}</span>
+                              <div className="w-6 h-6 rounded-full bg-gray-200 overflow-hidden">
+                                 <img src={`https://ui-avatars.com/api/?name=${trip.author}&background=random`} alt="" />
+                              </div>
+                           </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 sm:gap-6">
+                           <div className="flex flex-col items-center justify-center w-16 h-16 rounded-2xl bg-orange-50 text-orange-700">
+                              <Heart className="w-5 h-5 fill-orange-500" />
+                              <span className="text-sm font-black mt-1">{trip.loves || 0}</span>
+                           </div>
+                           <div className="hidden sm:flex flex-col items-center justify-center w-20 h-16 rounded-2xl bg-blue-50 text-blue-800">
+                              <Gift className="w-5 h-5" />
+                              <span className="text-sm font-black mt-1">{(trip.engagementScore || 0).toFixed(0)}</span>
+                           </div>
+                        </div>
+                     </div>
+                   </Link>
+                 ))}
+              </div>
+           </div>
+        </section>
 
         {trips.length === 0 && !loading && (
-          <div className="text-center py-8 sm:py-12 px-4">
-            <p className="text-sm sm:text-base text-muted-foreground">لا توجد رحلات متاحة حالياً</p>
+          <div className="text-center py-32">
+            <Trophy className="w-24 h-24 text-gray-200 mx-auto mb-6" />
+            <h3 className="text-2xl font-black text-gray-400">لا يوجد متصدرون حالياً</h3>
+            <p className="text-gray-400 mt-2">كن أول من يشارك رحلته ويحصل على الجوائز!</p>
           </div>
         )}
+
       </main>
       <Footer />
     </div>

@@ -8,17 +8,18 @@ const router = Router();
 // Search endpoint - searches both trips and users
 router.get('/', async (req, res) => {
   try {
-    const { q, limit = '10' } = req.query as any;
-    
+    const { q, limit = '10', sort = 'recent' } = req.query as any;
+    const sortObj: any = sort === 'likes' ? { likes: -1 } : { postedAt: -1 };
+
     if (!q || !q.trim()) {
       return res.json({ trips: [], users: [] });
     }
 
     // Check if MongoDB is connected
     if (mongoose.connection.readyState !== 1) {
-      return res.status(503).json({ 
-        error: 'Database not connected', 
-        message: 'MongoDB connection is required.' 
+      return res.status(503).json({
+        error: 'Database not connected',
+        message: 'MongoDB connection is required.'
       });
     }
 
@@ -48,9 +49,9 @@ router.get('/', async (req, res) => {
 
     const [trips, users] = await Promise.all([
       Trip.find(tripFilter)
-        .select('_id title destination city image author ownerId')
+        .select('_id title destination city image author ownerId description days')
         .limit(searchLimit)
-        .sort({ postedAt: -1 }),
+        .sort(sortObj),
       User.find(userFilter)
         .select('clerkId fullName username imageUrl bio location')
         .limit(searchLimit)

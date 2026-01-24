@@ -70,43 +70,39 @@ const Fireworks = () => {
       createFirework(x, y);
     };
 
-    // Initial fireworks
-    launchFirework();
-    const interval1 = setTimeout(() => launchFirework(), 400);
-    const interval2 = setTimeout(() => launchFirework(), 800);
-    const interval3 = setTimeout(() => launchFirework(), 1200);
-    const interval4 = setTimeout(() => launchFirework(), 1600);
-    const interval5 = setTimeout(() => launchFirework(), 2000);
-    const interval6 = setTimeout(() => launchFirework(), 2400);
+    // Continuous fireworks for a while
+    const launchInterval = setInterval(launchFirework, 600);
 
     // Animation loop
     const animate = () => {
       const elapsed = Date.now() - startTimeRef.current;
       
-      // Stop after 3 seconds
-      if (elapsed > 3000) {
+      // Stop after 7 seconds
+      if (elapsed > 7000) {
+        clearInterval(launchInterval);
         if (animationRef.current) {
           cancelAnimationFrame(animationRef.current);
         }
         return;
       }
 
-      ctx.fillStyle = "rgba(0, 0, 0, 0.1)";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       // Update and draw particles
       particlesRef.current = particlesRef.current.filter((particle) => {
         particle.x += particle.vx;
         particle.y += particle.vy;
         particle.vy += particle.gravity;
-        particle.alpha -= 0.01;
+        particle.alpha -= 0.012; // Fade slightly faster for cleaner look
 
         if (particle.alpha > 0) {
           ctx.save();
           ctx.globalAlpha = particle.alpha;
           ctx.fillStyle = particle.color;
+          ctx.shadowBlur = 10;
+          ctx.shadowColor = particle.color;
           ctx.beginPath();
-          ctx.arc(particle.x, particle.y, 3, 0, Math.PI * 2);
+          ctx.arc(particle.x, particle.y, 2.5, 0, Math.PI * 2);
           ctx.fill();
           ctx.restore();
           return true;
@@ -122,15 +118,10 @@ const Fireworks = () => {
     // Cleanup
     return () => {
       window.removeEventListener("resize", resizeCanvas);
+      clearInterval(launchInterval);
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
-      clearTimeout(interval1);
-      clearTimeout(interval2);
-      clearTimeout(interval3);
-      clearTimeout(interval4);
-      clearTimeout(interval5);
-      clearTimeout(interval6);
     };
   }, []);
 
