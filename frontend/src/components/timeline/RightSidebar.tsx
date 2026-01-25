@@ -27,7 +27,7 @@ const RightSidebar = ({ followedTravelers, onToggleFollow, isLoading }: RightSid
       <Card className="shadow-sm border-0 bg-white rounded-3xl overflow-hidden">
         <CardHeader className="pb-3 border-b border-gray-50 flex flex-row items-center justify-between">
            <Compass className="h-5 w-5 text-indigo-500" />
-           <CardTitle className="text-xl font-black">رحالة قد تهمك</CardTitle>
+           <CardTitle className="text-xl font-black">مستخدمين مقترحين</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 pt-5">
           {isLoading ? (

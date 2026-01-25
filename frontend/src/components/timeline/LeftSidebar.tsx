@@ -60,7 +60,7 @@ const LeftSidebar = ({ filters, onFiltersChange, userStats, upcomingTrip }: Left
       <Card className="shadow-sm border-0 bg-white rounded-3xl">
         <CardHeader className="pb-3 border-b border-gray-50 flex flex-row items-center justify-between">
            <MapPin className="h-5 w-5 text-orange-500" />
-           <CardTitle className="text-xl font-black">تصفية التغذية</CardTitle>
+           <CardTitle className="text-xl font-black">تصفية الرحلات</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 pt-5">
           <div className="flex items-center justify-between group cursor-pointer" onClick={() => handleFilterChange("showMyStories", !filters.showMyStories)}>
