@@ -1,19 +1,5 @@
 import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-
-// Helper to get auth headers
-const getAuthHeaders = async (token?: string) => {
-    const headers: any = {
-        'Content-Type': 'application/json',
-    };
-
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    return headers;
-};
+import { API_BASE_URL, getAuthHeaders } from '../config/api';
 
 export const complaintsService = {
     // Submit a new complaint (public)
@@ -24,9 +10,8 @@ export const complaintsService = {
         message: string;
     }, token?: string) {
         try {
-            const headers = await getAuthHeaders(token);
-            const response = await axios.post(`${API_URL}/api/complaints`, data, {
-                headers,
+            const response = await axios.post(`${API_BASE_URL}/api/complaints`, data, {
+                headers: getAuthHeaders(token),
                 withCredentials: true,
             });
             return response.data;
@@ -42,9 +27,9 @@ export const complaintsService = {
             const params: any = {};
             if (status) params.status = status;
 
-            const response = await axios.get(`${API_URL}/api/complaints`, {
+            const response = await axios.get(`${API_BASE_URL}/api/complaints`, {
                 params,
-                headers: await getAuthHeaders(token),
+                headers: getAuthHeaders(token),
                 withCredentials: true,
             });
             return response.data;
@@ -64,8 +49,8 @@ export const complaintsService = {
         token?: string
     ) {
         try {
-            const response = await axios.patch(`${API_URL}/api/complaints/${id}`, data, {
-                headers: await getAuthHeaders(token),
+            const response = await axios.patch(`${API_BASE_URL}/api/complaints/${id}`, data, {
+                headers: getAuthHeaders(token),
                 withCredentials: true,
             });
             return response.data;
@@ -78,8 +63,8 @@ export const complaintsService = {
     // Delete complaint (admin only)
     async deleteComplaint(id: string, token?: string) {
         try {
-            const response = await axios.delete(`${API_URL}/api/complaints/${id}`, {
-                headers: await getAuthHeaders(token),
+            const response = await axios.delete(`${API_BASE_URL}/api/complaints/${id}`, {
+                headers: getAuthHeaders(token),
                 withCredentials: true,
             });
             return response.data;

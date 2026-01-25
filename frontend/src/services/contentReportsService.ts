@@ -1,19 +1,7 @@
 import axios from 'axios';
+import { API_BASE_URL, getAuthHeaders } from '../config/api';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-
-// Helper to get auth headers
-const getAuthHeaders = async (token?: string) => {
-    const headers: any = {
-        'Content-Type': 'application/json',
-    };
-
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    return headers;
-};
+const API_URL = API_BASE_URL;
 
 export const contentReportsService = {
     // Submit a content report (authenticated users)
@@ -28,7 +16,7 @@ export const contentReportsService = {
                 `${API_URL}/api/content-reports`,
                 { tripId, reason, description },
                 {
-                    headers: await getAuthHeaders(token),
+                    headers: getAuthHeaders(token),
                     withCredentials: true,
                 }
             );
@@ -47,7 +35,7 @@ export const contentReportsService = {
 
             const response = await axios.get(`${API_URL}/api/content-reports`, {
                 params,
-                headers: await getAuthHeaders(token),
+                headers: getAuthHeaders(token),
                 withCredentials: true,
             });
             return response.data;
@@ -61,7 +49,7 @@ export const contentReportsService = {
     async getTripReports(tripId: string, token?: string) {
         try {
             const response = await axios.get(`${API_URL}/api/content-reports/trip/${tripId}`, {
-                headers: await getAuthHeaders(token),
+                headers: getAuthHeaders(token),
                 withCredentials: true,
             });
             return response.data;
@@ -82,7 +70,7 @@ export const contentReportsService = {
     ) {
         try {
             const response = await axios.patch(`${API_URL}/api/content-reports/${id}`, data, {
-                headers: await getAuthHeaders(token),
+                headers: getAuthHeaders(token),
                 withCredentials: true,
             });
             return response.data;
@@ -96,7 +84,7 @@ export const contentReportsService = {
     async deleteReport(id: string, token?: string) {
         try {
             const response = await axios.delete(`${API_URL}/api/content-reports/${id}`, {
-                headers: await getAuthHeaders(token),
+                headers: getAuthHeaders(token),
                 withCredentials: true,
             });
             return response.data;

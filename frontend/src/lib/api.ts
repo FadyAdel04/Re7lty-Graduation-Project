@@ -1,3 +1,5 @@
+import { API_BASE_URL } from '../config/api';
+
 export type CreateTripInput = {
   title: string;
   destination: string;
@@ -15,12 +17,7 @@ export type CreateTripInput = {
   isAIGenerated?: boolean;
 };
 
-// Use relative URLs in development (proxied by Vite) or VITE_API_URL if set
-// In development, empty string means relative URLs which triggers Vite proxy
-// In production, you can set VITE_API_URL to your backend URL
-// Normalize BASE URL: remove trailing slashes to avoid double slashes in URLs
-const rawBase = import.meta.env.VITE_API_URL || "";
-const BASE = rawBase ? rawBase.replace(/\/+$/, "") : ""; // Remove trailing slashes, empty = relative URLs (uses Vite proxy)
+const BASE = API_BASE_URL;
 
 export async function createTrip(input: CreateTripInput, token?: string) {
   const res = await fetch(`${BASE}/api/trips`, {

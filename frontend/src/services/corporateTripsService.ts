@@ -1,9 +1,8 @@
 import axios from 'axios';
 import { Company, Trip, TripFilters } from '@/types/corporateTrips';
+import { API_BASE_URL, getAuthHeaders } from '../config/api';
 
-// Normalize API URL: remove trailing slashes to avoid double slashes in URLs
-const rawApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-const API_URL = rawApiUrl.replace(/\/+$/, ''); // Remove trailing slashes
+const API_URL = API_BASE_URL;
 
 export const corporateTripsService = {
     // Get all companies
@@ -158,13 +157,8 @@ export const corporateTripsService = {
         message?: string;
     }, token?: string) {
         try {
-            const headers: any = { 'Content-Type': 'application/json' };
-            if (token) {
-                headers['Authorization'] = `Bearer ${token}`;
-            }
-
             const response = await axios.post(`${API_URL}/api/submissions`, data, {
-                headers,
+                headers: getAuthHeaders(token),
                 withCredentials: true
             });
             return response.data;

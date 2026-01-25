@@ -1,28 +1,14 @@
 import axios from 'axios';
+import { API_BASE_URL, getAuthHeaders } from '../config/api';
 
-// Normalize API URL: remove trailing slashes to avoid double slashes in URLs
-const rawApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-const API_URL = rawApiUrl.replace(/\/+$/, ''); // Remove trailing slashes
-
-// Helper to get auth headers with Clerk token
-const getAuthHeaders = async (token?: string) => {
-    const headers: Record<string, string> = {
-        'Content-Type': 'application/json'
-    };
-
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    return headers;
-};
+const API_URL = API_BASE_URL;
 
 export const adminService = {
     // Verify admin status
     async verifyAdmin(token?: string): Promise<boolean> {
         try {
             const response = await axios.get(`${API_URL}/api/admin/verify`, {
-                headers: await getAuthHeaders(token),
+                headers: getAuthHeaders(token),
                 withCredentials: true
             });
             return response.data.isAdmin;
@@ -35,7 +21,7 @@ export const adminService = {
     async getSubmissions(token?: string, status?: string) {
         const response = await axios.get(`${API_URL}/api/submissions/admin`, {
             params: { status },
-            headers: await getAuthHeaders(token),
+            headers: getAuthHeaders(token),
             withCredentials: true
         });
         return response.data;
@@ -43,7 +29,7 @@ export const adminService = {
 
     async getSubmissionById(id: string, token?: string) {
         const response = await axios.get(`${API_URL}/api/submissions/admin/${id}`, {
-            headers: await getAuthHeaders(token),
+            headers: getAuthHeaders(token),
             withCredentials: true
         });
         return response.data;
@@ -54,7 +40,7 @@ export const adminService = {
             `${API_URL}/api/submissions/admin/${id}/approve`,
             { adminNotes },
             {
-                headers: await getAuthHeaders(token),
+                headers: getAuthHeaders(token),
                 withCredentials: true
             }
         );
@@ -66,7 +52,7 @@ export const adminService = {
             `${API_URL}/api/submissions/admin/${id}/reject`,
             { rejectionReason, adminNotes },
             {
-                headers: await getAuthHeaders(token),
+                headers: getAuthHeaders(token),
                 withCredentials: true
             }
         );
@@ -75,7 +61,7 @@ export const adminService = {
 
     async deleteSubmission(id: string, token?: string) {
         const response = await axios.delete(`${API_URL}/api/submissions/admin/${id}`, {
-            headers: await getAuthHeaders(token),
+            headers: getAuthHeaders(token),
             withCredentials: true
         });
         return response.data;
@@ -85,7 +71,7 @@ export const adminService = {
         // Use new dedicated analytics endpoint
         try {
             const response = await axios.get(`${API_URL}/api/analytics/submissions`, {
-                headers: await getAuthHeaders(token),
+                headers: getAuthHeaders(token),
                 withCredentials: true
             });
             // Transform to expected format [{name, value}]
@@ -106,7 +92,7 @@ export const adminService = {
         // Use new dedicated analytics endpoint
         try {
             const response = await axios.get(`${API_URL}/api/analytics/companies/activity`, {
-                headers: await getAuthHeaders(token),
+                headers: getAuthHeaders(token),
                 withCredentials: true
             });
             return [
@@ -121,7 +107,7 @@ export const adminService = {
 
     async getAllCompanies(token?: string) {
         const response = await axios.get(`${API_URL}/api/corporate/companies/admin/all`, {
-            headers: await getAuthHeaders(token),
+            headers: getAuthHeaders(token),
             withCredentials: true
         });
         return response.data;
@@ -132,7 +118,7 @@ export const adminService = {
             `${API_URL}/api/corporate/companies/admin/create`,
             companyData,
             {
-                headers: await getAuthHeaders(token),
+                headers: getAuthHeaders(token),
                 withCredentials: true
             }
         );
@@ -144,7 +130,7 @@ export const adminService = {
             `${API_URL}/api/corporate/companies/admin/${id}`,
             companyData,
             {
-                headers: await getAuthHeaders(token),
+                headers: getAuthHeaders(token),
                 withCredentials: true
             }
         );
@@ -153,7 +139,7 @@ export const adminService = {
 
     async deleteCompany(id: string, token?: string) {
         const response = await axios.delete(`${API_URL}/api/corporate/companies/admin/${id}`, {
-            headers: await getAuthHeaders(token),
+            headers: getAuthHeaders(token),
             withCredentials: true
         });
         return response.data;
@@ -164,7 +150,7 @@ export const adminService = {
             `${API_URL}/api/corporate/companies/admin/${id}/toggle-active`,
             {},
             {
-                headers: await getAuthHeaders(token),
+                headers: getAuthHeaders(token),
                 withCredentials: true
             }
         );
@@ -174,7 +160,7 @@ export const adminService = {
     // Trip Management
     async getTripStats(token?: string) {
         const response = await axios.get(`${API_URL}/api/corporate/trips/admin/stats`, {
-            headers: await getAuthHeaders(token),
+            headers: getAuthHeaders(token),
             withCredentials: true
         });
         return response.data;
@@ -182,7 +168,7 @@ export const adminService = {
 
     async getAllTrips(token?: string) {
         const response = await axios.get(`${API_URL}/api/corporate/trips/admin/all`, {
-            headers: await getAuthHeaders(token),
+            headers: getAuthHeaders(token),
             withCredentials: true
         });
         return response.data;
@@ -193,7 +179,7 @@ export const adminService = {
             `${API_URL}/api/corporate/trips/admin/create`,
             tripData,
             {
-                headers: await getAuthHeaders(token),
+                headers: getAuthHeaders(token),
                 withCredentials: true
             }
         );
@@ -205,7 +191,7 @@ export const adminService = {
             `${API_URL}/api/corporate/trips/admin/${id}`,
             tripData,
             {
-                headers: await getAuthHeaders(token),
+                headers: getAuthHeaders(token),
                 withCredentials: true
             }
         );
@@ -214,7 +200,7 @@ export const adminService = {
 
     async deleteTrip(id: string, token?: string) {
         const response = await axios.delete(`${API_URL}/api/corporate/trips/admin/${id}`, {
-            headers: await getAuthHeaders(token),
+            headers: getAuthHeaders(token),
             withCredentials: true
         });
         return response.data;
@@ -225,7 +211,7 @@ export const adminService = {
             `${API_URL}/api/corporate/trips/admin/${id}/toggle-active`,
             {},
             {
-                headers: await getAuthHeaders(token),
+                headers: getAuthHeaders(token),
                 withCredentials: true
             }
         );
@@ -236,7 +222,7 @@ export const adminService = {
     async getAnalytics(token?: string) {
         try {
             const response = await axios.get(`${API_URL}/api/analytics/overview`, {
-                headers: await getAuthHeaders(token),
+                headers: getAuthHeaders(token),
                 withCredentials: true
             });
             return response.data;
@@ -261,7 +247,7 @@ export const adminService = {
     async getWeeklyActivity(token?: string) {
         try {
             const response = await axios.get(`${API_URL}/api/analytics/weekly-activity`, {
-                headers: await getAuthHeaders(token),
+                headers: getAuthHeaders(token),
                 withCredentials: true
             });
             return response.data;
@@ -274,7 +260,7 @@ export const adminService = {
     async getAllUsers(token?: string) {
         try {
             const response = await axios.get(`${API_URL}/api/analytics/users/all`, {
-                headers: await getAuthHeaders(token),
+                headers: getAuthHeaders(token),
                 withCredentials: true
             });
             return response.data;
@@ -287,7 +273,7 @@ export const adminService = {
     async getTopTrips(token?: string, limit: number = 5) {
         try {
             const response = await axios.get(`${API_URL}/api/analytics/top-trips?limit=${limit}`, {
-                headers: await getAuthHeaders(token),
+                headers: getAuthHeaders(token),
                 withCredentials: true
             });
             return response.data;
@@ -352,7 +338,7 @@ export const adminService = {
     async getBestPerformingCompanies(token?: string, limit: number = 10) {
         try {
             const response = await axios.get(`${API_URL}/api/corporate/companies/admin/all`, {
-                headers: await getAuthHeaders(token),
+                headers: getAuthHeaders(token),
                 withCredentials: true
             });
 
@@ -376,7 +362,7 @@ export const adminService = {
 
             const response = await axios.get(`${API_URL}/api/analytics/reports`, {
                 params,
-                headers: await getAuthHeaders(token),
+                headers: getAuthHeaders(token),
                 withCredentials: true
             });
             return response.data;
