@@ -142,7 +142,7 @@ const Header = ({ onSearch }: HeaderProps) => {
 
   return (
     <header className={cn(
-      "sticky top-0 z-[100] w-full transition-all duration-500 font-cairo",
+      "sticky top-0 z-[5000] w-full transition-all duration-500 font-cairo",
       scrolled 
         ? "bg-white/80 backdrop-blur-xl border-b border-gray-100 shadow-xl shadow-indigo-500/5 h-[4.5rem]" 
         : "bg-white border-b border-transparent h-24"

@@ -217,6 +217,10 @@ const TripAIChat = () => {
         name: attraction.name,
         images: attraction.photo?.images?.medium?.url ? [attraction.photo.images.medium.url] : [],
         day: Math.floor(idx / 3) + 1,
+        coordinates: {
+          lat: parseFloat(attraction.latitude || tripPlan.location.latitude || "30.0444"),
+          lng: parseFloat(attraction.longitude || tripPlan.location.longitude || "31.2357"),
+        }
       }));
 
       const numDays = parseInt(days || "3");
@@ -247,7 +251,8 @@ const TripAIChat = () => {
           name: h.name,
           image: h.photo?.images?.medium?.url || "",
           rating: parseFloat(h.rating || "4.5"),
-          price: h.price || "غير متوفر",
+          priceRange: h.price || "غير متوفر",
+          description: h.address || "فندق متميز",
         })),
         isAIGenerated: true,
       };

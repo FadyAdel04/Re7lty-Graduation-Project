@@ -140,6 +140,7 @@ const [loveLoading, setLoveLoading] = useState(false);
 const [followLoading, setFollowLoading] = useState(false);
   const [dialogActivityIdx, setDialogActivityIdx] = useState<number | null>(null);
   const [dialogRestaurantIdx, setDialogRestaurantIdx] = useState<number | null>(null);
+  const [showFullMap, setShowFullMap] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -565,15 +566,19 @@ useEffect(() => {
                                  </div>
                                  <h3 className="text-2xl font-black text-gray-900">{day.title || `اليوم ${idx + 1}`}</h3>
                               </div>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                  {day.activities
                                    .filter((actIdx: number) => actIdx >= 0 && actIdx < trip.activities.length)
                                    .map((actIdx: number) => {
                                       const activity = trip.activities[actIdx];
                                       return (
-                                        <div key={actIdx} className="p-4 rounded-[2rem] bg-gray-50/50 border border-transparent hover:border-indigo-100 hover:bg-indigo-50/30 transition-all flex items-center gap-4">
+                                        <div 
+                                          key={actIdx} 
+                                          onClick={() => setDialogActivityIdx(actIdx)}
+                                          className="p-4 rounded-[2rem] bg-gray-50/50 border border-transparent hover:border-indigo-100 hover:bg-indigo-50/30 transition-all flex items-center gap-4 cursor-pointer group/item"
+                                        >
                                            <div className="w-20 h-16 rounded-2xl overflow-hidden shadow-sm bg-white shrink-0">
-                                              <img src={activity.images?.[0]} className="w-full h-full object-cover" />
+                                              <img src={activity.images?.[0]} className="w-full h-full object-cover group-hover/item:scale-110 transition-transform duration-500" />
                                            </div>
                                            <span className="font-black text-gray-700 text-lg uppercase line-clamp-1">{activity.name}</span>
                                         </div>
@@ -635,7 +640,13 @@ useEffect(() => {
                {/* Map Widget */}
                <Card className="border-0 shadow-2xl rounded-[2.5rem] bg-indigo-900 overflow-hidden text-white relative">
                   <div className="h-[350px] relative">
-                     {trip.activities?.[0]?.coordinates ? (
+                      <div 
+                        onClick={() => setShowFullMap(true)}
+                        className="absolute top-4 right-4 bg-indigo-900/60 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 text-sm font-black flex items-center gap-2 cursor-pointer hover:bg-indigo-800 transition-colors z-[1001] shadow-lg"
+                      >
+                        <Maximize2 className="w-4 h-4 text-orange-400" /> عرض الخريطة المكبرة
+                      </div>
+                      {trip.activities?.[0]?.coordinates ? (
                         <MapContainer
                            center={[trip.activities[0].coordinates.lat, trip.activities[0].coordinates.lng]}
                            zoom={13}
@@ -644,15 +655,47 @@ useEffect(() => {
                         >
                            <TileLayer url="https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=hCkkPcZUo3rUCAmU8HwE" />
                            <FitBounds positions={trip.activities.filter((a: any) => a.coordinates).map((a: any) => [a.coordinates.lat, a.coordinates.lng])} />
+                           
+                           {/* Route Line */}
+                           <Polyline 
+                              positions={trip.activities.filter((a: any) => a.coordinates).map((a: any) => [a.coordinates.lat, a.coordinates.lng])}
+                              color="#4F46E5"
+                              weight={3}
+                              opacity={0.6}
+                              dashArray="10, 10"
+                           />
+                           
+                           {/* Bus Animation */}
+                           <BusTravelAnimator positions={trip.activities.filter((a: any) => a.coordinates).map((a: any) => [a.coordinates.lat, a.coordinates.lng])} />
+
                            {trip.activities.map((act: any, idx: number) => act.coordinates && (
                              <Marker 
                                key={idx} 
                                position={[act.coordinates.lat, act.coordinates.lng]}
+                               eventHandlers={{
+                                 click: () => {
+                                   setDialogActivityIdx(idx);
+                                 },
+                               }}
                                icon={L.divIcon({
                                   className: "custom-marker-mini",
-                                  html: `<div style='background:white;color:#4F46E5;width:24px;height:24px;border-radius:full;display:flex;align-items:center;justify-content:center;font-weight:900;box-shadow:0 4px 10px rgba(0,0,0,0.3)'>${idx+1}</div>`
+                                  html: `<div style='background:white;color:#4F46E5;width:24px;height:24px;border-radius:full;display:flex;align-items:center;justify-content:center;font-weight:900;box-shadow:0 4px 10px rgba(0,0,0,0.3);cursor:pointer'>${idx+1}</div>`
                                })}
-                             />
+                             >
+                               <Popup className="font-cairo text-right">
+                                  <div className="p-1" dir="rtl">
+                                      <h4 className="font-black text-indigo-600 mb-1">{act.name}</h4>
+                                      <p className="text-xs text-gray-500 line-clamp-2">{act.description}</p>
+                                      <Button 
+                                        variant="link" 
+                                        className="p-0 h-auto text-orange-500 text-xs font-black mt-2"
+                                        onClick={() => setDialogActivityIdx(idx)}
+                                      >
+                                        عرض التفاصيل
+                                      </Button>
+                                   </div>
+                                </Popup>
+                             </Marker>
                            ))}
                         </MapContainer>
                      ) : (
@@ -661,9 +704,6 @@ useEffect(() => {
                            <p className="text-indigo-400 font-bold">الموقع الجغرافي غير متوفر لهذه الرحلة</p>
                         </div>
                      )}
-                     <div className="absolute top-4 right-4 bg-indigo-900/60 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 text-sm font-black flex items-center gap-2">
-                        <Maximize2 className="w-4 h-4 text-orange-400" /> عرض الخريطة المكبرة
-                     </div>
                   </div>
                   <div className="p-8 bg-indigo-800">
                      <h3 className="text-xl font-black mb-2">تتبع المسار</h3>
@@ -774,6 +814,119 @@ useEffect(() => {
                <Button onClick={handleDeleteTrip} disabled={isDeleting} className="h-16 flex-1 rounded-2xl bg-red-50 text-white font-black text-xl shadow-xl shadow-red-100 truncate">تأكيد الحذف</Button>
                <Button variant="outline" onClick={() => setShowDeleteDialog(false)} className="h-16 flex-1 rounded-2xl font-black text-xl border-gray-100">تراجـع</Button>
             </DialogFooter>
+         </DialogContent>
+      </Dialog>
+      
+      {/* Full Map Dialog */}
+      <Dialog open={showFullMap} onOpenChange={setShowFullMap}>
+         <DialogContent className="max-w-6xl w-[90vw] h-[80vh] p-0 overflow-hidden rounded-[2.5rem] border-0 bg-transparent z-[6000]" dir="rtl">
+            <div className="relative w-full h-full rounded-[2.5rem] overflow-hidden bg-white shadow-2xl border-4 border-white">
+               <Button 
+                 variant="ghost" 
+                 size="icon" 
+                 className="absolute top-6 left-6 z-[6001] bg-white/80 backdrop-blur-md rounded-2xl hover:bg-white transition-all shadow-xl"
+                 onClick={() => setShowFullMap(false)}
+               >
+                  <Plus className="w-6 h-6 rotate-45" />
+               </Button>
+               
+               {trip.activities?.[0]?.coordinates && (
+                 <MapContainer
+                    center={[trip.activities[0].coordinates.lat, trip.activities[0].coordinates.lng]}
+                    zoom={13}
+                    scrollWheelZoom={true}
+                    style={{ height: "100%", width: "100%" }}
+                 >
+                    <TileLayer url="https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=hCkkPcZUo3rUCAmU8HwE" />
+                    <FitBounds positions={trip.activities.filter((a: any) => a.coordinates).map((a: any) => [a.coordinates.lat, a.coordinates.lng])} />
+                    
+                    <Polyline 
+                       positions={trip.activities.filter((a: any) => a.coordinates).map((a: any) => [a.coordinates.lat, a.coordinates.lng])}
+                       color="#4F46E5"
+                       weight={4}
+                       opacity={0.6}
+                       dashArray="10, 15"
+                    />
+                    
+                    <BusTravelAnimator positions={trip.activities.filter((a: any) => a.coordinates).map((a: any) => [a.coordinates.lat, a.coordinates.lng])} />
+
+                    {trip.activities.map((act: any, idx: number) => act.coordinates && (
+                      <Marker 
+                        key={idx} 
+                        position={[act.coordinates.lat, act.coordinates.lng]}
+                        icon={L.divIcon({
+                           className: "custom-marker-full",
+                           html: `<div style='background:white;color:#4F46E5;width:36px;height:36px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:900;box-shadow:0 8px 20px rgba(0,0,0,0.2)'>${idx+1}</div>`
+                        })}
+                      >
+                         <Popup className="font-cairo text-right min-w-[200px]">
+                            <div className="p-2 space-y-2" dir="rtl">
+                               <div className="w-full h-24 rounded-xl overflow-hidden mb-2">
+                                  <img src={act.images?.[0]} className="w-full h-full object-cover" />
+                               </div>
+                               <h4 className="font-black text-indigo-600 text-lg">{act.name}</h4>
+                               <p className="text-sm text-gray-600 leading-relaxed">{act.description}</p>
+                               {act.duration && <Badge variant="secondary" className="bg-indigo-50 text-indigo-600 border-none">{act.duration}</Badge>}
+                            </div>
+                         </Popup>
+                      </Marker>
+                    ))}
+                 </MapContainer>
+               )}
+            </div>
+         </DialogContent>
+      </Dialog>
+
+      {/* Place Details Dialog */}
+      <Dialog open={dialogActivityIdx !== null} onOpenChange={(open) => !open && setDialogActivityIdx(null)}>
+         <DialogContent className="max-w-2xl p-0 overflow-hidden rounded-[2.5rem] font-cairo text-right" dir="rtl">
+            {dialogActivityIdx !== null && trip.activities[dialogActivityIdx] && (
+               <div>
+                  <div className="h-64 relative bg-gray-100">
+                     <img 
+                       src={trip.activities[dialogActivityIdx].images?.[0]} 
+                       className="w-full h-full object-cover"
+                     />
+                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                     <div className="absolute bottom-6 right-6 text-white">
+                        <Badge className="bg-orange-500 mb-2 border-none">نشاط ومغامرة</Badge>
+                        <h3 className="text-3xl font-black">{trip.activities[dialogActivityIdx].name}</h3>
+                     </div>
+                  </div>
+                  <div className="p-8 space-y-4">
+                     <p className="text-lg text-gray-600 leading-relaxed font-bold">
+                        {trip.activities[dialogActivityIdx].description}
+                     </p>
+                     
+                     <div className="grid grid-cols-2 gap-4 mt-6">
+                        <div className="p-4 rounded-3xl bg-gray-50 flex items-center gap-3">
+                           <div className="w-10 h-10 rounded-2xl bg-indigo-100 flex items-center justify-center text-indigo-600">
+                              <MapPin className="w-5 h-5" />
+                           </div>
+                           <div>
+                              <span className="block text-xs text-gray-400 font-bold">الموقع</span>
+                              <span className="font-black text-gray-700">{trip.city}</span>
+                           </div>
+                        </div>
+                        {trip.activities[dialogActivityIdx].duration && (
+                           <div className="p-4 rounded-3xl bg-gray-50 flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-2xl bg-emerald-100 flex items-center justify-center text-emerald-600">
+                                 <Clock className="w-5 h-5" />
+                              </div>
+                              <div>
+                                 <span className="block text-xs text-gray-400 font-bold">المدة المقدرة</span>
+                                 <span className="font-black text-gray-700">{trip.activities[dialogActivityIdx].duration}</span>
+                              </div>
+                           </div>
+                        )}
+                     </div>
+
+                     <div className="flex gap-4 mt-8 pt-6 border-t border-gray-100">
+                        <Button className="flex-1 h-14 rounded-2xl bg-indigo-600 font-black text-lg shadow-lg shadow-indigo-100" onClick={() => setDialogActivityIdx(null)}>إغلاق التفاصيل</Button>
+                     </div>
+                  </div>
+               </div>
+            )}
          </DialogContent>
       </Dialog>
 

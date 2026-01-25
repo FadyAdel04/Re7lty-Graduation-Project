@@ -28,6 +28,8 @@ export interface TravelAdvisorAttraction {
   description?: string;
   rating?: string;
   num_reviews?: string;
+  latitude?: string;
+  longitude?: string;
   photo?: {
     images?: {
       medium?: {
@@ -55,6 +57,8 @@ export interface TravelAdvisorRestaurant {
   description?: string;
   rating?: string;
   num_reviews?: string;
+  latitude?: string;
+  longitude?: string;
   photo?: {
     images?: {
       medium?: {
@@ -77,6 +81,8 @@ export interface TravelAdvisorHotel {
   name: string;
   rating?: string;
   num_reviews?: string;
+  latitude?: string;
+  longitude?: string;
   photo?: {
     images?: {
       medium?: {
@@ -211,7 +217,7 @@ export async function getHotels(locationId: string, limit: number = 10): Promise
 export async function getTripPlan(city: string, days: number = 3): Promise<TripPlan | null> {
   try {
     const englishCityName = getEnglishCityName(city);
-    
+
     // Search for location
     const location = await searchLocation(englishCityName);
     if (!location) {
