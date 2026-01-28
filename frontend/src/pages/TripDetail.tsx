@@ -723,7 +723,10 @@ useEffect(() => {
                             isLiked ? "bg-red-500 text-white shadow-lg shadow-red-100" : "bg-red-50 text-red-500 hover:bg-red-100"
                           )}
                         >
-                           <Heart className={cn("w-5 h-5", isLiked && "fill-current")} />
+                           <div className="flex items-center gap-2">
+                             <Heart className={cn("w-5 h-5", isLiked && "fill-current")} />
+                             <span className="text-lg font-black">{likesCount}</span>
+                           </div>
                            <span className="text-xs font-black uppercase">أعجبني</span>
                         </Button>
                      </SignedIn>
@@ -736,7 +739,10 @@ useEffect(() => {
                             isSaved ? "bg-amber-500 text-white shadow-lg shadow-amber-100" : "bg-amber-50 text-amber-600 hover:bg-amber-100"
                           )}
                         >
-                           <Bookmark className={cn("w-5 h-5", isSaved && "fill-current")} />
+                           <div className="flex items-center gap-2">
+                             <Bookmark className={cn("w-5 h-5", isSaved && "fill-current")} />
+                             <span className="text-lg font-black">{savesCount}</span>
+                           </div>
                            <span className="text-xs font-black uppercase">حفظ</span>
                         </Button>
                      </SignedIn>

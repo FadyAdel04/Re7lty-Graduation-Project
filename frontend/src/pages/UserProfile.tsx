@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, Calendar, Users, Heart, Settings, Camera, Edit2, Save, X, LogOut, Bookmark, MessageCircle, Award, Crown, Gem, LayoutGrid, Sparkles, Image as ImageIcon } from "lucide-react";
+import { MapPin, Calendar, Users, Heart, Settings, Camera, Edit2, Save, X, LogOut, Bookmark, MessageCircle, Award, Crown, Gem, LayoutGrid, Sparkles, Image as ImageIcon, Trash2 } from "lucide-react";
 import { useUser, useAuth, useClerk } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -322,6 +322,13 @@ const UserProfile = () => {
     fetchAITrips();
   }, [id, isOwnProfile, isSignedIn, getToken]);
 
+  // Fetch my stories for management
+  useEffect(() => {
+    if (isOwnProfile && isSignedIn) {
+      loadMyStories();
+    }
+  }, [id, isOwnProfile, isSignedIn, getToken]);
+
   const handleSaveProfile = async () => {
     if (!clerkUser || !isOwnProfile) return;
 
@@ -631,6 +638,34 @@ const UserProfile = () => {
     }
   };
 
+  const handleDeleteStory = async (storyId: string) => {
+    if (!isSignedIn) return;
+    
+    if (!window.confirm("هل أنت متأكد من حذف هذه القصة؟")) return;
+
+    try {
+      const token = await getToken();
+      if (!token) return;
+
+      await deleteStory(storyId, token);
+      
+      toast({
+        title: "تم الحذف",
+        description: "تم حذف القصة بنجاح",
+      });
+
+      // Update local state
+      setMyStories(prev => prev.filter(s => s._id !== storyId));
+    } catch (error: any) {
+      console.error("Error deleting story:", error);
+      toast({
+        title: "خطأ",
+        description: "فشل حذف القصة",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleToggleFollow = async () => {
     if (!id) return;
     if (!isSignedIn) {
@@ -910,6 +945,7 @@ const UserProfile = () => {
                        <TabsList className="w-full justify-start gap-4 bg-transparent p-4 h-auto border-b border-gray-50 flex-wrap">
                           {[
                             { id: "trips", label: "الرحلات العامة", icon: <LayoutGrid className="w-4 h-4" /> },
+                            { id: "stories", label: "قصصي", icon: <ImageIcon className="w-4 h-4" />, hide: !isOwnProfile },
                             { id: "ai-trips", label: "مساعد الرحلات الذكى ", icon: <Sparkles className="w-4 h-4" />, hide: !isOwnProfile },
                             { id: "saved", label: "المحفوظات", icon: <Bookmark className="w-4 h-4" /> },
                             { id: "liked", label: "الإعجابات", icon: <Heart className="w-4 h-4" /> },
@@ -925,7 +961,7 @@ const UserProfile = () => {
                           ))}
                        </TabsList>
 
-                       {["trips", "ai-trips", "saved", "liked"].map(tabId => (
+                       {["trips", "ai-trips", "stories", "saved", "liked"].map(tabId => (
                           <TabsContent key={tabId} value={tabId} className="p-6 transition-all animate-in fade-in slide-in-from-bottom-4">
                              {/* Shared Trip Grid Logic */}
                              {renderTabContent(tabId)}
@@ -992,8 +1028,8 @@ const UserProfile = () => {
   );
 
   function renderTabContent(tabId: string) {
-    const loading = tabId === 'trips' ? isLoadingTrips : tabId === 'saved' ? isLoadingSaved : tabId === 'liked' ? isLoadingLoved : isLoadingAITrips;
-    const data = tabId === 'trips' ? userTrips : tabId === 'saved' ? savedTrips : tabId === 'liked' ? lovedTrips : aiTrips;
+    const loading = tabId === 'trips' ? isLoadingTrips : tabId === 'saved' ? isLoadingSaved : tabId === 'liked' ? isLoadingLoved : tabId === 'stories' ? isLoadingMyStories : isLoadingAITrips;
+    const data = tabId === 'trips' ? userTrips : tabId === 'saved' ? savedTrips : tabId === 'liked' ? lovedTrips : tabId === 'stories' ? myStories : aiTrips;
 
     if (loading) return <TripSkeletonLoader count={3} variant="card" />;
 
@@ -1005,6 +1041,35 @@ const UserProfile = () => {
            </div>
            <h3 className="text-xl font-bold text-gray-900 mb-2">لا يوجد محتوى هنا بعد</h3>
            <p className="text-gray-500 font-light">استكشف الموقع واملأ صفحتك بأفضل التجارب والذكريات.</p>
+        </div>
+      );
+    }
+
+    if (tabId === 'stories') {
+      return (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+          {myStories.map((story) => (
+            <div key={story._id} className="relative aspect-[9/16] rounded-2xl overflow-hidden group">
+              {story.mediaType === 'video' ? (
+                <video src={story.mediaUrl} className="w-full h-full object-cover" />
+              ) : (
+                <img src={story.mediaUrl} alt="" className="w-full h-full object-cover" />
+              )}
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center">
+                 <button 
+                  onClick={() => handleDeleteStory(story._id)}
+                  className="p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all transform scale-90 group-hover:scale-100"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="absolute bottom-2 right-2 left-2 truncate">
+                <span className="text-[10px] text-white bg-black/50 px-2 py-0.5 rounded-full">
+                  {new Date(story.createdAt).toLocaleDateString('ar-EG')}
+                </span>
+              </div>
+            </div>
+          ))}
         </div>
       );
     }

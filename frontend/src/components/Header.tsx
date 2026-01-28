@@ -39,8 +39,14 @@ const Header = ({ onSearch }: HeaderProps) => {
 
   // Handle scroll effect
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", handleScroll);
+    const handleScroll = () => {
+      if (window.scrollY > 20) {
+        setScrolled(true);
+      } else {
+        setScrolled(false);
+      }
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
@@ -120,22 +126,21 @@ const Header = ({ onSearch }: HeaderProps) => {
   const NavItem = ({ to, icon: Icon, label, exact = false }: { to: string; icon: any; label: string; exact?: boolean }) => {
     const isActive = exact ? location.pathname === to : location.pathname.startsWith(to);
     return (
-      <Link to={to} className="relative group flex flex-col items-center">
+      <Link to={to} className="relative group px-1 flex flex-col items-center justify-center">
         <div className={cn(
-          "flex items-center gap-2 px-4 py-2 rounded-2xl transition-all duration-500",
+          "flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all duration-300 relative z-10",
           isActive 
-            ? "text-indigo-600 font-black bg-indigo-50/50" 
+            ? "text-indigo-600 font-black bg-indigo-50/60" 
             : "text-gray-500 font-bold hover:text-indigo-600 hover:bg-gray-50/50"
         )}>
-          <Icon className={cn("h-4.5 w-4.5 transition-transform duration-500", isActive ? "scale-110" : "group-hover:rotate-12")} />
+          <Icon className={cn("h-4.5 w-4.5 transition-all duration-300", 
+            isActive ? "scale-110 drop-shadow-[0_0_8px_rgba(79,70,229,0.3)]" : "group-hover:translate-y-[-2px]"
+          )} />
           <span className="text-sm">{label}</span>
+          {isActive && (
+            <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1/3 h-0.5 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full" />
+          )}
         </div>
-        {isActive && (
-          <motion.div 
-            layoutId="header-active"
-            className="absolute -bottom-1 w-1/2 h-1 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full"
-          />
-        )}
       </Link>
     );
   };
@@ -144,7 +149,7 @@ const Header = ({ onSearch }: HeaderProps) => {
     <header className={cn(
       "sticky top-0 z-[5000] w-full transition-all duration-500 font-cairo",
       scrolled 
-        ? "bg-white/80 backdrop-blur-xl border-b border-gray-100 shadow-xl shadow-indigo-500/5 h-[4.5rem]" 
+        ? "bg-white/70 backdrop-blur-2xl border-b border-white/20 shadow-[0_10px_40px_rgba(0,0,0,0.04)] h-[5rem]" 
         : "bg-white border-b border-transparent h-24"
     )} dir="rtl">
       <div className="container mx-auto px-4 h-full">
@@ -153,12 +158,15 @@ const Header = ({ onSearch }: HeaderProps) => {
         <div className="flex items-center justify-between h-full gap-8">
           
           {/* 1. Logo Section */}
-          <Link to="/" className="flex items-center flex-shrink-0 group relative">
+          <Link to="/" className="flex items-center flex-shrink-0 group relative transition-all duration-500">
             <div className="absolute -inset-4 bg-indigo-500/10 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
             <img
               src={logo}
               alt="رحلتي"
-              className="h-14 md:h-20 w-auto transition-all duration-700 group-hover:scale-105 group-hover:-rotate-3 object-contain relative z-10"
+              className={cn(
+                "w-auto transition-all duration-500 group-hover:scale-105 group-hover:-rotate-3 object-contain relative z-10",
+                scrolled ? "h-12 md:h-16" : "h-14 md:h-20"
+              )}
             />
           </Link>
 
@@ -166,7 +174,7 @@ const Header = ({ onSearch }: HeaderProps) => {
           <div className="hidden lg:flex flex-1 items-center justify-center gap-6">
             
             {/* Nav Links */}
-            <nav className="flex items-center gap-2">
+            <nav className="flex items-center gap-1">
               <NavItem to="/" icon={Home} label="الرئيسية" exact={true} />
               <NavItem to="/discover" icon={Sparkles} label="اكتشف" />
               <NavItem to="/timeline" icon={Compass} label="الرحلات" />
@@ -176,7 +184,7 @@ const Header = ({ onSearch }: HeaderProps) => {
             </nav>
 
             {/* Premium Search Bar */}
-            <div className="relative w-full max-w-[320px]" ref={searchContainerRef}>
+            <div className="relative w-full max-w-[280px]" ref={searchContainerRef}>
               <div className="relative group">
                 <Input
                   type="text"
@@ -196,7 +204,7 @@ const Header = ({ onSearch }: HeaderProps) => {
                       initial={{ opacity: 0, y: 10, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      className="absolute top-full right-0 mt-3 w-full bg-white rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-gray-50 overflow-hidden z-50 py-2"
+                      className="absolute top-full right-0 mt-3 w-full bg-white/95 backdrop-blur-xl rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-white/20 overflow-hidden z-50 py-2"
                     >
                       {isSearching ? (
                         <div className="p-8 text-center flex flex-col items-center gap-3">
@@ -204,7 +212,7 @@ const Header = ({ onSearch }: HeaderProps) => {
                            <p className="text-sm font-black text-gray-400">نبحث لك عن الأفضل...</p>
                         </div>
                       ) : (searchResults.length > 0 || userResults.length > 0) ? (
-                        <div className="max-h-[60vh] overflow-y-auto">
+                        <div className="max-h-[60vh] overflow-y-auto custom-scrollbar">
                           {searchResults.length > 0 && (
                             <div className="mb-2">
                               <span className="px-5 py-2 text-[10px] font-black text-indigo-400 uppercase tracking-widest">الرحلات الأكثر طلباً</span>
@@ -212,7 +220,7 @@ const Header = ({ onSearch }: HeaderProps) => {
                                 <button
                                   key={trip._id || trip.id}
                                   onClick={() => handleTripClick(String(trip._id || trip.id))}
-                                  className="w-full px-5 py-3 hover:bg-indigo-50 transition-all flex items-center gap-4 text-right group/res"
+                                  className="w-full px-5 py-3 hover:bg-indigo-50/50 transition-all flex items-center gap-4 text-right group/res"
                                 >
                                   <div className="h-12 w-12 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0 shadow-inner group-hover/res:scale-110 transition-transform">
                                     {trip.image ? <img src={trip.image} className="h-full w-full object-cover" /> : <MapPin className="h-6 w-6 m-auto text-gray-300" />}
@@ -232,7 +240,7 @@ const Header = ({ onSearch }: HeaderProps) => {
                                 <button
                                   key={u.clerkId}
                                   onClick={() => handleUserClick(u.clerkId)}
-                                  className="w-full px-5 py-3 hover:bg-orange-50 transition-all flex items-center gap-4 text-right"
+                                  className="w-full px-5 py-3 hover:bg-orange-50/50 transition-all flex items-center gap-4 text-right"
                                 >
                                   <div className="h-10 w-10 rounded-full bg-orange-100 border-2 border-white shadow-sm overflow-hidden flex-shrink-0">
                                     {u.imageUrl ? <img src={u.imageUrl} className="h-full w-full object-cover" /> : <span className="m-auto font-black text-orange-600">{u.fullName?.[0]}</span>}
@@ -271,9 +279,10 @@ const Header = ({ onSearch }: HeaderProps) => {
               <NotificationBell />
               
               <Link to="/trips/new" className="hidden sm:block">
-                <Button className="h-12 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm gap-2 shadow-lg shadow-indigo-100 hover:shadow-indigo-200 transition-all duration-300">
-                  <Plus className="h-5 w-5" />
-                  أنشئ رحلة
+                <Button className="h-12 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm gap-2 shadow-lg shadow-indigo-100 hover:shadow-indigo-200 transition-all duration-300 relative overflow-hidden group">
+                  <span className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+                  <Plus className="h-5 w-5 relative z-10" />
+                  <span className="relative z-10">أنشئ رحلة</span>
                 </Button>
               </Link>
 
@@ -303,41 +312,55 @@ const Header = ({ onSearch }: HeaderProps) => {
                   <Menu className="h-6 w-6" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-80 font-cairo" dir="rtl">
-                <SheetHeader className="text-right mb-8">
-                  <SheetTitle className="text-2xl font-black">القائمة</SheetTitle>
-                </SheetHeader>
-                <nav className="space-y-2">
-                  {[
-                    { to: "/", icon: Home, label: "الرئيسية" },
-                    { to: "/discover", icon: Sparkles, label: "اكتشف" },
-                    { to: "/timeline", icon: Compass, label: "الرحلات" },
-                    { to: "/templates", icon: Briefcase, label: "الشركات" },
-                    { to: "/leaderboard", icon: Trophy, label: "المتصدرين" },
-                  ].map((item, idx) => (
-                    <Link key={idx} to={item.to} className="flex items-center gap-4 p-4 rounded-2xl text-gray-500 font-bold hover:bg-indigo-50 hover:text-indigo-600 transition-all">
-                      <item.icon className="h-6 w-6" />
-                      {item.label}
-                    </Link>
-                  ))}
-                  {isAdmin && (
-                    <Link to="/admin/dashboard" className="flex items-center gap-4 p-4 rounded-2xl text-rose-500 font-bold hover:bg-rose-50 transition-all">
-                      <Shield className="h-6 w-6" />
-                      لوحة التحكم
-                    </Link>
-                  )}
+              <SheetContent side="right" className="w-80 font-cairo p-0 border-0" dir="rtl">
+                <div className="h-full bg-white flex flex-col pt-12">
+                  <SheetHeader className="text-right px-8 mb-8 border-b border-gray-50 pb-6">
+                    <SheetTitle className="text-3xl font-black bg-gradient-to-l from-indigo-600 to-purple-600 bg-clip-text text-transparent">القائمة</SheetTitle>
+                  </SheetHeader>
+                  <nav className="flex-1 px-4 space-y-2">
+                    {[
+                      { to: "/", icon: Home, label: "الرئيسية" },
+                      { to: "/discover", icon: Sparkles, label: "اكتشف" },
+                      { to: "/timeline", icon: Compass, label: "الرحلات" },
+                      { to: "/templates", icon: Briefcase, label: "الشركات" },
+                      { to: "/leaderboard", icon: Trophy, label: "المتصدرين" },
+                    ].map((item, idx) => {
+                      const isActive = item.to === "/" ? location.pathname === "/" : location.pathname.startsWith(item.to);
+                      return (
+                        <Link 
+                          key={idx} 
+                          to={item.to} 
+                          className={cn(
+                            "flex items-center gap-4 p-4 rounded-2xl transition-all duration-300",
+                            isActive 
+                              ? "bg-indigo-50 text-indigo-600 font-black shadow-sm" 
+                              : "text-gray-500 font-bold hover:bg-gray-50 hover:text-gray-900"
+                          )}
+                        >
+                          <item.icon className={cn("h-6 w-6", isActive ? "scale-110" : "")} />
+                          <span className="text-lg">{item.label}</span>
+                        </Link>
+                      );
+                    })}
+                    {isAdmin && (
+                      <Link to="/admin/dashboard" className="flex items-center gap-4 p-4 rounded-2xl text-rose-500 font-bold hover:bg-rose-50 transition-all mt-4 border border-rose-100/50">
+                        <Shield className="h-6 w-6" />
+                        <span className="text-lg">لوحة التحكم</span>
+                      </Link>
+                    )}
+                  </nav>
                   
-                  <div className="pt-8 mt-8 border-t border-gray-100">
+                  <div className="p-8 border-t border-gray-100">
                     <SignedIn>
                        <Link to="/trips/new">
-                        <Button className="w-full h-14 rounded-2xl bg-indigo-600 text-white font-black flex items-center justify-center gap-3">
+                        <Button className="w-full h-15 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black flex items-center justify-center gap-3 shadow-xl shadow-indigo-100 transition-all active:scale-95">
                           <Plus className="h-5 w-5" />
                           ابدأ رحلة جديدة
                         </Button>
                        </Link>
                     </SignedIn>
                   </div>
-                </nav>
+                </div>
               </SheetContent>
             </Sheet>
 
@@ -352,7 +375,7 @@ const Header = ({ onSearch }: HeaderProps) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-white z-[200] p-6 lg:hidden"
+            className="fixed inset-0 bg-white z-[6000] p-6 lg:hidden"
           >
             <div className="flex items-center gap-3 mb-8">
                <div className="flex-1 relative">
@@ -363,27 +386,50 @@ const Header = ({ onSearch }: HeaderProps) => {
                     value={searchValue}
                     onChange={(e) => handleSearch(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') handleSearchSubmit(); }}
-                    className="h-14 pr-12 rounded-2xl bg-gray-50 border-0 font-black"
+                    className="h-14 pr-12 rounded-2xl bg-gray-50 border-0 font-black focus:ring-2 focus:ring-indigo-500/20"
                   />
                </div>
-               <Button variant="ghost" size="icon" onClick={() => setMobileSearchOpen(false)} className="h-14 w-14 rounded-2xl bg-gray-50">
+               <Button variant="ghost" size="icon" onClick={() => setMobileSearchOpen(false)} className="h-14 w-14 rounded-2xl bg-gray-50 hover:bg-gray-100">
                   <X className="h-6 w-6" />
                </Button>
             </div>
             {/* Mobile Results */}
-            <div className="overflow-y-auto h-full pb-20">
+            <div className="overflow-y-auto h-[calc(100vh-180px)] custom-scrollbar">
                {isSearching ? (
-                 <div className="flex justify-center p-12"><div className="w-10 h-10 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin" /></div>
+                 <div className="flex flex-col items-center justify-center py-20 gap-4">
+                    <div className="w-12 h-12 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin" />
+                    <p className="font-black text-gray-400">نبحث لك عن الأفضل...</p>
+                 </div>
                ) : (searchResults.length > 0 || userResults.length > 0) ? (
                  <div className="space-y-8">
                   {searchResults.map(trip => (
-                    <div key={trip.id} onClick={() => handleTripClick(trip.id)} className="flex items-center gap-4 active:scale-95 transition-transform">
-                       <div className="w-16 h-16 rounded-2xl overflow-hidden bg-indigo-50"><img src={trip.image} className="w-full h-full object-cover" /></div>
-                       <div><p className="font-black text-gray-900">{trip.title}</p><p className="text-sm text-indigo-500 font-bold">{trip.destination}</p></div>
+                    <div key={trip.id} onClick={() => handleTripClick(trip.id)} className="flex items-center gap-4 bg-gray-50 p-4 rounded-3xl active:scale-95 transition-all border border-transparent active:border-indigo-100">
+                       <div className="w-16 h-16 rounded-2xl overflow-hidden bg-indigo-50 shadow-sm flex-shrink-0">
+                          {trip.image ? <img src={trip.image} className="w-full h-full object-cover" /> : <MapPin className="m-auto h-6 w-6 text-indigo-300" />}
+                       </div>
+                       <div className="flex-1">
+                          <p className="font-black text-gray-900 leading-tight mb-1">{trip.title}</p>
+                          <p className="text-sm text-indigo-500 font-bold">{trip.destination || trip.city}</p>
+                       </div>
+                    </div>
+                  ))}
+                  {userResults.map(u => (
+                    <div key={u.clerkId} onClick={() => handleUserClick(u.clerkId)} className="flex items-center gap-4 bg-orange-50/50 p-4 rounded-3xl active:scale-95 transition-all">
+                       <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-sm flex-shrink-0">
+                          <img src={u.imageUrl} className="w-full h-full object-cover" />
+                       </div>
+                       <p className="font-black text-gray-900">{u.fullName || u.username}</p>
                     </div>
                   ))}
                  </div>
-               ) : <p className="text-center text-gray-400 font-bold py-12">ابدأ الكتابة للبحث عن مغامرتك...</p>}
+               ) : (
+                 <div className="flex flex-col items-center justify-center py-20 text-center px-8">
+                    <div className="w-20 h-20 rounded-full bg-gray-50 flex items-center justify-center mb-6">
+                       <Search className="w-10 h-10 text-gray-200" />
+                    </div>
+                    <p className="text-gray-400 font-bold">ابدأ الكتابة للبحث عن مغامرتك...</p>
+                 </div>
+               )}
             </div>
           </motion.div>
         )}

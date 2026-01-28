@@ -4,26 +4,18 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { 
   MessageCircle, 
   Send, 
-  MapPin, 
   Star, 
   Camera, 
   Utensils, 
-  Hotel, 
   Loader2, 
   CheckCircle2, 
   Sparkles,
-  Search,
-  ArrowRight,
-  TrendingUp,
-  Wind,
-  Compass,
-  Zap,
   Clock,
-  ExternalLink,
-  ChevronLeft
+  Zap,
 } from "lucide-react";
 import { getTripPlan, type TripPlan } from "@/lib/travel-advisor-api";
 import { useToast } from "@/hooks/use-toast";
@@ -34,35 +26,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-
-const CITIES = [
-  'القاهرة', 'الإسكندرية', 'مرسى مطروح', 'الأقصر', 'أسوان', 
-  'شرم الشيخ', 'دهب', 'الجونة', 'مرسى علم', 'الغردقة',
-];
-
-const DAYS_OPTIONS = ['1', '2', '3', '4', '5', '7', '10', '14'];
-
-const BUDGET_OPTIONS = [
-  { label: '500 جنيه', value: '500', color: 'bg-emerald-50 text-emerald-600' },
-  { label: '1000 جنيه', value: '1000', color: 'bg-indigo-50 text-indigo-600' },
-  { label: '2000 جنيه', value: '2000', color: 'bg-indigo-100 text-indigo-700' },
-  { label: '5000 جنيه', value: '5000', color: 'bg-purple-50 text-purple-600' },
-  { label: '10000+ جنيه', value: '10000', color: 'bg-rose-50 text-rose-600' },
-];
-
-const TRIP_TYPES = [
-  { name: "تاريخية", icon: Compass, color: "text-amber-600", bg: "bg-amber-50" },
-  { name: "ساحلية", icon: Wind, color: "text-blue-600", bg: "bg-blue-50" },
-  { name: "مغامرات", icon: Zap, color: "text-orange-600", bg: "bg-orange-50" },
-  { name: "استرخاء", icon: Star, color: "text-purple-600", bg: "bg-purple-50" },
-];
-
-const SEASONS = [
-  { value: 'winter', label: 'شتاء', emoji: '❄️', color: 'text-blue-500' },
-  { value: 'summer', label: 'صيف', emoji: '☀️', color: 'text-orange-500' },
-  { value: 'fall', label: 'خريف', emoji: '🍂', color: 'text-amber-600' },
-  { value: 'spring', label: 'ربيع', emoji: '🌸', color: 'text-rose-500' },
-];
+import { sendMessageToAI, type AIResponse } from "@/lib/openrouter-client";
 
 type Message = {
   id: number;
@@ -71,41 +35,54 @@ type Message = {
   timestamp: Date;
 };
 
-type QuestionStep = 'city' | 'days' | 'tripType' | 'season' | 'budget' | 'results' | 'complete';
+type ExtractedData = {
+  destination: string | null;
+  days: number | null;
+  budget: "low" | "medium" | "high" | null;
+  tripType: string | null;
+  season: string | null;
+};
 
 const TripAIChat = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
       type: 'ai',
-      text: 'مرحباً بك في مستقبل التخطيط السياحي! 🚀 أنا مساعدك الذكي، سأقوم ببناء رحلة أحلامك بدقة متناهية. لنبدأ مغامرتنا، ما هي المدينة التي تود استكشافها؟',
+      text: 'مرحباً! أنا TripAI، مساعدك الشخصي لتخطيط الرحلات 🌍✨ سأساعدك في تصميم رحلة أحلامك. أخبرني، إلى أين تريد السفر؟',
       timestamp: new Date(),
     },
   ]);
 
-  const [currentStep, setCurrentStep] = useState<QuestionStep>('city');
-  const [city, setCity] = useState<string>('');
-  const [days, setDays] = useState<string>('');
-  const [tripType, setTripType] = useState<string>('');
-  const [season, setSeason] = useState<string>('');
-  const [budget, setBudget] = useState<string>('');
+  const [userInput, setUserInput] = useState<string>('');
+  const [extractedData, setExtractedData] = useState<ExtractedData>({
+    destination: null,
+    days: null,
+    budget: null,
+    tripType: null,
+    season: null,
+  });
+  const [estimatedPrice, setEstimatedPrice] = useState<number | null>(null);
+  const [conversationHistory, setConversationHistory] = useState<{ role: string; content: string }[]>([]);
   const [tripPlan, setTripPlan] = useState<TripPlan | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
   const [selectedAttractions, setSelectedAttractions] = useState<Set<string>>(new Set());
   const [selectedRestaurants, setSelectedRestaurants] = useState<Set<string>>(new Set());
   const [selectedHotels, setSelectedHotels] = useState<Set<string>>(new Set());
   const [isCreatingTrip, setIsCreatingTrip] = useState(false);
+  const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
 
   const { toast } = useToast();
   const { isSignedIn, getToken } = useAuth();
   const navigate = useNavigate();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, currentStep]);
+  }, [messages]);
 
   const addMessage = (type: 'ai' | 'user', text: string) => {
     setMessages(prev => [...prev, {
@@ -116,60 +93,81 @@ const TripAIChat = () => {
     }]);
   };
 
-  const handleCitySelect = (selectedCity: string) => {
-    setCity(selectedCity);
-    addMessage('user', selectedCity);
-    setTimeout(() => {
-      addMessage('ai', 'اختيار رائع! كم يوماً تنوي قضاءها في هذه المغامرة؟');
-      setCurrentStep('days');
-    }, 500);
-  };
+  const handleSendMessage = async () => {
+    if (!userInput.trim() || isLoading) return;
 
-  const handleDaysSelect = (selectedDays: string) => {
-    setDays(selectedDays);
-    addMessage('user', `${selectedDays} ${parseInt(selectedDays) === 1 ? 'يوم' : 'أيام'}`);
-    setTimeout(() => {
-      addMessage('ai', 'ممتاز. والآن، ما هو طابع الرحلة الذي تفضله؟');
-      setCurrentStep('tripType');
-    }, 500);
-  };
+    const userMessage = userInput.trim();
+    setUserInput('');
+    addMessage('user', userMessage);
 
-  const handleTripTypeSelect = (selectedType: string) => {
-    setTripType(selectedType);
-    addMessage('user', selectedType);
-    setTimeout(() => {
-      addMessage('ai', 'جميل جداً. في أي موسم تفضل أن تكون هذه الرحلة؟');
-      setCurrentStep('season');
-    }, 500);
-  };
-
-  const handleSeasonSelect = (selectedSeason: string) => {
-    setSeason(selectedSeason);
-    const seasonInfo = SEASONS.find(s => s.value === selectedSeason);
-    addMessage('user', `${seasonInfo?.emoji} ${seasonInfo?.label}`);
-    setTimeout(() => {
-      addMessage('ai', 'أخيراً، ما هو سقف الميزانية الذي حددته لهذه الرحلة؟');
-      setCurrentStep('budget');
-    }, 500);
-  };
-
-  const handleBudgetSelect = async (selectedBudget: string) => {
-    setBudget(selectedBudget);
-    const budgetLabel = BUDGET_OPTIONS.find(b => b.value === selectedBudget)?.label || selectedBudget;
-    addMessage('user', budgetLabel);
-    
-    setTimeout(() => {
-      addMessage('ai', 'جاري معالجة بياناتك والبحث في قاعدة بياناتنا العالمية لتصميم الخطة المثالية لك... 🔮');
-      setCurrentStep('results');
-      fetchTripPlan();
-    }, 500);
-  };
-
-  const fetchTripPlan = async () => {
     setIsLoading(true);
     try {
-      const numDays = parseInt(days || "3");
-      const plan = await getTripPlan(city, numDays);
+      // Build conversation context with extracted data
+      const contextMessage = extractedData.destination || extractedData.days
+        ? `المعلومات المستخرجة حتى الآن: ${JSON.stringify(extractedData, null, 2)}`
+        : '';
+
+      const updatedHistory = [
+        ...conversationHistory,
+        ...(contextMessage ? [{ role: 'system', content: contextMessage }] : []),
+      ];
+
+      const response: AIResponse = await sendMessageToAI(userMessage, updatedHistory, extractedData);
+
+      // Add AI response to messages
+      addMessage('ai', response.reply);
+
+      // Update conversation history
+      setConversationHistory([
+        ...updatedHistory,
+        { role: 'user', content: userMessage },
+        { role: 'assistant', content: response.reply },
+      ]);
+
+      // Merge extracted data (keep previous values if new ones are null)
+      setExtractedData(prev => ({
+        destination: response.extractedData.destination || prev.destination,
+        days: response.extractedData.days || prev.days,
+        budget: response.extractedData.budget || prev.budget,
+        tripType: response.extractedData.tripType || prev.tripType,
+        season: response.extractedData.season || prev.season,
+      }));
+
+      // Update estimated price
+      if (response.estimatedPriceEGP !== null) {
+        setEstimatedPrice(response.estimatedPriceEGP);
+      }
+
+      // Handle awaiting confirmation state
+      if (response.awaitingConfirmation !== undefined) {
+        setAwaitingConfirmation(response.awaitingConfirmation);
+      }
+
+      // Check if we should generate the plan (only after confirmation)
+      if (response.shouldGeneratePlan && !tripPlan) {
+        setAwaitingConfirmation(false);
+        setTimeout(() => {
+          fetchTripPlan(
+            response.extractedData.destination || extractedData.destination,
+            response.extractedData.days || extractedData.days
+          );
+        }, 1000);
+      }
+    } catch (error: any) {
+      addMessage('ai', error.message || 'عذراً، حدث خطأ. يرجى المحاولة مرة أخرى.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchTripPlan = async (destination: string | null, days: number | null) => {
+    if (!destination || !days) return;
+
+    setIsGeneratingPlan(true);
+    addMessage('ai', 'رائع! جاري البحث عن أفضل الأماكن والفنادق والمطاعم في ' + destination + '... 🔍✨');
+
+    try {
+      const plan = await getTripPlan(destination, days);
       
       if (plan) {
         setTripPlan(plan);
@@ -181,16 +179,15 @@ const TripAIChat = () => {
         setSelectedHotels(allHotels);
         
         setTimeout(() => {
-          addMessage('ai', `اكتمل التصميم! 🎉 لقد قمت ببناء خطة متكاملة لك في ${city}. يمكنك الآن مراجعة المعالم، المطاعم والفنادق واختيار ما يحلو لك.`);
-          setCurrentStep('complete');
-        }, 1000);
+          addMessage('ai', `تم! 🎉 لقد جهزت لك خطة رحلة متكاملة إلى ${destination}. يمكنك الآن مراجعة المعالم والمطاعم والفنادق واختيار ما يناسبك، ثم احفظ رحلتك.`);
+        }, 500);
       } else {
-        addMessage('ai', 'عذراً، لم أوفق في إيجاد نتائج دقيقة لهذه الوجهة. هل تود تجربة مدينة أخرى؟');
+        addMessage('ai', 'عذراً، لم أتمكن من إيجاد معلومات كافية عن هذه الوجهة. هل تريد تجربة وجهة أخرى؟');
       }
     } catch (error: any) {
-      addMessage('ai', 'واجهت مشكلة تقنية أثناء التخطيط. دعنا نحاول مجدداً.');
+      addMessage('ai', 'واجهت مشكلة أثناء البحث عن الأماكن. دعنا نحاول مرة أخرى.');
     } finally {
-      setIsLoading(false);
+      setIsGeneratingPlan(false);
     }
   };
 
@@ -198,7 +195,7 @@ const TripAIChat = () => {
     if (!tripPlan || !isSignedIn) {
       toast({
         title: "تسجيل الدخول مطلوب",
-        description: "يجب تسجيل الدخول لحفظ رحلتك الذكية.",
+        description: "يجب تسجيل الدخول لحفظ رحلتك.",
         variant: "destructive",
       });
       return;
@@ -223,17 +220,18 @@ const TripAIChat = () => {
         }
       }));
 
-      const numDays = parseInt(days || "3");
+      const numDays = extractedData.days || 3;
+      const budgetMap = { low: "اقتصادية", medium: "متوسطة", high: "فاخرة" };
       const tripData = {
-        title: `رحلة ${city} - ${numDays} أيام`,
+        title: `رحلة ${extractedData.destination} - ${numDays} أيام`,
         destination: tripPlan.location.name,
-        city: city,
+        city: extractedData.destination || tripPlan.location.name,
         duration: `${numDays} أيام`,
         rating: 4.8,
         image: selectedAttractionsList[0]?.photo?.images?.large?.url || selectedAttractionsList[0]?.photo?.images?.medium?.url || "",
-        description: `رحلة ذكية تم تصميمها بواسطة المساعد الرقمي إلى ${city} لمدة ${numDays} أيام. تتضمن ${selectedAttractionsList.length} معلم سياحي، ${selectedRestaurantsList.length} مطعم، و ${selectedHotelsList.length} فندق.`,
-        budget: budget ? `${budget} جنيه مصري` : "غير محدد",
-        season: season || getCurrentSeason(),
+        description: `رحلة ذكية تم تصميمها بواسطة TripAI إلى ${extractedData.destination} لمدة ${numDays} أيام${extractedData.tripType ? ` - ${extractedData.tripType}` : ''}. تتضمن ${selectedAttractionsList.length} معلم سياحي، ${selectedRestaurantsList.length} مطعم، و ${selectedHotelsList.length} فندق.`,
+        budget: extractedData.budget ? budgetMap[extractedData.budget] : (estimatedPrice ? `${estimatedPrice} جنيه مصري` : "غير محدد"),
+        season: extractedData.season || getCurrentSeason(),
         activities: activities,
         days: Array.from({ length: numDays }, (_, i) => ({
           title: `اليوم ${i + 1}`,
@@ -267,6 +265,13 @@ const TripAIChat = () => {
     }
   };
 
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-[#FDFDFF] font-cairo" dir="rtl">
       <Header />
@@ -289,8 +294,47 @@ const TripAIChat = () => {
                          <div className="w-24 h-24 rounded-[2rem] bg-indigo-50 flex items-center justify-center mb-8 animate-bounce transition-all duration-1000">
                             <Sparkles className="h-10 w-10 text-indigo-600" />
                          </div>
-                         <h2 className="text-3xl font-black text-gray-900 mb-4">بانتظار مدخلاتك...</h2>
-                         <p className="text-gray-400 font-bold max-w-sm">أجب عن الأسئلة في المحادثة الجانبية لنقوم ببناء خطة رحلة متكاملة ومخصصة لك.</p>
+                         <h2 className="text-3xl font-black text-gray-900 mb-4">جاري الاستماع إليك...</h2>
+                         <p className="text-gray-400 font-bold max-w-sm mb-8">أخبرني عن رحلتك المثالية وسأقوم بتصميم خطة متكاملة لك</p>
+                         
+                         {/* Show extracted data preview */}
+                         {(extractedData.destination || extractedData.days || extractedData.budget) && (
+                           <div className="bg-indigo-50/50 rounded-2xl p-6 max-w-md space-y-3">
+                             <h3 className="text-sm font-black text-indigo-900 mb-3">المعلومات المستخرجة:</h3>
+                             {extractedData.destination && (
+                               <div className="flex items-center gap-3 text-sm">
+                                 <Badge className="bg-indigo-600 text-white">الوجهة</Badge>
+                                 <span className="font-bold text-gray-700">{extractedData.destination}</span>
+                               </div>
+                             )}
+                             {extractedData.days && (
+                               <div className="flex items-center gap-3 text-sm">
+                                 <Badge className="bg-emerald-600 text-white">المدة</Badge>
+                                 <span className="font-bold text-gray-700">{extractedData.days} أيام</span>
+                               </div>
+                             )}
+                             {extractedData.budget && (
+                               <div className="flex items-center gap-3 text-sm">
+                                 <Badge className="bg-purple-600 text-white">الميزانية</Badge>
+                                 <span className="font-bold text-gray-700">
+                                   {extractedData.budget === 'low' ? 'اقتصادية' : extractedData.budget === 'medium' ? 'متوسطة' : 'فاخرة'}
+                                 </span>
+                               </div>
+                             )}
+                             {extractedData.tripType && (
+                               <div className="flex items-center gap-3 text-sm">
+                                 <Badge className="bg-orange-600 text-white">نوع الرحلة</Badge>
+                                 <span className="font-bold text-gray-700">{extractedData.tripType}</span>
+                               </div>
+                             )}
+                             {estimatedPrice && (
+                               <div className="flex items-center gap-3 text-sm mt-4 pt-4 border-t border-indigo-100">
+                                 <Badge className="bg-rose-600 text-white">السعر المتوقع</Badge>
+                                 <span className="font-bold text-gray-700">{estimatedPrice.toLocaleString()} جنيه مصري</span>
+                               </div>
+                             )}
+                           </div>
+                         )}
                       </div>
                    ) : (
                       <div className="space-y-12 animate-in fade-in duration-500">
@@ -306,11 +350,13 @@ const TripAIChat = () => {
                                <h1 className="text-5xl font-black text-white mb-2 leading-tight">{tripPlan.location.name}</h1>
                                <div className="flex items-center gap-4 text-white/80 font-bold">
                                   <span className="flex items-center gap-2 bg-black/20 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10">
-                                     <Clock className="w-4 h-4 text-sky-400" /> {days} {parseInt(days) === 1 ? 'يوم' : 'أيام'}
+                                     <Clock className="w-4 h-4 text-sky-400" /> {extractedData.days} {extractedData.days === 1 ? 'يوم' : 'أيام'}
                                   </span>
-                                  <span className="flex items-center gap-2 bg-black/20 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10">
-                                     <Zap className="w-4 h-4 text-orange-400" /> {SEASONS.find(s => s.value === season)?.label}
-                                  </span>
+                                  {extractedData.tripType && (
+                                    <span className="flex items-center gap-2 bg-black/20 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10">
+                                       <Zap className="w-4 h-4 text-orange-400" /> {extractedData.tripType}
+                                    </span>
+                                  )}
                                </div>
                             </div>
                          </div>
@@ -363,7 +409,7 @@ const TripAIChat = () => {
                                </div>
                             </section>
 
-                            {/* Restaurants/Hotels (Similar blocks) */}
+                            {/* Restaurants */}
                             <section>
                                <div className="flex items-center justify-between mb-8">
                                   <h3 className="text-2xl font-black text-gray-900 flex items-center gap-3">
@@ -408,7 +454,7 @@ const TripAIChat = () => {
              
              {/* Bottom Action Bar */}
              <AnimatePresence>
-                {tripPlan && currentStep === 'complete' && (
+                {tripPlan && (
                   <motion.div initial={{ y: 100 }} animate={{ y: 0 }} className="p-8 border-t border-gray-100 bg-white shadow-[0_-10px_40px_rgba(0,0,0,0.02)] flex items-center justify-between">
                      <div className="hidden md:block">
                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">الخطة المختارة</p>
@@ -440,8 +486,8 @@ const TripAIChat = () => {
                    </div>
                 </div>
                 <div>
-                   <h3 className="font-black text-gray-900 leading-none mb-1 text-lg">بناء الرحلة الذكي</h3>
-                   <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">تخطيط معتمد على البيانات</span>
+                   <h3 className="font-black text-gray-900 leading-none mb-1 text-lg">TripAI Assistant</h3>
+                   <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">مساعد ذكي للسفر</span>
                 </div>
              </div>
 
@@ -471,112 +517,36 @@ const TripAIChat = () => {
                            </span>
                         </motion.div>
                       ))}
-                      {isLoading && (
+                      {(isLoading || isGeneratingPlan) && (
                          <div className="flex gap-2 p-3 bg-gray-50 rounded-2xl w-max ml-auto text-xs font-black text-gray-400">
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            جاري التخطيط...
+                            {isGeneratingPlan ? 'جاري البحث...' : 'جاري التفكير...'}
                          </div>
                       )}
                    </AnimatePresence>
                 </div>
              </ScrollArea>
 
-             {/* Dynamic Options Area */}
+             {/* Message Input */}
              <div className="p-6 bg-gray-50/50 border-t border-gray-100">
-                <AnimatePresence mode="wait">
-                   <motion.div 
-                     key={currentStep}
-                     initial={{ opacity: 0, y: 20 }}
-                     animate={{ opacity: 1, y: 0 }}
-                     exit={{ opacity: 0, y: -20 }}
-                     className="max-h-60 overflow-y-auto custom-scrollbar"
+                <div className="flex gap-3">
+                   <Input
+                     ref={inputRef}
+                     value={userInput}
+                     onChange={(e) => setUserInput(e.target.value)}
+                     onKeyPress={handleKeyPress}
+                     placeholder="اكتب رسالتك هنا..."
+                     className="flex-1 h-12 rounded-2xl border-gray-200 focus:border-indigo-400 focus:ring-indigo-400 font-bold"
+                     disabled={isLoading || isGeneratingPlan}
+                   />
+                   <Button
+                     onClick={handleSendMessage}
+                     disabled={!userInput.trim() || isLoading || isGeneratingPlan}
+                     className="h-12 w-12 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-100 disabled:opacity-50"
                    >
-                      {currentStep === 'city' && (
-                         <div className="grid grid-cols-2 gap-3">
-                            {CITIES.map(c => (
-                               <Button 
-                                key={c} 
-                                variant="outline" 
-                                className="h-12 rounded-xl bg-white border-0 shadow-sm hover:shadow-md hover:bg-indigo-50 hover:text-indigo-600 font-bold text-sm transition-all"
-                                onClick={() => handleCitySelect(c)}
-                               >
-                                  <MapPin className="w-4 h-4 ml-2 opacity-30" /> {c}
-                               </Button>
-                            ))}
-                         </div>
-                      )}
-
-                      {currentStep === 'days' && (
-                         <div className="grid grid-cols-4 gap-2">
-                            {DAYS_OPTIONS.map(d => (
-                               <Button 
-                                key={d} 
-                                variant="outline" 
-                                className="h-12 rounded-xl bg-white border-0 shadow-sm hover:bg-emerald-50 hover:text-emerald-600 font-black"
-                                onClick={() => handleDaysSelect(d)}
-                               >
-                                  {d}
-                               </Button>
-                            ))}
-                         </div>
-                      )}
-
-                      {currentStep === 'tripType' && (
-                         <div className="grid grid-cols-2 gap-3">
-                            {TRIP_TYPES.map(t => (
-                               <Button 
-                                key={t.name}
-                                variant="outline"
-                                className="h-20 flex-col rounded-2xl bg-white border-0 shadow-sm hover:bg-white hover:ring-2 hover:ring-indigo-600 transition-all gap-2"
-                                onClick={() => handleTripTypeSelect(t.name)}
-                               >
-                                  <t.icon className={cn("w-6 h-6", t.color)} />
-                                  <span className="font-black text-xs text-gray-600">{t.name}</span>
-                               </Button>
-                            ))}
-                         </div>
-                      )}
-
-                      {currentStep === 'season' && (
-                         <div className="grid grid-cols-2 gap-3">
-                            {SEASONS.map(s => (
-                               <Button 
-                                key={s.value}
-                                variant="outline"
-                                className="h-14 rounded-xl bg-white border-0 shadow-sm hover:bg-white hover:ring-2 hover:ring-rose-500 font-black gap-3"
-                                onClick={() => handleSeasonSelect(s.value)}
-                               >
-                                  <span className="text-xl">{s.emoji}</span>
-                                  <span>{s.label}</span>
-                               </Button>
-                            ))}
-                         </div>
-                      )}
-
-                      {currentStep === 'budget' && (
-                         <div className="grid grid-cols-2 gap-3">
-                            {BUDGET_OPTIONS.map(b => (
-                               <Button 
-                                key={b.value}
-                                variant="outline"
-                                className={cn("h-14 rounded-xl border-0 shadow-sm font-black transition-all", b.color)}
-                                onClick={() => handleBudgetSelect(b.value)}
-                               >
-                                  {b.label}
-                               </Button>
-                            ))}
-                         </div>
-                      )}
-
-                      {currentStep === 'complete' && (
-                         <div className="text-center py-4">
-                            <CheckCircle2 className="w-12 h-12 text-indigo-600 mx-auto mb-3" />
-                            <h4 className="font-black text-gray-900 mb-1">تمت العملية بنجاح!</h4>
-                            <p className="text-[10px] font-black text-gray-400 uppercase">لقد قمنا بتصميم خطتك الذكية</p>
-                         </div>
-                      )}
-                   </motion.div>
-                </AnimatePresence>
+                     <Send className="h-5 w-5" />
+                   </Button>
+                </div>
              </div>
           </div>
         </div>

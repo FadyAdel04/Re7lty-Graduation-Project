@@ -646,89 +646,52 @@ const toggleTripLoveHandler = async (req: any, res: any) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const trip = await Trip.findById(req.params.id);
+    const tripId = req.params.id;
+    const trip = await Trip.findById(tripId);
     if (!trip) {
       return res.status(404).json({ error: 'Trip not found' });
     }
 
-    const existing = await TripLove.findOneAndDelete({ userId, tripId: trip._id });
+    // Use findOneAndDelete for atomicity in unliking
+    const existingLove = await TripLove.findOneAndDelete({ userId, tripId: trip._id });
 
     let loved = false;
+    let likesCount = trip.likes || 0;
 
-    if (existing) {
-      // It existed and we deleted it -> Unliked
+    if (existingLove) {
+      // User is unliking
       loved = false;
-    } else {
-      try {
-        // It didn't exist (or we missed it), try to create -> Liked
-        await TripLove.create({ userId, tripId: trip._id });
-        loved = true;
-      } catch (err: any) {
-        if (err.code === 11000) {
-          // Race condition: It was created between our check and our create.
-          // This means it is now Liked. 
-          // We treat this "failed toggle" as a successful "ensure liked" (debouncing)
-          loved = true;
-          // We don't need to increment likes count here because the other racer did it
-        } else {
-          throw err;
+      likesCount = Math.max(0, likesCount - 1);
+
+      // Update trip in database
+      await Trip.updateOne(
+        { _id: trip._id },
+        {
+          $inc: { likes: -1, weeklyLikes: -1 },
+          $set: { likes: Math.max(0, (trip.likes || 0) - 1) } // Safety check for negative
         }
-      }
-    }
+      );
 
-    // Only update counts if we successfully changed state
-    // Note: If we hit the race condition (E11000), we assume the other request updated the count.
-    // However, to be safe and consistent with the displayed UI, we recalculate or just apply delta if we did the action.
-
-    // Simpler approach for count:
-    // If we deleted (existing), we decrement.
-    // If we created (success), we increment.
-    // If we hit race (E11000), we do nothing to count (other request did it).
-
-    if (existing) {
-      trip.likes = Math.max(0, (trip.likes || 0) - 1);
-      trip.weeklyLikes = Math.max(0, (trip.weeklyLikes || 0) - 1);
-      await trip.save();
-    } else if (loved) {
-      // Only increment if we actually created it (not if we hit race condition loop which implies someone else did)
-      // Actually, if we caught E11000, 'loved' is true, but we didn't create it.
-      // So we need to distinguish.
-      const actuallyCreated = !existing && (await TripLove.findOne({ userId, tripId: trip._id })); // This check is redundant/slow
-
-      // Let's rely on the previous flow:
-      // If we are in the catch block (E11000), we did NOT increment. Correct.
-      // If we are in the try block (success), we SHOULD increment.
-    }
-
-    // Let's refine the counting logic to be robust
-    // We can just rely on the fact that if we did the DB op, we change the count.
-    if (existing) {
-      // We deleted
-      // Already decremented above
+      // Sync local object for response
+      trip.likes = likesCount;
     } else {
-      // We tried to create
-      // If successful, we need to increment.
-      // Implementation below in the conditional blocks is messy. Let's restructure.
-    }
-
-    // RESTRUCTURED LOGIC:
-    if (existing) {
-      // Unliked
-      trip.likes = Math.max(0, (trip.likes || 0) - 1);
-      trip.weeklyLikes = Math.max(0, (trip.weeklyLikes || 0) - 1);
-      await trip.save();
-    } else {
-      // Attempt create
+      // User is liking
       try {
         await TripLove.create({ userId, tripId: trip._id });
-        // Created successfully -> Liked
         loved = true;
-        trip.likes = (trip.likes || 0) + 1;
-        trip.weeklyLikes = (trip.weeklyLikes || 0) + 1;
-        await trip.save();
+        likesCount += 1;
 
-        // Notification
-        if (trip.ownerId) {
+        // Update trip in database
+        await Trip.updateOne(
+          { _id: trip._id },
+          { $inc: { likes: 1, weeklyLikes: 1 } }
+        );
+
+        // Sync local object for response
+        trip.likes = likesCount;
+
+        // Notification logic
+        if (trip.ownerId && trip.ownerId !== userId) {
           try {
             const { actorName, actorImage } = await getActorSnapshot(userId);
             await createNotification({
@@ -747,21 +710,18 @@ const toggleTripLoveHandler = async (req: any, res: any) => {
         }
       } catch (err: any) {
         if (err.code === 11000) {
-          // Already liked by race condition.
-          // Treat as "Liked" state, but don't change count (other req did).
+          // Already liked (race condition)
           loved = true;
-          // Fetch latest likes count to return accurate data
-          const freshTrip = await Trip.findById(req.params.id);
-          if (freshTrip) {
-            trip.likes = freshTrip.likes;
-          }
+          // Refresh count from DB
+          const freshTrip = await Trip.findById(tripId);
+          likesCount = freshTrip?.likes || trip.likes;
         } else {
           throw err;
         }
       }
     }
 
-    res.json({ loved, likes: trip.likes });
+    res.json({ loved, likes: likesCount });
   } catch (error: any) {
     console.error('Error toggling trip love:', error);
     res.status(500).json({ error: 'Failed to update love state', message: error.message });

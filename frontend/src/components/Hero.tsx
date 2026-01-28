@@ -77,7 +77,7 @@ const Hero = () => {
   }, [activeId]); // Reset timer whenever activeId changes (manual interaction)
 
   return (
-    <section className="relative  min-h-[600px] w-full overflow-hidden font-cairo">
+    <section className="relative  min-h-[600px] w-full overflow-hidden font-cairo bg-black">
       
       {/* Dynamic Background Layer */}
       {FEATURES.map((feature) => (

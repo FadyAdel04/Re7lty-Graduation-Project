@@ -275,11 +275,36 @@ const DiscoverPage = () => {
                    {isLoading ? (
                      [1,2,3].map(i => <div key={i} className="h-16 bg-gray-50 rounded-xl animate-pulse" />)
                    ) : displayUsers.length > 0 ? (
-                     displayUsers.slice(0, 5).map(user => (
-                       <div key={user.clerkId || user.id} className="flex items-center justify-between group">
+                     displayUsers.slice(0, 5).map(user => {
+                       const userId = user.clerkId || user.id;
+                       const isFollowing = followingIds.has(userId);
+
+                       // Handle follow toggle with API call
+                       const onFollowClick = async () => {
+                          if (!isSignedIn) {
+                            // You might want to show a toast here
+                            return;
+                          }
+                          try {
+                             // Optimistic update
+                             handleToggleFollow(userId, !isFollowing);
+                             
+                             const token = await getToken();
+                             if (token) {
+                               await toggleFollowUser(userId, token);
+                             }
+                          } catch (e) {
+                             console.error("Failed to follow user", e);
+                             // Rollback on error
+                             handleToggleFollow(userId, isFollowing);
+                          }
+                       };
+
+                       return (
+                       <div key={userId} className="flex items-center justify-between group">
                           <div 
                             className="flex items-center gap-3 cursor-pointer"
-                            onClick={() => navigate(`/user/${user.clerkId || user.id}`)}
+                            onClick={() => navigate(`/user/${userId}`)}
                           >
                              <div className="relative">
                                <div className="w-12 h-12 rounded-full bg-gray-200 overflow-hidden ring-2 ring-transparent group-hover:ring-orange-200 transition-all">
@@ -297,19 +322,23 @@ const DiscoverPage = () => {
                                </p>
                              </div>
                           </div>
+                          
                           <Button 
-                            size="icon" 
-                            variant="ghost"
+                            size="sm" 
+                            variant={isFollowing ? "outline" : "default"}
                             className={cn(
-                              "rounded-full w-8 h-8",
-                              followingIds.has(user.clerkId || user.id) ? "text-green-600 bg-green-50" : "text-gray-400 hover:text-orange-600"
+                              "rounded-full px-4 h-8 text-xs font-bold transition-all",
+                              isFollowing 
+                                ? "border-indigo-100 text-indigo-600 bg-indigo-50 hover:bg-indigo-100" 
+                                : "bg-indigo-600 text-white hover:bg-indigo-700 shadow-md shadow-indigo-100"
                             )}
-                            onClick={() => handleToggleFollow(user.clerkId || user.id, !followingIds.has(user.clerkId || user.id))}
+                            onClick={onFollowClick}
                           >
-                             {followingIds.has(user.clerkId || user.id) ? <TrendingUp className="w-4 h-4" /> : <ExternalLink className="w-4 h-4" />}
+                             {isFollowing ? 'متابع' : 'متابعة'}
                           </Button>
                        </div>
-                     ))
+                       );
+                     })
                    ) : (
                      <p className="text-gray-500 text-sm p-4 text-center">لا يوجد اقتراحات حالياً</p>
                    )}

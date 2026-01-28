@@ -68,7 +68,7 @@ export async function createTrip(input: CreateTripInput, token?: string) {
   return await res.json();
 }
 
-export async function listTrips(params?: { page?: number; limit?: number; sort?: 'recent' | 'likes'; q?: string; city?: string; }) {
+export async function listTrips(params?: { page?: number; limit?: number; sort?: 'recent' | 'likes'; q?: string; city?: string; }, token?: string) {
   const query = new URLSearchParams();
   if (params?.page) query.set('page', String(params.page));
   if (params?.limit) query.set('limit', String(params.limit));
@@ -82,6 +82,7 @@ export async function listTrips(params?: { page?: number; limit?: number; sort?:
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
     });
 
@@ -92,7 +93,6 @@ export async function listTrips(params?: { page?: number; limit?: number; sort?:
 
     return await res.json();
   } catch (error: any) {
-    // Provide more helpful error messages for common issues
     if (error.message === 'Failed to fetch' || error.name === 'TypeError') {
       const apiUrl = BASE || 'the backend server';
       throw new Error(`Network error: Unable to connect to ${apiUrl}. Please check if the backend is running and CORS is properly configured.`);

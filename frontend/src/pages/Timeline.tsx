@@ -5,12 +5,13 @@ import Footer from "@/components/Footer";
 import { listTrips, toggleTripLove, toggleTripSave, toggleFollowUser, getUserFollowing } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Heart, MessageCircle, Share2, Bookmark, MapPin, Star, Clock, MoreHorizontal, LayoutGrid, TrendingUp, ArrowRight, Sparkles, Calendar } from "lucide-react";
+import { Heart, MessageCircle, Share2, Bookmark, MapPin, Star, Clock, MoreHorizontal, LayoutGrid, TrendingUp, ArrowRight, Sparkles, Calendar, Flag } from "lucide-react";
 import TripComments from "@/components/TripComments";
 import ReportTripDialog from "@/components/ReportTripDialog";
 import { SignedIn, useAuth, useUser } from "@clerk/clerk-react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { motion, AnimatePresence } from "framer-motion";
 import TripSkeletonLoader from "@/components/TripSkeletonLoader";
 import { StoriesBar } from "@/components/StoriesBar";
 import { StoryViewer } from "@/components/StoryViewer";
@@ -23,33 +24,6 @@ import TimelineHero from "@/components/TimelineHero";
 import TripAIChatWidget from "@/components/TripAIChatWidget";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-
-// Module-level cache for trips data
-let tripsCache: any[] | null = null;
-let isLoadingCache = false;
-let loadPromise: Promise<any[]> | null = null;
-
-async function fetchTripsFromApi() {
-  try {
-    const data = await listTrips({ sort: "recent", limit: 30, page: 1 });
-    return data.items || [];
-  } catch (error) {
-    console.error("Error loading trips:", error);
-    return [];
-  }
-}
-
-function primeTripsCache() {
-  if (tripsCache || loadPromise || isLoadingCache) return loadPromise;
-  isLoadingCache = true;
-  const promise = fetchTripsFromApi()
-    .then((items) => { tripsCache = items; return items; })
-    .finally(() => { isLoadingCache = false; loadPromise = null; });
-  loadPromise = promise;
-  return promise;
-}
-
-primeTripsCache();
 
 function formatDate(iso: string): string {
   try {
@@ -86,8 +60,8 @@ const Timeline = () => {
   const [followedTravelers, setFollowedTravelers] = useState<FollowedTraveler[]>([]);
   const [suggestedTravelers, setSuggestedTravelers] = useState<FollowedTraveler[]>([]);
   const [loadingFollowed, setLoadingFollowed] = useState(false);
-  const [trips, setTrips] = useState<any[]>(tripsCache || []);
-  const [loading, setLoading] = useState(!tripsCache);
+  const [trips, setTrips] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [myStoriesCount, setMyStoriesCount] = useState(0);
 
   const userTrips = trips.filter(t => t.ownerId === userId);
@@ -101,23 +75,37 @@ const Timeline = () => {
   useEffect(() => {
     let isMounted = true;
     const loadTrips = async () => {
-      if (tripsCache) {
-        setTrips(tripsCache);
-        setLoading(false);
-      } else if (loadPromise) {
-        try {
-          const data = await loadPromise;
-          if (isMounted && data) { setTrips(data); setLoading(false); }
-        } catch { if (isMounted) setLoading(false); }
-      } else {
-        setLoading(true);
-        const promise = primeTripsCache();
-        if (promise) {
+      setLoading(true);
+      try {
+        let token: string | undefined = undefined;
+        if (isSignedIn) {
           try {
-            const data = await promise;
-            if (isMounted) { setTrips(data || []); setLoading(false); }
-          } catch { if (isMounted) setLoading(false); }
-        } else { setLoading(false); }
+            const t = await getToken();
+            if (t) token = t;
+          } catch (e) { console.error("Failed to get token", e); }
+        }
+
+        const data = await listTrips({ sort: "recent", limit: 30, page: 1 }, token);
+        if (isMounted && data?.items) {
+          setTrips(data.items);
+          
+          // Initialize states from fetched data
+          const initialLoves: Record<string, { liked: boolean; likes: number }> = {};
+          const initialSaves: Record<string, boolean> = {};
+          
+          data.items.forEach((trip: any) => {
+            const id = String(trip._id || trip.id);
+            initialLoves[id] = { liked: Boolean(trip.viewerLoved), likes: trip.likes || 0 };
+            initialSaves[id] = Boolean(trip.viewerSaved);
+          });
+          
+          setLoveState(initialLoves);
+          setSaveState(initialSaves);
+        }
+      } catch (error) {
+        console.error("Error loading trips:", error);
+      } finally {
+        if (isMounted) setLoading(false);
       }
 
       if (isSignedIn) {
@@ -131,6 +119,7 @@ const Timeline = () => {
         } catch (e) { console.error(e); }
       }
     };
+
     loadTrips();
     return () => { isMounted = false; };
   }, [isSignedIn, getToken]);
@@ -158,33 +147,72 @@ const Timeline = () => {
       try {
         const token = await getToken();
         if (!token || !isMounted) return;
+        
         let followingIds = new Set<string>();
         try {
             const followingData = await getUserFollowing(userId!);
             if (followingData) {
+                // Handle different response structures
                 const usersList = followingData.users || followingData.following || (Array.isArray(followingData) ? followingData : []);
                 usersList.forEach((u: any) => followingIds.add(u.userId || u.id));
             }
-        } catch (e) { console.warn(e); }
+        } catch (e) { console.warn("Failed to load following", e); }
 
         const uniqueSuggestions = new Map<string, FollowedTraveler>();
         const uniqueFollowing = new Map<string, FollowedTraveler>();
 
         trips.forEach(trip => {
           if (trip.ownerId && trip.ownerId !== userId && trip.author) {
-             const isFollowing = followingIds.has(trip.ownerId);
-             const map = isFollowing ? uniqueFollowing : uniqueSuggestions;
-             if (!map.has(trip.ownerId)) {
-                 map.set(trip.ownerId, {
+             const isFollowing = followingIds.has(trip.ownerId) || (trip.viewerFollowsAuthor === true);
+             
+             // If I follow them, add to following list
+             if (isFollowing) {
+               if (!uniqueFollowing.has(trip.ownerId)) {
+                  uniqueFollowing.set(trip.ownerId, {
                     userId: trip.ownerId, fullName: trip.author, imageUrl: trip.authorImage,
-                    status: `نشر ${formatDate(trip.postedAt)}`, tripCount: 1, isFollowing,
-                 });
-             } else { map.get(trip.ownerId)!.tripCount++; }
+                    status: `نشر ${formatDate(trip.postedAt)}`, tripCount: 1, isFollowing: true,
+                  });
+               } else { uniqueFollowing.get(trip.ownerId)!.tripCount++; }
+             } 
+             // If I don't follow them, add to suggestions
+             else {
+               if (!uniqueSuggestions.has(trip.ownerId)) {
+                   uniqueSuggestions.set(trip.ownerId, {
+                      userId: trip.ownerId, fullName: trip.author, imageUrl: trip.authorImage,
+                      status: `نشر ${formatDate(trip.postedAt)}`, tripCount: 1, isFollowing: false,
+                   });
+               } else { uniqueSuggestions.get(trip.ownerId)!.tripCount++; }
+             }
           }
         });
+        
         if (isMounted) {
           setFollowedTravelers(Array.from(uniqueFollowing.values()));
-          setSuggestedTravelers(Array.from(uniqueSuggestions.values()).slice(0, 8));
+          // For suggestions, we explicitly want people we DON'T follow, or we can mix them. 
+          // The user requested to check "if the user follow this user or not and change the button".
+          // So we should probably show everyone found in trips, but with correct status.
+          
+          const allFoundUsers = new Map<string, FollowedTraveler>();
+          trips.forEach(trip => {
+             if (trip.ownerId && trip.ownerId !== userId && trip.author) {
+               const isFollowing = followingIds.has(trip.ownerId) || (trip.viewerFollowsAuthor === true);
+               if (!allFoundUsers.has(trip.ownerId)) {
+                  allFoundUsers.set(trip.ownerId, {
+                    userId: trip.ownerId, fullName: trip.author, imageUrl: trip.authorImage,
+                    status: `نشر ${formatDate(trip.postedAt)}`, tripCount: 1, isFollowing,
+                  });
+               } else { allFoundUsers.get(trip.ownerId)!.tripCount++; }
+             }
+          });
+          
+          // Suggestions should prioritize those we don't follow, but can include others
+          const sortedSuggestions = Array.from(allFoundUsers.values()).sort((a, b) => {
+             // sort: non-following first
+             if (a.isFollowing === b.isFollowing) return b.tripCount - a.tripCount;
+             return a.isFollowing ? 1 : -1;
+          }).slice(0, 8);
+
+          setSuggestedTravelers(sortedSuggestions);
           setLoadingFollowed(false);
         }
       } catch (e) { console.error(e); if (isMounted) setLoadingFollowed(false); }
@@ -220,18 +248,42 @@ const Timeline = () => {
   const handleToggleLove = async (trip: any, fromGesture: boolean = false) => {
     const tripId = getTripIdentifier(trip);
     if (!tripId) return;
+    if (!isSignedIn) { 
+      if (!fromGesture) toast({ title: "تسجيل الدخول مطلوب" }); 
+      return; 
+    }
+
     const current = loveState[tripId] || { liked: Boolean(trip.viewerLoved), likes: trip.likes || 0 };
-    if (!trip?._id) return;
-    if (!isSignedIn) { if (!fromGesture) toast({ title: "تسجيل الدخول مطلوب" }); return; }
+    
+    // Opt-out of toggling if it's already liked and coming from double click
+    if (fromGesture && current.liked) {
+      setShowHeartByTrip((p) => ({ ...p, [tripId]: true }));
+      setTimeout(() => setShowHeartByTrip((p) => ({ ...p, [tripId]: false })), 1000);
+      return;
+    }
+
+    // Optimistic update
+    const nextLiked = !current.liked;
+    const nextLikes = nextLiked ? current.likes + 1 : Math.max(0, current.likes - 1);
+    
+    setLoveState((prev) => ({ ...prev, [tripId]: { liked: nextLiked, likes: nextLikes } }));
+
+    if (nextLiked) {
+      setShowHeartByTrip((p) => ({ ...p, [tripId]: true }));
+      setTimeout(() => setShowHeartByTrip((p) => ({ ...p, [tripId]: false })), 1000);
+    }
+
     try {
       const token = await getToken();
-      const result = await toggleTripLove(trip._id, token || "");
+      const result = await toggleTripLove(trip._id || trip.id, token || "");
+      // Sync with server result just in case
       setLoveState((prev) => ({ ...prev, [tripId]: { liked: result.loved, likes: result.likes } }));
-      if (result.loved) {
-         setShowHeartByTrip((p) => ({ ...p, [tripId]: true }));
-         setTimeout(() => setShowHeartByTrip((p) => ({ ...p, [tripId]: false })), 700);
-      }
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+      // Rollback on error
+      setLoveState((prev) => ({ ...prev, [tripId]: current }));
+      toast({ title: "حدث خطأ ما", variant: "destructive" });
+    }
   };
 
   const handleToggleSave = async (trip: any) => {
@@ -369,7 +421,7 @@ const Timeline = () => {
                                tripTitle={trip.title}
                                trigger={
                                  <Button variant="ghost" size="icon" className="rounded-full text-gray-400">
-                                   <MoreHorizontal className="w-5 h-5" />
+                                   <Flag className="w-5 h-5" />
                                  </Button>
                                }
                              />
@@ -379,11 +431,20 @@ const Timeline = () => {
                              <img src={activeSrc} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
                              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                              
-                             {showHeartByTrip[id] && (
-                               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                 <Heart className="w-24 h-24 text-white fill-white animate-ping opacity-70" />
-                               </div>
-                             )}
+                             <AnimatePresence>
+                               {showHeartByTrip[id] && (
+                                 <motion.div 
+                                   initial={{ opacity: 0, scale: 0.5 }}
+                                   animate={{ opacity: 1, scale: [0.5, 1.2, 1] }}
+                                   exit={{ opacity: 0, scale: 0.5, y: -20 }}
+                                   className="absolute inset-0 flex items-center justify-center pointer-events-none z-20"
+                                 >
+                                   <div className="bg-white/20 backdrop-blur-sm p-8 rounded-full">
+                                      <Heart className="w-20 h-20 text-white fill-white drop-shadow-[0_0_20px_rgba(255,255,255,0.5)]" />
+                                   </div>
+                                 </motion.div>
+                               )}
+                             </AnimatePresence>
 
                              <div className="absolute bottom-4 left-4 flex flex-col gap-2 items-end">
                                 <div className="flex items-center gap-2 px-3 py-1.5 bg-black/30 backdrop-blur-md rounded-full text-white text-xs font-bold border border-white/20">
@@ -496,17 +557,25 @@ const Timeline = () => {
       {isStoryViewerOpen && activeStoryGroup && <StoryViewer group={activeStoryGroup} isOpen={isStoryViewerOpen} onClose={() => setIsStoryViewerOpen(false)} />}
       
       <Dialog open={!!activeCommentsTripId} onOpenChange={(open) => !open && setActiveCommentsTripId(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto no-scrollbar font-cairo" dir="rtl">
-           <DialogHeader>
-              <DialogTitle className="text-right">التعليقات على {activeCommentsTrip?.title}</DialogTitle>
-           </DialogHeader>
-           <TripComments
-              tripId={activeCommentsTripId || ""}
-              initialComments={activeCommentsTrip ? (Array.isArray(activeCommentsTrip.comments) ? activeCommentsTrip.comments : []) : []}
-              onCommentAdded={(newComment) => {
-                 setTrips(prev => prev.map(t => getTripIdentifier(t) === activeCommentsTripId ? { ...t, comments: [newComment, ...(t.comments || [])] } : t));
-              }}
-           />
+        <DialogContent className="max-w-2xl max-h-[85vh] p-0 overflow-hidden font-cairo shadow-2xl rounded-[2.5rem] border-0" dir="rtl">
+           <div className="p-6 pb-2 border-b border-gray-50">
+              <DialogHeader>
+                 <DialogTitle className="text-right text-2xl font-black text-gray-900">
+                    التعليقات
+                    <span className="block text-sm font-bold text-indigo-500 mt-1">{activeCommentsTrip?.title}</span>
+                 </DialogTitle>
+              </DialogHeader>
+           </div>
+           <div className="p-6 pt-0 overflow-y-auto custom-scrollbar h-full">
+              <TripComments
+                tripId={activeCommentsTripId || ""}
+                initialComments={activeCommentsTrip ? (Array.isArray(activeCommentsTrip.comments) ? activeCommentsTrip.comments : []) : []}
+                tripOwnerId={activeCommentsTrip?.ownerId || activeCommentsTrip?.userId}
+                onCommentAdded={(newComment) => {
+                   setTrips(prev => prev.map(t => getTripIdentifier(t) === activeCommentsTripId ? { ...t, comments: [newComment, ...(t.comments || [])] } : t));
+                }}
+              />
+           </div>
         </DialogContent>
       </Dialog>
 

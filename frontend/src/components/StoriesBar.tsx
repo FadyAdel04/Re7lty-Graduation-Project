@@ -110,14 +110,19 @@ export function StoriesBar({ onUserClick }: StoriesBarProps) {
       const token = await getToken();
       if (!token) throw new Error("يرجى إعادة تسجيل الدخول");
 
-      // In a real app, you would upload the file to a storage service first
-      // For now, we'll use a placeholder URL
-      const mediaUrl = URL.createObjectURL(selectedFile);
+      // Convert file to base64 for persistence
+      const base64Media = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(selectedFile);
+      });
+
       const mediaType = selectedFile.type.startsWith('image/') ? 'image' : 'video';
 
       await createStory(
         {
-          mediaUrl,
+          mediaUrl: base64Media,
           mediaType,
           caption: caption || undefined,
         },
