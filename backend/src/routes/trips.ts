@@ -9,6 +9,7 @@ import { TripSave } from "../models/TripSave";
 import { formatTripMedia, formatComment, toAbsoluteUrl } from "../utils/tripFormatter";
 import { createNotification } from "../utils/notificationDispatcher";
 import { v2 as cloudinary } from "cloudinary";
+import { toxicityService } from "../utils/toxicity";
 
 // Configure Cloudinary if credentials are available
 if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
@@ -846,6 +847,12 @@ router.post('/:id/comments', requireAuthStrict, async (req, res) => {
 
     const clerkUser = await clerkClient.users.getUser(userId);
     const authorName = clerkUser.fullName || clerkUser.firstName || clerkUser.username || 'مستخدم';
+
+    // We no longer block synchronously. We schedule a check.
+    // Use a flag to track if we should schedule (after successful save)
+
+    // const cryptoCheck = await toxicityService.checkText(content, userId, authorName);
+    // if (cryptoCheck.isToxic) { ... }
     const newCommentId = new mongoose.Types.ObjectId();
     const newComment = {
       _id: newCommentId,
@@ -889,6 +896,11 @@ router.post('/:id/comments', requireAuthStrict, async (req, res) => {
       },
       userId
     );
+
+    // Schedule async toxicity check (fire and forget)
+    toxicityService.scheduleCheck(content, userId, authorName, trip._id, newCommentId).catch(err => {
+      console.error("Failed to schedule toxicity check:", err);
+    });
 
     res.status(201).json(responseComment);
   } catch (error: any) {

@@ -16,6 +16,7 @@ import analyticsRouter from "./routes/analytics";
 import adminUsersRouter from "./routes/adminUsers";
 import complaintsRouter from "./routes/complaints";
 import contentReportsRouter from "./routes/contentReports";
+import adminCommentsRouter from "./routes/adminComments";
 import { connectToDatabase } from "./db";
 import mongoose from "mongoose";
 
@@ -956,6 +957,9 @@ export function createApp() {
     // Complaints and Content Reports
     app.use("/api/complaints", complaintsRouter);
     app.use("/api/content-reports", contentReportsRouter);
+
+    // Admin Comments Integration (part of complaints section)
+    app.use("/api/admin/complaints/comments", adminCommentsRouter);
 
     app.use("/api", (req, res) => {
         res.status(404).json({ error: "Not Found", path: req.path });

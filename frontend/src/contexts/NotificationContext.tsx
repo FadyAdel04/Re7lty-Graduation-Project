@@ -4,11 +4,11 @@ import { getNotifications, markNotificationRead, markAllNotificationsRead } from
 import { toast } from "sonner";
 import { createPusherClient } from "@/lib/pusher-client";
 import type Pusher from "pusher-js";
-import { Bell, X } from "lucide-react";
+import { Bell, X, ShieldCheck } from "lucide-react";
 import notificationSound from "@/assets/notifications.mp3";
 
 const PUSHER_KEY = import.meta.env.VITE_PUSHER_KEY;
-const PUSHER_CLUSTER = import.meta.env.VITE_PUSHER_CLUSTER;
+const PUSHER_CLUSTER = import.meta.env.VITE_PUSHER_CLUSTER || 'eu';
 
 export type NotificationItem = {
   id: string;
@@ -61,6 +61,33 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       const token = await getToken(); 
       const items = await getNotifications(30, token || undefined);
       setNotifications(items);
+
+      // Check for unread system warnings on initial load/refresh
+      // We only want to show the latest one to avoid spamming
+      const latestWarning = items.find(n => n.type === 'system' && !n.isRead);
+      if (latestWarning) {
+         // We use a small timeout to let the UI settle or to avoid conflict with other initial toasts
+         setTimeout(() => {
+            toast.custom((t) => (
+              <div className="bg-white/90 backdrop-blur-xl border border-red-100 rounded-[1.5rem] p-4 shadow-2xl flex items-start gap-4 animate-in slide-in-from-bottom-5 duration-500 max-w-sm w-full" dir="rtl">
+                 <div className="w-12 h-12 rounded-2xl bg-red-600 flex items-center justify-center text-white shadow-lg shadow-red-100 shrink-0">
+                    <ShieldCheck className="w-6 h-6" />
+                 </div>
+                 <div className="flex-1 pt-1">
+                    <h4 className="font-black text-gray-900 text-sm mb-1">تنبيه النظام</h4>
+                    <p className="text-xs font-bold text-gray-500 leading-relaxed">{latestWarning.message}</p>
+                 </div>
+                 <button onClick={() => toast.dismiss(t)} className="text-gray-300 hover:text-gray-500 transition-colors">
+                    <X className="w-4 h-4" />
+                 </button>
+              </div>
+            ), {
+              duration: 6000, // Slightly longer for warnings
+              position: 'bottom-right'
+            });
+         }, 1000);
+      }
+
       syncUnreadCount(items);
     } catch (error) {
       console.error("Failed to load notifications:", error);
@@ -130,12 +157,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       }
     };
 
-    const handler = (payload: NotificationItem) => {
-      console.log("Received notification payload:", payload);
-      playNotificationSound();
+    const showNotificationToast = (payload: NotificationItem) => {
+      // Play sound only for real-time (optional, but good for context) - maybe passed as arg?
+      // actually, just keeping the sound separate or included is fine. The user asked for "toast message".
       
       toast.custom((t) => (
-        <div className="bg-white/90 backdrop-blur-xl border border-indigo-100 rounded-[1.5rem] p-4 shadow-2xl flex items-start gap-4 animate-in slide-in-from-bottom-5 duration-500 max-w-sm w-full">
+        <div className="bg-white/90 backdrop-blur-xl border border-indigo-100 rounded-[1.5rem] p-4 shadow-2xl flex items-start gap-4 animate-in slide-in-from-bottom-5 duration-500 max-w-sm w-full" dir="rtl">
            <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-100 shrink-0">
               <Bell className="w-6 h-6" />
            </div>
@@ -149,8 +176,14 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         </div>
       ), {
         duration: 5000,
-        position: 'bottom-left'
+        position: 'bottom-right'
       });
+    };
+
+    const handler = (payload: NotificationItem) => {
+      console.log("Received notification payload:", payload);
+      playNotificationSound();
+      showNotificationToast(payload);
       
       setNotifications((prev) => {
         if (prev.some(n => n.id === payload.id)) return prev;

@@ -73,4 +73,46 @@ export const complaintsService = {
             throw error;
         }
     },
+    // === Comment Moderation Endpoints (Admin) ===
+
+    async getCommentStats(token?: string) {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/api/admin/complaints/comments/stats`, {
+                headers: getAuthHeaders(token),
+                withCredentials: true,
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching comment stats:', error);
+            throw error;
+        }
+    },
+
+    async getRemovedComments(token?: string, page = 1) {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/api/admin/complaints/comments/removed`, {
+                params: { page },
+                headers: getAuthHeaders(token),
+                withCredentials: true,
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching removed comments:', error);
+            throw error;
+        }
+    },
+
+    async getAllComments(token?: string, page = 1) {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/api/admin/complaints/comments/all`, {
+                params: { page },
+                headers: getAuthHeaders(token),
+                withCredentials: true,
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching all comments:', error);
+            throw error;
+        }
+    }
 };

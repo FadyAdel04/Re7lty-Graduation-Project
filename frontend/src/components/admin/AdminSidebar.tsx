@@ -76,7 +76,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
       bgColor: 'bg-pink-50/50'
     },
     {
-      name: 'البلاغات و الرسائل',
+      name: 'البلاغات و التعليقات',
       path: '/admin/complaints',
       icon: AlertCircle,
       color: 'text-rose-600',

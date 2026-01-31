@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -17,7 +17,10 @@ import {
   ExternalLink,
   ChevronRight,
   ShieldAlert,
-  Inbox
+  Inbox,
+  BarChart3,
+  PieChart as PieChartIcon,
+  Table as TableIcon
 } from "lucide-react";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import { complaintsService } from "@/services/complaintsService";
@@ -26,6 +29,19 @@ import { Link, useNavigate } from "react-router-dom";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend
+} from "recharts";
 
 // Types
 interface Complaint {
@@ -64,6 +80,10 @@ const ComplaintsPage = () => {
   
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [reports, setReports] = useState<ContentReport[]>([]);
+  // Comment States
+  const [removedComments, setRemovedComments] = useState<any[]>([]);
+  const [commentStats, setCommentStats] = useState<any>(null);
+  
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
@@ -82,9 +102,14 @@ const ComplaintsPage = () => {
       if (activeTab === "complaints") {
         const data = await complaintsService.getComplaints(token);
         setComplaints(data);
-      } else {
+      } else if (activeTab === "reports") {
         const data = await contentReportsService.getReports(token);
         setReports(data);
+      } else if (activeTab === "removed-comments") {
+        const data = await complaintsService.getRemovedComments(token);
+        setRemovedComments(data.comments);
+        const stats = await complaintsService.getCommentStats(token);
+        setCommentStats(stats);
       }
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -169,6 +194,13 @@ const ComplaintsPage = () => {
     dismissed: { label: 'تم التجاهل', color: 'text-gray-500', bg: 'bg-gray-100' }
   };
 
+  // Charts Data Preparation
+  const COLORS = ['#10b981', '#f43f5e'];
+  const pieData = commentStats ? [
+    { name: 'تعليقات سليمة', value: commentStats.totalComments },
+    { name: 'تعليقات محذوفة', value: commentStats.removedCount },
+  ] : [];
+
   return (
     <AdminLayout>
       <div className="max-w-7xl mx-auto space-y-10" dir="rtl">
@@ -176,13 +208,13 @@ const ComplaintsPage = () => {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
            <div>
-              <h1 className="text-3xl font-black text-gray-900 mb-2 font-cairo">مركز <span className="text-indigo-600">البلاغات</span></h1>
-              <p className="text-gray-500 font-bold text-sm">إدارة شكاوى المستخدمين والتبليغ عن المحتوى المخالف.</p>
+              <h1 className="text-3xl font-black text-gray-900 mb-2 font-cairo">مركز <span className="text-indigo-600">الرقابة</span></h1>
+              <p className="text-gray-500 font-bold text-sm">إدارة شكاوى المستخدمين، البلاغات، ومراقبة المحتوى المحظور.</p>
            </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="h-16 bg-white border border-gray-100 p-2 rounded-2xl gap-2 w-full max-w-sm mb-10 overflow-hidden">
+          <TabsList className="h-16 bg-white border border-gray-100 p-2 rounded-2xl gap-2 w-full max-w-2xl mb-10 overflow-hidden mx-auto shadow-sm">
             <TabsTrigger 
               value="complaints" 
               className="flex-1 h-full rounded-xl data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg shadow-indigo-100 font-black text-sm gap-2 transition-all"
@@ -197,8 +229,17 @@ const ComplaintsPage = () => {
               <ShieldAlert className="h-4 w-4" />
               البلاغات
             </TabsTrigger>
+            <TabsTrigger 
+              value="removed-comments" 
+              className="flex-1 h-full rounded-xl data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg shadow-indigo-100 font-black text-sm gap-2 transition-all"
+            >
+              <Trash2 className="h-4 w-4" />
+              الكومنتات المحذوفة
+            </TabsTrigger>
           </TabsList>
-
+          
+          {/* Content Sections */}
+          
           <TabsContent value="complaints">
             {loading ? (
               <div className="grid gap-6">
@@ -220,7 +261,7 @@ const ComplaintsPage = () => {
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: idx * 0.05 }}
                     >
-                       <Card className="border-0 shadow-2xl shadow-gray-200/40 rounded-[2.5rem] overflow-hidden group">
+                       <Card className="border-0 shadow-2xl shadow-gray-200/40 rounded-[2.5rem] overflow-hidden group hover:bg-gray-50/50 transition-colors">
                           <CardContent className="p-8">
                              <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-6">
                                 <div className="flex items-center gap-4">
@@ -270,7 +311,7 @@ const ComplaintsPage = () => {
                                  </div>
                               </div>
 
-                             <div className="p-6 rounded-3xl bg-gray-50/50 border border-gray-100 font-bold text-gray-700 text-sm leading-relaxed mb-4">
+                             <div className="p-6 rounded-3xl bg-white border border-gray-100 font-bold text-gray-700 text-sm leading-relaxed mb-4 shadow-sm">
                                 {c.message}
                              </div>
                              <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest px-2 flex items-center gap-1.5">
@@ -307,7 +348,7 @@ const ComplaintsPage = () => {
                          animate={{ opacity: 1, x: 0 }}
                          transition={{ delay: idx * 0.05 }}
                        >
-                          <Card className="border-0 shadow-2xl shadow-gray-200/40 rounded-[2.5rem] overflow-hidden group">
+                          <Card className="border-0 shadow-2xl shadow-gray-200/40 rounded-[2.5rem] overflow-hidden group hover:bg-gray-50/50 transition-colors">
                              <CardContent className="p-8">
                                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-6">
                                    <div className="flex items-center gap-4">
@@ -362,7 +403,7 @@ const ComplaintsPage = () => {
                                     </div>
                                  </div>
 
-                                <div className="p-6 rounded-3xl bg-rose-50/30 border border-rose-100 font-bold text-gray-700 text-sm leading-relaxed mb-4">
+                                <div className="p-6 rounded-3xl bg-rose-50/10 border border-rose-100 font-bold text-gray-700 text-sm leading-relaxed mb-4 shadow-sm">
                                    <span className="text-[10px] font-black text-rose-400 block mb-1 uppercase tracking-widest">وصف البلاغ</span>
                                    {r.description || 'لا يوجد وصف معمق'}
                                 </div>
@@ -377,6 +418,210 @@ const ComplaintsPage = () => {
                   </AnimatePresence>
                </div>
              )}
+          </TabsContent>
+
+          <TabsContent value="removed-comments">
+            {commentStats && (
+              <div className="mb-10 space-y-8">
+                {/* Stats Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <Card className="border-0 shadow-xl rounded-[2rem] bg-gradient-to-br from-indigo-500 to-violet-600 text-white overflow-hidden relative">
+                        <div className="absolute -right-10 -top-10 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+                        <CardContent className="p-8 relative z-10">
+                           <div className="flex items-center gap-4 mb-4">
+                                <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center backdrop-blur-sm">
+                                    <MessageSquare className="w-6 h-6 text-white" />
+                                </div>
+                                <span className="font-bold text-indigo-100">إجمالي التعليقات</span>
+                           </div>
+                           <h3 className="text-4xl font-black">{commentStats.totalComments}</h3>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="border-0 shadow-xl rounded-[2rem] bg-gradient-to-br from-rose-500 to-pink-600 text-white overflow-hidden relative">
+                        <div className="absolute -right-10 -top-10 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+                        <CardContent className="p-8 relative z-10">
+                           <div className="flex items-center gap-4 mb-4">
+                                <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center backdrop-blur-sm">
+                                    <Trash2 className="w-6 h-6 text-white" />
+                                </div>
+                                <span className="font-bold text-rose-100">تعليقات محذوفة</span>
+                           </div>
+                           <h3 className="text-4xl font-black">{commentStats.removedCount}</h3>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="border-0 shadow-xl rounded-[2rem] bg-gradient-to-br from-orange-400 to-amber-500 text-white overflow-hidden relative">
+                         <div className="absolute -right-10 -top-10 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+                        <CardContent className="p-8 relative z-10">
+                           <div className="flex items-center gap-4 mb-4">
+                                <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center backdrop-blur-sm">
+                                    <AlertTriangle className="w-6 h-6 text-white" />
+                                </div>
+                                <span className="font-bold text-orange-100">نسبة التعليقات السيئة</span>
+                           </div>
+                           <h3 className="text-4xl font-black">{commentStats.toxicRatio}%</h3>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* Analysis Charts */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <Card className="border-0 shadow-xl rounded-[2.5rem] overflow-hidden">
+                        <CardHeader className="bg-gray-50/50 pb-2">
+                           <CardTitle className="flex items-center gap-2 text-gray-800">
+                               <PieChartIcon className="w-5 h-5 text-indigo-500" />
+                               توزيع التعليقات
+                           </CardTitle>
+                        </CardHeader>
+                        <CardContent className="h-80 flex items-center justify-center p-6">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <Pie
+                                        data={pieData}
+                                        cx="50%"
+                                        cy="50%"
+                                        innerRadius={60}
+                                        outerRadius={100}
+                                        fill="#8884d8"
+                                        paddingAngle={5}
+                                        dataKey="value"
+                                    >
+                                        {pieData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }} />
+                                    <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </CardContent>
+                    </Card>
+                    
+                    <Card className="border-0 shadow-xl rounded-[2.5rem] overflow-hidden">
+                         <CardHeader className="bg-gray-50/50 pb-2">
+                           <CardTitle className="flex items-center gap-2 text-gray-800">
+                               <BarChart3 className="w-5 h-5 text-indigo-500" />
+                               تحليل المشاعر (Sentiment Analysis)
+                           </CardTitle>
+                        </CardHeader>
+                        <CardContent className="h-80 w-full p-6">
+                           <ResponsiveContainer width="100%" height="100%">
+                                <BarChart
+                                    data={[
+                                        { name: 'إيجابي', value: commentStats.sentiment?.positive || 0, color: '#10b981' },
+                                        { name: 'محايد', value: commentStats.sentiment?.neutral || 0, color: '#94a3b8' },
+                                        { name: 'سلبي', value: commentStats.sentiment?.negative || 0, color: '#f43f5e' },
+                                    ]}
+                                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                                >
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                                    <XAxis 
+                                        dataKey="name" 
+                                        axisLine={false} 
+                                        tickLine={false} 
+                                        tick={{ fill: '#64748b', fontSize: 12, fontWeight: 'bold' }} 
+                                        dy={10}
+                                    />
+                                    <YAxis 
+                                        axisLine={false} 
+                                        tickLine={false} 
+                                        tick={{ fill: '#64748b', fontSize: 12 }} 
+                                    />
+                                    <Tooltip 
+                                        cursor={{ fill: 'transparent' }}
+                                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
+                                    />
+                                    <Bar dataKey="value" radius={[8, 8, 0, 0]} barSize={50}>
+                                        {
+                                            [
+                                                { name: 'إيجابي', value: commentStats.sentiment?.positive || 0, color: '#10b981' },
+                                                { name: 'محايد', value: commentStats.sentiment?.neutral || 0, color: '#94a3b8' },
+                                                { name: 'سلبي', value: commentStats.sentiment?.negative || 0, color: '#f43f5e' },
+                                            ].map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={entry.color} />
+                                            ))
+                                        }
+                                    </Bar>
+                                </BarChart>
+                           </ResponsiveContainer>
+                        </CardContent>
+                    </Card>
+                </div>
+              </div>
+            )}
+
+            <div className="bg-white rounded-[2.5rem] shadow-xl border border-gray-100 overflow-hidden">
+               <div className="p-8 border-b border-gray-100 flex items-center justify-between">
+                  <h3 className="text-xl font-black text-gray-900 flex items-center gap-3">
+                      <TableIcon className="w-6 h-6 text-rose-500" />
+                      سجل المحذوفات
+                  </h3>
+                  <Badge variant="outline" className="rounded-xl px-3 py-1 border-gray-200">
+                      آخر {removedComments.length} تعليق
+                  </Badge>
+               </div>
+               
+               {loading ? (
+                    <div className="p-10 text-center">
+                        <Loader2 className="w-10 h-10 text-indigo-600 animate-spin mx-auto" />
+                    </div>
+                ) : removedComments.length === 0 ? (
+                    <div className="text-center py-20">
+                        <CheckCircle2 className="h-16 w-16 text-emerald-200 mx-auto mb-4" />
+                        <h3 className="text-xl font-black text-gray-900">نظيف تماماً</h3>
+                        <p className="text-gray-400 font-bold">لم يتم رصد أي كلمات محظورة.</p>
+                    </div>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-right">
+                           <thead className="bg-gray-50/50 border-b border-gray-200">
+                               <tr>
+                                   <th className="px-6 py-4 font-black text-gray-900 text-sm rounded-tr-2xl">المستخدم</th>
+                                   <th className="px-6 py-4 font-black text-gray-900 text-sm">المحتوى الأصلي</th>
+                                   <th className="px-6 py-4 font-black text-gray-900 text-sm">الكلمات المحظورة</th>
+                                   <th className="px-6 py-4 font-black text-gray-900 text-sm">التاريخ</th>
+                                   <th className="px-6 py-4 font-black text-gray-900 text-sm rounded-tl-2xl">الإجراء</th>
+                               </tr>
+                           </thead>
+                           <tbody className="divide-y divide-gray-100">
+                               {removedComments.map((c, idx) => (
+                                   <tr key={idx} className="hover:bg-gray-50/50 transition-colors group">
+                                       <td className="px-6 py-4">
+                                           <div className="font-bold text-gray-900">{c.authorName}</div>
+                                       </td>
+                                       <td className="px-6 py-4">
+                                           <div className="max-w-xs truncate text-gray-500 font-medium bg-gray-50 px-3 py-2 rounded-lg border border-gray-100 text-xs">
+                                               {c.content}
+                                           </div>
+                                       </td>
+                                       <td className="px-6 py-4">
+                                           <div className="flex flex-wrap gap-1">
+                                                {c.detectedWords?.map((w: string, i: number) => (
+                                                    <span key={i} className="inline-block bg-rose-50 text-rose-600 px-2 py-1 rounded text-[10px] font-black border border-rose-100">
+                                                        {w}
+                                                    </span>
+                                                ))}
+                                           </div>
+                                       </td>
+                                       <td className="px-6 py-4 text-xs font-bold text-gray-400 whitespace-nowrap">
+                                           {new Date(c.removedAt).toLocaleString('ar-EG')}
+                                       </td>
+                                       <td className="px-6 py-4">
+                                           {c.tripId && (
+                                                <Link to={`/trips/${c.tripId}`} className="inline-flex items-center gap-1 text-indigo-600 hover:underline text-xs font-black">
+                                                    عرض الرحلة
+                                                    <ExternalLink className="w-3 h-3" />
+                                                </Link>
+                                           )}
+                                       </td>
+                                   </tr>
+                               ))}
+                           </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
           </TabsContent>
         </Tabs>
       </div>
