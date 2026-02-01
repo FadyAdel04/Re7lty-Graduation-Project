@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import UserBadge, { BadgeTier } from "@/components/UserBadge";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import TripCard from "@/components/TripCard";
@@ -9,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, Calendar, Users, Heart, Settings, Camera, Edit2, Save, X, LogOut, Bookmark, MessageCircle, Award, Crown, Gem, LayoutGrid, Sparkles, Image as ImageIcon, Trash2 } from "lucide-react";
+import { MapPin, Calendar, Users, Heart, Settings, Camera, Edit2, Save, X, LogOut, Bookmark, MessageCircle, Award, Crown, Gem, LayoutGrid, Sparkles, Image as ImageIcon, Trash2, Building2 } from "lucide-react";
 import { useUser, useAuth, useClerk } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -18,6 +19,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import TripAIChatWidget from "@/components/TripAIChatWidget";
+import { bookingService, Booking } from "@/services/bookingService";
+import { Badge as UI_Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -85,6 +88,8 @@ const UserProfile = () => {
   const [location, setLocation] = useState("");
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [coverImage, setCoverImage] = useState<string | null>(null);
+  const [isUpdatingField, setIsUpdatingField] = useState<Record<string, boolean>>({});
+  const [editingField, setEditingField] = useState<string | null>(null);
 
   // User data state (for viewing other users)
   const [viewingUser, setViewingUser] = useState<any>(null);
@@ -99,13 +104,30 @@ const UserProfile = () => {
   const [isLoadingSaved, setIsLoadingSaved] = useState(false);
   const [isLoadingLoved, setIsLoadingLoved] = useState(false);
   const [isLoadingAITrips, setIsLoadingAITrips] = useState(false);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [isLoadingBookings, setIsLoadingBookings] = useState(false);
+
+  // URL Tab handling
+  const routeLocation = useLocation();
+  const searchParams = new URLSearchParams(routeLocation.search);
+  const initialTab = searchParams.get('tab') || 'trips';
+  const [activeTab, setActiveTab] = useState(initialTab);
+
+  // Synchronize activeTab with URL changes
+  useEffect(() => {
+    const tabParam = new URLSearchParams(routeLocation.search).get('tab');
+    if (tabParam) {
+      setActiveTab(tabParam);
+    }
+  }, [routeLocation.search]);
 
   // Stats
   const [stats, setStats] = useState({
     trips: 0,
     followers: 0,
     following: 0,
-    likes: 0
+    likes: 0,
+    stories: 0
   });
   const [isFollowingUser, setIsFollowingUser] = useState(false);
   const [isFollowLoading, setIsFollowLoading] = useState(false);
@@ -176,6 +198,7 @@ const UserProfile = () => {
             following: userData.following || 0,
             likes: userData.totalLikes || 0,
             trips: userData.tripsCount ?? prev.trips,
+            stories: userData.storiesCount || 0,
           }));
           setIsFollowingUser(false);
         } catch (error) {
@@ -206,10 +229,11 @@ const UserProfile = () => {
         setCoverImage(userData.coverImage || null);
         setStats({
           trips: userData.tripsCount || 0,
-          followers: userData.followers || 0,
-          following: userData.following || 0,
-          likes: userData.totalLikes || 0,
-        });
+           followers: userData.followers || 0,
+           following: userData.following || 0,
+           likes: userData.totalLikes || 0,
+           stories: userData.storiesCount || 0,
+         });
         setIsFollowingUser(Boolean(userData.viewerFollows));
       } catch (error: any) {
         console.error("Error fetching user data:", error);
@@ -322,6 +346,27 @@ const UserProfile = () => {
     fetchAITrips();
   }, [id, isOwnProfile, isSignedIn, getToken]);
 
+  // Fetch bookings
+  useEffect(() => {
+    const fetchBookings = async () => {
+      if (!isOwnProfile || !isSignedIn) return;
+      
+      setIsLoadingBookings(true);
+      try {
+        const token = await getToken();
+        const data = await bookingService.getMyBookings(token || undefined);
+        setBookings(Array.isArray(data) ? data : []);
+      } catch (error: any) {
+        console.error("Error fetching bookings:", error);
+        setBookings([]);
+      } finally {
+        setIsLoadingBookings(false);
+      }
+    };
+
+    fetchBookings();
+  }, [id, isOwnProfile, isSignedIn, getToken]);
+
   // Fetch my stories for management
   useEffect(() => {
     if (isOwnProfile && isSignedIn) {
@@ -329,64 +374,47 @@ const UserProfile = () => {
     }
   }, [id, isOwnProfile, isSignedIn, getToken]);
 
-  const handleSaveProfile = async () => {
+  const handleUpdateField = async (fieldName: string, value: string) => {
     if (!clerkUser || !isOwnProfile) return;
 
     try {
+      setIsUpdatingField(prev => ({ ...prev, [fieldName]: true }));
       const token = await getToken();
       
-      // Update profile in database (which also updates Clerk)
-      await updateUserProfile(
-        {
-          bio,
-          location,
-          coverImage: coverImage || undefined,
-          fullName: fullName || undefined,
-          imageUrl: profileImage || undefined,
-        },
-        token || undefined
-      );
+      const updateData: any = {};
+      if (fieldName === 'fullName') updateData.fullName = value;
+      if (fieldName === 'bio') updateData.bio = value;
+      if (fieldName === 'location') updateData.location = value;
+
+      await updateUserProfile(updateData, token || undefined);
 
       toast({
-        title: "نجح التحديث",
-        description: "تم تحديث الملف الشخصي بنجاح",
+        title: "تم التحديث",
+        description: `تم حفظ ${fieldName === 'fullName' ? 'الاسم' : fieldName === 'bio' ? 'النبذة' : 'الموقع'} بنجاح`,
       });
 
-      setIsEditing(false);
-      
-      // Refresh user data from database (which has the latest saved data)
-      if (isOwnProfile && clerkUser) {
-        // Update local state with saved values immediately
-        setFullName(fullName);
-        setBio(bio);
-        setLocation(location);
-        if (profileImage) setProfileImage(profileImage);
-        if (coverImage) setCoverImage(coverImage);
-        
-        // Reload user data from API to get the latest from database
-        setTimeout(async () => {
-          try {
-            const updatedUser = await getUserById(clerkUser.id);
-            if (updatedUser) {
-              setFullName(updatedUser.fullName || fullName);
-              setBio(updatedUser.bio || bio);
-              setLocation(updatedUser.location || location);
-              setProfileImage(updatedUser.imageUrl || profileImage);
-              setCoverImage(updatedUser.coverImage || null);
-            }
-          } catch (error) {
-            console.error("Error refreshing user data:", error);
-          }
-        }, 500);
-      }
+      // Notify other components with the updated data directly
+      window.dispatchEvent(new CustomEvent('userProfileUpdated', { detail: updateData }));
+
+      setEditingField(null);
     } catch (error: any) {
-      console.error("Error updating profile:", error);
+      console.error(`Error updating ${fieldName}:`, error);
       toast({
         title: "خطأ",
-        description: error.message || "حدث خطأ أثناء تحديث الملف الشخصي",
+        description: error.message || "حدث خطأ أثناء التحديث",
         variant: "destructive",
       });
+    } finally {
+      setIsUpdatingField(prev => ({ ...prev, [fieldName]: false }));
     }
+  };
+
+  const handleSaveProfile = async () => {
+    // Legacy support or for bulk edits if needed
+    handleUpdateField('fullName', fullName);
+    handleUpdateField('bio', bio);
+    handleUpdateField('location', location);
+    setIsEditing(false);
   };
 
   const handleProfileImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -413,29 +441,23 @@ const UserProfile = () => {
 
       // Save to database
       const token = await getToken();
-      await updateUserProfile(
+      const updatedUser = await updateUserProfile(
         {
           imageUrl: base64Image,
         },
         token || undefined
       );
 
+      if (updatedUser && updatedUser.imageUrl) {
+        setProfileImage(updatedUser.imageUrl);
+        // Notify other components with the updated user data
+        window.dispatchEvent(new CustomEvent('userProfileUpdated', { detail: updatedUser }));
+      }
+
       toast({
         title: "تم الحفظ",
         description: "تم حفظ صورة الملف الشخصي بنجاح",
       });
-
-      // Refresh user data from database
-      setTimeout(async () => {
-        try {
-          const updatedUser = await getUserById(clerkUser.id);
-          if (updatedUser && updatedUser.imageUrl) {
-            setProfileImage(updatedUser.imageUrl);
-          }
-        } catch (error) {
-          console.error("Error refreshing profile image:", error);
-        }
-      }, 500);
     } catch (error: any) {
       console.error("Error uploading profile image:", error);
       toast({
@@ -479,12 +501,18 @@ const UserProfile = () => {
 
       // Save to database
       const token = await getToken();
-      await updateUserProfile(
+      const updatedUser = await updateUserProfile(
         {
           coverImage: base64Image,
         },
         token || undefined
       );
+
+      if (updatedUser) {
+        setCoverImage(updatedUser.coverImage || null);
+        // Notify other components with the updated user data
+        window.dispatchEvent(new CustomEvent('userProfileUpdated', { detail: updatedUser }));
+      }
 
       // Close dialog
       setIsEditingCover(false);
@@ -493,19 +521,6 @@ const UserProfile = () => {
         title: "تم الحفظ",
         description: "تم حفظ صورة الغلاف بنجاح",
       });
-
-      // Refresh user data from database
-      setTimeout(async () => {
-        try {
-          const updatedUser = await getUserById(clerkUser.id);
-          if (updatedUser) {
-            // Always update coverImage from database, even if it's null
-            setCoverImage(updatedUser.coverImage || null);
-          }
-        } catch (error) {
-          console.error("Error refreshing cover image:", error);
-        }
-      }, 500);
     } catch (error: any) {
       console.error("Error uploading cover image:", error);
       toast({
@@ -717,44 +732,57 @@ const UserProfile = () => {
     return "غير محدد";
   };
 
-  const getUserBadge = () => {
-    // Activity score based on trips and engagement
+  const getUserBadgeData = () => {
+    // Activity score logic (matching backend)
     const activityScore =
-      stats.trips * 5 + // publishing trips
-      stats.likes * 0.5 +
-      stats.followers * 0.5;
+      stats.trips * 20 +    
+      stats.stories * 5 +   
+      stats.likes * 2 +     
+      stats.followers * 5 + 
+      stats.following * 1;  
 
-    if (activityScore >= 300) {
-      return {
-        type: "diamond" as const,
-        label: "مستخدم ماسي",
-        icon: <Gem className="h-4 w-4 ml-1" />,
-        className: "bg-gradient-to-l from-cyan-400 to-indigo-500 text-white",
+    const tiers: { level: BadgeTier; min: number; nextLabel?: string }[] = [
+      { level: "legend", min: 2000 },
+      { level: "diamond", min: 800, nextLabel: "الأسطوري" },
+      { level: "gold", min: 350, nextLabel: "النخبة" },
+      { level: "silver", min: 100, nextLabel: "الخبير" },
+      { level: "bronze", min: 30, nextLabel: "المتمرس" },
+      { level: "none", min: 0, nextLabel: "الناشئ" },
+    ];
+
+    const currentTierIndex = tiers.findIndex(t => activityScore >= t.min);
+    const currentTier = tiers[currentTierIndex];
+    const nextTier = currentTierIndex > 0 ? tiers[currentTierIndex - 1] : null;
+
+    let progress = 0;
+    let progressionInfo = undefined;
+
+    if (nextTier) {
+      const range = nextTier.min - currentTier.min;
+      const progressInRange = activityScore - currentTier.min;
+      progress = Math.min(Math.floor((progressInRange / range) * 100), 100);
+      
+      const pointsLeft = nextTier.min - activityScore;
+      progressionInfo = {
+        pointsNeeded: pointsLeft,
+        tripsNeeded: Math.ceil(pointsLeft / 20),
+        storiesNeeded: Math.ceil(pointsLeft / 5),
+        nextTierLabel: nextTier.nextLabel || ""
       };
+    } else if (currentTier.level === 'legend') {
+      progress = 100;
     }
 
-    if (activityScore >= 120) {
-      return {
-        type: "gold" as const,
-        label: "مستخدم ذهبي",
-        icon: <Crown className="h-4 w-4 ml-1" />,
-        className: "bg-gradient-to-l from-amber-400 to-orange-500 text-white",
-      };
-    }
-
-    if (activityScore >= 40) {
-      return {
-        type: "silver" as const,
-        label: "مستخدم فضي",
-        icon: <Award className="h-4 w-4 ml-1" />,
-        className: "bg-gradient-to-l from-slate-200 to-slate-400 text-slate-900",
-      };
-    }
-
-    return null;
+    return {
+      tier: currentTier.level,
+      score: activityScore,
+      nextTier: nextTier,
+      progress: progress,
+      progression: progressionInfo
+    };
   };
 
-  const userBadge = getUserBadge();
+  const userBadgeData = getUserBadgeData();
 
   if (isLoadingUser || (isOwnProfile && !isLoaded)) {
     return (
@@ -814,98 +842,150 @@ const UserProfile = () => {
                                 </AvatarFallback>
                              </Avatar>
                           </div>
-                          {isOwnProfile && isEditing && (
-                            <label htmlFor="profile-upload" className="absolute bottom-2 right-2 p-3 bg-indigo-600 rounded-full text-white shadow-lg cursor-pointer hover:bg-indigo-700 transition-all">
-                               <Camera className="w-5 h-5" />
+                          {isOwnProfile && (
+                            <label htmlFor="profile-upload" className="absolute bottom-2 right-2 p-3 bg-indigo-600 rounded-full text-white shadow-xl cursor-pointer hover:bg-orange-600 transition-all z-20 group">
+                               <Camera className="w-5 h-5 group-hover:scale-110 transition-transform" />
                                <input id="profile-upload" type="file" accept="image/*" onChange={handleProfileImageChange} className="hidden" />
                             </label>
                           )}
                        </div>
 
                        {/* User Identity */}
-                       <div className="space-y-2 mb-6 text-center">
-                          <div className="flex items-center justify-center gap-2">
-                             <h1 className="text-3xl font-black text-gray-900">{fullName}</h1>
-                             {userBadge && (
-                               <TooltipProvider>
-                                  <Tooltip>
-                                     <TooltipTrigger>
-                                        <div className={cn("p-1.5 rounded-lg shadow-sm", userBadge.className)}>
-                                           {userBadge.icon}
-                                        </div>
-                                     </TooltipTrigger>
-                                     <TooltipContent className="font-cairo font-bold">
-                                        {userBadge.label}
-                                     </TooltipContent>
-                                  </Tooltip>
-                               </TooltipProvider>
+                       <div className="space-y-3 mb-6 text-center w-full">
+                          <div className="flex items-center justify-center gap-2 group relative">
+                             {isOwnProfile && editingField === 'fullName' ? (
+                               <Input 
+                                 autoFocus 
+                                 value={fullName} 
+                                 onChange={e => setFullName(e.target.value)}
+                                 onBlur={() => handleUpdateField('fullName', fullName)}
+                                 onKeyDown={e => e.key === 'Enter' && handleUpdateField('fullName', fullName)}
+                                 className="text-center text-3xl font-black bg-transparent border-b-2 border-indigo-200 rounded-none h-auto py-1 focus:ring-0"
+                               />
+                             ) : (
+                               <>
+                                 <h1 className="text-3xl font-black text-gray-900">{fullName || "بدون اسم"}</h1>
+                                 {isOwnProfile && (
+                                   <button onClick={() => setEditingField('fullName')} className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-indigo-600 transition-all">
+                                     <Edit2 className="w-4 h-4" />
+                                   </button>
+                                 )}
+                               </>
                              )}
+                              {userBadgeData.tier !== 'none' && !editingField && (
+                                <UserBadge 
+                                  tier={userBadgeData.tier} 
+                                  showLabel 
+                                  size="sm" 
+                                  progression={isOwnProfile ? userBadgeData.progression : undefined} 
+                                />
+                              )}
                           </div>
-                          <div className="flex items-center justify-center gap-1.5 text-orange-600 font-bold text-sm bg-orange-50 px-3 py-1 rounded-full mx-auto w-fit">
-                             <MapPin className="h-3.5 w-3.5" />
-                             {location || "رحالة جائل"}
-                          </div>
+                          
+                          <div className="flex items-center justify-center gap-1.5 group relative">
+                             {isOwnProfile && editingField === 'location' ? (
+                               <Input 
+                                 autoFocus 
+                                 value={location} 
+                                 onChange={e => setLocation(e.target.value)}
+                                 onBlur={() => handleUpdateField('location', location)}
+                                 onKeyDown={e => e.key === 'Enter' && handleUpdateField('location', location)}
+                                 className="text-center text-sm font-bold bg-transparent border-b border-orange-200 rounded-none h-auto py-1 focus:ring-0 max-w-[200px]"
+                               />
+                             ) : (
+                               <div className="flex items-center gap-1.5 text-orange-600 font-bold text-sm bg-orange-50 px-3 py-1 rounded-full mx-auto w-fit">
+                                  <MapPin className="h-3.5 w-3.5" />
+                                  {location || "رحالة جائل"}
+                                  {isOwnProfile && (
+                                    <button onClick={() => setEditingField('location')} className="opacity-0 group-hover:opacity-100 mr-1 text-orange-400 hover:text-orange-600 transition-all">
+                                      <Edit2 className="w-3 h-3" />
+                                    </button>
+                                  )}
+                               </div>
+                             )}
+                           </div>
+
+                          {/* Badge Progress Bar (Premium Addition) - Only visible to owner */}
+                          {isOwnProfile && (
+                            <div className="w-full max-w-[220px] mx-auto space-y-2 py-4 border-t border-gray-50/50 mt-4">
+                               <div className="flex justify-between text-[11px] font-black text-gray-500">
+                                  <div className="flex items-center gap-1">
+                                     <Sparkles className="w-3 h-3 text-amber-500" />
+                                     <span>المستوى القادم: {userBadgeData.nextTier?.nextLabel || 'القمة'}</span>
+                                  </div>
+                                  <span className="bg-orange-50 text-orange-600 px-2 py-0.5 rounded-full">{userBadgeData.score} نقطة</span>
+                               </div>
+                               <div className="h-2.5 w-full bg-gray-100/80 rounded-full overflow-hidden shadow-inner ring-1 ring-black/[0.03] relative">
+                                  <div 
+                                    className={cn(
+                                      "h-full transition-all duration-1000 ease-out rounded-full relative z-10",
+                                      userBadgeData.tier === 'legend' 
+                                        ? "bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 animate-pulse" 
+                                        : "bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-600"
+                                    )}
+                                    style={{ width: `${userBadgeData.progress}%` }}
+                                  >
+                                     <div className="absolute inset-0 bg-white/20 animate-shimmer" style={{ backgroundSize: '200% 100%' }} />
+                                  </div>
+                               </div>
+                               {userBadgeData.tier !== 'legend' && (
+                                 <p className="text-[9px] text-gray-400 text-center font-bold">
+                                   باقي {userBadgeData.nextTier!.min - userBadgeData.score} نقطة للترقية
+                                 </p>
+                               )}
+                            </div>
+                          )}
                        </div>
 
                        {/* Bio Section */}
-                       <p className="text-gray-500 leading-relaxed font-light mb-8 italic">
-                          "{bio || "لا يوجد وصف حالياً.. هذا الرحالة مشغول باستكشاف العالم."}"
-                       </p>
+                       <div className="w-full text-center group relative mb-8">
+                          {isOwnProfile && editingField === 'bio' ? (
+                            <Textarea 
+                              autoFocus 
+                              value={bio} 
+                              onChange={e => setBio(e.target.value)}
+                              onBlur={() => handleUpdateField('bio', bio)}
+                              className="text-center text-gray-500 bg-transparent border-2 border-indigo-100 rounded-2xl min-h-[100px] focus:ring-0 resize-none w-full"
+                            />
+                          ) : (
+                            <div className="relative inline-block w-full">
+                              <p className="text-gray-500 leading-relaxed font-light italic px-4">
+                                 "{bio || "لا يوجد وصف حالياً.. هذا الرحالة مشغول باستكشاف العالم."}"
+                              </p>
+                              {isOwnProfile && (
+                                <button onClick={() => setEditingField('bio')} className="absolute -top-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 bg-white shadow-md rounded-full p-1.5 text-indigo-600 hover:scale-110 transition-all">
+                                  <Edit2 className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          )}
+                       </div>
 
                        {/* Action Buttons */}
                        <div className="w-full space-y-3">
-                          {!isEditing ? (
-                             <>
-                                {isOwnProfile ? (
-                                   <div className="grid grid-cols-1 gap-3">
-                                      <Button onClick={() => setIsStoryDialogOpen(true)} className="h-12 rounded-2xl bg-orange-600 hover:bg-orange-700 text-white font-bold gap-2 shadow-lg shadow-orange-200">
-                                         <Sparkles className="w-5 h-5" />
-                                         نشر قصة (Story)
-                                      </Button>
-                                      <div className="grid grid-cols-2 gap-3">
-                                         <Button onClick={() => setIsEditing(true)} variant="outline" className="h-12 rounded-2xl border-gray-100 hover:bg-gray-50 font-bold gap-2">
-                                            <Edit2 className="w-4 h-4" />
-                                            تعديل
-                                         </Button>
-                                         <Button onClick={handleSignOut} variant="outline" className="h-12 rounded-2xl border-red-50 text-red-500 hover:bg-red-50 font-bold gap-2">
-                                            <LogOut className="w-4 h-4" />
-                                            خروج
-                                         </Button>
-                                      </div>
-                                   </div>
-                                ) : (
-                                   <Button 
-                                     onClick={handleToggleFollow} 
-                                     disabled={isFollowLoading}
-                                     className={cn(
-                                       "w-full h-14 rounded-2xl text-lg font-black gap-3 transition-all",
-                                       isFollowingUser ? "bg-white border-2 border-indigo-100 text-indigo-600 hover:bg-indigo-50" : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl shadow-indigo-100"
-                                     )}
-                                   >
-                                      <Users className="w-6 h-6" />
-                                      {isFollowingUser ? "متابَع" : "متابعة"}
-                                   </Button>
-                                )}
-                             </>
-                          ) : (
-                             <div className="space-y-4 text-right">
-                                <div className="space-y-2">
-                                   <Label className="font-bold">الاسم الكامل</Label>
-                                   <Input value={fullName} onChange={e => setFullName(e.target.value)} className="rounded-xl border-gray-100 h-12" />
-                                </div>
-                                <div className="space-y-2">
-                                   <Label className="font-bold">الموقع</Label>
-                                   <Input value={location} onChange={e => setLocation(e.target.value)} className="rounded-xl border-gray-100 h-12" />
-                                </div>
-                                <div className="space-y-2">
-                                   <Label className="font-bold">النبذة الشخصية</Label>
-                                   <Textarea value={bio} onChange={e => setBio(e.target.value)} className="rounded-xl border-gray-100 min-h-[100px]" />
-                                </div>
-                                <div className="flex gap-2 pt-2">
-                                   <Button onClick={handleSaveProfile} className="flex-1 h-12 rounded-xl bg-orange-600 text-white">حفظ</Button>
-                                   <Button onClick={handleCancelEdit} variant="outline" className="flex-1 h-12 rounded-xl">إلغاء</Button>
-                                </div>
+                          {isOwnProfile ? (
+                             <div className="grid grid-cols-1 gap-3 w-full">
+                                <Button onClick={() => setIsStoryDialogOpen(true)} className="h-12 rounded-2xl bg-orange-600 hover:bg-orange-700 text-white font-bold gap-2 shadow-lg shadow-orange-200">
+                                   <Sparkles className="w-5 h-5" />
+                                   نشر قصة (Story)
+                                </Button>
+                                <Button onClick={handleSignOut} variant="outline" className="h-12 rounded-2xl border-red-50 text-red-500 hover:bg-red-50 font-bold gap-2">
+                                   <LogOut className="w-4 h-4" />
+                                   خروج
+                                </Button>
                              </div>
+                          ) : (
+                             <Button 
+                               onClick={handleToggleFollow} 
+                               disabled={isFollowLoading}
+                               className={cn(
+                                 "w-full h-14 rounded-2xl text-lg font-black gap-3 transition-all",
+                                 isFollowingUser ? "bg-white border-2 border-indigo-100 text-indigo-600 hover:bg-indigo-50" : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl shadow-indigo-100"
+                               )}
+                             >
+                                <Users className="w-6 h-6" />
+                                {isFollowingUser ? "متابَع" : "متابعة"}
+                             </Button>
                           )}
                        </div>
                     </CardContent>
@@ -941,12 +1021,13 @@ const UserProfile = () => {
               {/* RIGHT SIDE: Content Sections (8 cols) */}
               <div className="lg:col-span-8 space-y-8">
                  <Card className="border-0 shadow-lg rounded-[2.5rem] bg-white p-2">
-                    <Tabs defaultValue="trips" className="w-full">
+                    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                        <TabsList className="w-full justify-start gap-4 bg-transparent p-4 h-auto border-b border-gray-50 flex-wrap">
                           {[
                             { id: "trips", label: "الرحلات العامة", icon: <LayoutGrid className="w-4 h-4" /> },
                             { id: "stories", label: "قصصي", icon: <ImageIcon className="w-4 h-4" />, hide: !isOwnProfile },
                             { id: "ai-trips", label: "مساعد الرحلات الذكى ", icon: <Sparkles className="w-4 h-4" />, hide: !isOwnProfile },
+                            { id: "bookings", label: "حجوزاتي", icon: <Calendar className="w-4 h-4" />, hide: !isOwnProfile },
                             { id: "saved", label: "المحفوظات", icon: <Bookmark className="w-4 h-4" /> },
                             { id: "liked", label: "الإعجابات", icon: <Heart className="w-4 h-4" /> },
                           ].filter(t => !t.hide).map(tab => (
@@ -961,7 +1042,7 @@ const UserProfile = () => {
                           ))}
                        </TabsList>
 
-                       {["trips", "ai-trips", "stories", "saved", "liked"].map(tabId => (
+                       {["trips", "ai-trips", "stories", "saved", "liked", "bookings"].map(tabId => (
                           <TabsContent key={tabId} value={tabId} className="p-6 transition-all animate-in fade-in slide-in-from-bottom-4">
                              {/* Shared Trip Grid Logic */}
                              {renderTabContent(tabId)}
@@ -1028,8 +1109,8 @@ const UserProfile = () => {
   );
 
   function renderTabContent(tabId: string) {
-    const loading = tabId === 'trips' ? isLoadingTrips : tabId === 'saved' ? isLoadingSaved : tabId === 'liked' ? isLoadingLoved : tabId === 'stories' ? isLoadingMyStories : isLoadingAITrips;
-    const data = tabId === 'trips' ? userTrips : tabId === 'saved' ? savedTrips : tabId === 'liked' ? lovedTrips : tabId === 'stories' ? myStories : aiTrips;
+    const loading = tabId === 'trips' ? isLoadingTrips : tabId === 'saved' ? isLoadingSaved : tabId === 'liked' ? isLoadingLoved : tabId === 'stories' ? isLoadingMyStories : tabId === 'bookings' ? isLoadingBookings : isLoadingAITrips;
+    const data = tabId === 'trips' ? userTrips : tabId === 'saved' ? savedTrips : tabId === 'liked' ? lovedTrips : tabId === 'stories' ? myStories : tabId === 'bookings' ? bookings : aiTrips;
 
     if (loading) return <TripSkeletonLoader count={3} variant="card" />;
 
@@ -1067,6 +1148,76 @@ const UserProfile = () => {
                 <span className="text-[10px] text-white bg-black/50 px-2 py-0.5 rounded-full">
                   {new Date(story.createdAt).toLocaleDateString('ar-EG')}
                 </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    if (tabId === 'bookings') {
+      return (
+        <div className="grid grid-cols-1 gap-4">
+          {bookings.map((booking) => (
+            <div key={booking._id} className="bg-white border border-gray-100 rounded-[1.5rem] p-6 shadow-sm hover:shadow-md transition-all">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="space-y-3 flex-1">
+                  <div className="flex items-center gap-2">
+                    <UI_Badge variant="outline" className="rounded-full bg-indigo-50 text-indigo-600 border-indigo-100 font-bold">
+                      رقم الحجز: {booking.bookingReference}
+                    </UI_Badge>
+                    <div className="h-4 w-[1px] bg-gray-200 mx-1" />
+                    <span className="text-gray-400 text-xs font-medium">بتاريخ: {new Date(booking.createdAt).toLocaleDateString('ar-EG')}</span>
+                  </div>
+                  
+                  <h4 className="text-xl font-black text-gray-900">{booking.tripTitle}</h4>
+                  
+                  <div className="flex flex-wrap items-center gap-4 text-sm font-medium text-gray-500">
+                    <div className="flex items-center gap-1.5">
+                      <MapPin className="w-4 h-4 text-orange-500" />
+                      {booking.tripDestination}
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Users className="w-4 h-4 text-blue-500" />
+                      {booking.numberOfPeople} أشخاص
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                       <Building2 className="w-4 h-4 text-purple-500" />
+                       شركة: {booking.companyName}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col md:items-end gap-3 min-w-[150px]">
+                   <div className="text-2xl font-black text-emerald-600">
+                      {booking.totalPrice} <span className="text-sm">ج.م</span>
+                   </div>
+                   
+                   <div className={cn(
+                      "px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-2",
+                      booking.status === 'pending' ? "bg-amber-50 text-amber-600" :
+                      booking.status === 'accepted' ? "bg-emerald-50 text-emerald-600" :
+                      booking.status === 'rejected' ? "bg-red-50 text-red-600" :
+                      "bg-gray-50 text-gray-600"
+                   )}>
+                      <span className={cn(
+                        "w-2 h-2 rounded-full",
+                        booking.status === 'pending' ? "bg-amber-400 animate-pulse" :
+                        booking.status === 'accepted' ? "bg-emerald-400" :
+                        booking.status === 'rejected' ? "bg-red-400" :
+                        "bg-gray-400"
+                      )} />
+                      {booking.status === 'pending' ? 'جاري المراجعة' :
+                       booking.status === 'accepted' ? 'تم القبول' :
+                       booking.status === 'rejected' ? 'تم الرفض' : 'ملغي'}
+                   </div>
+
+                   {booking.status === 'rejected' && booking.rejectionReason && (
+                      <p className="text-[10px] text-red-400 font-bold max-w-[200px] text-right">
+                         السبب: {booking.rejectionReason}
+                      </p>
+                   )}
+                </div>
               </div>
             </div>
           ))}

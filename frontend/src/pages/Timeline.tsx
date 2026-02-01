@@ -23,6 +23,7 @@ import RightSidebar, { FollowedTraveler } from "@/components/timeline/RightSideb
 import TimelineHero from "@/components/TimelineHero";
 import TripAIChatWidget from "@/components/TripAIChatWidget";
 import { Badge } from "@/components/ui/badge";
+import UserBadge from "@/components/UserBadge";
 import { cn } from "@/lib/utils";
 
 function formatDate(iso: string): string {
@@ -180,6 +181,7 @@ const Timeline = () => {
                    uniqueSuggestions.set(trip.ownerId, {
                       userId: trip.ownerId, fullName: trip.author, imageUrl: trip.authorImage,
                       status: `نشر ${formatDate(trip.postedAt)}`, tripCount: 1, isFollowing: false,
+                      badgeLevel: trip.authorBadge,
                    });
                } else { uniqueSuggestions.get(trip.ownerId)!.tripCount++; }
              }
@@ -197,10 +199,11 @@ const Timeline = () => {
              if (trip.ownerId && trip.ownerId !== userId && trip.author) {
                const isFollowing = followingIds.has(trip.ownerId) || (trip.viewerFollowsAuthor === true);
                if (!allFoundUsers.has(trip.ownerId)) {
-                  allFoundUsers.set(trip.ownerId, {
-                    userId: trip.ownerId, fullName: trip.author, imageUrl: trip.authorImage,
-                    status: `نشر ${formatDate(trip.postedAt)}`, tripCount: 1, isFollowing,
-                  });
+                   allFoundUsers.set(trip.ownerId, {
+                     userId: trip.ownerId, fullName: trip.author, imageUrl: trip.authorImage,
+                     status: `نشر ${formatDate(trip.postedAt)}`, tripCount: 1, isFollowing,
+                     badgeLevel: trip.authorBadge,
+                   });
                } else { allFoundUsers.get(trip.ownerId)!.tripCount++; }
              }
           });
@@ -403,12 +406,17 @@ const Timeline = () => {
                                    </div>
                                 </Link>
                                 <div className="space-y-0.5 text-right">
-                                   <Link to={toProfilePath(trip)} className="font-bold text-gray-900 hover:text-orange-600 transition-colors block">
-                                      {trip.author}
-                                   </Link>
-                                   <div className="flex items-center gap-2 text-xs text-gray-500">
-                                      {formatDate(trip.postedAt)}
-                                      <Clock className="w-3 h-3 text-orange-400" />
+                                    <div className="flex items-center gap-2">
+                                       <Link to={toProfilePath(trip)} className="font-bold text-gray-900 hover:text-orange-600 transition-colors block">
+                                          {trip.author}
+                                       </Link>
+                                       {trip.authorBadge && trip.authorBadge !== 'none' && (
+                                         <UserBadge tier={trip.authorBadge} size="sm" />
+                                       )}
+                                    </div>
+                                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                                       {formatDate(trip.postedAt)}
+                                       <Clock className="w-3 h-3 text-orange-400" />
                                       <span className="text-gray-300">|</span>
                                       {trip.destination}
                                       <MapPin className="w-3 h-3 text-orange-400" />

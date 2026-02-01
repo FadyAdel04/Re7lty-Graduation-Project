@@ -17,6 +17,7 @@ import adminUsersRouter from "./routes/adminUsers";
 import complaintsRouter from "./routes/complaints";
 import contentReportsRouter from "./routes/contentReports";
 import adminCommentsRouter from "./routes/adminComments";
+import bookingsRouter from "./routes/bookings";
 import { connectToDatabase } from "./db";
 import mongoose from "mongoose";
 
@@ -957,6 +958,9 @@ export function createApp() {
     // Complaints and Content Reports
     app.use("/api/complaints", complaintsRouter);
     app.use("/api/content-reports", contentReportsRouter);
+
+    // Bookings routes
+    app.use("/api/bookings", bookingsRouter);
 
     // Admin Comments Integration (part of complaints section)
     app.use("/api/admin/complaints/comments", adminCommentsRouter);

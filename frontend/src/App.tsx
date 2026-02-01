@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
 import Index from "./pages/Index";
 import TripDetail from "./pages/TripDetail";
 import CreateTrip from "./pages/CreateTrip";
@@ -23,7 +24,7 @@ import TripAIChat from "./pages/TripAIChat";
 import DiscoverPage from "./pages/DiscoverPage";
 import TripAIChatWidget from "@/components/TripAIChatWidget";
 import ScrollToTop from "@/components/ScrollToTop";
-import { SignedIn, SignedOut, RedirectToSignIn } from "@clerk/clerk-react";
+import { SignedIn, SignedOut, RedirectToSignIn, useUser } from "@clerk/clerk-react";
 import { UploadProgressProvider } from "@/contexts/UploadProgressContext";
 import { UploadProgressBar } from "@/components/UploadProgressBar";
 import UserConnectionsPage from "./pages/UserConnectionsPage";
@@ -36,6 +37,11 @@ import AdminUsers from "./pages/admin/AdminUsers";
 import ReportsPage from "./pages/admin/ReportsPage";
 import ComplaintsPage from "./pages/admin/ComplaintsPage";
 import { NotificationProvider } from "./contexts/NotificationContext";
+
+import CompanyDashboard from "./pages/company/CompanyDashboard";
+import UserRoleSelection from "./pages/onboarding/UserRoleSelection";
+import CompanyRegistrationPage from "./pages/onboarding/CompanyRegistrationPage";
+import CompanyDetailsPage from "./pages/company/CompanyDetailsPage";
 
 const queryClient = new QueryClient();
 
@@ -51,12 +57,44 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => (
 
 const AppContent = () => {
   const location = useLocation();
+  const { user, isLoaded, isSignedIn } = useUser();
   const isAdminRoute = location.pathname.startsWith('/admin');
+  const isOnboardingRoute = location.pathname.startsWith('/onboarding');
+  const isAuthRoute = location.pathname.startsWith('/auth');
+  const isPublicRoute = ['/', '/support', '/help', '/terms', '/privacy', '/contact'].includes(location.pathname);
+
+  if (isLoaded && isSignedIn && !isAdminRoute && !isOnboardingRoute && !isAuthRoute) {
+     const isOnboarded = user.publicMetadata?.isOnboarded;
+     
+     // Check for old user (Created before Jan 30, 2026)
+     const createdAt = user.createdAt ? new Date(user.createdAt) : new Date();
+     const cutoffDate = new Date('2026-01-30');
+     const isOldUser = createdAt < cutoffDate;
+
+     // Only show onboarding for new users who haven't onboarded
+     // Also bypass if role is company_pending or company_owner, as they might have bypassed the standard flow
+     const currentRole = user.publicMetadata?.role as string;
+     const isCompanyUser = currentRole === 'company_pending' || currentRole === 'company_owner' || currentRole === 'company_approved';
+
+     if (!isOnboarded && !isOldUser && !isCompanyUser) {
+         return <UserRoleSelection />; 
+     }
+  }
+
+  // If user is on onboarding page but already onboarded, redirect home
+  if (isLoaded && isSignedIn && isOnboardingRoute && user.publicMetadata?.isOnboarded) {
+      window.location.href = '/';
+      return null;
+  }
 
   return (
     <>
       <ScrollToTop />
       <Routes>
+        {/* Onboarding Routes */}
+        <Route path="/onboarding/role" element={<ProtectedRoute><UserRoleSelection /></ProtectedRoute>} />
+        <Route path="/onboarding/company-apply" element={<ProtectedRoute><CompanyRegistrationPage /></ProtectedRoute>} />
+
         {/* Public Routes */}
         <Route path="/" element={<Index />} />
         <Route path="/timeline" element={<Timeline />} />
@@ -110,14 +148,20 @@ const AppContent = () => {
         <Route path="/admin/reports" element={<ReportsPage />} />
         <Route path="/admin/complaints" element={<ComplaintsPage />} />
         
+        {/* Company Public Details Page */}
+        <Route path="/companies/:id" element={<CompanyDetailsPage />} />
+        
+        {/* Company Dashboard Route */}
+        <Route path="/company/dashboard" element={<ProtectedRoute><CompanyDashboard /></ProtectedRoute>} />
+        
         {/* Trip detail route - must come after /trips/edit/:id to avoid conflicts */}
         <Route path="/trips/:id" element={<TripDetail />} />
         
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>
-      {/* Global AI Chat Widget - Hide on admin pages */}
-      {!isAdminRoute && <TripAIChatWidget />}
+      {/* Global AI Chat Widget - Hide on admin pages and onboarding */}
+      {!isAdminRoute && !isOnboardingRoute && <TripAIChatWidget />}
       {/* Global Upload Progress Bar */}
       <UploadProgressBar />
     </>

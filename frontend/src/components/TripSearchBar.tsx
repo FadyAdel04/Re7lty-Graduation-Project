@@ -7,16 +7,18 @@ interface TripSearchBarProps {
   placeholder?: string;
 }
 
-const TripSearchBar = ({ value, onChange, placeholder = "ابحث عن رحلة، وجهة، أو شركة..." }: TripSearchBarProps) => {
+const TripSearchBar = ({ value, onChange, placeholder = "ابحث عن رحلتك القادمة..." }: TripSearchBarProps) => {
   return (
-    <div className="relative">
-      <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+    <div className="relative group">
+      <div className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-400 group-focus-within:text-orange-600 transition-colors">
+        <Search className="h-full w-full" />
+      </div>
       <Input
         type="text"
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="pr-10 h-12 rounded-xl border-gray-200 focus-visible:ring-orange-500 text-right"
+        className="pr-12 pl-4 h-14 rounded-2xl border-zinc-200 bg-white/50 backdrop-blur-sm focus-visible:ring-2 focus-visible:ring-orange-500/20 focus-visible:border-orange-500 text-right font-medium placeholder:text-zinc-400 text-zinc-900 transition-all shadow-sm"
       />
     </div>
   );

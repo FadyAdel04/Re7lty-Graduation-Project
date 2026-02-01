@@ -124,6 +124,50 @@ async function buildTripsFromRefs(refDocs: any[], req: any, viewerId?: string | 
  *       401:
  *         description: Unauthorized
  */
+// Complete Onboarding (Traveler Role)
+router.post('/onboarding', requireAuthStrict, async (req, res) => {
+  try {
+    const { userId } = getAuth(req);
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { role } = req.body; // Expect 'user'
+
+    if (role !== 'user') {
+      return res.status(400).json({ error: 'Invalid role for direct onboarding' });
+    }
+
+    // Update DB
+    await User.findOneAndUpdate(
+      { clerkId: userId },
+      {
+        $set: {
+          role: 'user',
+          isOnboarded: true
+        }
+      },
+      { upsert: true }
+    );
+
+    // Update Clerk
+    try {
+      await clerkClient.users.updateUser(userId, {
+        publicMetadata: {
+          role: 'user',
+          isOnboarded: true
+        }
+      });
+    } catch (err) {
+      console.error("Clerk metadata update failed:", err);
+    }
+
+    res.json({ success: true, role: 'user' });
+  } catch (error: any) {
+    console.error('Onboarding error:', error);
+    res.status(500).json({ error: 'Onboarding failed' });
+  }
+});
+
+// Get current user (DB record, upsert from Clerk)
 router.get('/me', requireAuthStrict, async (req, res) => {
   try {
     const { userId } = getAuth(req);
@@ -132,6 +176,7 @@ router.get('/me', requireAuthStrict, async (req, res) => {
     }
 
     const clerkUser = await clerkClient.users.getUser(userId);
+    const existingUser = await User.findOne({ clerkId: userId });
     const dbUser = await User.findOneAndUpdate(
       { clerkId: userId },
       {
@@ -139,10 +184,10 @@ router.get('/me', requireAuthStrict, async (req, res) => {
           email: clerkUser.primaryEmailAddress?.emailAddress,
           username: clerkUser.username,
           fullName: clerkUser.fullName || clerkUser.firstName || clerkUser.username,
-          imageUrl: clerkUser.imageUrl,
-          bio: (clerkUser.publicMetadata as any)?.bio || null,
-          location: (clerkUser.publicMetadata as any)?.location || null,
-          coverImage: (clerkUser.publicMetadata as any)?.coverImage || null,
+          imageUrl: existingUser?.imageUrl || clerkUser.imageUrl,
+          bio: (clerkUser.publicMetadata as any)?.bio || existingUser?.bio || null,
+          location: (clerkUser.publicMetadata as any)?.location || existingUser?.location || null,
+          coverImage: existingUser?.coverImage || (clerkUser.publicMetadata as any)?.coverImage || null,
         }
       },
       { upsert: true, new: true }
@@ -383,6 +428,60 @@ router.get('/:clerkId/loves', async (req, res) => {
   }
 });
 
+// Switch User Role (User <-> Company)
+router.post('/me/switch-role', requireAuthStrict, async (req, res) => {
+  try {
+    const { userId } = getAuth(req);
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { targetRole } = req.body; // 'user' or 'company_owner'
+
+    const user = await User.findOne({ clerkId: userId });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    // Validate 14-day limit
+    if (user.lastRoleSwitchAt) {
+      const daysSinceSwitch = (new Date().getTime() - new Date(user.lastRoleSwitchAt).getTime()) / (1000 * 3600 * 24);
+      if (daysSinceSwitch < 14) {
+        return res.status(429).json({
+          error: 'Cannot switch role yet',
+          daysRemaining: Math.ceil(14 - daysSinceSwitch)
+        });
+      }
+    }
+
+    if (targetRole === 'company_owner') {
+      // Verify they have an approved company
+      if (!user.companyId) {
+        return res.status(403).json({ error: 'No company profile found. Please register first.' });
+      }
+    }
+
+    // Update Role
+    user.role = targetRole;
+    user.profileType = targetRole === 'company_owner' ? 'company' : 'user';
+    user.lastRoleSwitchAt = new Date();
+    await user.save();
+
+    // Update Clerk
+    try {
+      await clerkClient.users.updateUser(userId, {
+        publicMetadata: {
+          role: targetRole,
+          profileType: user.profileType
+        }
+      });
+    } catch (err) {
+      console.error("Clerk metadata update failed:", err);
+    }
+
+    res.json({ success: true, role: targetRole });
+  } catch (error: any) {
+    console.error('Role switch error:', error);
+    res.status(500).json({ error: 'Failed to switch role' });
+  }
+});
+
 router.get('/:clerkId/saves', async (req, res) => {
   try {
     if (mongoose.connection.readyState !== 1) {
@@ -455,9 +554,9 @@ router.get('/:clerkId', async (req, res) => {
       email: clerkUser.primaryEmailAddress?.emailAddress,
       username: clerkUser.username,
       fullName: clerkUser.fullName || clerkUser.firstName || clerkUser.username,
-      imageUrl: clerkUser.imageUrl,
-      bio: (clerkUser.publicMetadata as any)?.bio || null,
-      location: (clerkUser.publicMetadata as any)?.location || null,
+      imageUrl: existingUser?.imageUrl || clerkUser.imageUrl,
+      bio: (clerkUser.publicMetadata as any)?.bio || existingUser?.bio || null,
+      location: (clerkUser.publicMetadata as any)?.location || existingUser?.location || null,
     };
 
     // Only update coverImage from Clerk if it exists in Clerk metadata
@@ -471,7 +570,7 @@ router.get('/:clerkId', async (req, res) => {
     }
     // If existingUser has coverImage and Clerk doesn't, keep the DB value (don't update)
 
-    const [followersCount, followingCount, tripsCount, likesAgg, viewerFollowsDoc] = await Promise.all([
+    const [followersCount, followingCount, tripsCount, likesAgg, viewerFollowsDoc, storiesCount] = await Promise.all([
       Follow.countDocuments({ followingId: clerkId }),
       Follow.countDocuments({ followerId: clerkId }),
       Trip.countDocuments({ ownerId: clerkId }),
@@ -482,22 +581,29 @@ router.get('/:clerkId', async (req, res) => {
       viewerId && viewerId !== clerkId
         ? Follow.exists({ followerId: viewerId, followingId: clerkId })
         : Promise.resolve(null),
+      import('../models/Story').then(({ Story }) => Story.countDocuments({ userId: clerkId })),
     ]);
     const totalLikes = likesAgg?.[0]?.totalLikes || 0;
 
     // Compute activity score and badge level (must stay in sync with frontend logic)
     const activityScore =
-      tripsCount * 5 +
-      totalLikes * 0.5 +
-      followersCount * 0.5;
+      tripsCount * 20 +    // publishing trips
+      storiesCount * 5 +   // sharing stories
+      totalLikes * 2 +     // engagement from others
+      followersCount * 5 + // social influence
+      followingCount * 1;  // community engagement
 
-    let badgeLevel: "none" | "silver" | "gold" | "diamond" = "none";
-    if (activityScore >= 300) {
+    let badgeLevel: "none" | "bronze" | "silver" | "gold" | "diamond" | "legend" = "none";
+    if (activityScore >= 2000) {
+      badgeLevel = "legend";
+    } else if (activityScore >= 800) {
       badgeLevel = "diamond";
-    } else if (activityScore >= 120) {
+    } else if (activityScore >= 350) {
       badgeLevel = "gold";
-    } else if (activityScore >= 40) {
+    } else if (activityScore >= 100) {
       badgeLevel = "silver";
+    } else if (activityScore >= 30) {
+      badgeLevel = "bronze";
     }
 
     const dbUser = await User.findOneAndUpdate(
@@ -531,6 +637,7 @@ router.get('/:clerkId', async (req, res) => {
       activityScore: dbUser.activityScore,
       badgeLevel: dbUser.badgeLevel,
       tripsCount,
+      storiesCount,
       viewerFollows: Boolean(viewerFollowsDoc),
       createdAt: dbUser.createdAt || clerkUser.createdAt,
       _id: dbUser._id,

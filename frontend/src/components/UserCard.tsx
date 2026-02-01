@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useAuth } from "@clerk/clerk-react";
 import { toggleFollowUser } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import UserBadge, { BadgeTier } from "./UserBadge";
 
 interface UserCardProps {
   user: {
@@ -15,12 +16,13 @@ interface UserCardProps {
     location?: string;
     followers?: number;
     tripsCount?: number;
+    badgeLevel?: BadgeTier;
   };
   isFollowing?: boolean;
   onFollowToggle?: (newStatus: boolean) => void;
 }
 
-const UserCard = ({ user, isFollowing: initialIsFollowing = false }: UserCardProps) => {
+const UserCard = ({ user, isFollowing: initialIsFollowing = false, onFollowToggle }: UserCardProps) => {
   const { getToken, userId } = useAuth();
   const { toast } = useToast();
   const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
@@ -88,9 +90,14 @@ const UserCard = ({ user, isFollowing: initialIsFollowing = false }: UserCardPro
             )}
           </div>
           <div className="min-w-0">
-            <h3 className="font-bold text-gray-900 truncate text-lg group-hover:text-orange-600 transition-colors">
-              {user.fullName || user.username}
-            </h3>
+            <div className="flex items-center gap-2">
+              <h3 className="font-bold text-gray-900 truncate text-lg group-hover:text-orange-600 transition-colors">
+                {user.fullName || user.username}
+              </h3>
+              {user.badgeLevel && user.badgeLevel !== 'none' && (
+                <UserBadge tier={user.badgeLevel} size="sm" />
+              )}
+            </div>
             {user.username && (
               <p className="text-sm text-gray-500 truncate" dir="ltr">@{user.username}</p>
             )}

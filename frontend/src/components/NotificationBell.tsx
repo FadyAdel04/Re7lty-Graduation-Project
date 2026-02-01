@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { useUser } from "@clerk/clerk-react";
 
 function formatTimeAgo(dateString: string) {
   const date = new Date(dateString);
@@ -29,9 +30,23 @@ function formatTimeAgo(dateString: string) {
 const NotificationBell = () => {
   const { notifications, unreadCount, markAsRead, markAllAsRead, isStreaming } = useNotifications();
   const navigate = useNavigate();
+  const { user } = useUser();
 
   const handleNotificationClick = async (notification: any) => {
     await markAsRead(notification.id);
+    
+    // Check if it's a booking-related notification
+    const isBooking = 
+      notification.type === 'booking' || 
+      notification.type === 'booking_status' ||
+      notification.message.includes('حجز') || 
+      notification.message.toLowerCase().includes('booking');
+
+    if (isBooking && user?.id) {
+       navigate(`/user/${user.id}?tab=bookings`);
+       return;
+    }
+
     if (notification.link) {
       navigate(notification.link);
     } else if (notification.tripId) {

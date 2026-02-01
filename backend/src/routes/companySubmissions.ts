@@ -1,8 +1,9 @@
 import express from 'express';
 import { CompanySubmission } from '../models/CompanySubmission';
 import { requireAdmin } from '../utils/adminMiddleware';
-import { ClerkExpressRequireAuth } from '@clerk/clerk-sdk-node';
-
+import { requireAuthStrict, getAuth, clerkClient } from '../utils/auth';
+import { User } from '../models/User';
+import { Notification as NotificationModel } from '../models/Notification';
 
 /**
  * @swagger
@@ -82,16 +83,12 @@ const router = express.Router();
  *       400:
  *         description: Missing required fields
  */
-import { getAuth } from '@clerk/express';
-import { Notification as NotificationModel } from '../models/Notification';
-
-// ... (existing code)
 
 /**
  * POST /submissions
  * Create a new company submission
  */
-router.post('/', ClerkExpressRequireAuth(), async (req, res) => {
+router.post('/', requireAuthStrict, async (req, res) => {
     try {
         // Set CORS headers explicitly for this endpoint
         res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
@@ -99,6 +96,10 @@ router.post('/', ClerkExpressRequireAuth(), async (req, res) => {
 
         const { companyName, email, phone, whatsapp, tripTypes, message } = req.body;
         const { userId } = getAuth(req);
+
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized: User ID missing' });
+        }
 
         // Validation
         if (!companyName || !email || !phone || !whatsapp || !tripTypes) {
@@ -122,6 +123,32 @@ router.post('/', ClerkExpressRequireAuth(), async (req, res) => {
 
         await submission.save();
 
+        // Update User Role and Onboarding Status
+        await User.findOneAndUpdate(
+            { clerkId: userId },
+            {
+                $set: {
+                    role: "company_pending",
+                    isOnboarded: true,
+                    companyId: submission._id
+                }
+            },
+            { upsert: true }
+        );
+
+        // Update Clerk Metadata
+        try {
+            await clerkClient.users.updateUser(userId, {
+                publicMetadata: {
+                    role: "company_pending",
+                    isOnboarded: true
+                }
+            });
+        } catch (err) {
+            console.error("Failed to update Clerk metadata:", err);
+            // Don't fail the request if Clerk update fails
+        }
+
         res.status(201).json({
             success: true,
             message: 'تم إرسال طلبك بنجاح. سنتواصل معك قريباً.',
@@ -131,112 +158,15 @@ router.post('/', ClerkExpressRequireAuth(), async (req, res) => {
                 status: submission.status
             }
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error creating submission:', error);
-        res.status(500).json({ error: 'Failed to create submission' });
+        res.status(500).json({ error: 'Failed to create submission', details: error.message });
     }
 });
 
 // ... (stats route)
 
-/**
- * PUT /admin/:id/approve
- * Approve a submission
- */
-router.put('/admin/:id/approve', ClerkExpressRequireAuth(), requireAdmin, async (req, res) => {
-    try {
-        const { adminNotes } = req.body;
-        const { userId: adminId } = getAuth(req);
-
-        const submission = await CompanySubmission.findByIdAndUpdate(
-            req.params.id,
-            {
-                status: 'approved',
-                processedBy: req.auth?.userId,
-                processedAt: new Date(),
-                adminNotes: adminNotes || ''
-            },
-            { new: true }
-        );
-
-        if (!submission) {
-            return res.status(404).json({ error: 'Submission not found' });
-        }
-
-        // Send notification
-        if (submission.userId && adminId) {
-            await NotificationModel.create({
-                recipientId: submission.userId,
-                actorId: adminId,
-                actorName: "إدارة رحلتي",
-                actorImage: "/assets/logo.png",
-                type: "system",
-                message: `تهانينا! تمت الموافقة على طلب انضمام شركتكم "${submission.companyName}". مرحباً بكم كشركاء في رحلتي!`,
-                isRead: false,
-                link: `/company/dashboard` // Or wherever they should go
-            });
-        }
-
-        res.json({
-            success: true,
-            message: 'Submission approved successfully',
-            submission
-        });
-    } catch (error) {
-        console.error('Error approving submission:', error);
-        res.status(500).json({ error: 'Failed to approve submission' });
-    }
-});
-
-/**
- * PUT /admin/:id/reject
- * Reject a submission
- */
-router.put('/admin/:id/reject', ClerkExpressRequireAuth(), requireAdmin, async (req, res) => {
-    try {
-        const { rejectionReason, adminNotes } = req.body;
-        const { userId: adminId } = getAuth(req);
-
-        const submission = await CompanySubmission.findByIdAndUpdate(
-            req.params.id,
-            {
-                status: 'rejected',
-                rejectionReason: rejectionReason || 'No reason provided',
-                processedBy: req.auth?.userId,
-                processedAt: new Date(),
-                adminNotes: adminNotes || ''
-            },
-            { new: true }
-        );
-
-        if (!submission) {
-            return res.status(404).json({ error: 'Submission not found' });
-        }
-
-        // Send notification
-        if (submission.userId && adminId) {
-            await NotificationModel.create({
-                recipientId: submission.userId,
-                actorId: adminId,
-                actorName: "إدارة رحلتي",
-                actorImage: "/assets/logo.png",
-                type: "system",
-                message: `نأسف لإبلاغكم أنه تم رفض طلب انضمام شركتكم "${submission.companyName}". السبب: ${rejectionReason || 'غير محدد'}`,
-                isRead: false,
-                link: `/contact`
-            });
-        }
-
-        res.json({
-            success: true,
-            message: 'Submission rejected',
-            submission
-        });
-    } catch (error) {
-        console.error('Error rejecting submission:', error);
-        res.status(500).json({ error: 'Failed to reject submission' });
-    }
-});
+// Duplicate routes removed
 
 // ... (delete route)
 
@@ -306,7 +236,7 @@ router.put('/admin/:id/reject', ClerkExpressRequireAuth(), requireAdmin, async (
  *                 total:
  *                   type: integer
  */
-router.get('/admin/stats', ClerkExpressRequireAuth(), requireAdmin, async (req, res) => {
+router.get('/admin/stats', requireAuthStrict, requireAdmin, async (req, res) => {
     try {
         const [pending, approved, rejected, total] = await Promise.all([
             CompanySubmission.countDocuments({ status: 'pending' }),
@@ -327,7 +257,7 @@ router.get('/admin/stats', ClerkExpressRequireAuth(), requireAdmin, async (req, 
     }
 });
 
-router.get('/admin', ClerkExpressRequireAuth(), requireAdmin, async (req, res) => {
+router.get('/admin', requireAuthStrict, requireAdmin, async (req, res) => {
     try {
         const { status, limit = 1000, skip = 0 } = req.query;
 
@@ -378,7 +308,7 @@ router.get('/admin', ClerkExpressRequireAuth(), requireAdmin, async (req, res) =
  *       404:
  *         description: Submission not found
  */
-router.get('/admin/:id', ClerkExpressRequireAuth(), requireAdmin, async (req, res) => {
+router.get('/admin/:id', requireAuthStrict, requireAdmin, async (req, res) => {
     try {
         const submission = await CompanySubmission.findById(req.params.id);
 
@@ -421,15 +351,16 @@ router.get('/admin/:id', ClerkExpressRequireAuth(), requireAdmin, async (req, re
  *       404:
  *         description: Submission not found
  */
-router.put('/admin/:id/approve', ClerkExpressRequireAuth(), requireAdmin, async (req, res) => {
+router.put('/admin/:id/approve', requireAuthStrict, requireAdmin, async (req, res) => {
     try {
         const { adminNotes } = req.body;
+        const { userId: adminId } = getAuth(req);
 
         const submission = await CompanySubmission.findByIdAndUpdate(
             req.params.id,
             {
                 status: 'approved',
-                processedBy: req.auth?.userId,
+                processedBy: adminId,
                 processedAt: new Date(),
                 adminNotes: adminNotes || ''
             },
@@ -438,6 +369,73 @@ router.put('/admin/:id/approve', ClerkExpressRequireAuth(), requireAdmin, async 
 
         if (!submission) {
             return res.status(404).json({ error: 'Submission not found' });
+        }
+
+        // Update User Role to Company Owner
+        if (submission.userId) {
+            const { User } = await import("../models/User");
+            const { CorporateCompany } = await import("../models/CorporateCompany");
+
+            // Check if company already exists
+            const existingCompany = await CorporateCompany.findOne({ contactInfo: { email: submission.email } });
+            let companyId;
+
+            if (existingCompany) {
+                companyId = existingCompany._id;
+            } else {
+                // Create new Corporate Company Profile
+                const newCompany = await CorporateCompany.create({
+                    name: submission.companyName,
+                    description: submission.message || `مرحباً بكم في ${submission.companyName}`,
+                    logo: "https://via.placeholder.com/150",
+                    color: "from-blue-500 to-cyan-500", // Default color
+                    contactInfo: {
+                        email: submission.email,
+                        phone: submission.phone,
+                        whatsapp: submission.whatsapp,
+                        website: "",
+                        address: ""
+                    },
+                    tags: submission.tripTypes.split(',').map(t => t.trim()),
+                    isActive: true,
+                    createdBy: adminId
+                });
+                companyId = newCompany._id;
+            }
+
+            await User.findOneAndUpdate(
+                { clerkId: submission.userId },
+                {
+                    $set: {
+                        role: 'company_owner',
+                        companyId: companyId
+                    }
+                }
+            );
+
+            // Update Clerk
+            try {
+                const { clerkClient } = await import("../utils/auth");
+                await clerkClient.users.updateUser(submission.userId, {
+                    publicMetadata: { role: 'company_owner' }
+                });
+            } catch (err) {
+                console.error("Clerk role update failed:", err);
+            }
+
+            // Send notification
+            if (adminId) {
+                await NotificationModel.create({
+                    recipientId: submission.userId,
+                    actorId: adminId,
+                    actorName: "إدارة رحلتي",
+                    actorImage: "/assets/logo.png",
+                    type: "system",
+                    message: `تهانينا! تمت الموافقة على طلب انضمام شركتكم "${submission.companyName}". مرحباً بكم كشركاء في رحلتي!`,
+                    isRead: false,
+                    link: `/company/dashboard`
+                });
+            }
         }
 
         res.json({
@@ -481,16 +479,17 @@ router.put('/admin/:id/approve', ClerkExpressRequireAuth(), requireAdmin, async 
  *       404:
  *         description: Submission not found
  */
-router.put('/admin/:id/reject', ClerkExpressRequireAuth(), requireAdmin, async (req, res) => {
+router.put('/admin/:id/reject', requireAuthStrict, requireAdmin, async (req, res) => {
     try {
         const { rejectionReason, adminNotes } = req.body;
+        const { userId: adminId } = getAuth(req);
 
         const submission = await CompanySubmission.findByIdAndUpdate(
             req.params.id,
             {
                 status: 'rejected',
                 rejectionReason: rejectionReason || 'No reason provided',
-                processedBy: req.auth?.userId,
+                processedBy: adminId,
                 processedAt: new Date(),
                 adminNotes: adminNotes || ''
             },
@@ -499,6 +498,39 @@ router.put('/admin/:id/reject', ClerkExpressRequireAuth(), requireAdmin, async (
 
         if (!submission) {
             return res.status(404).json({ error: 'Submission not found' });
+        }
+
+        // Update User Role to Company Rejected
+        if (submission.userId) {
+            const { User } = await import("../models/User");
+            await User.findOneAndUpdate(
+                { clerkId: submission.userId },
+                { $set: { role: 'company_rejected' } }
+            );
+
+            // Update Clerk
+            try {
+                const { clerkClient } = await import("../utils/auth");
+                await clerkClient.users.updateUser(submission.userId, {
+                    publicMetadata: { role: 'company_rejected' }
+                });
+            } catch (err) {
+                console.error("Clerk role update failed:", err);
+            }
+
+            // Send notification
+            if (adminId) {
+                await NotificationModel.create({
+                    recipientId: submission.userId,
+                    actorId: adminId,
+                    actorName: "إدارة رحلتي",
+                    actorImage: "/assets/logo.png",
+                    type: "system",
+                    message: `نأسف لإبلاغكم أنه تم رفض طلب انضمام شركتكم "${submission.companyName}". السبب: ${rejectionReason || 'غير محدد'}`,
+                    isRead: false,
+                    link: `/contact`
+                });
+            }
         }
 
         res.json({
@@ -532,7 +564,7 @@ router.put('/admin/:id/reject', ClerkExpressRequireAuth(), requireAdmin, async (
  *       404:
  *         description: Submission not found
  */
-router.delete('/admin/:id', ClerkExpressRequireAuth(), requireAdmin, async (req, res) => {
+router.delete('/admin/:id', requireAuthStrict, requireAdmin, async (req, res) => {
     try {
         const submission = await CompanySubmission.findByIdAndDelete(req.params.id);
 

@@ -18,7 +18,8 @@ import {
   XCircle, 
   ChevronLeft, 
   ChevronRight,
-  TrendingUp
+  TrendingUp,
+  Calendar
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -162,9 +163,11 @@ const TripDetailsPage = () => {
             {/* Trip Header */}
             <div>
               <div className="flex flex-wrap items-center gap-3 mb-4">
-                <Badge className="bg-orange-500 hover:bg-orange-600 text-white">
-                  {company.name}
-                </Badge>
+                <Link to={`/companies/${company.id}`}>
+                  <Badge className="bg-orange-500 hover:bg-orange-600 text-white cursor-pointer transition-colors px-4 py-1.5 rounded-full shadow-sm">
+                    {company.name}
+                  </Badge>
+                </Link>
                 <Badge variant="outline" className="gap-1">
                   <MapPin className="h-3 w-3" />
                   {trip.destination}
@@ -198,6 +201,14 @@ const TripDetailsPage = () => {
                   <span className="font-semibold text-gray-900">{trip.rating}</span>
                   <span className="text-sm">({trip.likes} إعجاب)</span>
                 </div>
+                {trip.startDate && (
+                   <div className="flex items-center gap-2">
+                     <Calendar className="h-5 w-5" />
+                     <span>
+                       {new Date(trip.startDate).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short', year: 'numeric' })}
+                     </span>
+                   </div>
+                )}
                 {trip.maxGroupSize && (
                   <div className="flex items-center gap-2">
                     <Users className="h-5 w-5" />
@@ -211,10 +222,38 @@ const TripDetailsPage = () => {
 
             {/* Trip Overview */}
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">نظرة عامة</h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold text-gray-900">نظرة عامة</h2>
+              </div>
               <p className="text-gray-700 leading-relaxed text-lg">
                 {trip.fullDescription}
               </p>
+            </div>
+
+            <div className="bg-zinc-50 rounded-[2rem] p-6 border border-zinc-100 flex items-center justify-between group">
+              <div className="flex items-center gap-4">
+                <div className={`h-16 w-16 rounded-2xl bg-gradient-to-br ${company.color} p-0.5 shadow-lg`}>
+                   <div className="w-full h-full bg-white rounded-[14px] flex items-center justify-center overflow-hidden">
+                      {company.logo.startsWith('http') ? (
+                        <img src={company.logo} alt={company.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-xl font-black text-gray-900">{company.logo}</span>
+                      )}
+                   </div>
+                </div>
+                <div>
+                   <h3 className="font-black text-gray-900 text-xl">{company.name}</h3>
+                   <div className="flex items-center gap-1.5">
+                      <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
+                      <span className="text-sm font-bold text-gray-600">{company.rating} تقييم</span>
+                   </div>
+                </div>
+              </div>
+              <Link to={`/companies/${company.id}`}>
+                <Button variant="outline" className="rounded-xl font-bold border-zinc-200 hover:bg-zinc-900 hover:text-white transition-all px-6">
+                  عرض ملف الشركة
+                </Button>
+              </Link>
             </div>
 
             <Separator />

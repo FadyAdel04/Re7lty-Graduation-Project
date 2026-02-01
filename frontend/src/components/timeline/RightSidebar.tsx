@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UserPlus, UserMinus, Compass } from "lucide-react";
+import { UserBadge, BadgeTier } from "@/components/UserBadge";
 import { cn } from "@/lib/utils";
 
 export interface FollowedTraveler {
@@ -12,6 +13,7 @@ export interface FollowedTraveler {
   status?: string;
   tripCount: number;
   isFollowing: boolean;
+  badgeLevel?: BadgeTier;
 }
 
 interface RightSidebarProps {
@@ -65,12 +67,17 @@ const RightSidebar = ({ followedTravelers, onToggleFollow, isLoading }: RightSid
                   </Link>
                   
                   <div className="flex-1 min-w-0">
-                    <Link 
-                      to={`/user/${traveler.userId}`} 
-                      className="font-bold text-sm text-gray-900 hover:text-indigo-600 truncate block transition-colors"
-                    >
-                      {traveler.fullName}
-                    </Link>
+                    <div className="flex items-center gap-1.5 truncate">
+                      <Link 
+                        to={`/user/${traveler.userId}`} 
+                        className="font-bold text-sm text-gray-900 hover:text-indigo-600 truncate block transition-colors"
+                      >
+                        {traveler.fullName}
+                      </Link>
+                      {traveler.badgeLevel && traveler.badgeLevel !== 'none' && (
+                        <UserBadge tier={traveler.badgeLevel} size="sm" />
+                      )}
+                    </div>
                     
                     <p className="text-[10px] text-gray-400 font-medium truncate mt-0.5">
                        {traveler.tripCount} رحلة استكشافية

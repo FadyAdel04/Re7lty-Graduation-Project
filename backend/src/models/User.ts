@@ -18,9 +18,31 @@ const UserSchema = new Schema({
   activityScore: { type: Number, default: 0 }, // Derived score from trips + activity
   badgeLevel: {
     type: String,
-    enum: ["none", "silver", "gold", "diamond"],
+    enum: ["none", "bronze", "silver", "gold", "diamond", "legend"],
     default: "none",
   },
+  // Onboarding & Role
+  role: {
+    type: String,
+    enum: ["user", "admin", "company_pending", "company_approved", "company_rejected", "company_owner"],
+    default: "user"
+  },
+  profileType: {
+    type: String,
+    enum: ["user", "company"],
+    default: "user"
+  },
+  lastRoleSwitchAt: { type: Date },
+  isOnboarded: { type: Boolean, default: false },
+  companyId: { type: Schema.Types.ObjectId, ref: "CorporateCompany" }, // Linked company profile
+
+  // Subscription
+  subscription: {
+    plan: { type: String, enum: ["free_trial", "basic", "premium", "enterprise"], default: "free_trial" },
+    status: { type: String, enum: ["active", "expired", "cancelled"], default: "active" },
+    startDate: { type: Date },
+    endDate: { type: Date }
+  }
 }, { timestamps: true });
 
 export type UserDocument = mongoose.InferSchemaType<typeof UserSchema> & mongoose.Document;

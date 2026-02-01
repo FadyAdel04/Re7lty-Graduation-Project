@@ -13,8 +13,10 @@ import {
   LayoutDashboard,
   Zap,
   Star,
-  MapPin
+  MapPin,
+  LogOut
 } from "lucide-react";
+import { useClerk } from "@clerk/clerk-react";
 import { adminService } from "@/services/adminService";
 import AdminLayout from "@/components/admin/AdminLayout";
 import KPICards from "@/components/admin/KPICards";
@@ -25,6 +27,7 @@ import { cn } from "@/lib/utils";
 const AdminDashboard = () => {
   const { user } = useUser();
   const { getToken } = useAuth();
+  const { signOut } = useClerk();
   const navigate = useNavigate();
 
   // Dashboard State
@@ -128,13 +131,26 @@ const AdminDashboard = () => {
               <h1 className="text-3xl font-black text-gray-900 mb-2 font-cairo">نظرة عامة على <span className="text-indigo-600">الأداء</span></h1>
               <p className="text-gray-500 font-bold">مرحباً بك مجدداً، إليك ملخص لأهم مؤشرات المنصة اليوم.</p>
            </div>
-           <button 
-             onClick={() => fetchData()}
-             className="h-12 px-6 rounded-2xl bg-white border border-gray-100 flex items-center gap-3 font-black text-sm text-gray-600 hover:bg-gray-50 transition-all shadow-sm active:scale-95"
-           >
-              <Zap className="w-4 h-4 text-orange-500 fill-orange-500" />
-              تحديث البيانات
-           </button>
+           <div className="flex items-center gap-3">
+              <button 
+                onClick={() => fetchData()}
+                className="h-12 px-6 rounded-2xl bg-white border border-gray-100 flex items-center gap-3 font-black text-sm text-gray-600 hover:bg-gray-50 transition-all shadow-sm active:scale-95"
+              >
+                 <Zap className="w-4 h-4 text-orange-500 fill-orange-500" />
+                 تحديث البيانات
+              </button>
+              <button 
+                onClick={() => {
+                  if (window.confirm('هل أنت متأكد من تسجيل الخروج؟')) {
+                    signOut();
+                  }
+                }}
+                className="h-12 px-6 rounded-2xl bg-red-50 border border-red-100 flex items-center gap-3 font-black text-sm text-red-600 hover:bg-red-100 transition-all shadow-sm active:scale-95"
+              >
+                 <LogOut className="h-4 w-4" />
+                 تسجيل الخروج
+              </button>
+           </div>
         </div>
 
         {/* KPI Cards Section */}

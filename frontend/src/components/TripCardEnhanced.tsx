@@ -1,90 +1,121 @@
-import { Clock, Star, MapPin, ArrowLeft, Calendar } from "lucide-react";
+import { Clock, Star, MapPin, ArrowRight, Calendar, User, Info, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Trip } from "@/types/corporateTrips";
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 
 interface TripCardEnhancedProps {
   trip: Trip;
   companyName?: string;
+  companyLogo?: string;
   showCompanyBadge?: boolean;
+  onEdit?: (trip: Trip) => void;
 }
 
-const TripCardEnhanced = ({ trip, companyName, showCompanyBadge = false }: TripCardEnhancedProps) => {
+const TripCardEnhanced = ({ trip, companyName, companyLogo, showCompanyBadge = false, onEdit }: TripCardEnhancedProps) => {
   return (
-    <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group border-gray-100 hover:border-orange-200 rounded-2xl">
-      <Link to={`/corporate-trips/${trip.id}`}>
-        <div className="relative h-56 overflow-hidden">
-          <img
-            src={trip.images[0]}
-            alt={trip.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-          
-          {/* Destination Badge */}
-          <Badge className="absolute top-3 right-3 bg-white/95 text-gray-900 border-0 backdrop-blur-sm hover:bg-white">
-            <MapPin className="h-3 w-3 ml-1" />
-            {trip.destination}
-          </Badge>
+    <Card className="group relative bg-white border border-zinc-200/60 rounded-[2.5rem] overflow-hidden hover:shadow-2xl hover:shadow-zinc-200/60 transition-all duration-500 flex flex-col h-full">
+        {/* Visual Media Layer */}
+        <div className="relative h-64 w-full overflow-hidden">
+          <Link to={`/corporate-trips/${trip.id}`} className="block h-full">
+            <img
+              src={trip.images[0]}
+              alt={trip.title}
+              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[1.5s] ease-out"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/80 via-zinc-900/20 to-transparent opacity-80" />
+          </Link>
 
-          {/* Company Badge */}
-          {showCompanyBadge && companyName && (
-            <Badge className="absolute top-3 left-3 bg-orange-500 hover:bg-orange-600 border-0 shadow-lg shadow-orange-500/20 text-white">
-              {companyName}
+          {/* Floating Branding & Metadata */}
+          <div className="absolute top-4 inset-x-4 flex justify-between items-start z-10">
+            <Badge className="bg-white/10 backdrop-blur-md border border-white/20 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest pointer-events-none">
+              <MapPin className="h-2.5 w-2.5 ml-1 text-orange-400" />
+              {trip.destination}
             </Badge>
-          )}
+            
+            {showCompanyBadge && companyName && (
+              <Link to={`/companies/${trip.companyId}`}>
+                <div className="bg-orange-600 p-2 rounded-2xl shadow-xl transition-all duration-300">
+                  {companyLogo.startsWith('http') ? (
+                          <img src={companyLogo} alt={companyName} className="w-8 h-8" />
+                        ) : (
+                          <div className="w-8 h-8">{companyLogo}</div>
+                        )}
+                </div>
+              </Link>
+            )}
+          </div>
 
-          {/* Price Tag */}
-          <div className="absolute bottom-3 right-3 bg-orange-500 text-white px-3 py-1.5 rounded-lg font-bold text-sm shadow-lg">
-            {trip.price} ج.م
+          <div className="absolute bottom-4 left-4 right-4 z-10 flex items-end justify-between">
+            <div className="space-y-1">
+               <h3 className="text-white text-xl font-black tracking-tight leading-tight line-clamp-1">
+                 {trip.title}
+               </h3>
+               <div className="flex items-center gap-3 text-white/70 text-[10px] font-black uppercase tracking-[0.15em]">
+                  <span className="flex items-center gap-1"><Clock className="h-2.5 w-2.5" /> {trip.duration}</span>
+                  <span className="flex items-center gap-1"><Star className="h-2.5 w-2.5 fill-orange-400 text-orange-400" /> {trip.rating}</span>
+               </div>
+            </div>
+            <div className="bg-white rounded-2xl px-4 py-2 shadow-xl shadow-black/20 text-center">
+               <span className="block text-[8px] font-black text-zinc-400 uppercase leading-none mb-0.5">تبدأ من</span>
+               <span className="text-lg font-black text-zinc-900 leading-none">{trip.price} <span className="text-[10px]">ج.م</span></span>
+            </div>
           </div>
         </div>
         
-        <CardContent className="p-5 space-y-3">
-          <div>
-            <h3 className="text-lg font-bold text-gray-900 group-hover:text-orange-600 transition-colors line-clamp-2 mb-2">
-              {trip.title}
-            </h3>
-            <p className="text-sm text-gray-500 line-clamp-2">
-              {trip.shortDescription}
-            </p>
-          </div>
-          
-          <div className="flex items-center justify-between text-sm pt-2">
-            <div className="flex items-center gap-1.5 text-gray-600">
-              <Clock className="h-4 w-4" />
-              <span>{trip.duration}</span>
-            </div>
-            {trip.season && (
-              <div className="flex items-center gap-1.5 text-orange-600">
-                <Calendar className="h-4 w-4" />
-                <span>
-                  {trip.season === 'winter' ? 'شتاء' :
-                   trip.season === 'summer' ? 'صيف' :
-                   trip.season === 'fall' ? 'خريف' :
-                   trip.season === 'spring' ? 'ربيع' : trip.season}
-                </span>
-              </div>
-            )}
-            <div className="flex items-center gap-1">
-              <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
-              <span className="font-semibold text-gray-900">{trip.rating}</span>
-            </div>
-          </div>
+        {/* Content Layer */}
+        <CardContent className="p-8 flex flex-col flex-1">
+          <p className="text-zinc-500 text-sm font-medium leading-[1.6] line-clamp-2 mb-8 flex-1">
+            {trip.shortDescription}
+          </p>
 
-          <Button 
-            className="w-full rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white mt-3 group/btn"
-            asChild
-          >
-            <div className="flex items-center justify-center">
-              عرض التفاصيل
-              <ArrowLeft className="h-4 w-4 mr-2 transition-transform group-hover/btn:-translate-x-1" />
-            </div>
-          </Button>
+          <div className="flex flex-col gap-3">
+             <div className="flex gap-2">
+               <Button 
+                  asChild
+                  className="flex-1 h-14 rounded-2xl bg-zinc-900 hover:bg-orange-600 text-white font-black text-base shadow-lg shadow-zinc-200 transition-all border-0"
+                >
+                  <Link to={`/corporate-trips/${trip.id}`} className="flex items-center justify-center gap-3">
+                    اكتشف المـزيد
+                    <motion.div animate={{ x: [0, -4, 0] }} transition={{ repeat: Infinity, duration: 1.5 }}>
+                      <ArrowRight className="h-5 w-5 rotate-180" />
+                    </motion.div>
+                  </Link>
+                </Button>
+
+                {onEdit && (
+                  <Button 
+                    variant="outline" 
+                    className="h-14 w-1 flex-1 max-w-[80px] rounded-2xl border-zinc-200 text-zinc-600 hover:bg-zinc-50 font-black h-14"
+                    onClick={(e) => { e.preventDefault(); onEdit(trip); }}
+                  >
+                    تعديل
+                  </Button>
+                )}
+             </div>
+
+             {companyName && (
+               <div className="flex items-center justify-center gap-3 text-[10px] font-black text-zinc-300 uppercase tracking-widest pt-2">
+                 <span className="h-px flex-1 bg-zinc-100" />
+                 <div className="flex items-center gap-2 text-zinc-400 group-hover:text-zinc-600 transition-colors">
+                    {companyLogo && (
+                      <div className="h-5 w-5 rounded-md overflow-hidden bg-zinc-50 border border-zinc-100">
+                        {companyLogo.startsWith('http') ? (
+                          <img src={companyLogo} alt={companyName} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-zinc-100 text-[8px] font-black">{companyLogo}</div>
+                        )}
+                      </div>
+                    )}
+                    <span>بواسطة {companyName}</span>
+                 </div>
+                 <span className="h-px flex-1 bg-zinc-100" />
+               </div>
+             )}
+          </div>
         </CardContent>
-      </Link>
     </Card>
   );
 };

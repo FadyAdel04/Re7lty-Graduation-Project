@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useAuth, useUser } from "@clerk/clerk-react";
-import { getFollowingStories, getMyStories, StoryUserGroup, createStory } from "@/lib/api";
+import { getFollowingStories, getMyStories, StoryUserGroup, createStory, getUserById } from "@/lib/api";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus } from "lucide-react";
@@ -32,6 +32,7 @@ export function StoriesBar({ onUserClick }: StoriesBarProps) {
   const [isCreating, setIsCreating] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [caption, setCaption] = useState("");
+  const [dbUser, setDbUser] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -77,7 +78,24 @@ export function StoriesBar({ onUserClick }: StoriesBarProps) {
     return () => {
       isMounted = false;
     };
-  }, [isSignedIn, getToken]);
+  }, [isSignedIn, getToken, user?.id]);
+
+  const fetchDbUser = async () => {
+    if (user?.id) {
+      try {
+        const userData = await getUserById(user.id);
+        setDbUser(userData);
+      } catch (error) {
+        console.error("Error fetching user data for stories bar:", error);
+      }
+    }
+  };
+
+  useEffect(() => {
+    fetchDbUser();
+    window.addEventListener('userProfileUpdated', fetchDbUser);
+    return () => window.removeEventListener('userProfileUpdated', fetchDbUser);
+  }, [user?.id]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -191,7 +209,7 @@ export function StoriesBar({ onUserClick }: StoriesBarProps) {
             <div className="h-14 w-14 rounded-full bg-background flex items-center justify-center relative overflow-hidden">
               {myStories ? (
                 <Avatar className="h-full w-full">
-                  <AvatarImage src={user?.imageUrl} alt="قصتك" />
+                  <AvatarImage src={dbUser?.imageUrl || user?.imageUrl} alt="قصتك" />
                   <AvatarFallback>أنا</AvatarFallback>
                 </Avatar>
               ) : (

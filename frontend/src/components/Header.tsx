@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from "react";
-import { Search, MapPin, Menu, Trophy, Compass, Briefcase, Home, Plus, X, Sparkles, Globe, Shield, Bell } from "lucide-react";
+import { Search, MapPin, Menu, Trophy, Compass, Briefcase, Home, Plus, X, Sparkles, Globe, Shield, Bell, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { search } from "@/lib/api";
+import { search, getUserById } from "@/lib/api";
 import {
   Sheet,
   SheetContent,
@@ -12,9 +12,10 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { SignedIn, SignedOut, SignInButton, useUser } from "@clerk/clerk-react";
+import { SignedIn, SignedOut, SignInButton, useUser, SignOutButton } from "@clerk/clerk-react";
 import NotificationBell from "@/components/NotificationBell";
 import { cn } from "@/lib/utils";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 const logo = "/assets/logo.png";
 
@@ -29,6 +30,7 @@ const Header = ({ onSearch }: HeaderProps) => {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [userResults, setUserResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [dbUser, setDbUser] = useState<any>(null);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
@@ -36,6 +38,38 @@ const Header = ({ onSearch }: HeaderProps) => {
   const navigate = useNavigate();
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const location = useLocation();
+
+  const fetchDbUser = async () => {
+    if (user?.id) {
+      try {
+        const userData = await getUserById(user.id);
+        setDbUser(userData);
+      } catch (error) {
+        console.error("Error fetching user data for header:", error);
+      }
+    } else {
+      setDbUser(null);
+    }
+  };
+
+  // Fetch DB user data to get custom profile image
+  useEffect(() => {
+    fetchDbUser();
+
+    // Listen for custom profile update event
+    const handleUpdate = (event: any) => {
+      if (event.detail) {
+        // Update state directly with the new data passed in the event
+        setDbUser((prev: any) => ({ ...prev, ...event.detail }));
+      } else {
+        // Fallback to fetching if no detail is provided
+        fetchDbUser();
+      }
+    };
+
+    window.addEventListener('userProfileUpdated', handleUpdate);
+    return () => window.removeEventListener('userProfileUpdated', handleUpdate);
+  }, [user?.id]);
 
   // Handle scroll effect
   useEffect(() => {
@@ -124,9 +158,10 @@ const Header = ({ onSearch }: HeaderProps) => {
   }, [mobileSearchOpen]);
 
   const NavItem = ({ to, icon: Icon, label, exact = false }: { to: string; icon: any; label: string; exact?: boolean }) => {
-    const isActive = exact ? location.pathname === to : location.pathname.startsWith(to);
-    return (
-      <Link to={to} className="relative group px-1 flex flex-col items-center justify-center">
+    const isExternal = to.startsWith('http');
+    const isActive = !isExternal && (exact ? location.pathname === to : location.pathname.startsWith(to));
+    
+    const content = (
         <div className={cn(
           "flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all duration-300 relative z-10",
           isActive 
@@ -141,6 +176,19 @@ const Header = ({ onSearch }: HeaderProps) => {
             <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1/3 h-0.5 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full" />
           )}
         </div>
+    );
+
+    if (isExternal) {
+      return (
+        <a href={to} className="relative group px-1 flex flex-col items-center justify-center">
+          {content}
+        </a>
+      );
+    }
+
+    return (
+      <Link to={to} className="relative group px-1 flex flex-col items-center justify-center">
+        {content}
       </Link>
     );
   };
@@ -181,6 +229,7 @@ const Header = ({ onSearch }: HeaderProps) => {
               <NavItem to="/templates" icon={Briefcase} label="الشركات" />
               <NavItem to="/leaderboard" icon={Trophy} label="المتصدرين" />
               {isAdmin && <NavItem to="/admin/dashboard" icon={Shield} label="لوحة التحكم" />}
+              {user?.publicMetadata?.role === 'company_owner' && <NavItem to="http://localhost:8080/company/dashboard" icon={Shield} label="لوحة الشركة" />}
             </nav>
 
             {/* Premium Search Bar */}
@@ -285,16 +334,21 @@ const Header = ({ onSearch }: HeaderProps) => {
                   <span className="relative z-10">أنشئ رحلة</span>
                 </Button>
               </Link>
-
-              <div className="group relative flex items-center gap-3 pl-1 pr-4 py-1.5 rounded-2xl bg-gray-50/50 hover:bg-indigo-50 transition-all cursor-pointer border border-transparent hover:border-indigo-100/50" onClick={handleUserButtonClick}>
-                <div className="text-right hidden md:block">
-                  <p className="text-[10px] font-black text-indigo-400 leading-none mb-1">المسافر</p>
-                  <p className="text-xs font-black text-gray-700 leading-none">{user?.firstName}</p>
-                </div>
-                <div className="h-10 w-10 rounded-xl overflow-hidden shadow-md ring-2 ring-white group-hover:ring-indigo-100 transition-all">
-                  <img src={user?.imageUrl} alt="Profile" className="h-full w-full object-cover" />
-                </div>
-              </div>
+              
+              {user && user.publicMetadata?.role !== 'company_owner' && (
+                <Link to={`/user/${user.id}`} className="hidden md:flex items-center gap-3 pl-1 pr-4 py-1 rounded-2xl bg-gray-50/50 border border-gray-100/50 hover:bg-indigo-50 transition-all group">
+                  <div className="text-right">
+                    <p className="text-[10px] font-black text-indigo-500 leading-none mb-1">مرحباً بك</p>
+                    <p className="text-xs font-black text-gray-700 leading-none truncate max-w-[100px]">{user.fullName || user.username}</p>
+                  </div>
+                  <Avatar className="h-9 w-9 border-2 border-white shadow-sm transition-transform group-hover:scale-105">
+                    <AvatarImage src={dbUser?.imageUrl || user.imageUrl} />
+                    <AvatarFallback className="bg-indigo-100 text-indigo-600 font-bold text-xs">
+                      {user.firstName?.charAt(0) || user.username?.charAt(0) || "?"}
+                    </AvatarFallback>
+                  </Avatar>
+                </Link>
+              )}
             </SignedIn>
 
             <SignedOut>
@@ -342,16 +396,41 @@ const Header = ({ onSearch }: HeaderProps) => {
                         </Link>
                       );
                     })}
-                    {isAdmin && (
+                  {isAdmin && (
                       <Link to="/admin/dashboard" className="flex items-center gap-4 p-4 rounded-2xl text-rose-500 font-bold hover:bg-rose-50 transition-all mt-4 border border-rose-100/50">
                         <Shield className="h-6 w-6" />
                         <span className="text-lg">لوحة التحكم</span>
                       </Link>
                     )}
+                  {user?.publicMetadata?.role === 'company_owner' && (
+                      <a href="http://localhost:8080/company/dashboard" className="flex items-center gap-4 p-4 rounded-2xl text-purple-600 font-bold hover:bg-purple-50 transition-all mt-4 border border-purple-100/50">
+                        <Shield className="h-6 w-6" />
+                        <span className="text-lg">لوحة الشركة</span>
+                      </a>
+                    )}
                   </nav>
                   
                   <div className="p-8 border-t border-gray-100">
                     <SignedIn>
+                       <div className="px-4 py-2 mb-2 border-b border-gray-50">
+                          {user && user.publicMetadata?.role !== 'company_owner' && (
+                            <Link 
+                              to={`/user/${user.id}`} 
+                              className="flex items-center gap-4 p-4 rounded-2xl text-indigo-600 font-black bg-indigo-50 shadow-sm"
+                            >
+                              <Avatar className="h-10 w-10 border-2 border-white shadow-sm">
+                                <AvatarImage src={dbUser?.imageUrl || user.imageUrl} />
+                                <AvatarFallback className="bg-white text-indigo-600 uppercase">
+                                  {user.firstName?.charAt(0) || user.username?.charAt(0)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex flex-col">
+                                <span className="text-lg leading-tight">{user.fullName || user.username}</span>
+                                <span className="text-[10px] font-bold text-indigo-400">عرض الملف الشخصي</span>
+                              </div>
+                            </Link>
+                          )}
+                       </div>
                        <Link to="/trips/new">
                         <Button className="w-full h-15 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black flex items-center justify-center gap-3 shadow-xl shadow-indigo-100 transition-all active:scale-95">
                           <Plus className="h-5 w-5" />

@@ -13,8 +13,10 @@ import {
   ChevronRight,
   X,
   PlusCircle,
-  FileCheck
+  FileCheck,
+  LogOut
 } from 'lucide-react';
+import { useClerk } from '@clerk/clerk-react';
 import { cn } from '@/lib/utils';
 
 interface AdminSidebarProps {
@@ -31,6 +33,13 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
   closeMobileSidebar
 }) => {
   const location = useLocation();
+  const { signOut } = useClerk();
+
+  const handleSignOut = async () => {
+    if (window.confirm('هل أنت متأكد من تسجيل الخروج؟')) {
+      await signOut();
+    }
+  };
 
   const navItems = [
     {
@@ -186,6 +195,26 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
                </div>
             </div>
           )}
+
+          {/* Sign Out Button */}
+          <div className="p-4 border-t border-gray-100 mt-auto">
+             <button
+                onClick={handleSignOut}
+                className={cn(
+                  "flex items-center gap-4 w-full px-4 py-3.5 rounded-2xl transition-all duration-300 text-red-500 hover:bg-red-50 font-bold",
+                  !isOpen && "justify-center px-0"
+                )}
+             >
+                <LogOut className="h-5 w-5 shrink-0" />
+                {isOpen && <span className="text-sm">تسجيل الخروج</span>}
+                
+                {!isOpen && (
+                  <div className="absolute right-full mr-4 px-3 py-1.5 bg-gray-900 text-white text-[10px] font-black rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-[100] translate-x-1 group-hover:translate-x-0 transition-all">
+                    تسجيل الخروج
+                  </div>
+                )}
+             </button>
+          </div>
         </div>
       </motion.aside>
     </>

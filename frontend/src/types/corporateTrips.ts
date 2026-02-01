@@ -7,6 +7,7 @@ export interface ContactInfo {
 }
 
 export interface Company {
+    _id?: string; // MongoDB ID
     id: string;
     name: string;
     logo: string; // URL or initials
@@ -26,6 +27,7 @@ export interface ItineraryDay {
 }
 
 export interface Trip {
+    _id?: string; // MongoDB ID
     id: string; // slug-based
     title: string;
     destination: string;
@@ -49,6 +51,9 @@ export interface Trip {
     maxGroupSize?: number;
     difficulty?: 'سهل' | 'متوسط' | 'صعب';
     season?: string;
+    startDate?: string;
+    endDate?: string;
+    views?: number;
 }
 
 export interface TripFilters {

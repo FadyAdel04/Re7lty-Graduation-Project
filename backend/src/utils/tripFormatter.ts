@@ -88,7 +88,7 @@ export async function formatTripsWithUserData(trips: any[], req: any, viewerId?:
   const ownerIds = [...new Set(trips.map(t => t?.ownerId).filter(Boolean))];
 
   // Fetch all users in one query
-  const users = await User.find({ clerkId: { $in: ownerIds } }).select('clerkId fullName imageUrl');
+  const users = await User.find({ clerkId: { $in: ownerIds } }).select('clerkId fullName imageUrl badgeLevel');
   const userMap = new Map(users.map((u: any) => [u.clerkId, u]));
 
   // Format each trip with media URLs and user data
@@ -101,6 +101,7 @@ export async function formatTripsWithUserData(trips: any[], req: any, viewerId?:
       // Populate with current user data from MongoDB
       author: user?.fullName || formatted.author || 'مستخدم',
       authorImage: user?.imageUrl || undefined,
+      authorBadge: user?.badgeLevel || 'none',
     };
   });
 }

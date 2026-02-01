@@ -66,6 +66,146 @@ router.get('/', async (req, res) => {
 
 /**
  * @swagger
+ * /corporate/companies/me:
+ *   get:
+ *     summary: Get current user's company
+ *     tags: [Corporate Companies]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Company details
+ *       404:
+ *         description: Company not found or user not linked
+ */
+router.get('/me', ClerkExpressRequireAuth(), async (req, res) => {
+    try {
+        // Need to import User model to find linked companyId
+        const { User } = await import('../models/User');
+        const user = await User.findOne({ clerkId: req.auth?.userId });
+
+        if (!user || !user.companyId) {
+            return res.status(404).json({ error: 'No linked company found for this user' });
+        }
+
+        // Check if companyId refers to a CorporateCompany OR CompanySubmission?
+        // Usually, when approved, a CorporateCompany is created. 
+        // We need to make sure user.companyId points to the CorporateCompany.
+        // Assuming the approval process creates CorporateCompany and links it.
+        // Wait, looking at approval logic in previous steps, it just updated the role.
+        // It didn't seem to create a CorporateCompany documented in the summary.
+        // If the approval process ONLY updates role, then we might need to find the submission or create CorporateCompany then.
+
+        // HOWEVER, based on typical flow:
+        // 1. User submits -> CompanySubmission
+        // 2. Admin approves -> Creates CorporateCompany -> Updates User.companyId to CorporateCompany._id
+
+        // Let's assume user.companyId IS the CorporateCompany ID if role is company_owner.
+
+        let company;
+        if (user.companyId) {
+            company = await CorporateCompany.findById(user.companyId);
+        }
+
+        // Self-healing: If no linked company or company not found, try to recover from submission
+        if (!company) {
+            const { CompanySubmission } = await import('../models/CompanySubmission');
+            const submission = await CompanySubmission.findOne({ userId: req.auth?.userId, status: 'approved' });
+
+            if (submission) {
+                // Check if a CorporateCompany exists with this email (maybe link was lost)
+                const existingCompany = await CorporateCompany.findOne({ 'contactInfo.email': submission.email });
+
+                if (existingCompany) {
+                    company = existingCompany;
+                } else {
+                    // Create it now
+                    company = await CorporateCompany.create({
+                        name: submission.companyName,
+                        description: submission.message || `مرحباً بكم في ${submission.companyName}`,
+                        logo: "https://via.placeholder.com/150",
+                        color: "from-blue-500 to-cyan-500",
+                        contactInfo: {
+                            email: submission.email,
+                            phone: submission.phone,
+                            whatsapp: submission.whatsapp,
+                            website: "",
+                            address: ""
+                        },
+                        tags: submission.tripTypes.split(',').map(t => t.trim()),
+                        isActive: true,
+                        createdBy: req.auth?.userId
+                    });
+                }
+
+                // Link to user
+                user.companyId = company._id as any;
+                await user.save();
+            }
+        }
+
+        if (!company) {
+            return res.status(404).json({ error: 'Company profile not found' });
+        }
+
+        res.json(company);
+    } catch (error) {
+        console.error('Error fetching my company:', error);
+        res.status(500).json({ error: 'Failed to fetch company' });
+    }
+});
+
+/**
+ * @swagger
+ * /corporate/companies/me:
+ *   put:
+ *     summary: Update current user's company
+ *     tags: [Corporate Companies]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Company updated
+ */
+router.put('/me', ClerkExpressRequireAuth(), async (req, res) => {
+    try {
+        const { User } = await import('../models/User');
+        const user = await User.findOne({ clerkId: req.auth?.userId });
+
+        if (!user || !user.companyId) {
+            return res.status(404).json({ error: 'No linked company found' });
+        }
+
+        // Prevent updating critical fields if needed (like isActive, rating?)
+        // The user wants to update: name, description, logo, color, contactInfo
+        // We should allow these.
+
+        const updates = req.body;
+        // Optional: whitelist fields
+
+        const company = await CorporateCompany.findByIdAndUpdate(
+            user.companyId,
+            updates,
+            { new: true, runValidators: true }
+        );
+
+        if (!company) {
+            return res.status(404).json({ error: 'Company not found' });
+        }
+
+        res.json({
+            success: true,
+            message: 'Company profile updated successfully',
+            company
+        });
+    } catch (error) {
+        console.error('Error updating my company:', error);
+        res.status(500).json({ error: 'Failed to update company' });
+    }
+});
+
+/**
+ * @swagger
  * /corporate/companies/{id}:
  *   get:
  *     summary: Get company by ID

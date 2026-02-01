@@ -3,6 +3,7 @@ import { CorporateTrip } from '../models/CorporateTrip';
 import { CorporateCompany } from '../models/CorporateCompany';
 import { requireAdmin } from '../utils/adminMiddleware';
 import { ClerkExpressRequireAuth } from '@clerk/clerk-sdk-node';
+import { persistBase64 } from '../utils/media';
 
 
 /**
@@ -165,7 +166,11 @@ router.get('/:slug', async (req, res) => {
             query.$or.push({ _id: slug });
         }
 
-        const trip = await CorporateTrip.findOne(query).populate('companyId');
+        const trip = await CorporateTrip.findOneAndUpdate(
+            query,
+            { $inc: { views: 1 } },
+            { new: true }
+        ).populate('companyId');
 
         if (!trip) {
             return res.status(404).json({ error: 'Trip not found' });
@@ -202,10 +207,11 @@ router.get('/:slug', async (req, res) => {
  */
 router.get('/company/:companyId', async (req, res) => {
     try {
-        const trips = await CorporateTrip.find({
-            companyId: req.params.companyId,
-            isActive: true
-        }).sort({ rating: -1 });
+        const query: any = { companyId: req.params.companyId };
+
+        // Ensure we're fetching from the database without filtering by active status
+        // to show ALL trips as requested.
+        const trips = await CorporateTrip.find(query).sort({ rating: -1 });
 
         res.json(trips);
     } catch (error) {
@@ -341,10 +347,22 @@ router.get('/admin/all', ClerkExpressRequireAuth(), requireAdmin, async (req, re
  */
 router.post('/admin/create', ClerkExpressRequireAuth(), requireAdmin, async (req, res) => {
     try {
+        // Process images if present
+        let processedImages = req.body.images;
+        if (processedImages && Array.isArray(processedImages)) {
+            processedImages = await Promise.all(processedImages.map((img: string) => persistBase64(img, 'corporate-trips')));
+        }
+
         const tripData = {
             ...req.body,
+            images: processedImages || req.body.images,
             createdBy: req.auth?.userId
         };
+
+        // Fix empty strings causing CastErrors
+        if (!tripData.startDate) delete tripData.startDate;
+        if (!tripData.endDate) delete tripData.endDate;
+        if (!tripData.maxGroupSize) delete tripData.maxGroupSize;
 
         const trip = new CorporateTrip(tripData);
         await trip.save();
@@ -363,6 +381,163 @@ router.post('/admin/create', ClerkExpressRequireAuth(), requireAdmin, async (req
     } catch (error) {
         console.error('Error creating trip:', error);
         res.status(500).json({ error: 'Failed to create trip' });
+    }
+});
+
+/**
+ * @swagger
+ * /corporate/trips/me/create:
+ *   post:
+ *     summary: Create new trip for current company owner
+ *     tags: [Corporate Trips]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CorporateTrip'
+ *     responses:
+ *       201:
+ *         description: Trip created
+ */
+router.post('/me/create', ClerkExpressRequireAuth(), async (req, res) => {
+    try {
+        // Get user and verify company owner status
+        const { User } = await import('../models/User');
+        const user = await User.findOne({ clerkId: req.auth?.userId });
+
+        if (!user || !user.companyId || user.role !== 'company_owner') {
+            return res.status(403).json({ error: 'Unauthorized: Only company owners can create trips' });
+        }
+
+        // Sanitize itinerary: remove items with empty title or description
+        if (req.body.itinerary && Array.isArray(req.body.itinerary)) {
+            req.body.itinerary = req.body.itinerary.filter((item: any) =>
+                item.title?.trim() || item.description?.trim()
+            );
+        }
+
+        // Process images if present
+        let processedImages = req.body.images;
+        if (processedImages && Array.isArray(processedImages)) {
+            processedImages = await Promise.all(processedImages.map((img: string) => persistBase64(img, 'corporate-trips')));
+        }
+
+        const tripData = {
+            ...req.body,
+            images: processedImages || req.body.images,
+            companyId: user.companyId, // Force company ID from user profile
+            createdBy: req.auth?.userId,
+            isActive: true
+        };
+
+        // Fix empty strings causing CastErrors
+        if (!tripData.startDate) delete tripData.startDate;
+        if (!tripData.endDate) delete tripData.endDate;
+        if (!tripData.maxGroupSize) delete tripData.maxGroupSize;
+
+        const trip = new CorporateTrip(tripData);
+        await trip.save();
+
+        // Update company trips count
+        await CorporateCompany.findByIdAndUpdate(
+            user.companyId,
+            { $inc: { tripsCount: 1 } }
+        );
+
+        res.status(201).json({
+            success: true,
+            message: 'Trip created successfully',
+            trip
+        });
+    } catch (error: any) {
+        console.error('Error creating trip:', error);
+
+        // Handle Mongoose validation errors specifically
+        if (error.name === 'ValidationError') {
+            return res.status(400).json({
+                error: 'خطأ في التحقق من البيانات',
+                details: Object.values(error.errors).map((err: any) => err.message).join(', ')
+            });
+        }
+
+        // Handle duplication error (e.g. slug)
+        if (error.code === 11000) {
+            return res.status(400).json({
+                error: 'هذه الرحلة موجودة بالفعل (العنوان مكرر)',
+                details: 'يرجى تغيير عنوان الرحلة'
+            });
+        }
+
+        res.status(500).json({
+            error: 'Failed to create trip',
+            details: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
+    }
+});
+
+/**
+ * @swagger
+ * /corporate/trips/me/{id}:
+ *   put:
+ *     summary: Update trip by company owner
+ *     tags: [Corporate Trips]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.put('/me/:id', ClerkExpressRequireAuth(), async (req, res) => {
+    try {
+        const { User } = await import('../models/User');
+        const user = await User.findOne({ clerkId: req.auth?.userId });
+
+        if (!user || !user.companyId || user.role !== 'company_owner') {
+            return res.status(403).json({ error: 'Unauthorized' });
+        }
+
+        const trip = await CorporateTrip.findById(req.params.id);
+        if (!trip) {
+            return res.status(404).json({ error: 'Trip not found' });
+        }
+
+        // Verify that this trip belongs to the user's company
+        if (trip.companyId.toString() !== user.companyId.toString()) {
+            return res.status(403).json({ error: 'Unauthorized: This trip belongs to another company' });
+        }
+
+        // Process images if present
+        if (req.body.images && Array.isArray(req.body.images)) {
+            // Only process if it looks like base64
+            req.body.images = await Promise.all(req.body.images.map((img: string) => {
+                if (img.startsWith('data:')) {
+                    return persistBase64(img, 'corporate-trips');
+                }
+                return img;
+            }));
+        }
+
+        const updateData = { ...req.body };
+        // Clean up empty fields that might cause CastErrors
+        if (updateData.startDate === '') delete updateData.startDate;
+        if (updateData.endDate === '') delete updateData.endDate;
+        if (updateData.maxGroupSize === '') delete updateData.maxGroupSize;
+
+        const updatedTrip = await CorporateTrip.findByIdAndUpdate(
+            req.params.id,
+            updateData,
+            { new: true, runValidators: true }
+        ).populate('companyId');
+
+        res.json({
+            success: true,
+            message: 'Trip updated successfully',
+            trip: updatedTrip
+        });
+    } catch (error: any) {
+        console.error('Error updating trip:', error);
+        res.status(500).json({ error: 'Failed to update trip', details: error.message });
     }
 });
 
@@ -392,9 +567,19 @@ router.post('/admin/create', ClerkExpressRequireAuth(), requireAdmin, async (req
  */
 router.put('/admin/:id', ClerkExpressRequireAuth(), requireAdmin, async (req, res) => {
     try {
+        // Process images if present
+        if (req.body.images && Array.isArray(req.body.images)) {
+            req.body.images = await Promise.all(req.body.images.map((img: string) => persistBase64(img, 'corporate-trips')));
+        }
+
+        const updateData = { ...req.body };
+        if (!updateData.startDate) delete updateData.startDate;
+        if (!updateData.endDate) delete updateData.endDate;
+        if (!updateData.maxGroupSize) delete updateData.maxGroupSize;
+
         const trip = await CorporateTrip.findByIdAndUpdate(
             req.params.id,
-            req.body,
+            updateData,
             { new: true, runValidators: true }
         ).populate('companyId');
 

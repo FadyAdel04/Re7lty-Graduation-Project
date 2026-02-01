@@ -36,6 +36,7 @@ export const corporateTripsService = {
             const response = await axios.get(`${API_URL}/api/corporate/trips`);
             return response.data.trips.map((trip: any) => ({
                 ...trip,
+                _id: trip._id,
                 id: trip.slug,
                 companyId: trip.companyId._id || trip.companyId
             }));
@@ -51,6 +52,7 @@ export const corporateTripsService = {
             const response = await axios.get(`${API_URL}/api/corporate/trips/${slug}`);
             return {
                 ...response.data,
+                _id: response.data._id,
                 id: response.data.slug,
                 companyId: response.data.companyId._id || response.data.companyId
             };
@@ -66,6 +68,7 @@ export const corporateTripsService = {
             const response = await axios.get(`${API_URL}/api/corporate/trips/company/${companyId}`);
             return response.data.map((trip: any) => ({
                 ...trip,
+                _id: trip._id,
                 id: trip.slug,
                 companyId: trip.companyId._id || trip.companyId
             }));
@@ -87,6 +90,7 @@ export const corporateTripsService = {
             const response = await axios.get(`${API_URL}/api/corporate/trips`, { params });
             let trips = response.data.trips.map((trip: any) => ({
                 ...trip,
+                _id: trip._id,
                 id: trip.slug,
                 companyId: trip.companyId._id || trip.companyId
             }));
@@ -127,6 +131,7 @@ export const corporateTripsService = {
             });
             return response.data.map((trip: any) => ({
                 ...trip,
+                _id: trip._id,
                 id: trip.slug,
                 companyId: trip.companyId._id || trip.companyId
             }));
@@ -164,6 +169,34 @@ export const corporateTripsService = {
             return response.data;
         } catch (error) {
             console.error('Error submitting company registration:', error);
+            throw error;
+        }
+    },
+
+    // Create a new trip for current company owner
+    async createMyTrip(data: any, token?: string) {
+        try {
+            const response = await axios.post(`${API_URL}/api/corporate/trips/me/create`, data, {
+                headers: getAuthHeaders(token),
+                withCredentials: true
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error creating trip:', error);
+            throw error;
+        }
+    },
+
+    // Update a trip by company owner
+    async updateMyTrip(id: string, data: any, token?: string) {
+        try {
+            const response = await axios.put(`${API_URL}/api/corporate/trips/me/${id}`, data, {
+                headers: getAuthHeaders(token),
+                withCredentials: true
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error updating trip:', error);
             throw error;
         }
     }

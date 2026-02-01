@@ -17,6 +17,7 @@ const CorporateCompanySchema = new Schema({
     tags: [{ type: String }], // e.g., ["سفاري", "مغامرات", "تخييم"]
     color: { type: String, required: true }, // Tailwind gradient classes
     tripsCount: { type: Number, default: 0 }, // Auto-calculated
+    ownerId: { type: String }, // Clerk ID of company owner
     isActive: { type: Boolean, default: true },
     createdBy: { type: String }, // Clerk ID of admin who created
 }, { timestamps: true });
