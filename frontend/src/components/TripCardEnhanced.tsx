@@ -1,4 +1,4 @@
-import { Clock, Star, MapPin, ArrowRight, Calendar, User, Info, Building2 } from "lucide-react";
+import { Clock, Star, MapPin, ArrowRight, Calendar, User, Info, Building2, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,21 @@ interface TripCardEnhancedProps {
 }
 
 const TripCardEnhanced = ({ trip, companyName, companyLogo, showCompanyBadge = false, onEdit }: TripCardEnhancedProps) => {
+  const getTimeRemaining = (startDate: string) => {
+    const total = Date.parse(startDate) - Date.parse(new Date().toString());
+    const days = Math.floor(total / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((total / (1000 * 60 * 60)) % 24);
+    
+    if (total <= 0) return "قد بدأت بالفعل";
+    if (days > 0) return `متبقي ${days} يوم و ${hours} ساعة`;
+    return `متبقي ${hours} ساعة`;
+  };
+
+  const isAcceptingBookings = (startDate: string) => {
+    const total = Date.parse(startDate) - Date.parse(new Date().toString());
+    return total > 0;
+  };
+
   return (
     <Card className="group relative bg-white border border-zinc-200/60 rounded-[2.5rem] overflow-hidden hover:shadow-2xl hover:shadow-zinc-200/60 transition-all duration-500 flex flex-col h-full">
         {/* Visual Media Layer */}
@@ -47,6 +62,25 @@ const TripCardEnhanced = ({ trip, companyName, companyLogo, showCompanyBadge = f
               </Link>
             )}
           </div>
+
+          {/* Countdown Flag Badge */}
+          {trip.startDate && (
+            <div className="absolute top-16 right-0 z-20">
+               <div className={`flex items-center gap-2 px-4 py-2 rounded-l-full shadow-lg backdrop-blur-md border-y border-l transition-all ${
+                 isAcceptingBookings(trip.startDate) 
+                 ? "bg-emerald-500/90 border-emerald-400 text-white" 
+                 : "bg-rose-500/90 border-rose-400 text-white"
+               }`}>
+                  <Timer className="w-3.5 h-3.5 animate-pulse" />
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-black uppercase leading-none">{getTimeRemaining(trip.startDate)}</span>
+                    <span className="text-[8px] font-bold opacity-80 leading-none mt-0.5">
+                      {isAcceptingBookings(trip.startDate) ? "الحجز متاح الآن" : "انتهى وقت الحجز"}
+                    </span>
+                  </div>
+               </div>
+            </div>
+          )}
 
           <div className="absolute bottom-4 left-4 right-4 z-10 flex items-end justify-between">
             <div className="space-y-1">

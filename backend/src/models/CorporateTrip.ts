@@ -7,6 +7,13 @@ const ItineraryDaySchema = new Schema({
     activities: [{ type: String }]
 }, { _id: false });
 
+const SeatBookingSchema = new Schema({
+    seatNumber: { type: String, required: true },
+    passengerName: { type: String, required: true },
+    bookingId: { type: Schema.Types.ObjectId, ref: 'Booking' },
+    userId: { type: String }, // Add userId to track ownership
+}, { _id: false });
+
 const BookingMethodSchema = new Schema({
     whatsapp: { type: Boolean, default: true },
     phone: { type: Boolean, default: true },
@@ -44,6 +51,10 @@ const CorporateTripSchema = new Schema({
     endDate: { type: Date },
     isActive: { type: Boolean, default: true },
     views: { type: Number, default: 0 },
+    transportationImages: [{ type: String }], // Array of transportation image URLs
+    availableSeats: { type: Number, default: 0 },
+    transportationType: { type: String, enum: ['bus-48', 'minibus-28', 'van-14'], default: 'bus-48' },
+    seatBookings: [SeatBookingSchema],
     createdBy: { type: String }, // Clerk ID of admin who created
 }, { timestamps: true });
 

@@ -35,6 +35,17 @@ const NotificationBell = () => {
   const handleNotificationClick = async (notification: any) => {
     await markAsRead(notification.id);
     
+    // Check if it's a seat assignment notification
+    if (notification.metadata?.action === 'seat_assignment' && notification.metadata?.tripSlug) {
+      navigate(`/corporate-trips/${notification.metadata.tripSlug}#transportation`);
+      // Force scroll to element if hash is present
+      setTimeout(() => {
+        const el = document.getElementById('transportation');
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+      return;
+    }
+
     // Check if it's a booking-related notification
     const isBooking = 
       notification.type === 'booking' || 
@@ -50,7 +61,9 @@ const NotificationBell = () => {
     if (notification.link) {
       navigate(notification.link);
     } else if (notification.tripId) {
-      navigate(`/trips/${notification.tripId}`);
+      // For general trips, try slug if available in metadata, or use tripId
+      const slug = notification.metadata?.tripSlug || notification.tripId;
+      navigate(`/corporate-trips/${slug}`);
     } else if (notification.actorId) {
       navigate(`/user/${notification.actorId}`);
     }

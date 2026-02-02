@@ -52,7 +52,7 @@ router.post("/", requireAuthStrict, async (req, res) => {
         // Fetch user from Clerk
         const user = await clerkClient.users.getUser(userId);
 
-        const { tripId, numberOfPeople, bookingDate, userPhone, specialRequests, firstName, lastName, email } = req.body;
+        const { tripId, numberOfPeople, bookingDate, userPhone, specialRequests, firstName, lastName, email, selectedSeats } = req.body;
 
         // Validate required fields
         if (!tripId || !numberOfPeople || !bookingDate || !userPhone) {
@@ -63,6 +63,14 @@ router.post("/", requireAuthStrict, async (req, res) => {
         const trip = await CorporateTrip.findById(tripId);
         if (!trip) {
             return res.status(404).json({ error: "Trip not found" });
+        }
+
+        // Check if any of the selected seats are already booked
+        if (selectedSeats && selectedSeats.length > 0) {
+            const alreadyBooked = trip.seatBookings?.some(s => selectedSeats.includes(s.seatNumber));
+            if (alreadyBooked) {
+                return res.status(400).json({ error: "بعض المقاعد المختارة محجوزة بالفعل، يرجى اختيار مقاعد أخرى" });
+            }
         }
 
         // Fetch company details
@@ -76,8 +84,6 @@ router.post("/", requireAuthStrict, async (req, res) => {
         const unitPrice = priceMatch ? parseInt(priceMatch[0]) : 0;
         const totalPrice = unitPrice * numberOfPeople;
 
-        // Create booking
-        // Create booking
         // Use provided contact info or fallback to Clerk data
         const userEmail = email || user.emailAddresses?.[0]?.emailAddress || "no-email@provided.com";
         let userName = "User";
@@ -108,7 +114,10 @@ router.post("/", requireAuthStrict, async (req, res) => {
             bookingDate: new Date(bookingDate),
             specialRequests: specialRequests || "",
             totalPrice,
-            status: "pending"
+            status: "pending",
+            selectedSeats: selectedSeats || [],
+            transportationType: trip.transportationType || 'bus-48',
+            seatNumber: (selectedSeats && selectedSeats.length > 0) ? selectedSeats[0] : undefined
         });
 
         // Notify company owner about new booking
@@ -168,6 +177,92 @@ router.get("/my-bookings", requireAuthStrict, async (req, res) => {
     } catch (error: any) {
         console.error("Error fetching user bookings:", error);
         res.status(500).json({ error: error.message || "Failed to fetch bookings" });
+    }
+});
+
+/**
+ * @swagger
+ * /api/bookings/{id}/cancel:
+ *   post:
+ *     summary: Cancel a booking by the user
+ *     tags: [Bookings]
+ */
+router.post("/:id/cancel", requireAuthStrict, async (req, res) => {
+    try {
+        const { userId } = getAuth(req);
+        const { id } = req.params;
+
+        const booking = await Booking.findById(id);
+        if (!booking) return res.status(404).json({ error: "Booking not found" });
+
+        if (booking.userId !== userId) {
+            return res.status(403).json({ error: "You can only cancel your own bookings" });
+        }
+
+        if (booking.status === 'cancelled') {
+            return res.status(400).json({ error: "الطلب ملغي بالفعل" });
+        }
+
+        // If it was accepted and has seats, we should free them
+        if (booking.status === 'accepted' && booking.selectedSeats && booking.selectedSeats.length > 0) {
+            const trip = await CorporateTrip.findById(booking.tripId);
+            if (trip) {
+                (trip.seatBookings as any) = trip.seatBookings.filter(s => !booking.selectedSeats.includes(s.seatNumber));
+                await trip.save();
+            }
+        }
+
+        booking.status = "cancelled";
+        booking.cancellationReason = "تم الإلغاء من قبل المستخدم";
+        booking.statusUpdatedAt = new Date();
+        await booking.save();
+
+        res.json({ success: true, booking });
+    } catch (error: any) {
+        console.error("Error cancelling booking:", error);
+        res.status(500).json({ error: error.message || "Failed to cancel booking" });
+    }
+});
+
+/**
+ * @swagger
+ * /api/bookings/{id}:
+ *   put:
+ *     summary: Update a booking by the user
+ *     tags: [Bookings]
+ */
+router.put("/:id", requireAuthStrict, async (req, res) => {
+    try {
+        const { userId } = getAuth(req);
+        const { id } = req.params;
+        const { numberOfPeople, userPhone, specialRequests, selectedSeats, firstName, lastName, email } = req.body;
+
+        const booking = await Booking.findById(id);
+        if (!booking) return res.status(404).json({ error: "Booking not found" });
+
+        if (booking.userId !== userId) {
+            return res.status(403).json({ error: "You can only edit your own bookings" });
+        }
+
+        if (booking.status === 'accepted') {
+            return res.status(400).json({ error: "لا يمكن تعديل الحجز بعد قبوله. يرجى التواصل مع الشركة." });
+        }
+
+        if (numberOfPeople) booking.numberOfPeople = numberOfPeople;
+        if (userPhone) booking.userPhone = userPhone;
+        if (specialRequests) booking.specialRequests = specialRequests;
+        if (selectedSeats) booking.selectedSeats = selectedSeats;
+
+        if (firstName && lastName) {
+            booking.userName = `${firstName} ${lastName}`;
+        }
+        if (email) booking.userEmail = email;
+
+        await booking.save();
+        res.json({ success: true, booking });
+    } catch (error: any) {
+        console.error("Error updating booking:", error);
+        res.status(500).json({ error: error.message || "Failed to update booking" });
     }
 });
 
@@ -270,6 +365,26 @@ router.post("/:id/accept", requireAuthStrict, async (req, res) => {
         booking.status = "accepted";
         booking.statusUpdatedAt = new Date();
         await booking.save();
+
+        // Auto-assign seats if user selected them and trip exists
+        if (booking.selectedSeats && booking.selectedSeats.length > 0) {
+            const trip = await CorporateTrip.findById(booking.tripId);
+            if (trip) {
+                booking.selectedSeats.forEach(seatNum => {
+                    // Check if seat already assigned to avoid duplicates
+                    if (!trip.seatBookings.some(s => s.seatNumber === seatNum)) {
+                        trip.seatBookings.push({
+                            seatNumber: seatNum,
+                            passengerName: booking.userName,
+                            userId: booking.userId,
+                            bookingId: booking._id
+                        } as any);
+                    }
+                });
+
+                await trip.save();
+            }
+        }
 
         // Notify user
         await createNotification({

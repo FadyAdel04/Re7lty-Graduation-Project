@@ -55,6 +55,7 @@ import {
   getUserFollowing,
 } from "@/lib/api";
 import TripSkeletonLoader from "@/components/TripSkeletonLoader";
+import BusSeatLayout from "@/components/company/BusSeatLayout";
 
 const UserProfile = () => {
   const { id } = useParams<{ id: string }>();
@@ -141,6 +142,19 @@ const UserProfile = () => {
   const [myStories, setMyStories] = useState<StoryItem[]>([]);
   const [isLoadingMyStories, setIsLoadingMyStories] = useState(false);
   const [storyViewersById, setStoryViewersById] = useState<Record<string, StoryViewerInfo[]>>({});
+
+  // Booking management
+  const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
+  const [isEditBookingOpen, setIsEditBookingOpen] = useState(false);
+  const [isUpdatingBooking, setIsUpdatingBooking] = useState(false);
+  const [editBookingData, setEditBookingData] = useState({
+    userPhone: "",
+    numberOfPeople: 1,
+    specialRequests: "",
+    selectedSeats: [] as string[],
+    firstName: "",
+    lastName: ""
+  });
 
   const handleOpenFollowers = () => {
     const targetId = id || clerkUser?.id;
@@ -681,6 +695,81 @@ const UserProfile = () => {
     }
   };
 
+  const handleCancelBooking = async (bookingId: string) => {
+    if (!window.confirm("هل أنت متأكد من رغبتك في إلغاء هذا الحجز؟")) return;
+    
+    try {
+      const token = await getToken();
+      await bookingService.cancelBookingByUser(bookingId, token || undefined);
+      
+      toast({
+        title: "تم الإلغاء",
+        description: "تم إلغاء الحجز بنجاح",
+      });
+      
+      setBookings(prev => prev.map(b => b._id === bookingId ? { ...b, status: 'cancelled' } : b));
+    } catch (error: any) {
+      console.error("Error cancelling booking:", error);
+      toast({
+        title: "خطأ",
+        description: error.response?.data?.error || "فشل إلغاء الحجز",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEditBooking = (booking: Booking) => {
+    if (booking.status === 'accepted') {
+      toast({
+        title: "تنبيه",
+        description: "لا يمكن تعديل الحجز بعد قبوله. يرجى التواصل مع الشركة.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setEditingBooking(booking);
+    const names = booking.userName.split(" ");
+    setEditBookingData({
+      userPhone: booking.userPhone,
+      numberOfPeople: booking.numberOfPeople,
+      specialRequests: booking.specialRequests,
+      selectedSeats: booking.selectedSeats || [],
+      firstName: names[0] || "",
+      lastName: names.slice(1).join(" ") || ""
+    });
+    setIsEditBookingOpen(true);
+  };
+
+  const handleUpdateBooking = async () => {
+    if (!editingBooking) return;
+
+    try {
+      setIsUpdatingBooking(true);
+      const token = await getToken();
+      const response = await bookingService.updateBookingByUser(editingBooking._id, editBookingData, token || undefined);
+
+      if (response.success) {
+        toast({
+          title: "تم التحديث",
+          description: "تم تحديث بيانات الحجز بنجاح",
+        });
+        setBookings(prev => prev.map(b => b._id === editingBooking._id ? response.booking : b));
+        setIsEditBookingOpen(false);
+        setEditingBooking(null);
+      }
+    } catch (error: any) {
+      console.error("Error updating booking:", error);
+      toast({
+        title: "خطأ",
+        description: error.response?.data?.error || "فشل تحديث الحجز",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdatingBooking(false);
+    }
+  };
+
   const handleToggleFollow = async () => {
     if (!id) return;
     if (!isSignedIn) {
@@ -1102,6 +1191,107 @@ const UserProfile = () => {
             </DialogContent>
           </Dialog>
         )}
+        {isEditBookingOpen && editingBooking && (
+          <Dialog open={isEditBookingOpen} onOpenChange={setIsEditBookingOpen}>
+            <DialogContent className="max-w-2xl font-cairo rounded-[2rem] overflow-hidden p-0 border-0 shadow-2xl" dir="rtl">
+                <div className="bg-indigo-600 p-8 text-white relative">
+                   <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
+                   <h2 className="text-3xl font-black mb-2 flex items-center gap-3">
+                      <Edit2 className="w-8 h-8" />
+                      تعديل بيانات الحجز
+                   </h2>
+                   <p className="text-indigo-100 font-medium">يمكنك تحديث معلوماتك أو اختيار مقاعد مختلفة.</p>
+                </div>
+
+                <div className="p-8 space-y-8 max-h-[60vh] overflow-y-auto">
+                   <div className="grid grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                         <Label className="text-sm font-black text-gray-700">الاسم الأول</Label>
+                         <Input 
+                           value={editBookingData.firstName} 
+                           onChange={e => setEditBookingData({...editBookingData, firstName: e.target.value})}
+                           className="h-12 rounded-xl border-gray-100 bg-gray-50/50"
+                         />
+                      </div>
+                      <div className="space-y-2">
+                         <Label className="text-sm font-black text-gray-700">اسم العائلة</Label>
+                         <Input 
+                           value={editBookingData.lastName} 
+                           onChange={e => setEditBookingData({...editBookingData, lastName: e.target.value})}
+                           className="h-12 rounded-xl border-gray-100 bg-gray-50/50"
+                         />
+                      </div>
+                   </div>
+
+                   <div className="grid grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                         <Label className="text-sm font-black text-gray-700">رقم الهاتف</Label>
+                         <Input 
+                           value={editBookingData.userPhone} 
+                           onChange={e => setEditBookingData({...editBookingData, userPhone: e.target.value})}
+                           className="h-12 rounded-xl border-gray-100 bg-gray-50/50"
+                         />
+                      </div>
+                      <div className="space-y-2">
+                         <Label className="text-sm font-black text-gray-700">عدد الأفراد</Label>
+                         <Input 
+                           type="number"
+                           min={1}
+                           value={editBookingData.numberOfPeople} 
+                           onChange={e => setEditBookingData({...editBookingData, numberOfPeople: parseInt(e.target.value) || 1})}
+                           className="h-12 rounded-xl border-gray-100 bg-gray-50/50"
+                         />
+                      </div>
+                   </div>
+
+                   <div className="space-y-4">
+                      <Label className="text-sm font-black text-gray-700 flex items-center justify-between">
+                         <span>تعديل المقاعد</span>
+                         <UI_Badge className="bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border-indigo-100">
+                             {editBookingData.selectedSeats.length} / {editBookingData.numberOfPeople} مقاعد مختارة
+                         </UI_Badge>
+                      </Label>
+                      <div className="p-6 bg-gray-50 rounded-[2rem] border border-gray-100 flex flex-col items-center">
+                         <BusSeatLayout 
+                           type={(editingBooking.transportationType as any) || 'bus-48'}
+                           bookedSeats={[]} 
+                           onSelectSeats={(seats) => setEditBookingData({...editBookingData, selectedSeats: seats})}
+                           initialSelectedSeats={editBookingData.selectedSeats}
+                           maxSelection={editBookingData.numberOfPeople}
+                           isAdmin={false}
+                         />
+                      </div>
+                   </div>
+
+                   <div className="space-y-2">
+                      <Label className="text-sm font-black text-gray-700">طلبات خاصة</Label>
+                      <Textarea 
+                        value={editBookingData.specialRequests} 
+                        onChange={e => setEditBookingData({...editBookingData, specialRequests: e.target.value})}
+                        className="rounded-xl border-gray-100 min-h-[100px] bg-gray-50/50"
+                      />
+                   </div>
+                </div>
+
+                <div className="p-8 pt-0 flex gap-4 mt-6">
+                   <Button 
+                     variant="outline" 
+                     className="flex-1 h-14 rounded-2xl font-black border-gray-200"
+                     onClick={() => setIsEditBookingOpen(false)}
+                   >
+                     إلغاء
+                   </Button>
+                   <Button 
+                     disabled={isUpdatingBooking}
+                     onClick={handleUpdateBooking}
+                     className="flex-1 h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black shadow-xl shadow-indigo-100"
+                   >
+                     {isUpdatingBooking ? "جاري الحافظ..." : "حفظ التعديلات"}
+                   </Button>
+                </div>
+            </DialogContent>
+          </Dialog>
+        )}
       </main>
 
       <Footer />
@@ -1162,15 +1352,36 @@ const UserProfile = () => {
             <div key={booking._id} className="bg-white border border-gray-100 rounded-[1.5rem] p-6 shadow-sm hover:shadow-md transition-all">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="space-y-3 flex-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <UI_Badge variant="outline" className="rounded-full bg-indigo-50 text-indigo-600 border-indigo-100 font-bold">
-                      رقم الحجز: {booking.bookingReference}
+                       {booking.bookingReference} #
                     </UI_Badge>
+                    
+                    {booking.selectedSeats && booking.selectedSeats.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {booking.selectedSeats.map(s => (
+                          <UI_Badge key={s} className="rounded-full bg-indigo-600 text-white border-0 font-black px-2 py-0.5 text-[10px]">
+                             مقعد: {s}
+                          </UI_Badge>
+                        ))}
+                      </div>
+                    ) : booking.seatNumber && (
+                      <UI_Badge className="rounded-full bg-emerald-600 text-white border-0 font-black px-3 py-0.5 text-[10px]">
+                         مقعد: {booking.seatNumber}
+                      </UI_Badge>
+                    )}
+
                     <div className="h-4 w-[1px] bg-gray-200 mx-1" />
-                    <span className="text-gray-400 text-xs font-medium">بتاريخ: {new Date(booking.createdAt).toLocaleDateString('ar-EG')}</span>
+                    <span className="text-gray-400 text-xs font-medium">{new Date(booking.createdAt).toLocaleDateString('ar-EG')}</span>
                   </div>
                   
-                  <h4 className="text-xl font-black text-gray-900">{booking.tripTitle}</h4>
+                  <div className="flex flex-col gap-1">
+                    <h4 className="text-xl font-black text-gray-900">{booking.tripTitle}</h4>
+                    <p className="text-sm font-bold text-indigo-600 flex items-center gap-1">
+                      <Users className="w-3 h-3" />
+                      باسم: {booking.userName}
+                    </p>
+                  </div>
                   
                   <div className="flex flex-wrap items-center gap-4 text-sm font-medium text-gray-500">
                     <div className="flex items-center gap-1.5">
@@ -1183,33 +1394,59 @@ const UserProfile = () => {
                     </div>
                     <div className="flex items-center gap-1.5">
                        <Building2 className="w-4 h-4 text-purple-500" />
-                       شركة: {booking.companyName}
+                       {booking.companyName}
                     </div>
                   </div>
                 </div>
 
-                <div className="flex flex-col md:items-end gap-3 min-w-[150px]">
+                <div className="flex flex-col md:items-end gap-3 min-w-[200px]">
                    <div className="text-2xl font-black text-emerald-600">
                       {booking.totalPrice} <span className="text-sm">ج.م</span>
                    </div>
                    
-                   <div className={cn(
-                      "px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-2",
-                      booking.status === 'pending' ? "bg-amber-50 text-amber-600" :
-                      booking.status === 'accepted' ? "bg-emerald-50 text-emerald-600" :
-                      booking.status === 'rejected' ? "bg-red-50 text-red-600" :
-                      "bg-gray-50 text-gray-600"
-                   )}>
-                      <span className={cn(
-                        "w-2 h-2 rounded-full",
-                        booking.status === 'pending' ? "bg-amber-400 animate-pulse" :
-                        booking.status === 'accepted' ? "bg-emerald-400" :
-                        booking.status === 'rejected' ? "bg-red-400" :
-                        "bg-gray-400"
-                      )} />
-                      {booking.status === 'pending' ? 'جاري المراجعة' :
-                       booking.status === 'accepted' ? 'تم القبول' :
-                       booking.status === 'rejected' ? 'تم الرفض' : 'ملغي'}
+                   <div className="flex items-center gap-3">
+                      <div className={cn(
+                        "px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider flex items-center gap-2",
+                        booking.status === 'pending' ? "bg-amber-50 text-amber-600" :
+                        booking.status === 'accepted' ? "bg-emerald-50 text-emerald-600" :
+                        booking.status === 'rejected' ? "bg-red-50 text-red-600" :
+                        "bg-gray-50 text-gray-600"
+                      )}>
+                        <span className={cn(
+                          "w-2 h-2 rounded-full",
+                          booking.status === 'pending' ? "bg-amber-400 animate-pulse" :
+                          booking.status === 'accepted' ? "bg-emerald-400" :
+                          booking.status === 'rejected' ? "bg-red-400" :
+                          "bg-gray-400"
+                        )} />
+                        {booking.status === 'pending' ? 'جاري المراجعة' :
+                          booking.status === 'accepted' ? 'تم القبول' :
+                          booking.status === 'rejected' ? 'تم الرفض' : 'ملغي'}
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex gap-1">
+                        {booking.status === 'pending' && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => handleEditBooking(booking)}
+                            className="h-8 w-8 rounded-full text-indigo-600 hover:bg-indigo-50"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                        {['pending', 'accepted'].includes(booking.status) && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => handleCancelBooking(booking._id)}
+                            className="h-8 w-8 rounded-full text-red-500 hover:bg-red-50"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
                    </div>
 
                    {booking.status === 'rejected' && booking.rejectionReason && (

@@ -26,8 +26,16 @@ import {
   Layers,
   MessageSquare,
   Phone,
-  ExternalLink
+  ExternalLink,
+  Bus,
+  Truck,
+  Map,
+  Users,
+  BarChart,
+  Activity,
+  Settings
 } from "lucide-react";
+import BusSeatLayout from "./BusSeatLayout";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -64,12 +72,16 @@ const CompanyTripFormDialog = ({ open, onOpenChange, onSuccess, initialData }: C
     itinerary: [{ day: 1, title: "", description: "" }],
     includedServices: [""],
     excludedServices: [""],
+    transportationImages: ["", ""],
+    availableSeats: "",
     isActive: true,
     bookingMethod: {
       whatsapp: true,
       phone: true,
       website: false
-    }
+    },
+    transportationType: "bus-48",
+    seatBookings: []
   });
 
   useEffect(() => {
@@ -81,7 +93,12 @@ const CompanyTripFormDialog = ({ open, onOpenChange, onSuccess, initialData }: C
           itinerary: initialData.itinerary?.length > 0 ? initialData.itinerary : [{ day: 1, title: "", description: "" }],
           includedServices: initialData.includedServices?.length > 0 ? initialData.includedServices : [""],
           excludedServices: initialData.excludedServices?.length > 0 ? initialData.excludedServices : [""],
-          season: initialData.season || "winter",
+          season: initialData?.season || "winter",
+          difficulty: initialData?.difficulty || "سهل",
+          transportationType: initialData?.transportationType || "bus-48",
+          seatBookings: initialData?.seatBookings || [],
+          availableSeats: initialData.availableSeats || "",
+          transportationImages: initialData.transportationImages?.length > 0 ? initialData.transportationImages : ["", ""],
           isActive: initialData.isActive !== undefined ? initialData.isActive : true,
         });
       } else {
@@ -103,12 +120,16 @@ const CompanyTripFormDialog = ({ open, onOpenChange, onSuccess, initialData }: C
           itinerary: [{ day: 1, title: "", description: "" }],
           includedServices: [""],
           excludedServices: [""],
+          transportationImages: ["", ""],
+          availableSeats: "",
           isActive: true,
           bookingMethod: {
             whatsapp: true,
             phone: true,
             website: false
-          }
+          },
+          transportationType: "bus-48",
+          seatBookings: []
         });
       }
       setActiveTab("basic");
@@ -161,6 +182,7 @@ const CompanyTripFormDialog = ({ open, onOpenChange, onSuccess, initialData }: C
         itinerary: formData.itinerary.filter((item: any) => item.title.trim() !== "" || item.description.trim() !== ""),
         includedServices: formData.includedServices.filter((s: string) => s.trim() !== ""),
         excludedServices: formData.excludedServices.filter((s: string) => s.trim() !== ""),
+        transportationImages: formData.transportationImages.filter((img: string) => img.trim() !== ""),
       };
 
       if (initialData) {
@@ -352,7 +374,7 @@ const CompanyTripFormDialog = ({ open, onOpenChange, onSuccess, initialData }: C
 
                              <div className="grid grid-cols-2 gap-6">
                                 <div className="space-y-2">
-                                   <Label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">العدد الأقصى</Label>
+                                   <Label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">عدد الركاب</Label>
                                    <Input 
                                       type="number"
                                       className="h-14 rounded-2xl bg-white border-gray-100 shadow-sm font-bold text-gray-900"
@@ -372,6 +394,43 @@ const CompanyTripFormDialog = ({ open, onOpenChange, onSuccess, initialData }: C
                                       value={formData.rating} 
                                       onChange={(e) => setFormData({...formData, rating: parseFloat(e.target.value) || 4.5})}
                                    />
+                                </div>
+                                <div className="space-y-2">
+                                   <Label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">المقاعد المتاحة</Label>
+                                    <Input
+                                        type="number"
+                                        className="h-14 rounded-2xl bg-white border-gray-100 shadow-sm font-bold text-gray-900"
+                                        value={formData.availableSeats}
+                                        onChange={(e) => {
+                                            const val = parseInt(e.target.value) || 0;
+                                            const suggested = val <= 14 ? 'van-14' : val <= 28 ? 'minibus-28' : 'bus-48';
+                                            setFormData({
+                                                ...formData, 
+                                                availableSeats: val,
+                                                transportationType: suggested
+                                            });
+                                        }}
+                                        placeholder="مثال: 15"
+                                    />
+                                </div>
+                                <div className="space-y-4">
+                                    <Label className="text-sm font-black text-gray-900 mr-2 flex items-center gap-2">
+                                        <Bus className="w-4 h-4 text-indigo-600" />
+                                        نوع وسيلة النقل
+                                    </Label>
+                                    <Select 
+                                        value={formData.transportationType} 
+                                        onValueChange={(val: any) => setFormData({...formData, transportationType: val})}
+                                    >
+                                        <SelectTrigger className="h-14 rounded-2xl bg-white border-gray-100 shadow-sm font-bold">
+                                            <SelectValue placeholder="اختر نوع الحافلة" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="bus-48">حافلة فاخرة (48 مقعد)</SelectItem>
+                                            <SelectItem value="minibus-28">ميني باص (28 مقعد)</SelectItem>
+                                            <SelectItem value="van-14">ميكروباص (14 مقعد)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
                                 </div>
                              </div>
 
@@ -493,49 +552,111 @@ const CompanyTripFormDialog = ({ open, onOpenChange, onSuccess, initialData }: C
                     )}
 
                     {activeTab === 'images' && (
-                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                          {formData.images.map((img: string, idx: number) => (
-                             <Card key={idx} className="border-2 border-dashed border-gray-200 bg-white rounded-[2rem] overflow-hidden group hover:border-indigo-500 transition-all">
-                                <CardContent className="p-0 h-64 relative">
-                                   {img ? (
-                                      <div className="relative h-full w-full">
-                                         <img src={img} className="h-full w-full object-cover" />
-                                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                            <Button type="button" variant="ghost" className="text-white hover:text-rose-500 bg-white/10 backdrop-blur-md rounded-2xl px-6 font-black" onClick={() => removeArrayItem('images', idx)}>
-                                               حذف
-                                            </Button>
-                                         </div>
-                                      </div>
-                                   ) : (
-                                      <div className="h-full flex flex-col items-center justify-center p-6 text-center">
-                                         <ImageIcon className="w-10 h-10 text-gray-200 mb-4" />
-                                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">أضف رابط أو ارفع صورة</p>
-                                         <Input 
-                                           className="h-10 rounded-xl bg-gray-50 border-0 font-bold text-xs mb-2"
-                                           value={img} 
-                                           onChange={(e) => handleArrayChange('images', idx, e.target.value)}
-                                           placeholder="https://..."
-                                         />
-                                         <div className="relative w-full">
-                                             <Input 
-                                                type="file" 
-                                                className="hidden" 
-                                                id={`image-upload-${idx}`}
-                                                accept="image/*"
-                                                onChange={(e) => handleImageUpload(e, idx)}
-                                             />
-                                             <Label htmlFor={`image-upload-${idx}`} className="block w-full py-2 bg-indigo-50 text-indigo-600 rounded-xl text-xs font-bold cursor-pointer hover:bg-indigo-100 transition-colors">
-                                                 رفع صورة من الجهاز
-                                             </Label>
-                                         </div>
-                                      </div>
-                                   )}
-                                </CardContent>
-                             </Card>
-                          ))}
-                          <button type="button" className="h-64 border-2 border-dashed border-gray-200 rounded-[2rem] flex flex-col items-center justify-center text-gray-400 hover:text-indigo-600 hover:border-indigo-600 hover:bg-indigo-50 transition-all font-black text-sm gap-3" onClick={() => addArrayItem('images')}>
-                             <Camera className="w-8 h-8" /> إضافة صورة أخرى
-                          </button>
+                       <div className="space-y-10">
+                          <div>
+                             <h4 className="text-sm font-black text-indigo-900 border-r-4 border-indigo-600 pr-3 mb-6">صور الرحلة العامة</h4>
+                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                {formData.images.map((img: string, idx: number) => (
+                                   <Card key={idx} className="border-2 border-dashed border-gray-200 bg-white rounded-[2rem] overflow-hidden group hover:border-indigo-500 transition-all">
+                                      <CardContent className="p-0 h-64 relative">
+                                         {img ? (
+                                            <div className="relative h-full w-full">
+                                               <img src={img} className="h-full w-full object-cover" />
+                                               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                  <Button type="button" variant="ghost" className="text-white hover:text-rose-500 bg-white/10 backdrop-blur-md rounded-2xl px-6 font-black" onClick={() => removeArrayItem('images', idx)}>
+                                                     حذف
+                                                  </Button>
+                                               </div>
+                                            </div>
+                                         ) : (
+                                            <div className="h-full flex flex-col items-center justify-center p-6 text-center">
+                                               <ImageIcon className="w-10 h-10 text-gray-200 mb-4" />
+                                               <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">أضف رابط أو ارفع صورة</p>
+                                               <Input 
+                                                 className="h-10 rounded-xl bg-gray-50 border-0 font-bold text-xs mb-2"
+                                                 value={img} 
+                                                 onChange={(e) => handleArrayChange('images', idx, e.target.value)}
+                                                 placeholder="https://..."
+                                               />
+                                               <div className="relative w-full">
+                                                   <Input 
+                                                      type="file" 
+                                                      className="hidden" 
+                                                      id={`image-upload-${idx}`}
+                                                      accept="image/*"
+                                                      onChange={(e) => handleImageUpload(e, idx)}
+                                                   />
+                                                   <Label htmlFor={`image-upload-${idx}`} className="block w-full py-2 bg-indigo-50 text-indigo-600 rounded-xl text-xs font-bold cursor-pointer hover:bg-indigo-100 transition-colors">
+                                                       رفع صورة من الجهاز
+                                                   </Label>
+                                               </div>
+                                            </div>
+                                         )}
+                                      </CardContent>
+                                   </Card>
+                                ))}
+                                <button type="button" className="h-64 border-2 border-dashed border-gray-200 rounded-[2rem] flex flex-col items-center justify-center text-gray-400 hover:text-indigo-600 hover:border-indigo-600 hover:bg-indigo-50 transition-all font-black text-sm gap-3" onClick={() => addArrayItem('images')}>
+                                   <Camera className="w-8 h-8" /> إضافة صورة أخرى
+                                </button>
+                             </div>
+                          </div>
+
+                          <div>
+                             <h4 className="text-sm font-black text-orange-900 border-r-4 border-orange-600 pr-3 mb-6">صور وسائل النقل (Transportation)</h4>
+                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                {formData.transportationImages.map((img: string, idx: number) => (
+                                   <Card key={idx} className="border-2 border-dashed border-gray-200 bg-white rounded-[2rem] overflow-hidden group hover:border-orange-500 transition-all">
+                                      <CardContent className="p-0 h-64 relative">
+                                         {img ? (
+                                            <div className="relative h-full w-full">
+                                               <img src={img} className="h-full w-full object-cover" />
+                                               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                  <Button type="button" variant="ghost" className="text-white hover:text-rose-500 bg-white/10 backdrop-blur-md rounded-2xl px-6 font-black" onClick={() => removeArrayItem('transportationImages', idx)}>
+                                                     حذف
+                                                  </Button>
+                                               </div>
+                                            </div>
+                                         ) : (
+                                            <div className="h-full flex flex-col items-center justify-center p-6 text-center">
+                                               <ImageIcon className="w-10 h-10 text-gray-200 mb-4" />
+                                               <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">أضف رابط أو ارفع صورة</p>
+                                               <Input 
+                                                 className="h-10 rounded-xl bg-gray-50 border-0 font-bold text-xs mb-2"
+                                                 value={img} 
+                                                 onChange={(e) => handleArrayChange('transportationImages', idx, e.target.value)}
+                                                 placeholder="https://..."
+                                               />
+                                               <div className="relative w-full">
+                                                   <Input 
+                                                      type="file" 
+                                                      className="hidden" 
+                                                      id={`transportation-upload-${idx}`}
+                                                      accept="image/*"
+                                                      onChange={(e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (file) {
+                                                            const reader = new FileReader();
+                                                            reader.onloadend = () => {
+                                                                handleArrayChange('transportationImages', idx, reader.result as string);
+                                                            };
+                                                            reader.readAsDataURL(file);
+                                                        }
+                                                      }}
+                                                   />
+                                                   <Label htmlFor={`transportation-upload-${idx}`} className="block w-full py-2 bg-orange-50 text-orange-600 rounded-xl text-xs font-bold cursor-pointer hover:bg-orange-100 transition-colors">
+                                                       رفع صورة من الجهاز
+                                                   </Label>
+                                               </div>
+                                            </div>
+                                         )}
+                                      </CardContent>
+                                   </Card>
+                                ))}
+                                <button type="button" className="h-64 border-2 border-dashed border-gray-200 rounded-[2rem] flex flex-col items-center justify-center text-gray-400 hover:text-orange-600 hover:border-orange-600 hover:bg-orange-50 transition-all font-black text-sm gap-3" onClick={() => addArrayItem('transportationImages')}>
+                                   <Camera className="w-8 h-8" /> إضافة صورة نقل أخرى
+                                </button>
+                             </div>
+                          </div>
                        </div>
                     )}
 

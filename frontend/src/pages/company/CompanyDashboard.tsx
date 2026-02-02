@@ -6,7 +6,8 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart, Activity, Users, Map, Plus, DollarSign, Calendar, LogOut, AlertTriangle, Loader2, Settings } from "lucide-react";
+import { BarChart, Activity, Users, Map, Plus, DollarSign, Calendar, LogOut, AlertTriangle, Loader2, Settings, Bus } from "lucide-react";
+import BusSeatLayout from "@/components/company/BusSeatLayout";
 import { useToast } from "@/components/ui/use-toast";
 import { corporateTripsService } from "@/services/corporateTripsService";
 import { bookingService, Booking } from "@/services/bookingService";
@@ -30,15 +31,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-const GRADIENT_PRESETS = [
-  "from-orange-500 to-red-500",
-  "from-blue-500 to-cyan-500",
-  "from-green-500 to-emerald-500",
-  "from-purple-500 to-pink-500",
-  "from-yellow-500 to-orange-500",
-  "from-gray-700 to-gray-900"
-];
-
 const CompanyDashboard = () => {
     const { user, isLoaded } = useUser();
     const { getToken } = useAuth();
@@ -50,6 +42,16 @@ const CompanyDashboard = () => {
     const [isSwitchingRole, setIsSwitchingRole] = useState(false);
     const [showConfirmDialog, setShowConfirmDialog] = useState(false);
     const [acceptedWarning, setAcceptedWarning] = useState(false);
+    const [activeTab, setActiveTab] = useState('trips');
+
+    const GRADIENT_PRESETS = [
+  "from-orange-500 to-red-500",
+  "from-blue-500 to-cyan-500",
+  "from-green-500 to-emerald-500",
+  "from-purple-500 to-pink-500",
+  "from-yellow-500 to-orange-500",
+  "from-gray-700 to-gray-900"
+];
 
     // Settings State
     const [companyLoading, setCompanyLoading] = useState(true);
@@ -79,6 +81,8 @@ const CompanyDashboard = () => {
     const [bookingsLoading, setBookingsLoading] = useState(true);
     const [stats, setStats] = useState<any>(null);
     const [selectedTripForEdit, setSelectedTripForEdit] = useState<any>(null);
+    const [selectedTripForSeats, setSelectedTripForSeats] = useState<any>(null);
+    const [isSavingSeats, setIsSavingSeats] = useState(false);
 
     // Fetch Company Data & Trips
     useEffect(() => {
@@ -266,6 +270,38 @@ const CompanyDashboard = () => {
         }
     };
 
+    const handleSaveSeats = async (newBookings: any[]) => {
+        if (!selectedTripForSeats) return;
+        setIsSavingSeats(true);
+        try {
+            const token = await getToken();
+            const response = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/corporate/trips/${selectedTripForSeats._id || selectedTripForSeats.id}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ seatBookings: newBookings })
+            });
+
+            if (!response.ok) throw new Error("Failed to save seats");
+
+            toast({
+                title: "تم حفظ المقاعد",
+                description: "تم تحديث مخطط المقاعد بنجاح وسيتم إخطار المسافرين.",
+            });
+            
+            // Update local state
+            setMyTrips(prev => prev.map(t => (t._id === selectedTripForSeats._id || t.id === selectedTripForSeats.id) ? { ...t, seatBookings: newBookings } : t));
+            
+        } catch (error) {
+            console.error(error);
+            toast({ title: "خطأ", description: "فشل حفظ المقاعد", variant: "destructive" });
+        } finally {
+            setIsSavingSeats(false);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-gray-50 font-cairo" dir="rtl">
             <Header />
@@ -410,404 +446,524 @@ const CompanyDashboard = () => {
                     </Card>
                 </div>
 
-                {/* Main Content */}
-                <Card className="rounded-[2.5rem] border-0 shadow-lg overflow-hidden min-h-[500px]">
-                    <Tabs defaultValue="trips" className="w-full">
-                        <div className="border-b border-gray-100 p-6">
-                            <TabsList className="bg-gray-100/50 p-1 rounded-xl">
-                                <TabsTrigger value="trips" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm font-bold px-6">الرحلات</TabsTrigger>
-                                <TabsTrigger value="bookings" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm font-bold px-6">الحجوزات</TabsTrigger>
-                                <TabsTrigger value="reports" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm font-bold px-6">التقارير</TabsTrigger>
-                                <TabsTrigger value="subscription" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm font-bold px-6">الاشتراك</TabsTrigger>
-                                <TabsTrigger value="settings" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm font-bold px-6 gap-2"><Settings className="w-4 h-4" /> الإعدادات</TabsTrigger>
-                            </TabsList>
-                        </div>
-
-                        <TabsContent value="trips" className="p-8">
-                             {tripsLoading ? (
-                                <div className="text-center py-20">
-                                    <Loader2 className="w-12 h-12 mx-auto animate-spin text-indigo-600" />
+                {/* Main Content with Sidebar */}
+                <div className="flex flex-col lg:flex-row gap-8">
+                    {/* Sidebar */}
+                    <aside className="w-full lg:w-72 shrink-0">
+                        <Card className="rounded-[2.5rem] border-0 shadow-lg overflow-hidden p-4 sticky top-24">
+                            <nav className="space-y-2">
+                                {[
+                                    { id: 'trips', label: 'الرحلات', icon: Map },
+                                    { id: 'bookings', label: 'الحجوزات', icon: Users },
+                                    { id: 'seats', label: 'توزيع المقاعد', icon: Bus },
+                                    { id: 'reports', label: 'التقارير', icon: BarChart },
+                                    { id: 'subscription', label: 'الاشتراك', icon: Activity },
+                                    { id: 'settings', label: 'الإعدادات', icon: Settings },
+                                ].map((tab) => (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setActiveTab(tab.id)}
+                                        className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl font-bold transition-all ${
+                                            activeTab === tab.id 
+                                            ? "bg-indigo-600 text-white shadow-xl shadow-indigo-200" 
+                                            : "hover:bg-indigo-50 hover:text-indigo-600 text-gray-500"
+                                        }`}
+                                        id={`sidebar-tab-${tab.id}`}
+                                    >
+                                        <tab.icon className="w-5 h-5" />
+                                        <span>{tab.label}</span>
+                                    </button>
+                                ))}
+                            </nav>
+                            
+                            <div className="mt-8 pt-8 border-t border-gray-100 px-4">
+                                <div className="p-4 rounded-2xl bg-orange-50 border border-orange-100">
+                                    <p className="text-xs font-bold text-orange-600 mb-2">هل تحتاج مساعدة؟</p>
+                                    <p className="text-[10px] text-orange-400 leading-relaxed">فريق دعم الرحلتى متواجد لمساعدتك في إدارة شركتك.</p>
+                                    <Button variant="link" className="text-orange-600 p-0 h-auto text-[10px] font-black mt-2">تواصل معنا</Button>
                                 </div>
-                             ) : myTrips.length > 0 ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                                    {myTrips.map(trip => (
-                                        <TripCardEnhanced key={trip.id} trip={trip} onEdit={handleEditTrip} />
-                                    ))}
+                            </div>
+                        </Card>
+                    </aside>
+
+                    {/* Content Area */}
+                    <div className="flex-1 min-w-0">
+                        <Card className="rounded-[2.5rem] border-0 shadow-lg overflow-hidden min-h-[600px]">
+                            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                                {/* Hide the default TabsList but keep it for functionality */}
+                                <div className="hidden">
+                                     <TabsList>
+                                        <TabsTrigger value="trips">trips</TabsTrigger>
+                                        <TabsTrigger value="bookings">bookings</TabsTrigger>
+                                        <TabsTrigger value="seats">seats</TabsTrigger>
+                                        <TabsTrigger value="reports">reports</TabsTrigger>
+                                        <TabsTrigger value="subscription">subscription</TabsTrigger>
+                                        <TabsTrigger value="settings">settings</TabsTrigger>
+                                    </TabsList>
                                 </div>
-                             ) : (
-                                <div className="text-center py-20 text-gray-400">
-                                    <Map className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                                    <h3 className="text-xl font-bold text-gray-700">لا توجد رحلات حالياً</h3>
-                                    <p className="mb-6">ابدأ بنشر رحلتك الأولى واستقبل الحجوزات</p>
-                                    <Button className="bg-indigo-600 text-white rounded-xl" onClick={handleCreateTrip}>إضافة رحلة</Button>
-                                </div>
-                             )}
-                        </TabsContent>
 
+                                <TabsContent value="trips" className="p-8 m-0 focus-visible:outline-none">
+                                     <div className="flex items-center justify-between mb-8">
+                                         <h2 className="text-2xl font-black text-gray-900">إدارة الرحلات</h2>
+                                         <Badge variant="outline" className="rounded-full px-4 py-1 text-indigo-600 border-indigo-100 bg-indigo-50">
+                                             {myTrips.length} رحلة
+                                         </Badge>
+                                     </div>
+                                     {tripsLoading ? (
+                                        <div className="text-center py-20">
+                                            <Loader2 className="w-12 h-12 mx-auto animate-spin text-indigo-600" />
+                                        </div>
+                                     ) : myTrips.length > 0 ? (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                            {myTrips.map(trip => (
+                                                <TripCardEnhanced key={trip.id} trip={trip} onEdit={handleEditTrip} />
+                                            ))}
+                                        </div>
+                                     ) : (
+                                        <div className="text-center py-20 text-gray-400">
+                                            <Map className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                                            <h3 className="text-xl font-bold text-gray-700">لا توجد رحلات حالياً</h3>
+                                            <p className="mb-6">ابدأ بنشر رحلتك الأولى واستقبل الحجوزات</p>
+                                            <Button className="bg-indigo-600 text-white rounded-xl" onClick={handleCreateTrip}>إضافة رحلة</Button>
+                                        </div>
+                                     )}
+                                </TabsContent>
 
+                                <TabsContent value="bookings" className="p-8 m-0 focus-visible:outline-none">
+                                     <div className="flex items-center justify-between mb-8">
+                                         <h2 className="text-2xl font-black text-gray-900">طلبات الحجز</h2>
+                                         <Button 
+                                            onClick={handleRefreshBookings} 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            className="text-indigo-600 hover:bg-indigo-50 gap-2 font-bold"
+                                        >
+                                             <Activity className="w-4 h-4" /> تحديث البيانات
+                                         </Button>
+                                     </div>
+                                     {bookingsLoading ? (
+                                        <div className="text-center py-20">
+                                            <Loader2 className="w-12 h-12 mx-auto animate-spin text-indigo-600" />
+                                        </div>
+                                     ) : (
+                                        <BookingManagementTable bookings={bookings} onUpdate={() => { handleRefreshBookings(); fetchAnalytics(); }} />
+                                     )}
+                                </TabsContent>
 
+                                <TabsContent value="seats" className="p-8 m-0 focus-visible:outline-none">
+                                     <div className="flex items-center justify-between mb-8">
+                                         <h2 className="text-2xl font-black text-gray-900">توزيع مقاعد الركاب</h2>
+                                         <p className="text-sm font-bold text-zinc-400">اختر رحلة لتنظيم مقاعدها</p>
+                                     </div>
+                                     
+                                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                                         <div className="lg:col-span-1 space-y-4">
+                                            {myTrips.map(trip => (
+                                                <button 
+                                                    key={trip.id || trip._id}
+                                                    onClick={() => setSelectedTripForSeats(trip)}
+                                                    className={`w-full p-4 rounded-2xl text-right transition-all border-2 ${selectedTripForSeats?.id === trip.id || selectedTripForSeats?._id === trip._id ? 'border-indigo-600 bg-indigo-50 shadow-lg' : 'border-gray-100 hover:border-gray-200 bg-white'}`}
+                                                >
+                                                    <p className="font-black text-gray-900 mb-1">{trip.title}</p>
+                                                    <div className="flex items-center gap-2 text-xs text-gray-500 font-bold">
+                                                        <Calendar className="w-3 h-3" />
+                                                        {new Date(trip.startDate).toLocaleDateString()}
+                                                        <span className="mx-1">•</span>
+                                                        <Bus className="w-3 h-3" />
+                                                        {trip.transportationType === 'van-14' ? '14 مقعد' : '50 مقعد'}
+                                                    </div>
+                                                </button>
+                                            ))}
+                                         </div>
 
-
-                        <TabsContent value="settings" className="p-8">
-                            <form onSubmit={handleSaveSettings}>
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                                    {/* Right Column: Basic Info */}
-                                    <div className="space-y-6">
-                                        <div>
-                                            <h3 className="text-xl font-bold text-gray-900 mb-4 border-b pb-2">المعلومات الأساسية</h3>
-                                            <div className="space-y-4">
-                                                <div className="space-y-2">
-                                                    <Label htmlFor="name">اسم الشركة *</Label>
-                                                    <Input 
-                                                    id="name" 
-                                                    value={settingsData.name} 
-                                                    onChange={(e) => setSettingsData({...settingsData, name: e.target.value})}
-                                                    required 
-                                                    placeholder="شركة السفر والسياحة..."
-                                                    className="h-12 rounded-xl"
+                                         <div className="lg:col-span-2">
+                                            {selectedTripForSeats ? (
+                                                <Card className="p-8 border-gray-100 rounded-3xl shadow-xl shadow-zinc-200/50 bg-white flex flex-col items-center">
+                                                    <div className="w-full flex items-center justify-between mb-8">
+                                                        <div>
+                                                           <h3 className="text-xl font-black text-gray-900">{selectedTripForSeats.title}</h3>
+                                                           <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">اضغط على المقعد لتسجيل اسم المسافر</p>
+                                                        </div>
+                                                        {isSavingSeats && <Loader2 className="w-6 h-6 animate-spin text-indigo-600" />}
+                                                    </div>
+                                                    
+                                                    <BusSeatLayout 
+                                                        type={selectedTripForSeats.transportationType || 'bus-48'} 
+                                                        bookedSeats={selectedTripForSeats.seatBookings || []}
+                                                        isAdmin={true}
+                                                        onSaveSeats={handleSaveSeats}
+                                                        totalBookedPassengers={bookings.filter(b => (b.tripId as any) === (selectedTripForSeats._id || selectedTripForSeats.id) && b.status === 'accepted').length}
+                                                        tripBookings={bookings.filter(b => (b.tripId as any) === (selectedTripForSeats._id || selectedTripForSeats.id) && b.status === 'accepted')}
                                                     />
+                                                </Card>
+                                            ) : (
+                                                <div className="h-full flex flex-col items-center justify-center p-20 border-2 border-dashed border-gray-100 rounded-[3rem] text-gray-400">
+                                                    <Bus className="w-16 h-16 opacity-20 mb-4" />
+                                                    <p className="font-bold">قم باختيار رحلة من القائمة لبدء توزيع المقاعد</p>
                                                 </div>
+                                            )}
+                                         </div>
+                                     </div>
+                                </TabsContent>
 
-                                                <div className="space-y-2">
-                                                    <Label htmlFor="description">وصف الشركة *</Label>
-                                                    <Textarea 
-                                                    id="description" 
-                                                    value={settingsData.description} 
-                                                    onChange={(e) => setSettingsData({...settingsData, description: e.target.value})}
-                                                    required 
-                                                    placeholder="نبذة عن الشركة وخدماتها..."
-                                                    className="min-h-[120px] rounded-xl"
-                                                    />
+                                <TabsContent value="reports" className="p-8 m-0 focus-visible:outline-none">
+                                    <h2 className="text-2xl font-black text-gray-900 mb-8">التقارير والإحصائيات</h2>
+                                    <div className="space-y-8">
+                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                            {/* Bookings Status Distribution */}
+                                            <Card className="p-6 rounded-3xl border-gray-100 shadow-sm">
+                                                <CardHeader className="px-0 pt-0">
+                                                    <CardTitle className="text-lg font-bold">توزيع حالات الحجوزات</CardTitle>
+                                                </CardHeader>
+                                                <div className="h-[300px] w-full">
+                                                    <ResponsiveContainer width="100%" height="100%">
+                                                        <PieChart>
+                                                            <Pie
+                                                                data={[
+                                                                    { name: 'مقبول', value: bookings.filter(b => b.status === 'accepted').length },
+                                                                    { name: 'قيد الانتظار', value: bookings.filter(b => b.status === 'pending').length },
+                                                                    { name: 'مرفوض', value: bookings.filter(b => b.status === 'rejected').length },
+                                                                    { name: 'ملغي', value: bookings.filter(b => b.status === 'cancelled').length },
+                                                                ].filter(d => d.value > 0)}
+                                                                cx="50%"
+                                                                cy="50%"
+                                                                innerRadius={60}
+                                                                outerRadius={80}
+                                                                paddingAngle={5}
+                                                                dataKey="value"
+                                                            >
+                                                                <Cell fill="#10b981" />
+                                                                <Cell fill="#f59e0b" />
+                                                                <Cell fill="#ef4444" />
+                                                                <Cell fill="#6b7280" />
+                                                            </Pie>
+                                                            <ReTooltip />
+                                                            <Legend />
+                                                        </PieChart>
+                                                    </ResponsiveContainer>
                                                 </div>
+                                            </Card>
 
-                                                <div className="space-y-2">
-                                                    <Label htmlFor="tags">تصنيفات الرحلات (مفصولة بفاصلة)</Label>
-                                                    <Input 
-                                                        id="tags" 
-                                                        value={settingsData.tags} 
-                                                        onChange={(e) => setSettingsData({...settingsData, tags: e.target.value})}
-                                                        placeholder="سفاري, بحر, عائلي..."
-                                                        className="h-12 rounded-xl"
-                                                    />
-                                                    <p className="text-xs text-gray-400">مثال: سفاري, شواطئ, تخييم, عائلي</p>
+                                            {/* Payment Summary Pie Chart */}
+                                            <Card className="p-6 rounded-3xl border-gray-100 shadow-sm">
+                                                <CardHeader className="px-0 pt-0">
+                                                    <CardTitle className="text-lg font-bold">حالة التحصيل المالي</CardTitle>
+                                                </CardHeader>
+                                                <div className="h-[300px] w-full">
+                                                    <ResponsiveContainer width="100%" height="100%">
+                                                        <PieChart>
+                                                            <Pie
+                                                                data={[
+                                                                    { name: 'مدفوع', value: stats?.revenue?.paid || 0 },
+                                                                    { name: 'مطلوب تحصيله', value: stats?.revenue?.pending || 0 },
+                                                                    { name: 'مسترجع', value: stats?.revenue?.refunded || 0 },
+                                                                ].filter(d => d.value > 0)}
+                                                                cx="50%"
+                                                                cy="50%"
+                                                                innerRadius={60}
+                                                                outerRadius={80}
+                                                                paddingAngle={5}
+                                                                dataKey="value"
+                                                            >
+                                                                <Cell fill="#10b981" />
+                                                                <Cell fill="#f59e0b" />
+                                                                <Cell fill="#ef4444" />
+                                                            </Pie>
+                                                            <ReTooltip />
+                                                            <Legend formatter={(value) => `${value}`} />
+                                                        </PieChart>
+                                                    </ResponsiveContainer>
                                                 </div>
-                                            </div>
+                                            </Card>
                                         </div>
 
-                                        <div>
-                                            <h3 className="text-xl font-bold text-gray-900 mb-4 border-b pb-2 mt-8">الشعار والهوية</h3>
-                                            <div className="space-y-4">
-                                                <div className="space-y-2">
-                                                    <Label htmlFor="logo">شعار الشركة (URL) *</Label>
-                                                    <Input 
-                                                        id="logo" 
-                                                        value={settingsData.logo} 
-                                                        onChange={(e) => setSettingsData({...settingsData, logo: e.target.value})}
-                                                        required 
-                                                        placeholder="https://..."
-                                                        className="h-12 rounded-xl"
-                                                    />
-                                                    {settingsData.logo && (
-                                                        <div className="mt-4 p-4 border rounded-xl bg-gray-50 flex items-center justify-center">
-                                                            <div className={`h-20 w-20 rounded-2xl bg-gradient-to-br ${settingsData.color} flex items-center justify-center text-white overflow-hidden shadow-lg p-1`}>
-                                                                <img src={settingsData.logo} alt="Logo" className="w-full h-full object-cover rounded-xl" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                             <Card className="p-6 rounded-3xl bg-emerald-50 border-0">
+                                                <div className="text-emerald-600 text-sm font-bold">المحصل فعلياً</div>
+                                                <div className="text-2xl font-black text-emerald-700">{(stats?.revenue?.paid || 0).toLocaleString()} ج.م</div>
+                                             </Card>
+                                             <Card className="p-6 rounded-3xl bg-orange-50 border-0">
+                                                <div className="text-orange-600 text-sm font-bold">قيد التحصيل</div>
+                                                <div className="text-2xl font-black text-orange-700">{(stats?.revenue?.pending || 0).toLocaleString()} ج.م</div>
+                                             </Card>
+                                             <Card className="p-6 rounded-3xl bg-blue-50 border-0">
+                                                <div className="text-blue-600 text-sm font-bold">الإجمالي المتوقع</div>
+                                                <div className="text-2xl font-black text-blue-700">{(stats?.revenue?.total || 0).toLocaleString()} ج.م</div>
+                                             </Card>
+                                        </div>
+
+                                        {/* Trip Views vs Bookings */}
+                                        <Card className="p-6 rounded-3xl border-gray-100 shadow-sm">
+                                            <CardHeader className="px-0 pt-0">
+                                                <CardTitle className="text-lg font-bold">المشاهدات مقابل الحجوزات (لكل رحلة)</CardTitle>
+                                            </CardHeader>
+                                            <div className="h-[300px] w-full">
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <ReBarChart
+                                                        data={myTrips.map(trip => ({
+                                                            name: trip.title.substring(0, 15) + '...',
+                                                            views: trip.views || 0,
+                                                            bookings: bookings.filter(b => String(b.tripId) === String(trip._id || trip.id)).length
+                                                        }))}
+                                                        margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                                                    >
+                                                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                                        <XAxis dataKey="name" />
+                                                        <YAxis />
+                                                        <ReTooltip />
+                                                        <Legend />
+                                                        <Bar dataKey="views" name="المشاهدات" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                                                        <Bar dataKey="bookings" name="الحجوزات" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                                                    </ReBarChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                        </Card>
+
+                                        {/* Detailed Performance Table */}
+                                        <Card className="p-6 rounded-3xl border-gray-100 shadow-sm overflow-hidden">
+                                            <CardHeader className="px-0 pt-0">
+                                                <CardTitle className="text-lg font-bold">أداء الرحلات التفصيلي</CardTitle>
+                                            </CardHeader>
+                                            <div className="overflow-x-auto">
+                                                <table className="w-full text-right">
+                                                    <thead>
+                                                        <tr className="border-b border-gray-100">
+                                                            <th className="pb-4 font-bold text-gray-500">الرحلة</th>
+                                                            <th className="pb-4 font-bold text-gray-500">المشاهدات</th>
+                                                            <th className="pb-4 font-bold text-gray-500">الحجوزات</th>
+                                                            <th className="pb-4 font-bold text-gray-500">معدل التحويل</th>
+                                                            <th className="pb-4 font-bold text-gray-500">الإيرادات</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-gray-50">
+                                                        {myTrips.map(trip => {
+                                                            const tripBookings = bookings.filter(b => String(b.tripId) === String(trip._id || trip.id));
+                                                            const acceptedBookings = tripBookings.filter(b => b.status === 'accepted');
+                                                            const conversionRate = trip.views ? ((tripBookings.length / trip.views) * 100).toFixed(1) : 0;
+                                                            const revenue = acceptedBookings.reduce((acc, b) => acc + (b.totalPrice || 0), 0);
+                                                            
+                                                            return (
+                                                                <tr key={trip.id || trip._id}>
+                                                                    <td className="py-4 font-semibold">{trip.title}</td>
+                                                                    <td className="py-4">{trip.views || 0}</td>
+                                                                    <td className="py-4">{tripBookings.length}</td>
+                                                                    <td className="py-4">
+                                                                        <Badge variant="outline" className="text-indigo-600 bg-indigo-50 border-indigo-100">
+                                                                            {conversionRate}%
+                                                                        </Badge>
+                                                                    </td>
+                                                                    <td className="py-4 font-bold text-emerald-600">{revenue.toLocaleString()} ج.م</td>
+                                                                </tr>
+                                                            );
+                                                        })}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </Card>
+                                    </div>
+                                </TabsContent>
+
+                                <TabsContent value="subscription" className="p-8 m-0 focus-visible:outline-none">
+                                     <h2 className="text-2xl font-black text-gray-900 mb-8">خطط الاشتراك</h2>
+                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                         {/* Free Trial / Basic Plan */}
+                                         <div className="border-2 border-indigo-600 rounded-3xl p-8 relative bg-indigo-50/50">
+                                             <div className="absolute top-0 right-0 bg-indigo-600 text-white text-xs font-bold px-3 py-1 rounded-bl-xl rounded-tr-2xl">الباقة الحالية</div>
+                                             <h3 className="text-2xl font-black text-gray-900 mb-2">تجربة مجانية</h3>
+                                             <div className="text-3xl font-black text-indigo-600 mb-6">0 <span className="text-sm text-gray-500 font-normal">ج.م / 14 يوم</span></div>
+                                             <ul className="space-y-3 mb-8 text-gray-600 text-sm">
+                                                 <li className="flex gap-2"><Activity className="w-4 h-4 text-emerald-500" /> إضافة رحلات غير محدودة</li>
+                                                 <li className="flex gap-2"><Activity className="w-4 h-4 text-emerald-500" /> لوحة تحكم أساسية</li>
+                                             </ul>
+                                             <Button className="w-full rounded-xl bg-gray-900 text-white" disabled>مشترك حالياً</Button>
+                                         </div>
+                                         
+                                         {/* Pro Plan */}
+                                         <div className="border border-gray-200 rounded-3xl p-8 hover:shadow-xl transition-all relative overflow-hidden group">
+                                             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-400 to-red-500" />
+                                             <h3 className="text-2xl font-black text-gray-900 mb-2">الباقة الذهبية</h3>
+                                             <div className="text-3xl font-black text-gray-900 mb-6">1500 <span className="text-sm text-gray-500 font-normal">ج.م / شهرياً</span></div>
+                                             <ul className="space-y-3 mb-8 text-gray-600 text-sm">
+                                                 <li className="flex gap-2"><Activity className="w-4 h-4 text-emerald-500" /> كل مميزات التجربة</li>
+                                                 <li className="flex gap-2"><Activity className="w-4 h-4 text-emerald-500" /> أولوية في الظهور</li>
+                                             </ul>
+                                             <Button className="w-full rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-100">ترقية الحساب</Button>
+                                         </div>
+                                     </div>
+                                </TabsContent>
+
+                                <TabsContent value="settings" className="p-8 m-0 focus-visible:outline-none">
+                                    <h2 className="text-2xl font-black text-gray-900 mb-8">إعدادات الشركة</h2>
+                                    <form onSubmit={handleSaveSettings}>
+                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                                            {/* Right Column: Basic Info */}
+                                            <div className="space-y-6">
+                                                <div>
+                                                    <h3 className="text-xl font-bold text-gray-900 mb-4 border-b pb-2">المعلومات الأساسية</h3>
+                                                    <div className="space-y-4">
+                                                        <div className="space-y-2">
+                                                            <Label htmlFor="name">اسم الشركة *</Label>
+                                                            <Input 
+                                                            id="name" 
+                                                            value={settingsData.name} 
+                                                            onChange={(e) => setSettingsData({...settingsData, name: e.target.value})}
+                                                            required 
+                                                            placeholder="شركة السفر والسياحة..."
+                                                            className="h-12 rounded-xl"
+                                                            />
+                                                        </div>
+
+                                                        <div className="space-y-2">
+                                                            <Label htmlFor="description">وصف الشركة *</Label>
+                                                            <Textarea 
+                                                            id="description" 
+                                                            value={settingsData.description} 
+                                                            onChange={(e) => setSettingsData({...settingsData, description: e.target.value})}
+                                                            required 
+                                                            placeholder="نبذة عن الشركة وخدماتها..."
+                                                            className="min-h-[120px] rounded-xl"
+                                                            />
+                                                        </div>
+
+                                                        <div className="space-y-2">
+                                                            <Label htmlFor="tags">تصنيفات الرحلات (مفصولة بفاصلة)</Label>
+                                                            <Input 
+                                                                id="tags" 
+                                                                value={settingsData.tags} 
+                                                                onChange={(e) => setSettingsData({...settingsData, tags: e.target.value})}
+                                                                placeholder="سفاري, بحر, عائلي..."
+                                                                className="h-12 rounded-xl"
+                                                            />
+                                                            <p className="text-xs text-gray-400">مثال: سفاري, شواطئ, تخييم, عائلي</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <h3 className="text-xl font-bold text-gray-900 mb-4 border-b pb-2 mt-8">الشعار والهوية</h3>
+                                                    <div className="space-y-4">
+                                                        <div className="space-y-2">
+                                                            <Label htmlFor="logo">شعار الشركة (URL) *</Label>
+                                                            <Input 
+                                                                id="logo" 
+                                                                value={settingsData.logo} 
+                                                                onChange={(e) => setSettingsData({...settingsData, logo: e.target.value})}
+                                                                required 
+                                                                placeholder="https://..."
+                                                                className="h-12 rounded-xl"
+                                                            />
+                                                            {settingsData.logo && (
+                                                                <div className="mt-4 p-4 border rounded-xl bg-gray-50 flex items-center justify-center">
+                                                                    <div className={`h-20 w-20 rounded-2xl bg-gradient-to-br ${settingsData.color} flex items-center justify-center text-white overflow-hidden shadow-lg p-1`}>
+                                                                        <img src={settingsData.logo} alt="Logo" className="w-full h-full object-cover rounded-xl" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        
+                                                        <div className="space-y-2">
+                                                            <Label>طابع الشركة اللوني (يظهر خلف الشعار) *</Label>
+                                                            <div className="grid grid-cols-6 gap-2">
+                                                                {GRADIENT_PRESETS.map((preset) => (
+                                                                    <div 
+                                                                    key={preset}
+                                                                    className={`h-10 rounded-lg bg-gradient-to-br ${preset} cursor-pointer transition-all ${settingsData.color === preset ? 'ring-2 ring-offset-2 ring-indigo-600 scale-110' : 'hover:opacity-80'}`}
+                                                                    onClick={() => setSettingsData({...settingsData, color: preset})}
+                                                                    />
+                                                                ))}
                                                             </div>
                                                         </div>
-                                                    )}
-                                                </div>
-                                                
-                                                <div className="space-y-2">
-                                                    <Label>طابع الشركة اللوني (يظهر خلف الشعار) *</Label>
-                                                    <div className="grid grid-cols-6 gap-2">
-                                                        {GRADIENT_PRESETS.map((preset) => (
-                                                            <div 
-                                                            key={preset}
-                                                            className={`h-10 rounded-lg bg-gradient-to-br ${preset} cursor-pointer transition-all ${settingsData.color === preset ? 'ring-2 ring-offset-2 ring-indigo-600 scale-110' : 'hover:opacity-80'}`}
-                                                            onClick={() => setSettingsData({...settingsData, color: preset})}
-                                                            />
-                                                        ))}
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </div>
 
-                                    {/* Left Column: Contact Info */}
-                                    <div className="space-y-6">
-                                        <div>
-                                            <h3 className="text-xl font-bold text-gray-900 mb-4 border-b pb-2">بيانات التواصل</h3>
-                                            <div className="space-y-4">
-                                                <div className="space-y-2">
-                                                    <Label htmlFor="phone">رقم الهاتف *</Label>
-                                                    <Input 
-                                                    id="phone" 
-                                                    value={settingsData.contactInfo.phone} 
-                                                    onChange={(e) => setSettingsData({...settingsData, contactInfo: {...settingsData.contactInfo, phone: e.target.value}})}
-                                                    required 
-                                                    placeholder="+966..."
-                                                    className="h-12 rounded-xl"
-                                                    dir="ltr"
-                                                    />
+                                            {/* Left Column: Contact Info */}
+                                            <div className="space-y-6">
+                                                <div>
+                                                    <h3 className="text-xl font-bold text-gray-900 mb-4 border-b pb-2">بيانات التواصل</h3>
+                                                    <div className="space-y-4">
+                                                        <div className="space-y-2">
+                                                            <Label htmlFor="phone">رقم الهاتف *</Label>
+                                                            <Input 
+                                                            id="phone" 
+                                                            value={settingsData.contactInfo.phone} 
+                                                            onChange={(e) => setSettingsData({...settingsData, contactInfo: {...settingsData.contactInfo, phone: e.target.value}})}
+                                                            required 
+                                                            placeholder="+966..."
+                                                            className="h-12 rounded-xl"
+                                                            dir="ltr"
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <Label htmlFor="whatsapp">واتساب *</Label>
+                                                            <Input 
+                                                            id="whatsapp" 
+                                                            value={settingsData.contactInfo.whatsapp} 
+                                                            onChange={(e) => setSettingsData({...settingsData, contactInfo: {...settingsData.contactInfo, whatsapp: e.target.value}})}
+                                                            required 
+                                                            placeholder="+966..."
+                                                            className="h-12 rounded-xl"
+                                                            dir="ltr"
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <Label htmlFor="email">البريد الإلكتروني *</Label>
+                                                            <Input 
+                                                            id="email" 
+                                                            type="email"
+                                                            value={settingsData.contactInfo.email} 
+                                                            onChange={(e) => setSettingsData({...settingsData, contactInfo: {...settingsData.contactInfo, email: e.target.value}})}
+                                                            required 
+                                                            placeholder="info@company.com"
+                                                            className="h-12 rounded-xl"
+                                                            dir="ltr"
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <Label htmlFor="website">الموقع الإلكتروني (اختياري)</Label>
+                                                            <Input 
+                                                            id="website" 
+                                                            value={settingsData.contactInfo.website} 
+                                                            onChange={(e) => setSettingsData({...settingsData, contactInfo: {...settingsData.contactInfo, website: e.target.value}})}
+                                                            placeholder="www.company.com"
+                                                            className="h-12 rounded-xl"
+                                                            dir="ltr"
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <Label htmlFor="address">العنوان (اختياري)</Label>
+                                                            <Input 
+                                                            id="address" 
+                                                            value={settingsData.contactInfo.address} 
+                                                            onChange={(e) => setSettingsData({...settingsData, contactInfo: {...settingsData.contactInfo, address: e.target.value}})}
+                                                            placeholder="المدينة، الحي..."
+                                                            className="h-12 rounded-xl"
+                                                            />
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div className="space-y-2">
-                                                    <Label htmlFor="whatsapp">واتساب *</Label>
-                                                    <Input 
-                                                    id="whatsapp" 
-                                                    value={settingsData.contactInfo.whatsapp} 
-                                                    onChange={(e) => setSettingsData({...settingsData, contactInfo: {...settingsData.contactInfo, whatsapp: e.target.value}})}
-                                                    required 
-                                                    placeholder="+966..."
-                                                    className="h-12 rounded-xl"
-                                                    dir="ltr"
-                                                    />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <Label htmlFor="email">البريد الإلكتروني *</Label>
-                                                    <Input 
-                                                    id="email" 
-                                                    type="email"
-                                                    value={settingsData.contactInfo.email} 
-                                                    onChange={(e) => setSettingsData({...settingsData, contactInfo: {...settingsData.contactInfo, email: e.target.value}})}
-                                                    required 
-                                                    placeholder="info@company.com"
-                                                    className="h-12 rounded-xl"
-                                                    dir="ltr"
-                                                    />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <Label htmlFor="website">الموقع الإلكتروني (اختياري)</Label>
-                                                    <Input 
-                                                    id="website" 
-                                                    value={settingsData.contactInfo.website} 
-                                                    onChange={(e) => setSettingsData({...settingsData, contactInfo: {...settingsData.contactInfo, website: e.target.value}})}
-                                                    placeholder="www.company.com"
-                                                    className="h-12 rounded-xl"
-                                                    dir="ltr"
-                                                    />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <Label htmlFor="address">العنوان (اختياري)</Label>
-                                                    <Input 
-                                                    id="address" 
-                                                    value={settingsData.contactInfo.address} 
-                                                    onChange={(e) => setSettingsData({...settingsData, contactInfo: {...settingsData.contactInfo, address: e.target.value}})}
-                                                    placeholder="المدينة، الحي..."
-                                                    className="h-12 rounded-xl"
-                                                    />
+
+                                                <div className="pt-8">
+                                                    <Button type="submit" disabled={savingSettings} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-14 rounded-xl shadow-xl shadow-indigo-100 text-lg">
+                                                        {savingSettings ? (
+                                                            <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> جاري الحفظ...</>
+                                                        ) : (
+                                                            "حفظ التعديلات"
+                                                        )}
+                                                    </Button>
                                                 </div>
                                             </div>
                                         </div>
-
-                                        <div className="pt-8">
-                                            <Button type="submit" disabled={savingSettings} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-14 rounded-xl shadow-xl shadow-indigo-100 text-lg">
-                                                {savingSettings ? (
-                                                    <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> جاري الحفظ...</>
-                                                ) : (
-                                                    "حفظ التعديلات"
-                                                )}
-                                            </Button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </form>
-                        </TabsContent>
-
-                        <TabsContent value="bookings" className="p-8">
-                             {bookingsLoading ? (
-                                <div className="text-center py-20">
-                                    <Loader2 className="w-12 h-12 mx-auto animate-spin text-indigo-600" />
-                                </div>
-                             ) : (
-                                <BookingManagementTable bookings={bookings} onUpdate={() => { handleRefreshBookings(); fetchAnalytics(); }} />
-                             )}
-                        </TabsContent>
-
-                        <TabsContent value="reports" className="p-8 space-y-8">
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                {/* Bookings Status Distribution */}
-                                <Card className="p-6 rounded-3xl border-gray-100 shadow-sm">
-                                    <CardHeader className="px-0 pt-0">
-                                        <CardTitle className="text-lg font-bold">توزيع حالات الحجوزات</CardTitle>
-                                    </CardHeader>
-                                    <div className="h-[300px] w-full">
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <PieChart>
-                                                <Pie
-                                                    data={[
-                                                        { name: 'مقبول', value: bookings.filter(b => b.status === 'accepted').length },
-                                                        { name: 'قيد الانتظار', value: bookings.filter(b => b.status === 'pending').length },
-                                                        { name: 'مرفوض', value: bookings.filter(b => b.status === 'rejected').length },
-                                                        { name: 'ملغي', value: bookings.filter(b => b.status === 'cancelled').length },
-                                                    ].filter(d => d.value > 0)}
-                                                    cx="50%"
-                                                    cy="50%"
-                                                    innerRadius={60}
-                                                    outerRadius={80}
-                                                    paddingAngle={5}
-                                                    dataKey="value"
-                                                >
-                                                    <Cell fill="#10b981" />
-                                                    <Cell fill="#f59e0b" />
-                                                    <Cell fill="#ef4444" />
-                                                    <Cell fill="#6b7280" />
-                                                </Pie>
-                                                <ReTooltip />
-                                                <Legend />
-                                            </PieChart>
-                                        </ResponsiveContainer>
-                                    </div>
-                                </Card>
-
-                                {/* Payment Summary Pie Chart */}
-                                <Card className="p-6 rounded-3xl border-gray-100 shadow-sm">
-                                    <CardHeader className="px-0 pt-0">
-                                        <CardTitle className="text-lg font-bold">حالة التحصيل المالي</CardTitle>
-                                    </CardHeader>
-                                    <div className="h-[300px] w-full">
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <PieChart>
-                                                <Pie
-                                                    data={[
-                                                        { name: 'مدفوع', value: stats?.revenue?.paid || 0 },
-                                                        { name: 'مطلوب تحصيله', value: stats?.revenue?.pending || 0 },
-                                                        { name: 'مسترجع', value: stats?.revenue?.refunded || 0 },
-                                                    ].filter(d => d.value > 0)}
-                                                    cx="50%"
-                                                    cy="50%"
-                                                    innerRadius={60}
-                                                    outerRadius={80}
-                                                    paddingAngle={5}
-                                                    dataKey="value"
-                                                >
-                                                    <Cell fill="#10b981" />
-                                                    <Cell fill="#f59e0b" />
-                                                    <Cell fill="#ef4444" />
-                                                </Pie>
-                                                <ReTooltip />
-                                                <Legend formatter={(value) => `${value}`} />
-                                            </PieChart>
-                                        </ResponsiveContainer>
-                                    </div>
-                                </Card>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                 <Card className="p-6 rounded-3xl bg-emerald-50 border-0">
-                                    <div className="text-emerald-600 text-sm font-bold">المحصل فعلياً</div>
-                                    <div className="text-2xl font-black text-emerald-700">{(stats?.revenue?.paid || 0).toLocaleString()} ج.م</div>
-                                 </Card>
-                                 <Card className="p-6 rounded-3xl bg-orange-50 border-0">
-                                    <div className="text-orange-600 text-sm font-bold">قيد التحصيل</div>
-                                    <div className="text-2xl font-black text-orange-700">{(stats?.revenue?.pending || 0).toLocaleString()} ج.م</div>
-                                 </Card>
-                                 <Card className="p-6 rounded-3xl bg-blue-50 border-0">
-                                    <div className="text-blue-600 text-sm font-bold">الإجمالي المتوقع</div>
-                                    <div className="text-2xl font-black text-blue-700">{(stats?.revenue?.total || 0).toLocaleString()} ج.م</div>
-                                 </Card>
-                            </div>
-
-                                {/* Trip Views vs Bookings */}
-                                <Card className="p-6 rounded-3xl border-gray-100 shadow-sm">
-                                    <CardHeader className="px-0 pt-0">
-                                        <CardTitle className="text-lg font-bold">المشاهدات مقابل الحجوزات (لكل رحلة)</CardTitle>
-                                    </CardHeader>
-                                    <div className="h-[300px] w-full">
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <ReBarChart
-                                                data={myTrips.map(trip => ({
-                                                    name: trip.title.substring(0, 15) + '...',
-                                                    views: trip.views || 0,
-                                                    bookings: bookings.filter(b => b.tripId === (trip.id || trip._id)).length
-                                                }))}
-                                                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                                            >
-                                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                                <XAxis dataKey="name" />
-                                                <YAxis />
-                                                <ReTooltip />
-                                                <Legend />
-                                                <Bar dataKey="views" name="المشاهدات" fill="#6366f1" radius={[4, 4, 0, 0]} />
-                                                <Bar dataKey="bookings" name="الحجوزات" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-                                            </ReBarChart>
-                                        </ResponsiveContainer>
-                                    </div>
-                                </Card>
-
-                            {/* Detailed Performance Table */}
-                            <Card className="p-6 rounded-3xl border-gray-100 shadow-sm overflow-hidden">
-                                <CardHeader className="px-0 pt-0">
-                                    <CardTitle className="text-lg font-bold">أداء الرحلات التفصيلي</CardTitle>
-                                </CardHeader>
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-right">
-                                        <thead>
-                                            <tr className="border-b border-gray-100">
-                                                <th className="pb-4 font-bold text-gray-500">الرحلة</th>
-                                                <th className="pb-4 font-bold text-gray-500">المشاهدات</th>
-                                                <th className="pb-4 font-bold text-gray-500">الحجوزات</th>
-                                                <th className="pb-4 font-bold text-gray-500">معدل التحويل</th>
-                                                <th className="pb-4 font-bold text-gray-500">الإيرادات</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-gray-50">
-                                            {myTrips.map(trip => {
-                                                const tripBookings = bookings.filter(b => b.tripId === (trip.id || trip._id));
-                                                const acceptedBookings = tripBookings.filter(b => b.status === 'accepted');
-                                                const conversionRate = trip.views ? ((tripBookings.length / trip.views) * 100).toFixed(1) : 0;
-                                                const revenue = acceptedBookings.reduce((acc, b) => acc + (b.totalPrice || 0), 0);
-                                                
-                                                return (
-                                                    <tr key={trip.id || trip._id}>
-                                                        <td className="py-4 font-semibold">{trip.title}</td>
-                                                        <td className="py-4">{trip.views || 0}</td>
-                                                        <td className="py-4">{tripBookings.length}</td>
-                                                        <td className="py-4">
-                                                            <Badge variant="outline" className="text-indigo-600 bg-indigo-50 border-indigo-100">
-                                                                {conversionRate}%
-                                                            </Badge>
-                                                        </td>
-                                                        <td className="py-4 font-bold text-emerald-600">{revenue.toLocaleString()} ج.م</td>
-                                                    </tr>
-                                                );
-                                            })}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </Card>
-                        </TabsContent>
-
-                        <TabsContent value="subscription" className="p-8">
-                             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                                 {/* Free Trial / Basic Plan */}
-                                 <div className="border-2 border-indigo-600 rounded-3xl p-8 relative bg-indigo-50/50">
-                                     <div className="absolute top-0 right-0 bg-indigo-600 text-white text-xs font-bold px-3 py-1 rounded-bl-xl rounded-tr-2xl">الباقة الحالية</div>
-                                     <h3 className="text-2xl font-black text-gray-900 mb-2">تجربة مجانية</h3>
-                                     <div className="text-3xl font-black text-indigo-600 mb-6">0 <span className="text-sm text-gray-500 font-normal">ج.م / 14 يوم</span></div>
-                                     <ul className="space-y-3 mb-8 text-gray-600 text-sm">
-                                         <li className="flex gap-2"><Activity className="w-4 h-4 text-emerald-500" /> إضافة رحلات غير محدودة</li>
-                                         <li className="flex gap-2"><Activity className="w-4 h-4 text-emerald-500" /> لوحة تحكم أساسية</li>
-                                     </ul>
-                                     <Button className="w-full rounded-xl bg-gray-900 text-white" disabled>مشترك حالياً</Button>
-                                 </div>
-                                 
-                                 {/* Pro Plan */}
-                                 <div className="border border-gray-200 rounded-3xl p-8 hover:shadow-xl transition-all relative overflow-hidden group">
-                                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-400 to-red-500" />
-                                     <h3 className="text-2xl font-black text-gray-900 mb-2">الباقة الذهبية</h3>
-                                     <div className="text-3xl font-black text-gray-900 mb-6">1500 <span className="text-sm text-gray-500 font-normal">ج.م / شهرياً</span></div>
-                                     <ul className="space-y-3 mb-8 text-gray-600 text-sm">
-                                         <li className="flex gap-2"><Activity className="w-4 h-4 text-emerald-500" /> كل مميزات التجربة</li>
-                                         <li className="flex gap-2"><Activity className="w-4 h-4 text-emerald-500" /> أولوية في الظهور</li>
-                                         <li className="flex gap-2"><Activity className="w-4 h-4 text-emerald-500" /> دعم فني مباشر</li>
-                                     </ul>
-                                     <Button className="w-full rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-900 font-bold">ترقية الباقة</Button>
-                                 </div>
-                             </div>
-                        </TabsContent>
-                    </Tabs>
-                </Card>
+                                    </form>
+                                </TabsContent>
+                            </Tabs>
+                        </Card>
+                    </div>
+                </div>
             </div>
-            <Footer />
+            <div className="mt-12">
+                <Footer />
+            </div>
         </div>
     );
 };

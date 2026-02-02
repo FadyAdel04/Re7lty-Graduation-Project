@@ -12,6 +12,7 @@ const BookingSchema = new Schema(
         tripTitle: { type: String, required: true },
         tripDestination: { type: String, required: true },
         tripPrice: { type: String, required: true },
+        transportationType: { type: String },
 
         companyId: { type: Schema.Types.ObjectId, ref: "CorporateCompany", required: true, index: true },
         companyName: { type: String, required: true },
@@ -42,6 +43,8 @@ const BookingSchema = new Schema(
             default: "cash"
         },
         cancellationReason: { type: String },
+        seatNumber: { type: String },
+        selectedSeats: [{ type: String }],
     },
     { timestamps: true }
 );

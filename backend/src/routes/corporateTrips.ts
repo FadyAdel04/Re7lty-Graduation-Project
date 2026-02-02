@@ -4,6 +4,8 @@ import { CorporateCompany } from '../models/CorporateCompany';
 import { requireAdmin } from '../utils/adminMiddleware';
 import { ClerkExpressRequireAuth } from '@clerk/clerk-sdk-node';
 import { persistBase64 } from '../utils/media';
+import { createNotification } from '../utils/notificationDispatcher';
+import { Booking } from '../models/Booking';
 
 
 /**
@@ -176,7 +178,33 @@ router.get('/:slug', async (req, res) => {
             return res.status(404).json({ error: 'Trip not found' });
         }
 
-        res.json(trip);
+        // Fetch all pending bookings for this trip to block their seats
+        const pendingBookings = await Booking.find({
+            tripId: trip._id,
+            status: 'pending'
+        });
+
+        // Create a copy of the trip to modify it for the response
+        const tripObj = trip.toObject();
+
+        // Add pending seats to seatBookings list
+        pendingBookings.forEach(booking => {
+            if (booking.selectedSeats && booking.selectedSeats.length > 0) {
+                booking.selectedSeats.forEach(seatNum => {
+                    // Avoid duplicates if already accepted or in another pending booking
+                    if (!tripObj.seatBookings.some((s: any) => s.seatNumber === seatNum)) {
+                        tripObj.seatBookings.push({
+                            seatNumber: seatNum,
+                            passengerName: `${booking.userName} (قيد الانتظار)`,
+                            userId: booking.userId,
+                            bookingId: booking._id
+                        });
+                    }
+                });
+            }
+        });
+
+        res.json(tripObj);
     } catch (error) {
         console.error('Error fetching trip:', error);
         res.status(500).json({ error: 'Failed to fetch trip' });
@@ -689,6 +717,87 @@ router.put('/admin/:id/toggle-active', ClerkExpressRequireAuth(), requireAdmin, 
     } catch (error) {
         console.error('Error toggling trip status:', error);
         res.status(500).json({ error: 'Failed to toggle trip status' });
+    }
+});
+
+/**
+ * @swagger
+ * /corporate/trips/{id}/seats:
+ *   patch:
+ *     summary: Update seat bookings (Company Owner only)
+ *     tags: [Corporate Trips]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.patch('/:id', ClerkExpressRequireAuth(), async (req, res) => {
+    try {
+        const { User } = await import('../models/User');
+        const user = await User.findOne({ clerkId: req.auth?.userId });
+
+        if (!user || !user.companyId || user.role !== 'company_owner') {
+            return res.status(403).json({ error: 'Unauthorized' });
+        }
+
+        const trip = await CorporateTrip.findById(req.params.id);
+        if (!trip) {
+            return res.status(404).json({ error: 'Trip not found' });
+        }
+
+        if (trip.companyId.toString() !== user.companyId.toString()) {
+            return res.status(403).json({ error: 'Unauthorized: This trip belongs to another company' });
+        }
+
+        const updatedTrip = await CorporateTrip.findByIdAndUpdate(
+            req.params.id,
+            { seatBookings: req.body.seatBookings },
+            { new: true }
+        );
+
+        // Notify users who have bookings for this trip
+        try {
+            const bookings = await Booking.find({ tripId: req.params.id, status: 'accepted' });
+            for (const booking of bookings) {
+                // Find if this user has a seat assigned in the new layout
+                const assignedSeat = req.body.seatBookings.find((s: any) =>
+                    s.passengerName.toLowerCase().includes(booking.userName.toLowerCase())
+                );
+
+                if (assignedSeat) {
+                    // Save seat number to booking for easy retrieval
+                    await Booking.findByIdAndUpdate(booking._id, { seatNumber: assignedSeat.seatNumber });
+                } else {
+                    // Clear seat if no longer assigned (optional but cleaner)
+                    await Booking.findByIdAndUpdate(booking._id, { $unset: { seatNumber: "" } });
+                }
+
+                await createNotification({
+                    recipientId: booking.userId,
+                    actorId: user.clerkId,
+                    actorName: user.fullName || "فريق الرحلة",
+                    type: "system",
+                    message: assignedSeat
+                        ? `تم تحديد مقعدك في الرحلة: ${trip.title}. رقم مقعدك هو ${assignedSeat.seatNumber}.`
+                        : `تم تحديث مخطط المقاعد لرحلتك: ${trip.title}.`,
+                    tripId: trip._id,
+                    metadata: {
+                        seatNumber: assignedSeat?.seatNumber,
+                        action: 'seat_assignment',
+                        tripSlug: trip.slug
+                    }
+                });
+            }
+        } catch (notifyError) {
+            console.error('Error sending seat notifications:', notifyError);
+        }
+
+        res.json({
+            success: true,
+            message: 'Seat bookings updated successfully',
+            trip: updatedTrip
+        });
+    } catch (error: any) {
+        console.error('Error updating seats:', error);
+        res.status(500).json({ error: 'Failed to update seats', details: error.message });
     }
 });
 

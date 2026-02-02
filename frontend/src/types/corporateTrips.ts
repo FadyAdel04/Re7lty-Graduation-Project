@@ -54,6 +54,15 @@ export interface Trip {
     startDate?: string;
     endDate?: string;
     views?: number;
+    transportationImages?: string[];
+    availableSeats?: number;
+    transportationType?: 'bus-48' | 'minibus-28' | 'van-14';
+    seatBookings?: {
+        seatNumber: string;
+        passengerName: string;
+        bookingId?: string;
+        userId?: string;
+    }[];
 }
 
 export interface TripFilters {

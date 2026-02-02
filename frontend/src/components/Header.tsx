@@ -229,7 +229,6 @@ const Header = ({ onSearch }: HeaderProps) => {
               <NavItem to="/templates" icon={Briefcase} label="الشركات" />
               <NavItem to="/leaderboard" icon={Trophy} label="المتصدرين" />
               {isAdmin && <NavItem to="/admin/dashboard" icon={Shield} label="لوحة التحكم" />}
-              {user?.publicMetadata?.role === 'company_owner' && <NavItem to="http://localhost:8080/company/dashboard" icon={Shield} label="لوحة الشركة" />}
             </nav>
 
             {/* Premium Search Bar */}
@@ -327,13 +326,23 @@ const Header = ({ onSearch }: HeaderProps) => {
             <SignedIn>
               <NotificationBell />
               
-              <Link to="/trips/new" className="hidden sm:block">
-                <Button className="h-12 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm gap-2 shadow-lg shadow-indigo-100 hover:shadow-indigo-200 transition-all duration-300 relative overflow-hidden group">
-                  <span className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-                  <Plus className="h-5 w-5 relative z-10" />
-                  <span className="relative z-10">أنشئ رحلة</span>
-                </Button>
-              </Link>
+              {user?.publicMetadata?.role === 'company_owner' ? (
+                <Link to="/company/dashboard" className="hidden sm:block">
+                  <Button className="h-12 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm gap-2 shadow-lg shadow-indigo-100 hover:shadow-indigo-200 transition-all duration-300 relative overflow-hidden group">
+                    <span className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+                    <Shield className="h-5 w-5 relative z-10" />
+                    <span className="relative z-10">لوحة الشركة</span>
+                  </Button>
+                </Link>
+              ) : (
+                <Link to="/trips/new" className="hidden sm:block">
+                  <Button className="h-12 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm gap-2 shadow-lg shadow-indigo-100 hover:shadow-indigo-200 transition-all duration-300 relative overflow-hidden group">
+                    <span className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+                    <Plus className="h-5 w-5 relative z-10" />
+                    <span className="relative z-10">أنشئ رحلة</span>
+                  </Button>
+                </Link>
+              )}
               
               {user && user.publicMetadata?.role !== 'company_owner' && (
                 <Link to={`/user/${user.id}`} className="hidden md:flex items-center gap-3 pl-1 pr-4 py-1 rounded-2xl bg-gray-50/50 border border-gray-100/50 hover:bg-indigo-50 transition-all group">
@@ -402,12 +411,6 @@ const Header = ({ onSearch }: HeaderProps) => {
                         <span className="text-lg">لوحة التحكم</span>
                       </Link>
                     )}
-                  {user?.publicMetadata?.role === 'company_owner' && (
-                      <a href="http://localhost:8080/company/dashboard" className="flex items-center gap-4 p-4 rounded-2xl text-purple-600 font-bold hover:bg-purple-50 transition-all mt-4 border border-purple-100/50">
-                        <Shield className="h-6 w-6" />
-                        <span className="text-lg">لوحة الشركة</span>
-                      </a>
-                    )}
                   </nav>
                   
                   <div className="p-8 border-t border-gray-100">
@@ -431,12 +434,22 @@ const Header = ({ onSearch }: HeaderProps) => {
                             </Link>
                           )}
                        </div>
-                       <Link to="/trips/new">
-                        <Button className="w-full h-15 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black flex items-center justify-center gap-3 shadow-xl shadow-indigo-100 transition-all active:scale-95">
-                          <Plus className="h-5 w-5" />
-                          ابدأ رحلة جديدة
-                        </Button>
-                       </Link>
+                       
+                       {user?.publicMetadata?.role === 'company_owner' ? (
+                         <Link to="/company/dashboard">
+                          <Button className="w-full h-15 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black flex items-center justify-center gap-3 shadow-xl shadow-indigo-100 transition-all active:scale-95">
+                            <Shield className="h-5 w-5" />
+                            لوحة الشركة
+                          </Button>
+                         </Link>
+                       ) : (
+                         <Link to="/trips/new">
+                          <Button className="w-full h-15 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black flex items-center justify-center gap-3 shadow-xl shadow-indigo-100 transition-all active:scale-95">
+                            <Plus className="h-5 w-5" />
+                            ابدأ رحلة جديدة
+                          </Button>
+                         </Link>
+                       )}
                     </SignedIn>
                   </div>
                 </div>

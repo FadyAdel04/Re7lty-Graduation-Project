@@ -13,6 +13,7 @@ export interface Booking {
     tripTitle: string;
     tripDestination: string;
     tripPrice: string;
+    transportationType?: string;
     companyId: string;
     companyName: string;
     numberOfPeople: number;
@@ -23,6 +24,8 @@ export interface Booking {
     rejectionReason?: string;
     totalPrice: number;
     bookingReference: string;
+    seatNumber?: string;
+    selectedSeats?: string[];
     createdAt: string;
     updatedAt: string;
 }
@@ -68,6 +71,7 @@ export const bookingService = {
         lastName: string;
         email: string;
         specialRequests?: string;
+        selectedSeats?: string[];
     }, token?: string): Promise<{ success: boolean; booking: Booking }> => {
         try {
             const response = await axios.post(`${API_URL}/api/bookings`, data, {
@@ -175,6 +179,33 @@ export const bookingService = {
             return response.data;
         } catch (error) {
             console.error('Error updating payment:', error);
+            throw error;
+        }
+    },
+    // Cancel a booking by the user
+    cancelBookingByUser: async (bookingId: string, token?: string): Promise<{ success: boolean; booking: Booking }> => {
+        try {
+            const response = await axios.post(`${API_URL}/api/bookings/${bookingId}/cancel`, {}, {
+                headers: getAuthHeaders(token),
+                withCredentials: true
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error cancelling booking:', error);
+            throw error;
+        }
+    },
+
+    // Update a booking by the user
+    updateBookingByUser: async (bookingId: string, data: any, token?: string): Promise<{ success: boolean; booking: Booking }> => {
+        try {
+            const response = await axios.put(`${API_URL}/api/bookings/${bookingId}`, data, {
+                headers: getAuthHeaders(token),
+                withCredentials: true
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error updating booking:', error);
             throw error;
         }
     },
