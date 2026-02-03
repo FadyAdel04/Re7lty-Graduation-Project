@@ -191,50 +191,17 @@ const UserProfile = () => {
     );
   }
 
-  // Load user's data - either own profile (from Clerk) or other user's profile (from API)
+  // Load user's data - ALWAYS from database for consistency
   useEffect(() => {
     const fetchUserData = async () => {
       if (!id) return;
-      
-      // If viewing own profile, load from database (which has latest data)
-      if (isOwnProfile && clerkUser) {
-        setIsLoadingUser(true);
-        try {
-          const userData = await getUserById(clerkUser.id);
-          setFullName(userData.fullName || clerkUser.fullName || clerkUser.firstName || clerkUser.username || "");
-          setBio(userData.bio || (clerkUser.publicMetadata?.bio as string) || "");
-          setLocation(userData.location || (clerkUser.publicMetadata?.location as string) || "");
-          setProfileImage(userData.imageUrl || clerkUser.imageUrl || null);
-          setCoverImage(userData.coverImage || (clerkUser.publicMetadata?.coverImage as string) || null);
-          setStats((prev) => ({
-            ...prev,
-            followers: userData.followers || 0,
-            following: userData.following || 0,
-            likes: userData.totalLikes || 0,
-            trips: userData.tripsCount ?? prev.trips,
-            stories: userData.storiesCount || 0,
-          }));
-          setIsFollowingUser(false);
-        } catch (error) {
-          console.error("Error loading own profile from database:", error);
-          // Fallback to Clerk data
-          setFullName(clerkUser.fullName || clerkUser.firstName || clerkUser.username || "");
-          setBio(clerkUser.publicMetadata?.bio as string || "");
-          setLocation(clerkUser.publicMetadata?.location as string || "");
-          setProfileImage(clerkUser.imageUrl || null);
-          setCoverImage((clerkUser.publicMetadata?.coverImage as string) || null);
-        } finally {
-          setIsLoadingUser(false);
-        }
-        return;
-      }
-      
-      // Otherwise, fetch from API
       
       setIsLoadingUser(true);
       try {
         const token = isSignedIn ? await getToken() : undefined;
         const userData = await getUserById(id, token || undefined);
+        
+        // Set all data from database (single source of truth)
         setViewingUser(userData);
         setFullName(userData.fullName || userData.username || "");
         setBio(userData.bio || "");
@@ -243,20 +210,31 @@ const UserProfile = () => {
         setCoverImage(userData.coverImage || null);
         setStats({
           trips: userData.tripsCount || 0,
-           followers: userData.followers || 0,
-           following: userData.following || 0,
-           likes: userData.totalLikes || 0,
-           stories: userData.storiesCount || 0,
-         });
+          followers: userData.followers || 0,
+          following: userData.following || 0,
+          likes: userData.totalLikes || 0,
+          stories: userData.storiesCount || 0,
+        });
         setIsFollowingUser(Boolean(userData.viewerFollows));
       } catch (error: any) {
         console.error("Error fetching user data:", error);
-        toast({
-          title: "خطأ",
-          description: "فشل تحميل بيانات المستخدم",
-          variant: "destructive",
-        });
-        navigate("/");
+        
+        // Only for own profile: fallback to Clerk if database fails
+        if (isOwnProfile && clerkUser) {
+          console.warn("Falling back to Clerk data for own profile");
+          setFullName(clerkUser.fullName || clerkUser.firstName || clerkUser.username || "");
+          setBio("");
+          setLocation("");
+          setProfileImage(clerkUser.imageUrl || null);
+          setCoverImage(null);
+        } else {
+          toast({
+            title: "خطأ",
+            description: "فشل تحميل بيانات المستخدم",
+            variant: "destructive",
+          });
+          navigate("/");
+        }
       } finally {
         setIsLoadingUser(false);
       }
@@ -480,12 +458,14 @@ const UserProfile = () => {
         variant: "destructive",
       });
       // Revert to previous profile image on error
-      if (isOwnProfile && clerkUser) {
-        const userData = await getUserById(clerkUser.id).catch(() => null);
-        if (userData?.imageUrl) {
-          setProfileImage(userData.imageUrl);
-        } else {
-          setProfileImage(clerkUser.imageUrl || null);
+      if (isOwnProfile && id) {
+        try {
+          const userData = await getUserById(id).catch(() => null);
+          if (userData?.imageUrl) {
+            setProfileImage(userData.imageUrl);
+          }
+        } catch (err) {
+          console.error("Error reverting profile image:", err);
         }
       }
     }
@@ -543,25 +523,35 @@ const UserProfile = () => {
         variant: "destructive",
       });
       // Revert to previous cover image on error
-      if (isOwnProfile && clerkUser) {
-        const userData = await getUserById(clerkUser.id).catch(() => null);
-        if (userData?.coverImage) {
-          setCoverImage(userData.coverImage);
-        } else {
-          setCoverImage((clerkUser.publicMetadata?.coverImage as string) || null);
+      if (isOwnProfile && id) {
+        try {
+          const userData = await getUserById(id).catch(() => null);
+          if (userData?.coverImage) {
+            setCoverImage(userData.coverImage);
+          }
+        } catch (err) {
+          console.error("Error reverting cover image:", err);
         }
       }
     }
   };
 
-  const handleCancelEdit = () => {
-    if (clerkUser && isOwnProfile) {
-      setBio(clerkUser.publicMetadata?.bio as string || "");
-      setLocation(clerkUser.publicMetadata?.location as string || "");
-      setFullName(clerkUser.fullName || clerkUser.firstName || clerkUser.username || "");
-      setProfileImage(clerkUser.imageUrl || null);
+  const handleCancelEdit = async () => {
+    // Reload from database to discard changes
+    if (isOwnProfile && id) {
+      try {
+        const token = await getToken();
+        const userData = await getUserById(id, token || undefined);
+        setFullName(userData.fullName || "");
+        setBio(userData.bio || "");
+        setLocation(userData.location || "");
+        setProfileImage(userData.imageUrl || null);
+      } catch (error) {
+        console.error("Error reloading user data:", error);
+      }
     }
     setIsEditing(false);
+    setEditingField(null);
   };
 
   const handleSignOut = async () => {

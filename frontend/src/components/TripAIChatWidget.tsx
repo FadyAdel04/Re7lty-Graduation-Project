@@ -6,7 +6,7 @@ const TripAIChatWidget = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="fixed bottom-4 left-4 z-50">
+    <div className="fixed bottom-4 left-4 z-50" id="trip-ai-widget">
       <div className="relative glow-wrapper">
         <Button
           className="relative z-10 h-14 px-8 rounded-full 

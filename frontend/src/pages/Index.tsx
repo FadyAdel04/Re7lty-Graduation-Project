@@ -26,10 +26,12 @@ const Index = () => {
 
 
         {/* Discover Users Trips Section */}
-        <DiscoverUsersTripsSection />
+        <div id="featured-trips-section">
+          <DiscoverUsersTripsSection />
+        </div>
 
         {/* Corporate Trips Teaser */}
-        <section className="py-20 bg-gradient-to-br from-gray-900 to-gray-800 text-white relative overflow-hidden">
+        <section id="corporate-trips-section" className="py-20 bg-gradient-to-br from-gray-900 to-gray-800 text-white relative overflow-hidden">
           {/* Background Pattern */}
           <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle at 2px 2px, white 1px, transparent 0)", backgroundSize: "40px 40px" }}></div>
           

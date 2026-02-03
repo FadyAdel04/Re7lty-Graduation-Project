@@ -6,7 +6,7 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart, Activity, Users, Map, Plus, DollarSign, Calendar, LogOut, AlertTriangle, Loader2, Settings, Bus } from "lucide-react";
+import { BarChart, Activity, Users, Map, Plus, DollarSign, Calendar, LogOut, AlertTriangle, Loader2, Settings, Bus, Check, RefreshCcw, Bell } from "lucide-react";
 import BusSeatLayout from "@/components/company/BusSeatLayout";
 import { useToast } from "@/components/ui/use-toast";
 import { corporateTripsService } from "@/services/corporateTripsService";
@@ -15,11 +15,13 @@ import CompanyTripFormDialog from "@/components/company/CompanyTripFormDialog";
 import TripCardEnhanced from "@/components/TripCardEnhanced";
 import BookingManagementTable from "@/components/company/BookingManagementTable";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { ResponsiveContainer, BarChart as ReBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, Legend, PieChart, Pie, Cell } from 'recharts';
 import { companyService } from "@/services/companyService";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import PaymentDialog from "@/components/company/PaymentDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -84,6 +86,18 @@ const CompanyDashboard = () => {
     const [selectedTripForSeats, setSelectedTripForSeats] = useState<any>(null);
     const [isSavingSeats, setIsSavingSeats] = useState(false);
 
+    // Plan State
+    const [currentPlan, setCurrentPlan] = useState<'free' | 'advanced' | 'professional'>('free');
+    const PLAN_LIMITS = { free: 3, advanced: 5, professional: 8 };
+    const tripsUsed = myTrips.length;
+    const tripsLimit = PLAN_LIMITS[currentPlan];
+    const tripsLeft = tripsLimit - tripsUsed;
+    const canAddTrip = tripsLeft > 0;
+
+    // Payment State
+    const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+    const [selectedPlanForUpgrade, setSelectedPlanForUpgrade] = useState<{ id: 'advanced' | 'professional', name: string, price: string } | null>(null);
+
     // Fetch Company Data & Trips
     useEffect(() => {
         if (isLoaded && !user) {
@@ -145,6 +159,58 @@ const CompanyDashboard = () => {
             }
         }
     }, [isLoaded, user, navigate, getToken]);
+
+    // Data Refresh Handlers
+    const refreshAllData = async () => {
+        setCompanyLoading(true);
+        setTripsLoading(true);
+        setBookingsLoading(true);
+        try {
+            const token = await getToken();
+            const company = await companyService.getMyCompany(token || undefined);
+            if (company && company._id) {
+                const trips = await corporateTripsService.getTripsByCompany(company._id);
+                setMyTrips(trips);
+                const companyBookings = await bookingService.getCompanyBookings(token || undefined);
+                setBookings(companyBookings);
+                const analyticsData = await bookingService.getAnalytics(token || undefined);
+                setStats(analyticsData);
+                
+                // Determine Plan (Mock logic or based on company data if available)
+                // For now, let's stick to 'free' or check if company has a 'plan' field
+                // if (company.plan) setCurrentPlan(company.plan); 
+            }
+        } catch (error) {
+            console.error("Refresh failed", error);
+            toast({ title: "خطأ", description: "فشل تحديث البيانات", variant: "destructive" });
+        } finally {
+            setCompanyLoading(false);
+            setTripsLoading(false);
+            setBookingsLoading(false);
+        }
+    };
+
+    const handleRefreshTrips = async () => {
+        setTripsLoading(true);
+        try {
+            const token = await getToken();
+            const company = await companyService.getMyCompany(token || undefined);
+            if (company && company._id) {
+                const trips = await corporateTripsService.getTripsByCompany(company._id);
+                setMyTrips(trips);
+                toast({ title: "تم التحديث", description: "تم تحديث قائمة الرحلات" });
+            }
+        } catch (error) {
+            toast({ title: "خطأ", description: "فشل تحديث الرحلات", variant: "destructive" });
+        } finally {
+            setTripsLoading(false);
+        }
+    };
+
+    const handleRefreshReports = async () => {
+         fetchAnalytics();
+         toast({ title: "تم التحديث", description: "تم تحديث التقارير" });
+    };
 
     const handleCreateTrip = () => {
         setSelectedTripForEdit(null);
@@ -302,6 +368,22 @@ const CompanyDashboard = () => {
         }
     };
 
+    const handleUpgradeClick = (id: 'advanced' | 'professional', name: string, price: string) => {
+        setSelectedPlanForUpgrade({ id, name, price });
+        setShowPaymentDialog(true);
+    };
+
+    const handlePaymentSuccess = () => {
+        if (selectedPlanForUpgrade) {
+            setCurrentPlan(selectedPlanForUpgrade.id);
+            toast({
+                 title: "مبروك! تمت الترقية بنجاح 🎉",
+                 description: `أنت الآن تستمتع بمميزات ${selectedPlanForUpgrade.name}.`,
+                 className: "bg-green-50 border-green-200 text-green-900"
+            });
+        }
+    };
+
     return (
         <div className="min-h-screen bg-gray-50 font-cairo" dir="rtl">
             <Header />
@@ -314,6 +396,14 @@ const CompanyDashboard = () => {
                 }} 
                 onSuccess={handleFormSuccess}
                 initialData={selectedTripForEdit}
+            />
+
+            <PaymentDialog 
+                open={showPaymentDialog}
+                onOpenChange={setShowPaymentDialog}
+                planName={selectedPlanForUpgrade?.name || ''}
+                price={selectedPlanForUpgrade?.price || ''}
+                onSuccess={handlePaymentSuccess}
             />
 
             <div className="container mx-auto px-4 py-8">
@@ -340,9 +430,13 @@ const CompanyDashboard = () => {
                             <Users className="w-5 h-5" />
                             التحويل لحساب مسافر
                         </Button>
-                        <Button onClick={handleCreateTrip} className="bg-orange-600 hover:bg-orange-700 text-white font-bold h-12 px-6 rounded-xl flex items-center gap-2 shadow-lg shadow-orange-200">
+                        <Button 
+                            onClick={handleCreateTrip} 
+                            disabled={!canAddTrip}
+                            className={`font-bold h-12 px-6 rounded-xl flex items-center gap-2 shadow-lg transition-all ${canAddTrip ? "bg-orange-600 hover:bg-orange-700 text-white shadow-orange-200" : "bg-gray-300 text-gray-500 cursor-not-allowed"}`}
+                        >
                             <Plus className="w-5 h-5" />
-                            إضافة رحلة جديدة
+                            {canAddTrip ? "إضافة رحلة جديدة" : "نفذ رصيد الرحلات"}
                         </Button>
                     </div>
                 </div>
@@ -454,7 +548,7 @@ const CompanyDashboard = () => {
                             <nav className="space-y-2">
                                 {[
                                     { id: 'trips', label: 'الرحلات', icon: Map },
-                                    { id: 'bookings', label: 'الحجوزات', icon: Users },
+                                    { id: 'bookings', label: 'الحجوزات', icon: Users, badge: bookings.filter(b => b.status === 'pending').length },
                                     { id: 'seats', label: 'توزيع المقاعد', icon: Bus },
                                     { id: 'reports', label: 'التقارير', icon: BarChart },
                                     { id: 'subscription', label: 'الاشتراك', icon: Activity },
@@ -472,11 +566,29 @@ const CompanyDashboard = () => {
                                     >
                                         <tab.icon className="w-5 h-5" />
                                         <span>{tab.label}</span>
+                                        {tab.badge ? (
+                                            <span className="mr-auto bg-red-500 text-white text-xs font-black px-2 py-0.5 rounded-full shadow-sm animate-pulse">
+                                                {tab.badge}
+                                            </span>
+                                        ) : null}
                                     </button>
                                 ))}
                             </nav>
                             
-                            <div className="mt-8 pt-8 border-t border-gray-100 px-4">
+                            <div className="mt-8 pt-6 border-t border-gray-100 px-4 space-y-4">
+                                <div className="space-y-2">
+                                    <div className="flex justify-between items-center text-xs font-bold text-gray-500">
+                                        <span>الباقة الحالية</span>
+                                        <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200">{currentPlan === 'free' ? 'مجانية' : currentPlan === 'advanced' ? 'متقدمة' : 'محترفين'}</Badge>
+                                    </div>
+                                    <div className="flex justify-between items-center text-xs font-bold text-gray-900">
+                                        <span>الرحلات المستخدمة</span>
+                                        <span>{tripsUsed} / {tripsLimit}</span>
+                                    </div>
+                                    <Progress value={(tripsUsed / tripsLimit) * 100} className="h-2 bg-gray-100" />
+                                    {!canAddTrip && <p className="text-[10px] text-red-500 font-bold text-center">وصلت للحد الأقصى للرحلات</p>}
+                                </div>
+                                
                                 <div className="p-4 rounded-2xl bg-orange-50 border border-orange-100">
                                     <p className="text-xs font-bold text-orange-600 mb-2">هل تحتاج مساعدة؟</p>
                                     <p className="text-[10px] text-orange-400 leading-relaxed">فريق دعم الرحلتى متواجد لمساعدتك في إدارة شركتك.</p>
@@ -504,7 +616,12 @@ const CompanyDashboard = () => {
 
                                 <TabsContent value="trips" className="p-8 m-0 focus-visible:outline-none">
                                      <div className="flex items-center justify-between mb-8">
-                                         <h2 className="text-2xl font-black text-gray-900">إدارة الرحلات</h2>
+                                         <div className="flex items-center gap-4">
+                                            <h2 className="text-2xl font-black text-gray-900">إدارة الرحلات</h2>
+                                            <Button variant="ghost" size="icon" onClick={handleRefreshTrips} className="rounded-full hover:bg-gray-100 text-gray-400 hover:text-indigo-600">
+                                                <RefreshCcw className={`w-5 h-5 ${tripsLoading ? 'animate-spin' : ''}`} />
+                                            </Button>
+                                         </div>
                                          <Badge variant="outline" className="rounded-full px-4 py-1 text-indigo-600 border-indigo-100 bg-indigo-50">
                                              {myTrips.length} رحلة
                                          </Badge>
@@ -531,7 +648,17 @@ const CompanyDashboard = () => {
 
                                 <TabsContent value="bookings" className="p-8 m-0 focus-visible:outline-none">
                                      <div className="flex items-center justify-between mb-8">
-                                         <h2 className="text-2xl font-black text-gray-900">طلبات الحجز</h2>
+                                         <div className="flex items-center gap-4">
+                                            <h2 className="text-2xl font-black text-gray-900">طلبات الحجز</h2>
+                                            {bookings.filter(b => b.status === 'pending').length > 0 && (
+                                                <div className="flex items-center gap-2 px-3 py-1 bg-red-100 rounded-full border border-red-200">
+                                                    <Bell className="w-4 h-4 text-red-600" />
+                                                    <span className="text-xs font-bold text-red-700">
+                                                        {bookings.filter(b => b.status === 'pending').length} طلب جديد
+                                                    </span>
+                                                </div>
+                                            )}
+                                         </div>
                                          <Button 
                                             onClick={handleRefreshBookings} 
                                             variant="ghost" 
@@ -546,13 +673,43 @@ const CompanyDashboard = () => {
                                             <Loader2 className="w-12 h-12 mx-auto animate-spin text-indigo-600" />
                                         </div>
                                      ) : (
-                                        <BookingManagementTable bookings={bookings} onUpdate={() => { handleRefreshBookings(); fetchAnalytics(); }} />
+                                        <>
+                                            {/* Booking Bill / Summary */}
+                                            {bookings.filter(b => b.status === 'pending').length > 0 && (
+                                                <div className="mb-6 p-6 bg-gradient-to-l from-indigo-50 to-white border border-indigo-100 rounded-3xl flex items-center justify-between shadow-sm relative overflow-hidden">
+                                                    <div className="absolute top-0 right-0 w-1 h-full bg-indigo-500" />
+                                                    <div className="relative z-10">
+                                                        <h3 className="font-bold text-gray-900 mb-1 flex items-center gap-2">
+                                                            <Activity className="w-4 h-4 text-indigo-600" />
+                                                            ملخص الطلبات الجديدة
+                                                        </h3>
+                                                        <p className="text-sm text-gray-500">لديك <span className="font-bold text-indigo-600">{bookings.filter(b => b.status === 'pending').length}</span> طلبات حجز قيد الانتظار</p>
+                                                    </div>
+                                                    <div className="relative z-10 text-left">
+                                                        <p className="text-xs text-gray-400 font-bold mb-1">إجمالي القيمة المتوقعة</p>
+                                                        <p className="text-2xl font-black text-gray-900">
+                                                            {bookings
+                                                                .filter(b => b.status === 'pending')
+                                                                .reduce((acc, curr) => acc + (curr.totalPrice || 0), 0)
+                                                                .toLocaleString()} 
+                                                            <span className="text-sm font-bold text-gray-500 mr-1">ج.م</span>
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            <BookingManagementTable bookings={bookings} onUpdate={() => { handleRefreshBookings(); fetchAnalytics(); }} />
+                                        </>
                                      )}
                                 </TabsContent>
 
                                 <TabsContent value="seats" className="p-8 m-0 focus-visible:outline-none">
                                      <div className="flex items-center justify-between mb-8">
-                                         <h2 className="text-2xl font-black text-gray-900">توزيع مقاعد الركاب</h2>
+                                         <div className="flex items-center gap-4">
+                                            <h2 className="text-2xl font-black text-gray-900">توزيع مقاعد الركاب</h2>
+                                            <Button variant="ghost" size="icon" onClick={handleRefreshTrips} className="rounded-full hover:bg-gray-100 text-gray-400 hover:text-indigo-600">
+                                                <RefreshCcw className={`w-5 h-5 ${tripsLoading ? 'animate-spin' : ''}`} />
+                                            </Button>
+                                         </div>
                                          <p className="text-sm font-bold text-zinc-400">اختر رحلة لتنظيم مقاعدها</p>
                                      </div>
                                      
@@ -607,7 +764,12 @@ const CompanyDashboard = () => {
                                 </TabsContent>
 
                                 <TabsContent value="reports" className="p-8 m-0 focus-visible:outline-none">
-                                    <h2 className="text-2xl font-black text-gray-900 mb-8">التقارير والإحصائيات</h2>
+                                    <div className="flex items-center justify-between mb-8">
+                                         <h2 className="text-2xl font-black text-gray-900">التقارير والإحصائيات</h2>
+                                         <Button variant="ghost" size="icon" onClick={handleRefreshReports} className="rounded-full hover:bg-gray-100 text-gray-400 hover:text-indigo-600">
+                                            <RefreshCcw className="w-5 h-5" />
+                                         </Button>
+                                    </div>
                                     <div className="space-y-8">
                                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                             {/* Bookings Status Distribution */}
@@ -765,29 +927,54 @@ const CompanyDashboard = () => {
 
                                 <TabsContent value="subscription" className="p-8 m-0 focus-visible:outline-none">
                                      <h2 className="text-2xl font-black text-gray-900 mb-8">خطط الاشتراك</h2>
-                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                         {/* Free Trial / Basic Plan */}
-                                         <div className="border-2 border-indigo-600 rounded-3xl p-8 relative bg-indigo-50/50">
-                                             <div className="absolute top-0 right-0 bg-indigo-600 text-white text-xs font-bold px-3 py-1 rounded-bl-xl rounded-tr-2xl">الباقة الحالية</div>
-                                             <h3 className="text-2xl font-black text-gray-900 mb-2">تجربة مجانية</h3>
-                                             <div className="text-3xl font-black text-indigo-600 mb-6">0 <span className="text-sm text-gray-500 font-normal">ج.م / 14 يوم</span></div>
-                                             <ul className="space-y-3 mb-8 text-gray-600 text-sm">
-                                                 <li className="flex gap-2"><Activity className="w-4 h-4 text-emerald-500" /> إضافة رحلات غير محدودة</li>
-                                                 <li className="flex gap-2"><Activity className="w-4 h-4 text-emerald-500" /> لوحة تحكم أساسية</li>
+                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                         {/* Basic Plan */}
+                                         <div className="border-2 border-indigo-100 rounded-3xl p-6 relative bg-white hover:border-indigo-200 transition-all">
+                                             <h3 className="text-xl font-black text-gray-900 mb-2">الباقة الأساسية</h3>
+                                             <div className="text-3xl font-black text-indigo-600 mb-6">مجاناً</div>
+                                              <ul className="space-y-3 mb-8 text-gray-600 text-sm">
+                                                 <li className="flex gap-2"><Check className="w-4 h-4 text-emerald-500" /> إدارة وإضافة ٣ رحلات شهرياً</li>
+                                                 <li className="flex gap-2"><Check className="w-4 h-4 text-emerald-500" /> لوحة تحكم أساسية</li>
                                              </ul>
-                                             <Button className="w-full rounded-xl bg-gray-900 text-white" disabled>مشترك حالياً</Button>
+                                             <Button className="w-full rounded-xl bg-gray-100 text-gray-900 hover:bg-gray-200" disabled>مشترك حالياً</Button>
                                          </div>
                                          
                                          {/* Pro Plan */}
-                                         <div className="border border-gray-200 rounded-3xl p-8 hover:shadow-xl transition-all relative overflow-hidden group">
-                                             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-400 to-red-500" />
-                                             <h3 className="text-2xl font-black text-gray-900 mb-2">الباقة الذهبية</h3>
-                                             <div className="text-3xl font-black text-gray-900 mb-6">1500 <span className="text-sm text-gray-500 font-normal">ج.م / شهرياً</span></div>
+                                         <div className="border-2 border-indigo-600 rounded-3xl p-6 relative bg-indigo-50/30 hover:shadow-xl transition-all scale-105 shadow-lg">
+                                             <div className="absolute top-0 right-0 bg-indigo-600 text-white text-xs font-bold px-3 py-1 rounded-bl-xl rounded-tr-2xl">الأكثر طلباً</div>
+                                             <h3 className="text-xl font-black text-gray-900 mb-2">الباقة المتقدمة</h3>
+                                             <div className="text-3xl font-black text-gray-900 mb-6">2,999 <span className="text-sm text-gray-500 font-normal">ج.م / شهرياً</span></div>
                                              <ul className="space-y-3 mb-8 text-gray-600 text-sm">
-                                                 <li className="flex gap-2"><Activity className="w-4 h-4 text-emerald-500" /> كل مميزات التجربة</li>
-                                                 <li className="flex gap-2"><Activity className="w-4 h-4 text-emerald-500" /> أولوية في الظهور</li>
+                                                 <li className="flex gap-2"><Check className="w-4 h-4 text-emerald-500" /> إدارة وإضافة ٥ رحلات شهرياً</li>
+                                                 <li className="flex gap-2"><Check className="w-4 h-4 text-emerald-500" /> تحليلات متقدمة</li>
+                                                 <li className="flex gap-2"><Check className="w-4 h-4 text-emerald-500" /> دعم فني ذو أولوية</li>
                                              </ul>
-                                             <Button className="w-full rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-100">ترقية الحساب</Button>
+                                             <Button 
+                                                 className="w-full rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-100"
+                                                 onClick={() => handleUpgradeClick('advanced', 'الباقة المتقدمة', '2,999')}
+                                                 disabled={currentPlan === 'advanced' || currentPlan === 'professional'}
+                                             >
+                                                 {currentPlan === 'advanced' ? 'باقتك الحالية' : currentPlan === 'professional' ? 'لديك باقة أعلى' : 'اشترك الآن'}
+                                             </Button>
+                                         </div>
+
+                                          {/* Premium Plan */}
+                                         <div className="border border-gray-200 rounded-3xl p-6 hover:shadow-xl transition-all relative overflow-hidden group bg-white">
+                                             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-400 to-red-500" />
+                                             <h3 className="text-xl font-black text-gray-900 mb-2">باقة المحترفين</h3>
+                                             <div className="text-3xl font-black text-gray-900 mb-6">3,999 <span className="text-sm text-gray-500 font-normal">ج.م / شهرياً</span></div>
+                                             <ul className="space-y-3 mb-8 text-gray-600 text-sm">
+                                                 <li className="flex gap-2"><Check className="w-4 h-4 text-emerald-500" /> إدارة وإضافة ٨ رحلات شهرياً</li>
+                                                 <li className="flex gap-2"><Check className="w-4 h-4 text-emerald-500" /> جميع المميزات السابقة</li>
+                                                 <li className="flex gap-2"><Check className="w-4 h-4 text-emerald-500" /> ظهور مميز في الصفحة الرئيسية</li>
+                                             </ul>
+                                             <Button 
+                                                 className="w-full rounded-xl bg-gray-900 hover:bg-black text-white"
+                                                 onClick={() => handleUpgradeClick('professional', 'باقة المحترفين', '3,999')}
+                                                 disabled={currentPlan === 'professional'}
+                                             >
+                                                 {currentPlan === 'professional' ? 'باقتك الحالية' : 'اشترك الآن'}
+                                             </Button>
                                          </div>
                                      </div>
                                 </TabsContent>

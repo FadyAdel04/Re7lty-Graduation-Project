@@ -157,7 +157,7 @@ const Header = ({ onSearch }: HeaderProps) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [mobileSearchOpen]);
 
-  const NavItem = ({ to, icon: Icon, label, exact = false }: { to: string; icon: any; label: string; exact?: boolean }) => {
+  const NavItem = ({ to, icon: Icon, label, exact = false, id }: { to: string; icon: any; label: string; exact?: boolean; id?: string }) => {
     const isExternal = to.startsWith('http');
     const isActive = !isExternal && (exact ? location.pathname === to : location.pathname.startsWith(to));
     
@@ -187,7 +187,7 @@ const Header = ({ onSearch }: HeaderProps) => {
     }
 
     return (
-      <Link to={to} className="relative group px-1 flex flex-col items-center justify-center">
+      <Link to={to} id={id} className="relative group px-1 flex flex-col items-center justify-center">
         {content}
       </Link>
     );
@@ -223,12 +223,12 @@ const Header = ({ onSearch }: HeaderProps) => {
             
             {/* Nav Links */}
             <nav className="flex items-center gap-1">
-              <NavItem to="/" icon={Home} label="الرئيسية" exact={true} />
-              <NavItem to="/discover" icon={Sparkles} label="اكتشف" />
-              <NavItem to="/timeline" icon={Compass} label="الرحلات" />
-              <NavItem to="/templates" icon={Briefcase} label="الشركات" />
-              <NavItem to="/leaderboard" icon={Trophy} label="المتصدرين" />
-              {isAdmin && <NavItem to="/admin/dashboard" icon={Shield} label="لوحة التحكم" />}
+              <NavItem to="/" icon={Home} label="الرئيسية" exact={true} id="nav-home" />
+              <NavItem to="/discover" icon={Sparkles} label="اكتشف" id="nav-discover" />
+              <NavItem to="/timeline" icon={Compass} label="الرحلات" id="nav-timeline" />
+              <NavItem to="/templates" icon={Briefcase} label="الشركات" id="nav-templates" />
+              <NavItem to="/leaderboard" icon={Trophy} label="المتصدرين" id="nav-leaderboard" />
+              {isAdmin && <NavItem to="/admin/dashboard" icon={Shield} label="لوحة التحكم" id="nav-admin" />}
             </nav>
 
             {/* Premium Search Bar */}
@@ -327,7 +327,7 @@ const Header = ({ onSearch }: HeaderProps) => {
               <NotificationBell />
               
               {user?.publicMetadata?.role === 'company_owner' ? (
-                <Link to="/company/dashboard" className="hidden sm:block">
+                <Link to="/company/dashboard" className="hidden sm:block" id="nav-company-dashboard">
                   <Button className="h-12 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm gap-2 shadow-lg shadow-indigo-100 hover:shadow-indigo-200 transition-all duration-300 relative overflow-hidden group">
                     <span className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
                     <Shield className="h-5 w-5 relative z-10" />
@@ -335,7 +335,7 @@ const Header = ({ onSearch }: HeaderProps) => {
                   </Button>
                 </Link>
               ) : (
-                <Link to="/trips/new" className="hidden sm:block">
+                <Link to="/trips/new" className="hidden sm:block" id="nav-create-trip">
                   <Button className="h-12 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm gap-2 shadow-lg shadow-indigo-100 hover:shadow-indigo-200 transition-all duration-300 relative overflow-hidden group">
                     <span className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
                     <Plus className="h-5 w-5 relative z-10" />

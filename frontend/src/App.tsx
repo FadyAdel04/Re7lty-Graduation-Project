@@ -42,6 +42,8 @@ import CompanyDashboard from "./pages/company/CompanyDashboard";
 import UserRoleSelection from "./pages/onboarding/UserRoleSelection";
 import CompanyRegistrationPage from "./pages/onboarding/CompanyRegistrationPage";
 import CompanyDetailsPage from "./pages/company/CompanyDetailsPage";
+import { TourGuide } from "@/components/TourGuide";
+import { TermsAcceptanceModal } from "@/components/TermsAcceptanceModal";
 
 const queryClient = new QueryClient();
 
@@ -162,6 +164,10 @@ const AppContent = () => {
       </Routes>
       {/* Global AI Chat Widget - Hide on admin pages and onboarding */}
       {!isAdminRoute && !isOnboardingRoute && <TripAIChatWidget />}
+      {/* Tour Guide for new users */}
+      {!isAdminRoute && !isOnboardingRoute && <TourGuide />}
+      {/* Mandatory Terms Acceptance */}
+      {!isAdminRoute && !isOnboardingRoute && !isAuthRoute && <TermsAcceptanceModal />}
       {/* Global Upload Progress Bar */}
       <UploadProgressBar />
     </>
