@@ -18,6 +18,7 @@ import complaintsRouter from "./routes/complaints";
 import contentReportsRouter from "./routes/contentReports";
 import adminCommentsRouter from "./routes/adminComments";
 import bookingsRouter from "./routes/bookings";
+import chatRouter from "./routes/chat";
 import { connectToDatabase } from "./db";
 import mongoose from "mongoose";
 
@@ -127,7 +128,7 @@ export function createApp() {
         console.error("Failed to initialize Clerk middleware:", error.message);
     }
 
-    // Root route handler - Interactive API Documentation
+    // Root route handler - Redesigned Interactive API Documentation
     app.get("/", (_req, res) => {
         const baseUrl = process.env.BACKEND_URL || "http://localhost:5000";
 
@@ -137,779 +138,635 @@ export function createApp() {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Re7lty API Documentation</title>
+    <title>Re7lty API Docs | Backend Systems</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary: #6366f1;
+            --primary-light: #818cf8;
+            --secondary: #64748b;
+            --bg-main: #f8fafc;
+            --bg-sidebar: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --code-bg: #f1f5f9;
+            --get: #22c55e;
+            --post: #3b82f6;
+            --put: #f59e0b;
+            --patch: #8b5cf6;
+            --delete: #ef4444;
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: var(--bg-main);
+            color: var(--text-main);
+            display: flex;
+            height: 100vh;
             overflow: hidden;
         }
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 40px;
-            text-align: center;
+
+        /* Sidebar Styles */
+        .sidebar {
+            width: 300px;
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-col: column;
+            flex-direction: column;
+            height: 100%;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .header h1 { font-size: 2.5em; margin-bottom: 10px; }
-        .header p { font-size: 1.1em; opacity: 0.9; }
-        .version { 
-            display: inline-block;
-            background: rgba(255,255,255,0.2);
-            padding: 5px 15px;
-            border-radius: 20px;
-            margin-top: 10px;
-            font-size: 0.9em;
+
+        .sidebar-header {
+            padding: 32px 24px;
+            border-bottom: 1px solid var(--border);
         }
-        .content { padding: 40px; }
-        .info-box {
-            background: #f8f9fa;
-            border-left: 4px solid #667eea;
-            padding: 20px;
-            margin-bottom: 30px;
-            border-radius: 4px;
-        }
-        .info-box h3 { color: #667eea; margin-bottom: 10px; }
-        .info-box ul { margin-left: 20px; }
-        .info-box li { margin: 5px 0; }
-        .section {
-            margin-bottom: 40px;
-        }
-        .section-title {
-            font-size: 1.8em;
-            color: #333;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 3px solid #667eea;
-        }
-        .endpoint-group {
-            margin-bottom: 30px;
-        }
-        .group-header {
-            background: #667eea;
-            color: white;
-            padding: 15px 20px;
-            border-radius: 8px 8px 0 0;
-            font-size: 1.3em;
-            font-weight: 600;
-        }
-        .group-base {
-            background: #f1f3f5;
-            padding: 10px 20px;
-            font-family: 'Courier New', monospace;
-            color: #495057;
-            border-bottom: 1px solid #dee2e6;
-        }
-        .endpoint {
-            background: white;
-            border: 1px solid #e9ecef;
-            border-top: none;
-            padding: 15px 20px;
-            transition: all 0.2s;
-        }
-        .endpoint:hover {
-            background: #f8f9fa;
-            transform: translateX(5px);
-        }
-        .endpoint:last-child {
-            border-radius: 0 0 8px 8px;
-        }
-        .endpoint-header {
+
+        .sidebar-header h1 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--primary);
+            letter-spacing: -0.025em;
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 10px;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px 12px;
+        }
+
+        .nav-group {
+            margin-bottom: 24px;
+        }
+
+        .nav-group-title {
+            padding: 0 12px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
             margin-bottom: 8px;
         }
-        .method {
-            padding: 4px 12px;
-            border-radius: 4px;
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            color: var(--text-main);
+            text-decoration: none;
+            font-size: 0.9rem;
             font-weight: 600;
-            font-size: 0.85em;
-            min-width: 70px;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .nav-item:hover {
+            background: var(--bg-main);
+            color: var(--primary);
+        }
+
+        .nav-item.active {
+            background: #eff6ff;
+            color: var(--primary);
+        }
+
+        .nav-item i {
+            font-size: 1.1rem;
+            width: 20px;
             text-align: center;
         }
-        .method.get { background: #d3f9d8; color: #2b8a3e; }
-        .method.post { background: #d0ebff; color: #1971c2; }
-        .method.patch { background: #ffe8cc; color: #e67700; }
-        .method.put { background: #fff3bf; color: #f08c00; }
-        .method.delete { background: #ffe0e0; color: #c92a2a; }
-        .endpoint-path {
-            font-family: 'Courier New', monospace;
-            color: #495057;
-            font-size: 0.95em;
+
+        /* Main Content */
+        .main-container {
             flex: 1;
+            height: 100%;
+            overflow-y: auto;
+            padding: 48px;
+            scroll-behavior: smooth;
         }
-        .auth-badge {
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 0.75em;
+
+        .content-header {
+            max-width: 900px;
+            margin: 0 auto 48px;
+        }
+
+        .content-header h2 {
+            font-size: 2.25rem;
+            font-weight: 800;
+            margin-bottom: 16px;
+            letter-spacing: -0.025em;
+        }
+
+        .content-header p {
+            font-size: 1.125rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        .info-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 48px;
+        }
+
+        .info-card {
+            background: white;
+            padding: 24px;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        .info-card h4 {
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+        }
+
+        .info-card p {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9375rem;
+            color: var(--primary);
+            word-break: break-all;
+        }
+
+        .endpoint-section {
+            max-width: 900px;
+            margin: 0 auto;
+            display: none;
+        }
+
+        .endpoint-section.active {
+            display: block;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .endpoint-card {
+            background: white;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            margin-bottom: 24px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s;
+        }
+        
+        .endpoint-card:hover {
+            transform: scale(1.005);
+        }
+
+        .endpoint-header {
+            padding: 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .method {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-weight: 800;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            min-width: 64px;
+            text-align: center;
+            color: white;
+        }
+
+        .method.get { background: var(--get); }
+        .method.post { background: var(--post); }
+        .method.patch { background: var(--patch); }
+        .method.put { background: var(--put); }
+        .method.delete { background: var(--delete); }
+
+        .path {
+            font-family: 'JetBrains Mono', monospace;
             font-weight: 600;
+            font-size: 0.9375rem;
+            color: var(--text-main);
         }
-        .auth-none { background: #e7f5ff; color: #1971c2; }
-        .auth-optional { background: #fff3bf; color: #f08c00; }
-        .auth-required { background: #ffe0e0; color: #c92a2a; }
-        .auth-admin { background: #f3d9fa; color: #9c36b5; }
-        .endpoint-desc {
-            color: #666;
-            margin-left: 85px;
-            margin-bottom: 8px;
+
+        .auth-badge {
+            margin-left: auto;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 800;
+            text-transform: uppercase;
         }
-        .endpoint-link {
-            margin-left: 85px;
+
+        .auth-required { background: #fef2f2; color: #ef4444; }
+        .auth-optional { background: #fffbeb; color: #f59e0b; }
+        .auth-admin { background: #faf5ff; color: #8b5cf6; }
+        .auth-none { background: #f0fdf4; color: #22c55e; }
+
+        .endpoint-body {
+            padding: 24px;
         }
-        .endpoint-link a {
-            color: #667eea;
-            text-decoration: none;
-            font-weight: 500;
+
+        .description {
+            font-size: 1rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .params-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        .param-row {
+            padding: 12px;
+            background: var(--code-bg);
+            border-radius: 8px;
+            font-size: 0.875rem;
+        }
+
+        .param-name {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .param-type {
+            color: var(--text-muted);
+            margin-left: 8px;
+        }
+
+        .no-params {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        .try-button {
             display: inline-flex;
             align-items: center;
-            gap: 5px;
-        }
-        .endpoint-link a:hover {
-            text-decoration: underline;
-        }
-        .query-params {
-            margin-left: 85px;
-            margin-top: 8px;
-            font-size: 0.85em;
-            color: #868e96;
-        }
-        .query-params strong { color: #495057; }
-        .footer {
-            background: #f8f9fa;
-            padding: 30px 40px;
-            border-top: 1px solid #e9ecef;
-            color: #666;
-            text-align: center;
-        }
-        .quick-links {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 15px;
-            margin-bottom: 30px;
-        }
-        .quick-link {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
-            border: 2px solid #e9ecef;
-            text-align: center;
-            transition: all 0.2s;
-        }
-        .quick-link:hover {
-            border-color: #667eea;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
-        }
-        .quick-link a {
-            color: #667eea;
+            gap: 8px;
+            margin-top: 20px;
+            padding: 10px 18px;
+            background: var(--primary);
+            color: white;
             text-decoration: none;
-            font-weight: 600;
-            font-size: 1.1em;
+            border-radius: 10px;
+            font-size: 0.875rem;
+            font-weight: 700;
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+        }
+
+        .try-button:hover {
+            background: var(--primary-light);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(99, 102, 241, 0.3);
+        }
+
+        .try-button i {
+            font-size: 1rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .sidebar {
+                width: 80px;
+            }
+            .nav-item span, .nav-group-title, .sidebar-header h1 span {
+                display: none;
+            }
+            .main-container {
+                padding: 24px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🌍 Re7lty API</h1>
-            <p>Backend API for Re7lty - A Social Travel Platform</p>
-            <span class="version">v1.0.0</span>
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h1>🌍 <span>Re7lty API</span></h1>
         </div>
-        
-        <div class="content">
-            <div class="info-box">
-                <h3>📋 Important Information</h3>
-                <ul>
-                    <li><strong>Base URL:</strong> ${baseUrl}</li>
-                    <li><strong>Authentication:</strong> Include <code>Authorization: Bearer &lt;token&gt;</code> header for authenticated endpoints</li>
-                    <li><strong>CORS:</strong> Enabled for all origins with credentials support</li>
-                    <li><strong>Error Format:</strong> All errors return JSON with 'error' and 'message' fields</li>
-                </ul>
+        <nav class="sidebar-nav">
+            <div class="nav-group">
+                <div class="nav-group-title">Core Systems</div>
+                <div class="nav-item active" onclick="showSection('trips')">✈️ <span>Trips</span></div>
+                <div class="nav-item" onclick="showSection('users')">👤 <span>Users</span></div>
+                <div class="nav-item" onclick="showSection('profiles')">📝 <span>Profiles</span></div>
+                <div class="nav-item" onclick="showSection('stories')">📸 <span>Stories</span></div>
+            </div>
+            
+            <div class="nav-group">
+                <div class="nav-group-title">Communication</div>
+                <div class="nav-item" onclick="showSection('chat')">💬 <span>Messaging (Chat)</span></div>
+                <div class="nav-item" onclick="showSection('notifications')">🔔 <span>Notifications</span></div>
             </div>
 
-            <div class="quick-links">
-                <div class="quick-link">
-                    <a href="/api/health" target="_blank">🏥 Health Check</a>
-                </div>
-                <div class="quick-link">
-                    <a href="/api/trips" target="_blank">✈️ Browse Trips</a>
-                </div>
-                <div class="quick-link">
-                    <a href="/api/corporate/companies" target="_blank">🏢 Corporate Companies</a>
-                </div>
-                <div class="quick-link">
-                    <a href="/api/corporate/trips" target="_blank">🎫 Corporate Trips</a>
-                </div>
+            <div class="nav-group">
+                <div class="nav-group-title">Business (Corporate)</div>
+                <div class="nav-item" onclick="showSection('corporate-trips')">🎫 <span>Corporate Trips</span></div>
+                <div class="nav-item" onclick="showSection('corporate-companies')">🏢 <span>Companies</span></div>
+                <div class="nav-item" onclick="showSection('bookings')">🏨 <span>Bookings</span></div>
+                <div class="nav-item" onclick="showSection('submissions')">📄 <span>Submissions</span></div>
             </div>
 
-            <div class="section">
-                <h2 class="section-title">API Endpoints</h2>
+            <div class="nav-group">
+                <div class="nav-group-title">Administration</div>
+                <div class="nav-item" onclick="showSection('analytics')">📊 <span>Analytics</span></div>
+                <div class="nav-item" onclick="showSection('complaints')">⚠️ <span>Complaints</span></div>
+                <div class="nav-item" onclick="showSection('reports')">🚩 <span>Content Reports</span></div>
+                <div class="nav-item" onclick="showSection('admin-users')">🔐 <span>Admin Management</span></div>
+            </div>
 
-                <!-- Trips -->
-                <div class="endpoint-group">
-                    <div class="group-header">✈️ Trips</div>
-                    <div class="group-base">/api/trips</div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method get">GET</span>
-                            <span class="endpoint-path">/api/trips</span>
-                            <span class="auth-badge auth-optional">Optional Auth</span>
-                        </div>
-                        <div class="endpoint-desc">Get list of trips with pagination and filters</div>
-                        <div class="query-params"><strong>Query Params:</strong> q, city, sort, page, limit</div>
-                        <div class="endpoint-link"><a href="/api/trips" target="_blank">→ Try it</a></div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method get">GET</span>
-                            <span class="endpoint-path">/api/trips/:id</span>
-                            <span class="auth-badge auth-optional">Optional Auth</span>
-                        </div>
-                        <div class="endpoint-desc">Get trip details by ID</div>
-                        <div class="endpoint-link"><a href="/api/trips" target="_blank">→ Try it</a></div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method post">POST</span>
-                            <span class="endpoint-path">/api/trips</span>
-                            <span class="auth-badge auth-required">Required</span>
-                        </div>
-                        <div class="endpoint-desc">Create a new trip</div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method patch">PATCH</span>
-                            <span class="endpoint-path">/api/trips/:id</span>
-                            <span class="auth-badge auth-required">Required (Owner)</span>
-                        </div>
-                        <div class="endpoint-desc">Update trip by ID</div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method delete">DELETE</span>
-                            <span class="endpoint-path">/api/trips/:id</span>
-                            <span class="auth-badge auth-required">Required (Owner)</span>
-                        </div>
-                        <div class="endpoint-desc">Delete trip by ID</div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method post">POST</span>
-                            <span class="endpoint-path">/api/trips/:id/love</span>
-                            <span class="auth-badge auth-required">Required</span>
-                        </div>
-                        <div class="endpoint-desc">Love/unlike a trip</div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method post">POST</span>
-                            <span class="endpoint-path">/api/trips/:id/save</span>
-                            <span class="auth-badge auth-required">Required</span>
-                        </div>
-                        <div class="endpoint-desc">Save/unsave a trip</div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method get">GET</span>
-                            <span class="endpoint-path">/api/trips/:id/comments</span>
-                            <span class="auth-badge auth-optional">Optional Auth</span>
-                        </div>
-                        <div class="endpoint-desc">Get comments for a trip</div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method post">POST</span>
-                            <span class="endpoint-path">/api/trips/:id/comments</span>
-                            <span class="auth-badge auth-required">Required</span>
-                        </div>
-                        <div class="endpoint-desc">Add comment to a trip</div>
-                    </div>
-                </div>
+            <div class="nav-group">
+                <div class="nav-group-title">System</div>
+                <div class="nav-item" onclick="showSection('health')">🏥 <span>Health Checks</span></div>
+            </div>
+        </nav>
+    </aside>
 
-                <!-- Users -->
-                <div class="endpoint-group">
-                    <div class="group-header">👤 Users</div>
-                    <div class="group-base">/api/users</div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method get">GET</span>
-                            <span class="endpoint-path">/api/users/me</span>
-                            <span class="auth-badge auth-required">Required</span>
-                        </div>
-                        <div class="endpoint-desc">Get current authenticated user profile</div>
-                        <div class="endpoint-link"><a href="/api/users/me" target="_blank">→ Try it</a></div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method patch">PATCH</span>
-                            <span class="endpoint-path">/api/users/me</span>
-                            <span class="auth-badge auth-required">Required</span>
-                        </div>
-                        <div class="endpoint-desc">Update current user profile</div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method get">GET</span>
-                            <span class="endpoint-path">/api/users/me/trips</span>
-                            <span class="auth-badge auth-required">Required</span>
-                        </div>
-                        <div class="endpoint-desc">Get current user's trips</div>
-                        <div class="endpoint-link"><a href="/api/users/me/trips" target="_blank">→ Try it</a></div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method get">GET</span>
-                            <span class="endpoint-path">/api/users/me/ai-trips</span>
-                            <span class="auth-badge auth-required">Required</span>
-                        </div>
-                        <div class="endpoint-desc">Get current user's AI-generated trips</div>
-                        <div class="endpoint-link"><a href="/api/users/me/ai-trips" target="_blank">→ Try it</a></div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method get">GET</span>
-                            <span class="endpoint-path">/api/users/me/saves</span>
-                            <span class="auth-badge auth-required">Required</span>
-                        </div>
-                        <div class="endpoint-desc">Get current user's saved trips</div>
-                        <div class="endpoint-link"><a href="/api/users/me/saves" target="_blank">→ Try it</a></div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method get">GET</span>
-                            <span class="endpoint-path">/api/users/:id</span>
-                            <span class="auth-badge auth-optional">Optional Auth</span>
-                        </div>
-                        <div class="endpoint-desc">Get user profile by ID</div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method get">GET</span>
-                            <span class="endpoint-path">/api/users/:id/trips</span>
-                            <span class="auth-badge auth-optional">Optional Auth</span>
-                        </div>
-                        <div class="endpoint-desc">Get user's trips by user ID</div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method post">POST</span>
-                            <span class="endpoint-path">/api/users/:id/follow</span>
-                            <span class="auth-badge auth-required">Required</span>
-                        </div>
-                        <div class="endpoint-desc">Follow/unfollow a user</div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method get">GET</span>
-                            <span class="endpoint-path">/api/users/:id/followers</span>
-                            <span class="auth-badge auth-optional">Optional Auth</span>
-                        </div>
-                        <div class="endpoint-desc">Get user's followers</div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method get">GET</span>
-                            <span class="endpoint-path">/api/users/:id/following</span>
-                            <span class="auth-badge auth-optional">Optional Auth</span>
-                        </div>
-                        <div class="endpoint-desc">Get users that this user follows</div>
-                    </div>
-                </div>
+    <main class="main-container">
+        <div id="welcome-header" class="content-header">
+            <h2>Backend API Explorer</h2>
+            <p>Welcome to the Re7lty API command center. Here you can discover endpoints, understand authentication requirements, and view data schemas across all subsystems.</p>
+        </div>
 
-                <!-- Profiles -->
-                <div class="endpoint-group">
-                    <div class="group-header">📝 Profiles</div>
-                    <div class="group-base">/api/profiles</div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method get">GET</span>
-                            <span class="endpoint-path">/api/profiles/me</span>
-                            <span class="auth-badge auth-required">Required</span>
-                        </div>
-                        <div class="endpoint-desc">Get current user's profile</div>
-                        <div class="endpoint-link"><a href="/api/profiles/me" target="_blank">→ Try it</a></div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method patch">PATCH</span>
-                            <span class="endpoint-path">/api/profiles/me</span>
-                            <span class="auth-badge auth-required">Required</span>
-                        </div>
-                        <div class="endpoint-desc">Update current user's profile</div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method get">GET</span>
-                            <span class="endpoint-path">/api/profiles/:username</span>
-                            <span class="auth-badge auth-none">Public</span>
-                        </div>
-                        <div class="endpoint-desc">Get public profile by username</div>
-                    </div>
-                </div>
-
-                <!-- Search -->
-                <div class="endpoint-group">
-                    <div class="group-header">🔍 Search</div>
-                    <div class="group-base">/api/search</div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method get">GET</span>
-                            <span class="endpoint-path">/api/search</span>
-                            <span class="auth-badge auth-none">Public</span>
-                        </div>
-                        <div class="endpoint-desc">Search trips and users</div>
-                        <div class="query-params"><strong>Query Params:</strong> q, limit</div>
-                        <div class="endpoint-link"><a href="/api/search?q=egypt" target="_blank">→ Try it</a></div>
-                    </div>
-                </div>
-
-                <!-- Notifications -->
-                <div class="endpoint-group">
-                    <div class="group-header">🔔 Notifications</div>
-                    <div class="group-base">/api/notifications</div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method get">GET</span>
-                            <span class="endpoint-path">/api/notifications</span>
-                            <span class="auth-badge auth-required">Required</span>
-                        </div>
-                        <div class="endpoint-desc">Get user notifications</div>
-                        <div class="query-params"><strong>Query Params:</strong> limit</div>
-                        <div class="endpoint-link"><a href="/api/notifications" target="_blank">→ Try it</a></div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method post">POST</span>
-                            <span class="endpoint-path">/api/notifications/:id/read</span>
-                            <span class="auth-badge auth-required">Required</span>
-                        </div>
-                        <div class="endpoint-desc">Mark notification as read</div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method post">POST</span>
-                            <span class="endpoint-path">/api/notifications/read-all</span>
-                            <span class="auth-badge auth-required">Required</span>
-                        </div>
-                        <div class="endpoint-desc">Mark all notifications as read</div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method get">GET</span>
-                            <span class="endpoint-path">/api/notifications/unread-count</span>
-                            <span class="auth-badge auth-required">Required</span>
-                        </div>
-                        <div class="endpoint-desc">Get unread notifications count</div>
-                        <div class="endpoint-link"><a href="/api/notifications/unread-count" target="_blank">→ Try it</a></div>
-                    </div>
-                </div>
-
-                <!-- Stories -->
-                <div class="endpoint-group">
-                    <div class="group-header">📸 Stories</div>
-                    <div class="group-base">/api/stories</div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method post">POST</span>
-                            <span class="endpoint-path">/api/stories</span>
-                            <span class="auth-badge auth-required">Required</span>
-                        </div>
-                        <div class="endpoint-desc">Create a new story</div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method get">GET</span>
-                            <span class="endpoint-path">/api/stories/me</span>
-                            <span class="auth-badge auth-required">Required</span>
-                        </div>
-                        <div class="endpoint-desc">Get current user's active stories</div>
-                        <div class="endpoint-link"><a href="/api/stories/me" target="_blank">→ Try it</a></div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method get">GET</span>
-                            <span class="endpoint-path">/api/stories/following</span>
-                            <span class="auth-badge auth-required">Required</span>
-                        </div>
-                        <div class="endpoint-desc">Get stories from followed users</div>
-                        <div class="endpoint-link"><a href="/api/stories/following" target="_blank">→ Try it</a></div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method post">POST</span>
-                            <span class="endpoint-path">/api/stories/:id/view</span>
-                            <span class="auth-badge auth-required">Required</span>
-                        </div>
-                        <div class="endpoint-desc">Mark story as viewed</div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method get">GET</span>
-                            <span class="endpoint-path">/api/stories/:id/viewers</span>
-                            <span class="auth-badge auth-required">Required (Owner)</span>
-                        </div>
-                        <div class="endpoint-desc">Get story viewers (owner only)</div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method delete">DELETE</span>
-                            <span class="endpoint-path">/api/stories/:id</span>
-                            <span class="auth-badge auth-required">Required (Owner)</span>
-                        </div>
-                        <div class="endpoint-desc">Delete story</div>
-                    </div>
-                </div>
-
-                <!-- Company Submissions -->
-                <div class="endpoint-group">
-                    <div class="group-header">📋 Company Submissions</div>
-                    <div class="group-base">/api/submissions</div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method post">POST</span>
-                            <span class="endpoint-path">/api/submissions</span>
-                            <span class="auth-badge auth-none">Public</span>
-                        </div>
-                        <div class="endpoint-desc">Submit a new company for approval</div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method get">GET</span>
-                            <span class="endpoint-path">/api/submissions/admin</span>
-                            <span class="auth-badge auth-admin">Admin Only</span>
-                        </div>
-                        <div class="endpoint-desc">Get all company submissions</div>
-                        <div class="query-params"><strong>Query Params:</strong> status, limit, skip</div>
-                        <div class="endpoint-link"><a href="/api/submissions/admin" target="_blank">→ Try it</a></div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method get">GET</span>
-                            <span class="endpoint-path">/api/submissions/admin/stats</span>
-                            <span class="auth-badge auth-admin">Admin Only</span>
-                        </div>
-                        <div class="endpoint-desc">Get submission statistics</div>
-                        <div class="endpoint-link"><a href="/api/submissions/admin/stats" target="_blank">→ Try it</a></div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method get">GET</span>
-                            <span class="endpoint-path">/api/submissions/admin/:id</span>
-                            <span class="auth-badge auth-admin">Admin Only</span>
-                        </div>
-                        <div class="endpoint-desc">Get submission by ID</div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method put">PUT</span>
-                            <span class="endpoint-path">/api/submissions/admin/:id/approve</span>
-                            <span class="auth-badge auth-admin">Admin Only</span>
-                        </div>
-                        <div class="endpoint-desc">Approve a submission</div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method put">PUT</span>
-                            <span class="endpoint-path">/api/submissions/admin/:id/reject</span>
-                            <span class="auth-badge auth-admin">Admin Only</span>
-                        </div>
-                        <div class="endpoint-desc">Reject a submission</div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method delete">DELETE</span>
-                            <span class="endpoint-path">/api/submissions/admin/:id</span>
-                            <span class="auth-badge auth-admin">Admin Only</span>
-                        </div>
-                        <div class="endpoint-desc">Delete a submission</div>
-                    </div>
-                </div>
-
-                <!-- Corporate Companies -->
-                <div class="endpoint-group">
-                    <div class="group-header">🏢 Corporate Companies</div>
-                    <div class="group-base">/api/corporate/companies</div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method get">GET</span>
-                            <span class="endpoint-path">/api/corporate/companies</span>
-                            <span class="auth-badge auth-none">Public</span>
-                        </div>
-                        <div class="endpoint-desc">Get all active corporate companies</div>
-                        <div class="endpoint-link"><a href="/api/corporate/companies" target="_blank">→ Try it</a></div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method get">GET</span>
-                            <span class="endpoint-path">/api/corporate/companies/:id</span>
-                            <span class="auth-badge auth-none">Public</span>
-                        </div>
-                        <div class="endpoint-desc">Get company by ID with trips</div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method get">GET</span>
-                            <span class="endpoint-path">/api/corporate/companies/admin/stats</span>
-                            <span class="auth-badge auth-admin">Admin Only</span>
-                        </div>
-                        <div class="endpoint-desc">Get company statistics</div>
-                        <div class="endpoint-link"><a href="/api/corporate/companies/admin/stats" target="_blank">→ Try it</a></div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method get">GET</span>
-                            <span class="endpoint-path">/api/corporate/companies/admin/all</span>
-                            <span class="auth-badge auth-admin">Admin Only</span>
-                        </div>
-                        <div class="endpoint-desc">Get all companies including inactive</div>
-                        <div class="endpoint-link"><a href="/api/corporate/companies/admin/all" target="_blank">→ Try it</a></div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method post">POST</span>
-                            <span class="endpoint-path">/api/corporate/companies/admin/create</span>
-                            <span class="auth-badge auth-admin">Admin Only</span>
-                        </div>
-                        <div class="endpoint-desc">Create new company</div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method put">PUT</span>
-                            <span class="endpoint-path">/api/corporate/companies/admin/:id</span>
-                            <span class="auth-badge auth-admin">Admin Only</span>
-                        </div>
-                        <div class="endpoint-desc">Update company</div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method delete">DELETE</span>
-                            <span class="endpoint-path">/api/corporate/companies/admin/:id</span>
-                            <span class="auth-badge auth-admin">Admin Only</span>
-                        </div>
-                        <div class="endpoint-desc">Soft delete company</div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method put">PUT</span>
-                            <span class="endpoint-path">/api/corporate/companies/admin/:id/toggle-active</span>
-                            <span class="auth-badge auth-admin">Admin Only</span>
-                        </div>
-                        <div class="endpoint-desc">Toggle company active status</div>
-                    </div>
-                </div>
-
-                <!-- Corporate Trips -->
-                <div class="endpoint-group">
-                    <div class="group-header">🎫 Corporate Trips</div>
-                    <div class="group-base">/api/corporate/trips</div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method get">GET</span>
-                            <span class="endpoint-path">/api/corporate/trips</span>
-                            <span class="auth-badge auth-none">Public</span>
-                        </div>
-                        <div class="endpoint-desc">Get all active corporate trips with filters</div>
-                        <div class="query-params"><strong>Query Params:</strong> destination, companyId, minRating, limit, skip</div>
-                        <div class="endpoint-link"><a href="/api/corporate/trips" target="_blank">→ Try it</a></div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method get">GET</span>
-                            <span class="endpoint-path">/api/corporate/trips/:slug</span>
-                            <span class="auth-badge auth-none">Public</span>
-                        </div>
-                        <div class="endpoint-desc">Get trip by slug</div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method get">GET</span>
-                            <span class="endpoint-path">/api/corporate/trips/company/:companyId</span>
-                            <span class="auth-badge auth-none">Public</span>
-                        </div>
-                        <div class="endpoint-desc">Get all trips for a specific company</div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method get">GET</span>
-                            <span class="endpoint-path">/api/corporate/trips/featured/top</span>
-                            <span class="auth-badge auth-none">Public</span>
-                        </div>
-                        <div class="endpoint-desc">Get featured/top-rated trips</div>
-                        <div class="query-params"><strong>Query Params:</strong> limit</div>
-                        <div class="endpoint-link"><a href="/api/corporate/trips/featured/top" target="_blank">→ Try it</a></div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method get">GET</span>
-                            <span class="endpoint-path">/api/corporate/trips/admin/stats</span>
-                            <span class="auth-badge auth-admin">Admin Only</span>
-                        </div>
-                        <div class="endpoint-desc">Get trip statistics</div>
-                        <div class="endpoint-link"><a href="/api/corporate/trips/admin/stats" target="_blank">→ Try it</a></div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method get">GET</span>
-                            <span class="endpoint-path">/api/corporate/trips/admin/all</span>
-                            <span class="auth-badge auth-admin">Admin Only</span>
-                        </div>
-                        <div class="endpoint-desc">Get all trips including inactive</div>
-                        <div class="endpoint-link"><a href="/api/corporate/trips/admin/all" target="_blank">→ Try it</a></div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method post">POST</span>
-                            <span class="endpoint-path">/api/corporate/trips/admin/create</span>
-                            <span class="auth-badge auth-admin">Admin Only</span>
-                        </div>
-                        <div class="endpoint-desc">Create new trip</div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method put">PUT</span>
-                            <span class="endpoint-path">/api/corporate/trips/admin/:id</span>
-                            <span class="auth-badge auth-admin">Admin Only</span>
-                        </div>
-                        <div class="endpoint-desc">Update trip</div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method delete">DELETE</span>
-                            <span class="endpoint-path">/api/corporate/trips/admin/:id</span>
-                            <span class="auth-badge auth-admin">Admin Only</span>
-                        </div>
-                        <div class="endpoint-desc">Soft delete trip</div>
-                    </div>
-                    <div class="endpoint">
-                        <div class="endpoint-header">
-                            <span class="method put">PUT</span>
-                            <span class="endpoint-path">/api/corporate/trips/admin/:id/toggle-active</span>
-                            <span class="auth-badge auth-admin">Admin Only</span>
-                        </div>
-                        <div class="endpoint-desc">Toggle trip active status</div>
-                    </div>
-                </div>
+        <div class="info-cards">
+            <div class="info-card">
+                <h4>API Base URL</h4>
+                <p>${baseUrl}/api</p>
+            </div>
+            <div class="info-card">
+                <h4>Authentication</h4>
+                <p>JWT (Clerk-based Bearer Token)</p>
+            </div>
+            <div class="info-card">
+                <h4>Response Format</h4>
+                <p>Application/JSON (UTF-8)</p>
             </div>
         </div>
 
-        <div class="footer">
-            <p>Re7lty API v1.0.0 | Built with ❤️ for travelers</p>
+        <!-- Trips Section -->
+        <div id="section-trips" class="endpoint-section active">
+            <div class="content-header">
+                <h2>✈️ Trips Management</h2>
+                <p>Public and community trips shared by travelers and explorers.</p>
+            </div>
+            ${renderEndpoint('GET', '/trips', 'Get list of trips with pagination and filters', 'query', ['q: string', 'city: string', 'sort: string', 'page: number'], 'optional')}
+            ${renderEndpoint('GET', '/trips/:id', 'Get detailed trip information', 'params', ['id: string'], 'optional')}
+            ${renderEndpoint('POST', '/trips', 'Publish a new trip story/plan', 'body', ['title', 'description', 'images[]', 'destination'], 'required')}
+            ${renderEndpoint('PATCH', '/trips/:id', 'Update trip details', 'params/body', ['id: string', 'title?', 'description?'], 'required')}
+            ${renderEndpoint('POST', '/trips/:id/love', 'Toggle love status for a trip', 'params', ['id: string'], 'required')}
+            ${renderEndpoint('POST', '/trips/:id/save', 'Toggle save status for a trip', 'params', ['id: string'], 'required')}
         </div>
-    </div>
+
+        <!-- Chat Section -->
+        <div id="section-chat" class="endpoint-section">
+            <div class="content-header">
+                <h2>💬 Chat & Messaging</h2>
+                <p>Direct communication between travelers and tourism companies.</p>
+            </div>
+            ${renderEndpoint('POST', '/chat/start', 'Start or retrieve a conversation with a company', 'body', ['companyId: string', 'tripId?: string'], 'required')}
+            ${renderEndpoint('GET', '/chat/conversations', 'List all conversations for the current user/company', 'query', ['asCompany: boolean'], 'required')}
+            ${renderEndpoint('GET', '/chat/:id/messages', 'Fetch message history for a conversation', 'params', ['id: string'], 'required')}
+            ${renderEndpoint('POST', '/chat/:id/messages', 'Send a new message in a conversation', 'body', ['content: string', 'senderType: string'], 'required')}
+        </div>
+
+        <!-- Bookings Section -->
+        <div id="section-bookings" class="endpoint-section">
+            <div class="content-header">
+                <h2>🏨 Booking System</h2>
+                <p>Manage reservations for corporate and organized trips.</p>
+            </div>
+            ${renderEndpoint('GET', '/bookings/my-bookings', 'List all bookings made by the current user', 'none', [], 'required')}
+            ${renderEndpoint('GET', '/bookings/company-bookings', 'List all bookings received by a company', 'none', [], 'required')}
+            ${renderEndpoint('POST', '/bookings', 'Create a new trip booking', 'body', ['tripId', 'numberOfPeople', 'bookingDate', 'seats[]'], 'required')}
+            ${renderEndpoint('POST', '/bookings/:id/accept', 'Approve a pending booking', 'params', ['id: string'], 'admin')}
+            ${renderEndpoint('POST', '/bookings/:id/reject', 'Reject a pending booking', 'params/body', ['id: string', 'reason: string'], 'admin')}
+            ${renderEndpoint('GET', '/bookings/analytics', 'Get booking success metrics', 'none', [], 'admin')}
+        </div>
+
+        <!-- Analytics Section -->
+        <div id="section-analytics" class="endpoint-section">
+            <div class="content-header">
+                <h2>📊 Analytics & Insights</h2>
+                <p>Advanced reporting for platform administrators and business owners.</p>
+            </div>
+            ${renderEndpoint('GET', '/analytics/overview', 'Get high-level platform statistics', 'none', [], 'admin')}
+            ${renderEndpoint('GET', '/analytics/trips', 'Analyze trip engagement trends', 'none', [], 'admin')}
+            ${renderEndpoint('GET', '/analytics/users', 'Analyze user growth and activity', 'none', [], 'admin')}
+        </div>
+
+        <!-- Users Section -->
+        <div id="section-users" class="endpoint-section">
+            <div class="content-header">
+                <h2>👤 User Identity</h2>
+                <p>Core user accounts and social graph management.</p>
+            </div>
+            ${renderEndpoint('GET', '/users/me', 'Get current user profile data', 'none', [], 'required')}
+            ${renderEndpoint('PATCH', '/users/me', 'Update current user security details', 'body', ['fullName?', 'phone?'], 'required')}
+            ${renderEndpoint('POST', '/users/:id/follow', 'Follow or unfollow a traveler', 'params', ['id: string'], 'required')}
+            ${renderEndpoint('GET', '/users/:id/followers', 'List user followers', 'params', ['id: string'], 'none')}
+        </div>
+
+        <!-- Corporate Trips Section -->
+        <div id="section-corporate-trips" class="endpoint-section">
+            <div class="content-header">
+                <h2>🎫 Corporate Trips</h2>
+                <p>Official trips organized by verified tourism agencies.</p>
+            </div>
+            ${renderEndpoint('GET', '/corporate/trips', 'List all active corporate trips', 'query', ['destination', 'companyId'], 'none')}
+            ${renderEndpoint('GET', '/corporate/trips/:slug', 'Get corporate trip by slug', 'params', ['slug: string'], 'none')}
+            ${renderEndpoint('POST', '/corporate/trips/admin/create', 'Add a new official trip', 'body', ['title', 'price', 'dates[]'], 'admin')}
+        </div>
+
+        <!-- Complaints Section -->
+        <div id="section-complaints" class="endpoint-section">
+            <div class="content-header">
+                <h2>⚠️ Complaints & Support</h2>
+                <p>User feedback and support request management.</p>
+            </div>
+            ${renderEndpoint('POST', '/complaints', 'Submit a platform complaint', 'body', ['name', 'email', 'message'], 'none')}
+            ${renderEndpoint('GET', '/complaints', 'View all incoming complaints', 'none', [], 'admin')}
+            ${renderEndpoint('PATCH', '/complaints/:id', 'Update complaint status', 'body', ['status', 'adminNotes'], 'admin')}
+        </div>
+
+        <!-- Profiles Section -->
+        <div id="section-profiles" class="endpoint-section">
+            <div class="content-header">
+                <h2>📝 User Profiles</h2>
+                <p>Public-facing identity and bio management.</p>
+            </div>
+            ${renderEndpoint('GET', '/profiles/me', 'Fetch current user private profile', 'none', [], 'required')}
+            ${renderEndpoint('PATCH', '/profiles/me', 'Update bio, social links, and preferences', 'body', ['bio: string', 'socialLinks: object'], 'required')}
+            ${renderEndpoint('GET', '/profiles/:username', 'Search public profile by username', 'params', ['username: string'], 'none')}
+        </div>
+
+        <!-- Stories Section -->
+        <div id="section-stories" class="endpoint-section">
+            <div class="content-header">
+                <h2>📸 Stories (Ephemeral)</h2>
+                <p>Post and manage temporary travel updates.</p>
+            </div>
+            ${renderEndpoint('GET', '/stories/following', 'Get active stories from friends', 'none', [], 'required')}
+            ${renderEndpoint('POST', '/stories', 'Upload a new story', 'body (multipart)', ['image', 'caption?'], 'required')}
+            ${renderEndpoint('POST', '/stories/:id/view', 'Record a story view', 'params', ['id: string'], 'required')}
+            ${renderEndpoint('DELETE', '/stories/:id', 'Remove a story', 'params', ['id: string'], 'required')}
+        </div>
+
+        <!-- Notifications Section -->
+        <div id="section-notifications" class="endpoint-section">
+            <div class="content-header">
+                <h2>🔔 Notifications</h2>
+                <p>In-app alerts for likes, follows, and system updates.</p>
+            </div>
+            ${renderEndpoint('GET', '/notifications', 'List user notifications', 'query', ['limit: number'], 'required')}
+            ${renderEndpoint('POST', '/notifications/read-all', 'Mark all as read', 'none', [], 'required')}
+            ${renderEndpoint('POST', '/notifications/:id/read', 'Mark specific notification as read', 'params', ['id: string'], 'required')}
+        </div>
+
+        <!-- Corporate Companies Section -->
+        <div id="section-corporate-companies" class="endpoint-section">
+            <div class="content-header">
+                <h2>🏢 Corporate Companies</h2>
+                <p>Directory and management of tourism agencies.</p>
+            </div>
+            ${renderEndpoint('GET', '/corporate/companies', 'List all verified companies', 'none', [], 'none')}
+            ${renderEndpoint('GET', '/corporate/companies/:id', 'Get company profile and active trips', 'params', ['id: string'], 'none')}
+            ${renderEndpoint('GET', '/corporate/companies/admin/all', 'Admin: View all companies (incl. inactive)', 'none', [], 'admin')}
+            ${renderEndpoint('PUT', '/corporate/companies/admin/:id/toggle-active', 'Admin: Enable/Disable company', 'params', ['id: string'], 'admin')}
+        </div>
+
+        <!-- Submissions Section -->
+        <div id="section-submissions" class="endpoint-section">
+            <div class="content-header">
+                <h2>📄 Company Submissions</h2>
+                <p>Onboarding workflow for new tourism agencies.</p>
+            </div>
+            ${renderEndpoint('POST', '/submissions', 'Submit agency verification request', 'body', ['companyName', 'commercialRegistry', 'ownerInfo'], 'none')}
+            ${renderEndpoint('GET', '/submissions/admin', 'Admin: Get pending queue', 'none', [], 'admin')}
+            ${renderEndpoint('PUT', '/submissions/admin/:id/approve', 'Admin: Convert submission to Company', 'params', ['id: string'], 'admin')}
+        </div>
+
+        <!-- Content Reports Section -->
+        <div id="section-reports" class="endpoint-section">
+            <div class="content-header">
+                <h2>🚩 Content Moderation</h2>
+                <p>Reporting system for inappropriate content.</p>
+            </div>
+            ${renderEndpoint('POST', '/content-reports', 'Report a trip or user', 'body', ['targetId', 'reason', 'description'], 'required')}
+            ${renderEndpoint('GET', '/content-reports', 'Admin: List all reports', 'query', ['status: string'], 'admin')}
+            ${renderEndpoint('PATCH', '/content-reports/:id', 'Admin: Resolve or dismiss report', 'params/body', ['id: string', 'status: string'], 'admin')}
+        </div>
+
+        <!-- Admin Management Section -->
+        <div id="section-admin-users" class="endpoint-section">
+            <div class="content-header">
+                <h2>🔐 Admin Management</h2>
+                <p>Platform user oversight and security controls.</p>
+            </div>
+            ${renderEndpoint('GET', '/admin/users', 'Admin: List all platform users', 'query', ['role', 'search'], 'admin')}
+            ${renderEndpoint('PUT', '/admin/users/:id/role', 'Admin: Update user permissions', 'params/body', ['id: string', 'role: string'], 'admin')}
+            ${renderEndpoint('DELETE', '/admin/users/:id', 'Admin: Permanently delete account', 'params', ['id: string'], 'admin')}
+            ${renderEndpoint('GET', '/admin/complaints/comments', 'Admin: Manage support thread comments', 'none', [], 'admin')}
+        </div>
+
+        <!-- Health Check Section -->
+        <div id="section-health" class="endpoint-section">
+            <div class="content-header">
+                <h2>🏥 System Health</h2>
+                <p>Diagnostic tools for service availability.</p>
+            </div>
+            ${renderEndpoint('GET', '/health', 'Check backend and DB heartbeat', 'none', [], 'none')}
+        </div>
+
+    </main>
+
+    <script>
+        function showSection(name) {
+            // Update Navigation
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+
+            // Update Content
+            document.querySelectorAll('.endpoint-section').forEach(el => el.classList.remove('active'));
+            const target = document.getElementById('section-' + name);
+            if (target) target.classList.add('active');
+            
+            // Scroll to top
+            document.querySelector('.main-container').scrollTop = 0;
+        }
+    </script>
 </body>
 </html>
-    `);
+        `);
     });
+
+    // Helper to render an endpoint in the docs
+    function renderEndpoint(method: string, path: string, desc: string, paramType: string, params: string[], auth: string) {
+        const authClasses: Record<string, string> = {
+            'required': 'auth-required',
+            'optional': 'auth-optional',
+            'admin': 'auth-admin',
+            'none': 'auth-none'
+        };
+        const authLabels: Record<string, string> = {
+            'required': 'Auth Required',
+            'optional': 'Auth Optional',
+            'admin': 'Admin Restricted',
+            'none': 'Public'
+        };
+
+        return `
+            <div class="endpoint-card">
+                <div class="endpoint-header">
+                    <span class="method ${method.toLowerCase()}">${method}</span>
+                    <span class="path">/api${path}</span>
+                    <span class="auth-badge ${authClasses[auth]}">${authLabels[auth]}</span>
+                </div>
+                <div class="endpoint-body">
+                    <p class="description">${desc}</p>
+                    <div class="params-grid">
+                        <div class="nav-group-title" style="padding:0; margin-bottom:8px; display:block;">Parameters (${paramType})</div>
+                        ${params.length > 0
+                ? params.map(p => `
+                                <div class="param-row">
+                                    <span class="param-name">${p.split(':')[0]}</span>
+                                    <span class="param-type">${p.split(':')[1] || 'string'}</span>
+                                </div>`).join('')
+                : '<div class="no-params">No payload or query parameters required</div>'
+            }
+                    </div>
+                    ${method === 'GET' && !path.includes(':')
+                ? `<a href="/api${path}" target="_blank" class="try-button">
+                            <span>🚀 Try Endpoint</span>
+                           </a>`
+                : `<a href="#" onclick="alert('This endpoint requires specific parameters or a non-GET method. Please use a tool like Postman or Insomnia with the path: /api${path}'); return false;" class="try-button" style="background: var(--secondary); opacity: 0.8;">
+                            <span>🔗 View Path</span>
+                           </a>`
+            }
+                </div>
+            </div>
+        `;
+    }
+
 
     app.get("/api/health", async (_req, res) => {
         try {
@@ -961,6 +818,7 @@ export function createApp() {
 
     // Bookings routes
     app.use("/api/bookings", bookingsRouter);
+    app.use("/api/chat", chatRouter);
 
     // Admin Comments Integration (part of complaints section)
     app.use("/api/admin/complaints/comments", adminCommentsRouter);

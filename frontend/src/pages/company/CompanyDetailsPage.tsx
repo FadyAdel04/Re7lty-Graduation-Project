@@ -10,6 +10,7 @@ import { Company, Trip } from "@/types/corporateTrips";
 import { corporateTripsService } from "@/services/corporateTripsService";
 import { Globe, Mail, MapPin, Phone, MessageSquare, ArrowRight, Share2, Building2, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { ChatWidget } from "@/components/chat/ChatWidget";
 
 const CompanyDetailsPage = () => {
     const { id } = useParams<{ id: string }>();
@@ -229,6 +230,13 @@ const CompanyDetailsPage = () => {
                 </div>
             </main>
             <Footer />
+            {company && (
+                <ChatWidget 
+                    companyId={company.id}
+                    companyName={company.name}
+                    companyLogo={company.logo}
+                />
+            )}
         </div>
     );
 };

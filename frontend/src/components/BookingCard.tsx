@@ -196,8 +196,8 @@ const BookingCard = ({ trip, company, sticky = false }: BookingCardProps) => {
 
   return (
     <>
-      <Card className={`border-gray-200 shadow-xl ${sticky ? 'sticky top-24' : ''}`}>
-        <CardContent className="p-6 space-y-6">
+      <Card className={`border-gray-200 shadow-xl ${sticky ? 'sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto custom-scrollbar' : ''}`}>
+        <CardContent className="p-4 md:p-6 space-y-6">
           {/* Price Section */}
           <div className="text-center">
             <div className="text-4xl font-bold text-gray-900 mb-2">
@@ -225,7 +225,7 @@ const BookingCard = ({ trip, company, sticky = false }: BookingCardProps) => {
                     <CheckCircle2 className="w-4 h-4 text-indigo-600" />
                     <span className="text-xs font-black text-indigo-900">لديك {userBookingsForTrip.length} حجز مسبق في هذه الرحلة</span>
                  </div>
-                 <div className="space-y-1.5">
+                 <div className="space-y-1.5 max-h-[150px] overflow-y-auto custom-scrollbar pr-1">
                     {userBookingsForTrip.map(b => (
                        <div key={b._id} className="flex items-center justify-between text-[10px] bg-white/50 p-2 rounded-lg">
                           <span className="font-bold text-gray-700 truncate max-w-[100px]">{b.userName}</span>
@@ -291,15 +291,15 @@ const BookingCard = ({ trip, company, sticky = false }: BookingCardProps) => {
           {/* Company Info */}
           <div className="space-y-2">
             <div className="flex items-center gap-3">
-              <div className={`h-12 w-12 rounded-xl bg-gradient-to-br ${company.color} flex items-center justify-center text-white font-bold shadow-md overflow-hidden`}>
+              <div className={`h-12 w-12 rounded-xl bg-gradient-to-br ${company.color} flex items-center justify-center text-white font-bold shadow-md overflow-hidden shrink-0`}>
                 {company.logo.startsWith('http') ? (
                   <img src={company.logo} alt={company.name} className="w-full h-full object-cover" />
                 ) : (
                   company.logo
                 )}
               </div>
-              <div>
-                <p className="font-bold text-gray-900">{company.name}</p>
+              <div className="min-w-0">
+                <p className="font-bold text-gray-900 truncate">{company.name}</p>
                 <div className="flex items-center gap-1">
                   <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
                   <span className="text-sm text-gray-600">{company.rating} تقييم</span>
@@ -319,23 +319,23 @@ const BookingCard = ({ trip, company, sticky = false }: BookingCardProps) => {
 
       {/* Booking Dialog */}
       <Dialog open={showBookingDialog} onOpenChange={setShowBookingDialog}>
-        <DialogContent className="sm:max-w-[600px] p-0 font-cairo overflow-hidden rounded-[2.5rem] border-0 shadow-2xl" dir="rtl">
+        <DialogContent className="max-w-[95vw] md:max-w-[600px] h-[90vh] md:h-[85vh] p-0 font-cairo overflow-hidden rounded-[1.5rem] md:rounded-[2.5rem] border-0 shadow-2xl flex flex-col" dir="rtl">
           {/* Header */}
-          <div className="bg-gradient-to-r from-orange-600 to-red-600 p-8 text-white relative overflow-hidden">
+          <div className="bg-gradient-to-r from-orange-600 to-red-600 p-6 md:p-8 text-white relative overflow-hidden shrink-0">
              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
              <div className="absolute bottom-0 left-0 w-24 h-24 bg-black/10 rounded-full -ml-12 -mb-12 blur-xl" />
              <div className="relative z-10">
                 <Badge className="bg-white/20 hover:bg-white/30 text-white border-0 mb-3 backdrop-blur-md">
                    رحلة مميزة
                 </Badge>
-                <DialogTitle className="text-3xl font-black mb-2 leading-tight">حجز رحلة {trip.title}</DialogTitle>
-                <DialogDescription className="text-orange-100 font-medium">
+                <DialogTitle className="text-2xl md:text-3xl font-black mb-2 leading-tight">حجز رحلة {trip.title}</DialogTitle>
+                <DialogDescription className="text-orange-100 font-medium text-sm md:text-base">
                   أكمل البيانات التالية لتأمين مقعدك في هذه المغامرة.
                 </DialogDescription>
              </div>
           </div>
 
-          <form onSubmit={handleSubmitBooking} className="flex flex-col max-h-[85dvh]">
+          <form onSubmit={handleSubmitBooking} className="flex flex-col flex-1 min-h-0">
             <div className="overflow-y-auto flex-1 p-4 md:p-8 space-y-6 md:space-y-8 custom-scrollbar">
               
               {/* 1. Trip Summary */}
@@ -377,7 +377,7 @@ const BookingCard = ({ trip, company, sticky = false }: BookingCardProps) => {
               {/* 3. Personal Info */}
               <div className="space-y-4">
                  <Label className="text-base font-black text-gray-900">بيانات المسافر الرئيسي</Label>
-                 <div className="grid grid-cols-2 gap-4">
+                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                        <Label className="text-xs font-bold text-gray-500">الاسم الأول</Label>
                        <Input
@@ -450,8 +450,9 @@ const BookingCard = ({ trip, company, sticky = false }: BookingCardProps) => {
                    </div>
                 )}
                 
-                <div className="p-3 md:p-6 bg-gray-50 rounded-[2.5rem] border border-gray-100 relative overflow-hidden">
+                <div className="p-3 bg-gray-50 rounded-[2.5rem] border border-gray-100 relative">
                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-200 to-transparent opacity-50" />
+                   <p className="text-[10px] text-center text-gray-400 mb-2 md:hidden">اسحب لليسار لرؤية باقي المقاعد ↔️</p>
                    <BusSeatLayout 
                       type={trip.transportationType || 'bus-48'} 
                       bookedSeats={trip.seatBookings || []}
@@ -474,10 +475,12 @@ const BookingCard = ({ trip, company, sticky = false }: BookingCardProps) => {
                  />
               </div>
 
+              {/* Space for bottom content visibility on small screens */}
+              <div className="h-4 md:h-0" />
             </div>
 
             {/* Footer Summary */}
-            <div className="p-4 md:p-6 bg-gray-50 border-t border-gray-100 space-y-4">
+            <div className="p-4 md:p-6 bg-gray-50 border-t border-gray-100 space-y-4 shrink-0 z-20 shadow-[0_-5px_20px_-10px_rgba(0,0,0,0.1)]">
               <div className="flex items-center justify-between">
                  <div className="text-sm text-gray-500 font-medium">الإجمالي المتوقع</div>
                  <div className="text-2xl font-black text-gray-900">
@@ -490,7 +493,7 @@ const BookingCard = ({ trip, company, sticky = false }: BookingCardProps) => {
                    type="button"
                    variant="outline"
                    onClick={() => setShowBookingDialog(false)}
-                   className="flex-1 h-14 rounded-2xl font-bold border-gray-200 hover:bg-gray-100 hover:text-gray-900"
+                   className="flex-1 h-12 md:h-14 rounded-2xl font-bold border-gray-200 hover:bg-gray-100 hover:text-gray-900"
                    disabled={isSubmitting}
                  >
                    إلغاء
@@ -498,15 +501,15 @@ const BookingCard = ({ trip, company, sticky = false }: BookingCardProps) => {
                  <Button
                    type="submit"
                    disabled={isSubmitting}
-                   className="flex-[2] h-14 rounded-2xl bg-gray-900 hover:bg-black text-white font-black shadow-lg shadow-gray-200 transition-all hover:scale-[1.02]"
+                   className="flex-[2] h-12 md:h-14 rounded-2xl bg-gray-900 hover:bg-black text-white font-black shadow-lg shadow-gray-200 transition-all hover:scale-[1.02]"
                  >
                    {isSubmitting ? (
                      <>
                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                       جاري تأكيد الحجز...
+                       جاري الإرسال...
                      </>
                    ) : (
-                     "تأكيد وإرسال الطلب"
+                     "تأكيد الطلب"
                    )}
                  </Button>
               </div>

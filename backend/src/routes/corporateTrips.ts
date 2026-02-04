@@ -237,8 +237,8 @@ router.get('/company/:companyId', async (req, res) => {
     try {
         const query: any = { companyId: req.params.companyId };
 
-        // Ensure we're fetching from the database without filtering by active status
-        // to show ALL trips as requested.
+        // Ensure we're fetching only active trips for public view
+        query.isActive = true;
         const trips = await CorporateTrip.find(query).sort({ rating: -1 });
 
         res.json(trips);

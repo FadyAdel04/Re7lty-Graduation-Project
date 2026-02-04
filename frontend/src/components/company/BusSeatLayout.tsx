@@ -85,9 +85,7 @@ const BusSeatLayout = ({
   // Inform parent of selection changes (Live update)
   useEffect(() => {
     if (!isAdmin && onSelectSeats) {
-        // onSelectSeats(selectedSeats); 
-        // We can keep it live or move to a button. 
-        // The user specifically asked for a button to "finish".
+        onSelectSeats(selectedSeats); 
     }
   }, [selectedSeats, onSelectSeats, isAdmin]);
 

@@ -166,8 +166,6 @@ const AppContent = () => {
       {!isAdminRoute && !isOnboardingRoute && <TripAIChatWidget />}
       {/* Tour Guide for new users */}
       {!isAdminRoute && !isOnboardingRoute && <TourGuide />}
-      {/* Mandatory Terms Acceptance */}
-      {!isAdminRoute && !isOnboardingRoute && !isAuthRoute && <TermsAcceptanceModal />}
       {/* Global Upload Progress Bar */}
       <UploadProgressBar />
     </>

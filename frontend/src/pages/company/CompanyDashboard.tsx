@@ -6,7 +6,7 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart, Activity, Users, Map, Plus, DollarSign, Calendar, LogOut, AlertTriangle, Loader2, Settings, Bus, Check, RefreshCcw, Bell } from "lucide-react";
+import { BarChart, Activity, Users, Map, Plus, DollarSign, Calendar, LogOut, AlertTriangle, Loader2, Settings, Bus, Check, RefreshCcw, Bell, MessageCircle } from "lucide-react";
 import BusSeatLayout from "@/components/company/BusSeatLayout";
 import { useToast } from "@/components/ui/use-toast";
 import { corporateTripsService } from "@/services/corporateTripsService";
@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ResponsiveContainer, BarChart as ReBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, Legend, PieChart, Pie, Cell } from 'recharts';
 import { companyService } from "@/services/companyService";
+import { CompanyChat } from "@/components/company/CompanyChat";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -270,7 +271,7 @@ const CompanyDashboard = () => {
         setIsSwitchingRole(true);
         try {
             const token = await getToken();
-            const response = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/users/me/switch-role`, {
+            const response = await fetch(`${import.meta.env.VITE_API_URL || "http://127.0.0.1:5000"}/api/users/me/switch-role`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -341,7 +342,7 @@ const CompanyDashboard = () => {
         setIsSavingSeats(true);
         try {
             const token = await getToken();
-            const response = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/corporate/trips/${selectedTripForSeats._id || selectedTripForSeats.id}`, {
+            const response = await fetch(`${import.meta.env.VITE_API_URL || "http://127.0.0.1:5000"}/api/corporate/trips/${selectedTripForSeats._id || selectedTripForSeats.id}`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
@@ -549,6 +550,7 @@ const CompanyDashboard = () => {
                                 {[
                                     { id: 'trips', label: 'الرحلات', icon: Map },
                                     { id: 'bookings', label: 'الحجوزات', icon: Users, badge: bookings.filter(b => b.status === 'pending').length },
+                                    { id: 'contact', label: 'الرسائل', icon: MessageCircle, badge: 0 }, // Unread chat count could go here
                                     { id: 'seats', label: 'توزيع المقاعد', icon: Bus },
                                     { id: 'reports', label: 'التقارير', icon: BarChart },
                                     { id: 'subscription', label: 'الاشتراك', icon: Activity },
@@ -607,6 +609,7 @@ const CompanyDashboard = () => {
                                      <TabsList>
                                         <TabsTrigger value="trips">trips</TabsTrigger>
                                         <TabsTrigger value="bookings">bookings</TabsTrigger>
+                                        <TabsTrigger value="contact">contact</TabsTrigger>
                                         <TabsTrigger value="seats">seats</TabsTrigger>
                                         <TabsTrigger value="reports">reports</TabsTrigger>
                                         <TabsTrigger value="subscription">subscription</TabsTrigger>
@@ -700,6 +703,10 @@ const CompanyDashboard = () => {
                                             <BookingManagementTable bookings={bookings} onUpdate={() => { handleRefreshBookings(); fetchAnalytics(); }} />
                                         </>
                                      )}
+                                </TabsContent>
+
+                                <TabsContent value="contact" className="p-8 m-0 focus-visible:outline-none">
+                                     <CompanyChat />
                                 </TabsContent>
 
                                 <TabsContent value="seats" className="p-8 m-0 focus-visible:outline-none">

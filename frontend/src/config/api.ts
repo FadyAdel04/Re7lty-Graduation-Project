@@ -11,7 +11,10 @@ const rawBase = import.meta.env.VITE_API_URL || '';
 
 // In production, if VITE_API_URL is missing, we try to guess or use a sensible fallback.
 // However, ERR_NETWORK usually means we're hitting localhost from a public site.
-export const API_BASE_URL = rawBase ? rawBase.replace(/\/+$/, '') : (import.meta.env.PROD ? '' : 'http://localhost:5000');
+// In development, we use the same hostname as the browser for the backend, assuming it's on port 5000
+const devBase = typeof window !== 'undefined' ? `http://${window.location.hostname}:5000` : 'http://127.0.0.1:5000';
+
+export const API_BASE_URL = rawBase ? rawBase.replace(/\/+$/, '') : (import.meta.env.PROD ? '' : devBase);
 
 /**
  * Helper to get authentication headers

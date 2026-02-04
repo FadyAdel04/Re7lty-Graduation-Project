@@ -230,7 +230,7 @@ router.get('/:id', async (req, res) => {
     try {
         const company = await CorporateCompany.findById(req.params.id);
 
-        if (!company) {
+        if (!company || !company.isActive) {
             return res.status(404).json({ error: 'Company not found' });
         }
 

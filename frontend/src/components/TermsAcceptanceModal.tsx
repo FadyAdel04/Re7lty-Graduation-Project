@@ -4,35 +4,61 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useUser } from "@clerk/clerk-react";
+import { useUser, useAuth } from "@clerk/clerk-react";
 import { ShieldCheck, Lock, FileText, CheckCircle2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { API_BASE_URL } from "@/config/api";
 
 export function TermsAcceptanceModal() {
   const { user, isLoaded, isSignedIn } = useUser();
+  const { getToken } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [agreed, setAgreed] = useState(false);
-  
-  // Unique key for the current version of terms
-  // Change this string to force re-acceptance for all users
-  const TERMS_VERSION_KEY = "re7lty_terms_accepted_v1.0";
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (isLoaded && isSignedIn && user) {
-       // Check if user has already accepted the current version
-       const hasAccepted = localStorage.getItem(`${TERMS_VERSION_KEY}_${user.id}`);
+       // Check if user has accepted terms in DB (synced to Clerk metadata)
+       // We cast strictly to boolean to handle undefined
+       const hasAccepted = !!user.publicMetadata?.hasAcceptedTerms;
+       
        if (!hasAccepted) {
-          // Add a small delay for better UX
-          const timer = setTimeout(() => setIsOpen(true), 1000);
+          // Add a small delay for better UX and to ensure data is settled
+          const timer = setTimeout(() => setIsOpen(true), 1500);
           return () => clearTimeout(timer);
+       } else {
+          setIsOpen(false);
        }
     }
   }, [isLoaded, isSignedIn, user]);
 
-  const handleAccept = () => {
-     if (user) {
-        localStorage.setItem(`${TERMS_VERSION_KEY}_${user.id}`, 'true');
-        setIsOpen(false);
+  const handleAccept = async () => {
+     if (!user) return;
+     if (!agreed) return;
+     
+     setIsSubmitting(true);
+     try {
+        const token = await getToken();
+        const response = await fetch(`${API_BASE_URL}/api/users/me`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ hasAcceptedTerms: true })
+        });
+
+        if (response.ok) {
+            // Reload user to update publicMetadata locally so modal closes and TourGuide can start
+            await user.reload();
+            setIsOpen(false);
+        } else {
+            console.error("Failed to update terms acceptance");
+        }
+     } catch (err) {
+        console.error("Error accepting terms:", err);
+     } finally {
+        setIsSubmitting(false);
      }
   };
 
@@ -40,8 +66,10 @@ export function TermsAcceptanceModal() {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
-        // Prevent closing by clicking outside or pressing ESC
+        // Prevent closing by clicking outside or pressing ESC if not accepted
         if (!open && !agreed) return; 
+        // Also prevent closing if submitting
+        if (isSubmitting) return;
         setIsOpen(open);
     }}>
       <DialogContent className="max-w-4xl h-[85vh] flex flex-col font-cairo p-0 overflow-hidden rounded-[2rem] border-0" dir="rtl" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>

@@ -31,6 +31,7 @@ import BusSeatLayout from "@/components/company/BusSeatLayout";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@clerk/clerk-react";
 import { motion } from "framer-motion";
+import { ChatWidget } from "@/components/chat/ChatWidget";
 
 const TripDetailsPage = () => {
   const { user } = useUser();
@@ -445,7 +446,7 @@ const TripDetailsPage = () => {
           </div>
 
           <div className="lg:col-span-1">
-             <div className="sticky top-28 space-y-6">
+             <div className="sticky top-28 space-y-6 max-h-[calc(100vh-8rem)] overflow-y-auto custom-scrollbar pl-1">
                 {/* User Assigned Seat - New Badge */}
                 {user && trip.seatBookings && trip.seatBookings.some(s => 
                   s.userId === user.id ||
@@ -521,6 +522,15 @@ const TripDetailsPage = () => {
       </main>
 
       <Footer />
+      {company && trip && (
+        <ChatWidget 
+          companyId={company.id}
+          companyName={company.name}
+          companyLogo={company.logo}
+          tripId={trip.id}
+          tripTitle={trip.title}
+        />
+      )}
     </div>
   );
 };
