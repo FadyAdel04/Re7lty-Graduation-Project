@@ -12,6 +12,7 @@ import { SignedIn, useAuth, useUser } from "@clerk/clerk-react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { motion, AnimatePresence } from "framer-motion";
+import { useLoading } from "@/contexts/LoadingContext";
 import TripSkeletonLoader from "@/components/TripSkeletonLoader";
 import { StoriesBar } from "@/components/StoriesBar";
 import { StoryViewer } from "@/components/StoryViewer";
@@ -22,8 +23,9 @@ import LeftSidebar, { TimelineFilters } from "@/components/timeline/LeftSidebar"
 import RightSidebar, { FollowedTraveler } from "@/components/timeline/RightSidebar";
 import TimelineHero from "@/components/TimelineHero";
 import TripAIChatWidget from "@/components/TripAIChatWidget";
+import LivePulseMap from "@/components/LivePulseMap";
 import { Badge } from "@/components/ui/badge";
-import UserBadge from "@/components/UserBadge";
+import { PassportBadge } from "@/components/profile/DigitalPassport";
 import { cn } from "@/lib/utils";
 
 function formatDate(iso: string): string {
@@ -42,6 +44,21 @@ const Timeline = () => {
   const { toast } = useToast();
   const { isSignedIn, getToken, userId } = useAuth();
   const { user } = useUser();
+  const { startLoading, stopLoading } = useLoading();
+
+  const normalizeCity = (name: string) => {
+    if (!name) return 'unknown';
+    let n = name.toLowerCase().trim();
+    if (n.includes('alex')) return 'alexandria';
+    if (n.includes('cairo') || n.includes('qahira')) return 'cairo';
+    if (n.includes('luxor')) return 'luxor';
+    if (n.includes('aswan')) return 'aswan';
+    if (n.includes('sharm')) return 'sharm el sheikh';
+    if (n.includes('dahab')) return 'dahab';
+    if (n.includes('ghurghada') || n.includes('hurghada')) return 'hurghada';
+    if (n.includes('matrouh') || n.includes('matro')) return 'mersa matrouh';
+    return n;
+  };
   const [showHeartByTrip, setShowHeartByTrip] = useState<Record<string, boolean>>({});
   const [activeImageByTrip, setActiveImageByTrip] = useState<Record<string, string>>({});
   const [activeCommentsTripId, setActiveCommentsTripId] = useState<string | null>(null);
@@ -66,17 +83,19 @@ const Timeline = () => {
   const [myStoriesCount, setMyStoriesCount] = useState(0);
 
   const userTrips = trips.filter(t => t.ownerId === userId);
-  const uniqueDestinations = new Set(userTrips.map(t => t.city || t.destination).filter(Boolean));
+  const uniqueDestinations = new Set(userTrips.map(t => normalizeCity(t.city || t.destination)).filter(c => c !== 'unknown'));
   const userStats = {
     citiesVisited: uniqueDestinations.size,
     storiesShared: myStoriesCount,
     tripsCreated: userTrips.length,
+    points: uniqueDestinations.size * 150 + (userTrips.length * 20), // Simulated score logic
   };
 
   useEffect(() => {
     let isMounted = true;
     const loadTrips = async () => {
       setLoading(true);
+      startLoading();
       try {
         let token: string | undefined = undefined;
         if (isSignedIn) {
@@ -106,7 +125,10 @@ const Timeline = () => {
       } catch (error) {
         console.error("Error loading trips:", error);
       } finally {
-        if (isMounted) setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+          stopLoading();
+        }
       }
 
       if (isSignedIn) {
@@ -181,7 +203,7 @@ const Timeline = () => {
                    uniqueSuggestions.set(trip.ownerId, {
                       userId: trip.ownerId, fullName: trip.author, imageUrl: trip.authorImage,
                       status: `نشر ${formatDate(trip.postedAt)}`, tripCount: 1, isFollowing: false,
-                      badgeLevel: trip.authorBadge,
+                      points: trip.authorPoints || 200,
                    });
                } else { uniqueSuggestions.get(trip.ownerId)!.tripCount++; }
              }
@@ -202,7 +224,7 @@ const Timeline = () => {
                    allFoundUsers.set(trip.ownerId, {
                      userId: trip.ownerId, fullName: trip.author, imageUrl: trip.authorImage,
                      status: `نشر ${formatDate(trip.postedAt)}`, tripCount: 1, isFollowing,
-                     badgeLevel: trip.authorBadge,
+                     points: trip.authorPoints || 200,
                    });
                } else { allFoundUsers.get(trip.ownerId)!.tripCount++; }
              }
@@ -405,15 +427,18 @@ const Timeline = () => {
                                       </Avatar>
                                    </div>
                                 </Link>
-                                <div className="space-y-0.5 text-right">
-                                    <div className="flex items-center gap-2">
-                                       <Link to={toProfilePath(trip)} className="font-bold text-gray-900 hover:text-orange-600 transition-colors block">
-                                          {trip.author}
-                                       </Link>
-                                       {trip.authorBadge && trip.authorBadge !== 'none' && (
-                                         <UserBadge tier={trip.authorBadge} size="sm" />
-                                       )}
-                                    </div>
+                                 <div className="space-y-0.5 text-right flex-1 min-w-0">
+                                     <div className="flex flex-col gap-1">
+                                        <Link to={toProfilePath(trip)} className="font-bold text-gray-900 hover:text-orange-600 transition-colors block leading-tight">
+                                           {trip.author}
+                                        </Link>
+                                        <PassportBadge 
+                                          count={trip.authorTripsCount || (trip.author ? 1 : 0)} 
+                                          points={trip.authorPoints || 200} 
+                                          size="sm"
+                                          className="w-fit"
+                                        />
+                                     </div>
                                     <div className="flex items-center gap-2 text-xs text-gray-500">
                                        {formatDate(trip.postedAt)}
                                        <Clock className="w-3 h-3 text-orange-400" />

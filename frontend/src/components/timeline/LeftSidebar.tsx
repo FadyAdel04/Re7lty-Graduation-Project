@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { PlusCircle, MapPin, TrendingUp, Bookmark, Calendar } from "lucide-react";
+import { PlusCircle, MapPin, TrendingUp, Bookmark, Calendar, Globe, Award, Sparkles } from "lucide-react";
+import { PassportBadge } from "../profile/DigitalPassport";
 import {
   Select,
   SelectContent,
@@ -29,6 +30,7 @@ interface LeftSidebarProps {
     citiesVisited: number;
     storiesShared: number;
     tripsCreated: number;
+    points?: number;
   };
   upcomingTrip?: {
     title: string;
@@ -183,23 +185,29 @@ const LeftSidebar = ({ filters, onFiltersChange, userStats, upcomingTrip }: Left
              <CardTitle className="text-xl font-black">نشاطك</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 pt-5">
-            <div className="bg-gray-50 rounded-2xl p-4 flex justify-between items-center group hover:bg-orange-50 transition-colors">
-               <div className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center">
-                  <span className="text-xl font-black text-orange-600">{userStats.citiesVisited}</span>
+            <div className="bg-blue-600 rounded-2xl p-5 text-white shadow-lg shadow-blue-100 relative overflow-hidden group">
+               <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10 blur-xl group-hover:scale-150 transition-transform duration-700" />
+               <div className="relative z-10 flex flex-col items-center gap-3">
+                  <div className="flex items-center gap-2">
+                     <Sparkles className="w-5 h-5 text-blue-200" />
+                     <span className="text-xs font-black uppercase tracking-widest text-blue-100">سجل الاستكشاف</span>
+                  </div>
+                  <div className="text-4xl font-black">{userStats.points || 0}</div>
+                  <div className="text-[10px] font-bold text-blue-200 uppercase tracking-tighter opacity-80">نقطة استكشاف دولية</div>
+                  
+                  <div className="w-full h-px bg-white/10 my-1" />
+                  
+                  <div className="flex justify-between w-full text-xs font-bold">
+                     <div className="flex items-center gap-1.5">
+                        <Globe className="w-3.5 h-3.5 text-blue-300" />
+                        <span>{userStats.citiesVisited} أختام</span>
+                     </div>
+                     <div className="flex items-center gap-1.5">
+                        <Award className="w-3.5 h-3.5 text-orange-400" />
+                        <span>مستكشف نشط</span>
+                     </div>
+                  </div>
                </div>
-               <span className="text-sm font-bold text-gray-600">مدينة زرتها</span>
-            </div>
-            <div className="bg-gray-50 rounded-2xl p-4 flex justify-between items-center group hover:bg-emerald-50 transition-colors">
-               <div className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center">
-                  <span className="text-xl font-black text-emerald-600">{userStats.storiesShared}</span>
-               </div>
-               <span className="text-sm font-bold text-gray-600">قصة شاركتها</span>
-            </div>
-            <div className="bg-gray-50 rounded-2xl p-4 flex justify-between items-center group hover:bg-blue-50 transition-colors">
-               <div className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center">
-                  <span className="text-xl font-black text-blue-600">{userStats.tripsCreated}</span>
-               </div>
-               <span className="text-sm font-bold text-gray-600">رحلة أنشأتها</span>
             </div>
           </CardContent>
         </Card>

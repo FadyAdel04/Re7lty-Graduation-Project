@@ -20,10 +20,12 @@ import CompanyHero from "@/components/CompanyHero";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { useLoading } from "@/contexts/LoadingContext";
 
 const CorporateTrips = () => {
   const { getToken, isSignedIn } = useAuth();
   const { toast } = useToast();
+  const { startLoading, stopLoading } = useLoading();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [allTrips, setAllTrips] = useState<Trip[]>([]);
   const [filteredTrips, setFilteredTrips] = useState<Trip[]>([]);
@@ -36,6 +38,7 @@ const CorporateTrips = () => {
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
+      startLoading();
       try {
         const [companiesData, tripsData, featuredData] = await Promise.all([
           corporateTripsService.getAllCompanies(),
@@ -51,6 +54,7 @@ const CorporateTrips = () => {
         console.error("Error fetching data:", error);
       } finally {
         setLoading(false);
+        stopLoading();
       }
     };
 

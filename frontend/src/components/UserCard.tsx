@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useAuth } from "@clerk/clerk-react";
 import { toggleFollowUser } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import UserBadge, { BadgeTier } from "./UserBadge";
+import { PassportBadge } from "./profile/DigitalPassport";
 
 interface UserCardProps {
   user: {
@@ -16,7 +16,8 @@ interface UserCardProps {
     location?: string;
     followers?: number;
     tripsCount?: number;
-    badgeLevel?: BadgeTier;
+    points?: number;
+    stampsCount?: number;
   };
   isFollowing?: boolean;
   onFollowToggle?: (newStatus: boolean) => void;
@@ -89,14 +90,17 @@ const UserCard = ({ user, isFollowing: initialIsFollowing = false, onFollowToggl
               </div>
             )}
           </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h3 className="font-bold text-gray-900 truncate text-lg group-hover:text-orange-600 transition-colors">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-col gap-1.5">
+              <h3 className="font-bold text-gray-900 text-lg group-hover:text-orange-600 transition-colors leading-tight">
                 {user.fullName || user.username}
               </h3>
-              {user.badgeLevel && user.badgeLevel !== 'none' && (
-                <UserBadge tier={user.badgeLevel} size="sm" />
-              )}
+              <PassportBadge 
+                count={user.stampsCount || user.tripsCount || 0} 
+                points={user.points || (user.tripsCount ? user.tripsCount * 50 : 0)} 
+                size="sm"
+                className="w-fit"
+              />
             </div>
             {user.username && (
               <p className="text-sm text-gray-500 truncate" dir="ltr">@{user.username}</p>

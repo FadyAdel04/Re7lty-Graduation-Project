@@ -8,6 +8,7 @@ import AISection from "@/components/home/AISection";
 import DiscoverSection from "@/components/home/DiscoverSection";
 import HowItWorksSection from "@/components/home/HowItWorksSection";
 import DiscoverUsersTripsSection from "@/components/home/DiscoverUsersTripsSection";
+import SeasonTripsSection from "@/components/home/SeasonTripsSection";
 
 
 const Index = () => {
@@ -29,6 +30,9 @@ const Index = () => {
         <div id="featured-trips-section">
           <DiscoverUsersTripsSection />
         </div>
+
+        {/* Seasonal Trips Section */}
+        <SeasonTripsSection />
 
         {/* Corporate Trips Teaser */}
         <section id="corporate-trips-section" className="py-20 bg-gradient-to-br from-gray-900 to-gray-800 text-white relative overflow-hidden">

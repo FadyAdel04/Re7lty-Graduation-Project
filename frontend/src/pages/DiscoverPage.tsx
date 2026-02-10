@@ -6,6 +6,7 @@ import Footer from "@/components/Footer";
 import { search, getUserFollowing, toggleFollowUser } from "@/lib/api";
 import UserCard from "@/components/UserCard";
 import DiscoverHero from "@/components/DiscoverHero";
+import LivePulseMap from "@/components/LivePulseMap";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -122,7 +123,12 @@ const DiscoverPage = () => {
       <main className="container mx-auto px-4 py-8 pb-20">
         
         {/* 1. Hero Section */}
-        {!isSearchMode && <DiscoverHero />}
+        {!isSearchMode && (
+          <div className="space-y-12 mb-16">
+            <DiscoverHero />
+            <LivePulseMap height="450px" />
+          </div>
+        )}
 
         {/* 2. Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">

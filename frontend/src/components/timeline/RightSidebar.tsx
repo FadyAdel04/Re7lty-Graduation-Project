@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UserPlus, UserMinus, Compass } from "lucide-react";
-import { UserBadge, BadgeTier } from "@/components/UserBadge";
+import { PassportBadge } from "@/components/profile/DigitalPassport";
 import { cn } from "@/lib/utils";
 
 export interface FollowedTraveler {
@@ -13,7 +13,7 @@ export interface FollowedTraveler {
   status?: string;
   tripCount: number;
   isFollowing: boolean;
-  badgeLevel?: BadgeTier;
+  points?: number;
 }
 
 interface RightSidebarProps {
@@ -67,21 +67,19 @@ const RightSidebar = ({ followedTravelers, onToggleFollow, isLoading }: RightSid
                   </Link>
                   
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 truncate">
+                    <div className="min-w-0">
                       <Link 
                         to={`/user/${traveler.userId}`} 
-                        className="font-bold text-sm text-gray-900 hover:text-indigo-600 truncate block transition-colors"
+                        className="font-bold text-sm text-gray-900 hover:text-indigo-600 block transition-colors leading-tight mb-1"
                       >
                         {traveler.fullName}
                       </Link>
-                      {traveler.badgeLevel && traveler.badgeLevel !== 'none' && (
-                        <UserBadge tier={traveler.badgeLevel} size="sm" />
-                      )}
+                      <PassportBadge 
+                        count={traveler.tripCount} 
+                        points={traveler.points || (traveler.tripCount * 50)} 
+                        size="sm"
+                      />
                     </div>
-                    
-                    <p className="text-[10px] text-gray-400 font-medium truncate mt-0.5">
-                       {traveler.tripCount} رحلة استكشافية
-                    </p>
                   </div>
 
                   <Button

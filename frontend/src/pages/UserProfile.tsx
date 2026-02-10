@@ -8,9 +8,11 @@ import TripCard from "@/components/TripCard";
 import UserCard from "@/components/UserCard";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import LivePulseMap from "@/components/LivePulseMap";
+import DigitalPassport, { Stamp, PassportBadge } from "@/components/profile/DigitalPassport";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, Calendar, Users, Heart, Settings, Camera, Edit2, Save, X, LogOut, Bookmark, MessageCircle, Award, Crown, Gem, LayoutGrid, Sparkles, Image as ImageIcon, Trash2, Building2 } from "lucide-react";
+import { MapPin, Calendar, Users, Heart, Settings, Camera, Edit2, Save, X, LogOut, Bookmark, MessageCircle, Award, Crown, Gem, LayoutGrid, Sparkles, Image as ImageIcon, Trash2, Building2, Globe } from "lucide-react";
 import { useUser, useAuth, useClerk } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -107,6 +109,7 @@ const UserProfile = () => {
   const [isLoadingAITrips, setIsLoadingAITrips] = useState(false);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoadingBookings, setIsLoadingBookings] = useState(false);
+  const [stamps, setStamps] = useState<Stamp[]>([]);
 
   // URL Tab handling
   const routeLocation = useLocation();
@@ -280,6 +283,7 @@ const UserProfile = () => {
 
     fetchUserTrips();
   }, [id, isOwnProfile, isSignedIn, getToken, toast]);
+
 
   useEffect(() => {
     const fetchSavedAndLoved = async () => {
@@ -863,6 +867,22 @@ const UserProfile = () => {
 
   const userBadgeData = getUserBadgeData();
 
+  const normalizeCity = (name: string) => {
+    if (!name) return 'unknown';
+    let n = name.toLowerCase().trim();
+    if (n.includes('alex')) return 'alexandria';
+    if (n.includes('cairo') || n.includes('qahira')) return 'cairo';
+    if (n.includes('luxor')) return 'luxor';
+    if (n.includes('aswan')) return 'aswan';
+    if (n.includes('sharm')) return 'sharm el sheikh';
+    if (n.includes('dahab')) return 'dahab';
+    if (n.includes('ghurghada') || n.includes('hurghada')) return 'hurghada';
+    if (n.includes('matrouh') || n.includes('matro')) return 'mersa matrouh';
+    return n;
+  };
+
+  const uniqueCitiesCount = new Set(userTrips.map(t => normalizeCity(t.destination || t.city || '')).filter(c => c !== 'unknown')).size;
+
   if (isLoadingUser || (isOwnProfile && !isLoaded)) {
     return (
       <>
@@ -951,14 +971,10 @@ const UserProfile = () => {
                                  )}
                                </>
                              )}
-                              {userBadgeData.tier !== 'none' && !editingField && (
-                                <UserBadge 
-                                  tier={userBadgeData.tier} 
-                                  showLabel 
-                                  size="sm" 
-                                  progression={isOwnProfile ? userBadgeData.progression : undefined} 
-                                />
-                              )}
+                              <PassportBadge 
+                                count={uniqueCitiesCount} 
+                                points={userBadgeData.score} 
+                              />
                           </div>
                           
                           <div className="flex items-center justify-center gap-1.5 group relative">
@@ -984,36 +1000,16 @@ const UserProfile = () => {
                              )}
                            </div>
 
-                          {/* Badge Progress Bar (Premium Addition) - Only visible to owner */}
-                          {isOwnProfile && (
-                            <div className="w-full max-w-[220px] mx-auto space-y-2 py-4 border-t border-gray-50/50 mt-4">
-                               <div className="flex justify-between text-[11px] font-black text-gray-500">
-                                  <div className="flex items-center gap-1">
-                                     <Sparkles className="w-3 h-3 text-amber-500" />
-                                     <span>المستوى القادم: {userBadgeData.nextTier?.nextLabel || 'القمة'}</span>
+                           {/* Passport Summary instead of Badge Progress */}
+                           <div className="w-full max-w-[220px] mx-auto space-y-2 py-4 border-t border-gray-50/50 mt-4">
+                               <div className="flex flex-col items-center gap-1">
+                                  <div className="p-3 bg-blue-50 rounded-2xl text-blue-600 mb-2">
+                                     <Globe className="w-8 h-8 animate-spin-slow" />
                                   </div>
-                                  <span className="bg-orange-50 text-orange-600 px-2 py-0.5 rounded-full">{userBadgeData.score} نقطة</span>
+                                  <span className="text-sm font-black text-gray-900">سجل الاستكشاف الرقمي</span>
+                                  <p className="text-[10px] text-gray-400 font-bold">تم جمع {uniqueCitiesCount} أختام رسمية</p>
                                </div>
-                               <div className="h-2.5 w-full bg-gray-100/80 rounded-full overflow-hidden shadow-inner ring-1 ring-black/[0.03] relative">
-                                  <div 
-                                    className={cn(
-                                      "h-full transition-all duration-1000 ease-out rounded-full relative z-10",
-                                      userBadgeData.tier === 'legend' 
-                                        ? "bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 animate-pulse" 
-                                        : "bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-600"
-                                    )}
-                                    style={{ width: `${userBadgeData.progress}%` }}
-                                  >
-                                     <div className="absolute inset-0 bg-white/20 animate-shimmer" style={{ backgroundSize: '200% 100%' }} />
-                                  </div>
-                               </div>
-                               {userBadgeData.tier !== 'legend' && (
-                                 <p className="text-[9px] text-gray-400 text-center font-bold">
-                                   باقي {userBadgeData.nextTier!.min - userBadgeData.score} نقطة للترقية
-                                 </p>
-                               )}
-                            </div>
-                          )}
+                           </div>
                        </div>
 
                        {/* Bio Section */}
@@ -1109,6 +1105,7 @@ const UserProfile = () => {
                             { id: "bookings", label: "حجوزاتي", icon: <Calendar className="w-4 h-4" />, hide: !isOwnProfile },
                             { id: "saved", label: "المحفوظات", icon: <Bookmark className="w-4 h-4" /> },
                             { id: "liked", label: "الإعجابات", icon: <Heart className="w-4 h-4" /> },
+                            { id: "passport", label: "الـبـاسـبـور", icon: <Globe className="w-4 h-4" /> },
                           ].filter(t => !t.hide).map(tab => (
                              <TabsTrigger 
                                key={tab.id} 
@@ -1121,7 +1118,7 @@ const UserProfile = () => {
                           ))}
                        </TabsList>
 
-                       {["trips", "ai-trips", "stories", "saved", "liked", "bookings"].map(tabId => (
+                       {["trips", "ai-trips", "stories", "saved", "liked", "bookings", "passport"].map(tabId => (
                           <TabsContent key={tabId} value={tabId} className="p-6 transition-all animate-in fade-in slide-in-from-bottom-4">
                              {/* Shared Trip Grid Logic */}
                              {renderTabContent(tabId)}
@@ -1289,8 +1286,8 @@ const UserProfile = () => {
   );
 
   function renderTabContent(tabId: string) {
-    const loading = tabId === 'trips' ? isLoadingTrips : tabId === 'saved' ? isLoadingSaved : tabId === 'liked' ? isLoadingLoved : tabId === 'stories' ? isLoadingMyStories : tabId === 'bookings' ? isLoadingBookings : isLoadingAITrips;
-    const data = tabId === 'trips' ? userTrips : tabId === 'saved' ? savedTrips : tabId === 'liked' ? lovedTrips : tabId === 'stories' ? myStories : tabId === 'bookings' ? bookings : aiTrips;
+    const loading = tabId === 'trips' ? isLoadingTrips : tabId === 'saved' ? isLoadingSaved : tabId === 'liked' ? isLoadingLoved : tabId === 'stories' ? isLoadingMyStories : tabId === 'bookings' ? isLoadingBookings : tabId === 'passport' ? false : isLoadingAITrips;
+    const data = tabId === 'trips' ? userTrips : tabId === 'saved' ? savedTrips : tabId === 'liked' ? lovedTrips : tabId === 'stories' ? myStories : tabId === 'bookings' ? bookings : tabId === 'passport' ? [1] : aiTrips;
 
     if (loading) return <TripSkeletonLoader count={3} variant="card" />;
 
@@ -1450,6 +1447,48 @@ const UserProfile = () => {
           ))}
         </div>
       );
+    }
+
+    if (tabId === 'passport') {
+      const normalizeCity = (name: string) => {
+        if (!name) return 'unknown';
+        let n = name.toLowerCase().trim();
+        // Common Egyptian city variations
+        if (n.includes('alex')) return 'alexandria';
+        if (n.includes('cairo') || n.includes('qahira')) return 'cairo';
+        if (n.includes('luxor')) return 'luxor';
+        if (n.includes('aswan')) return 'aswan';
+        if (n.includes('sharm')) return 'sharm el sheikh';
+        if (n.includes('dahab')) return 'dahab';
+        if (n.includes('ghurghada') || n.includes('hurghada')) return 'hurghada';
+        if (n.includes('matrouh') || n.includes('matro')) return 'mersa matrouh';
+        return n;
+      };
+
+      // Filter for unique cities only
+      const uniqueCities = new Map();
+      userTrips.forEach((trip: any) => {
+        const cityValue = trip.destination || trip.city || '';
+        const norm = normalizeCity(cityValue);
+        if (!uniqueCities.has(norm)) {
+          uniqueCities.set(norm, trip);
+        }
+      });
+
+      const realStamps: Stamp[] = Array.from(uniqueCities.values()).map((trip: any, idx: number) => {
+        const city = trip.destination || trip.city || 'وجهة غير محددة';
+        return {
+          id: trip._id || String(idx),
+          city: city,
+          date: trip.startDate ? new Date(trip.startDate).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long' }) : 'تاريخ غير معروف',
+          points: 150 + (idx * 50),
+          rarity: idx % 4 === 0 ? 'limited' : idx % 3 === 0 ? 'rare' : 'common',
+          image: trip.image || 'https://images.unsplash.com/photo-1572252009286-268acec5ca0a',
+          season: trip.season || (idx % 2 === 0 ? 'Winter' : 'Summer')
+        };
+      });
+
+      return <DigitalPassport stamps={realStamps} userName={fullName || "الرحالة"} />;
     }
 
     return (

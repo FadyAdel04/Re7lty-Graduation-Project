@@ -2,6 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { motion, AnimatePresence } from "framer-motion";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import Index from "./pages/Index";
@@ -12,7 +13,7 @@ import Templates from "./pages/Templates";
 import Auth from "./pages/Auth";
 import SignUpPage from "./pages/SignUp";
 import UserProfile from "./pages/UserProfile";
-import Leaderboard from "./pages/Leaderboard";
+
 import NotFound from "./pages/NotFound";
 import Timeline from "./pages/Timeline";
 import Support from "./pages/Support";
@@ -42,8 +43,12 @@ import CompanyDashboard from "./pages/company/CompanyDashboard";
 import UserRoleSelection from "./pages/onboarding/UserRoleSelection";
 import CompanyRegistrationPage from "./pages/onboarding/CompanyRegistrationPage";
 import CompanyDetailsPage from "./pages/company/CompanyDetailsPage";
-import { TourGuide } from "@/components/TourGuide";
+
 import { TermsAcceptanceModal } from "@/components/TermsAcceptanceModal";
+import Leaderboard from "./pages/Leaderboard";
+import { LoadingProvider, useLoading } from "./contexts/LoadingContext";
+import PremiumLoader from "./components/PremiumLoader";
+
 
 const queryClient = new QueryClient();
 
@@ -60,6 +65,17 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => (
 const AppContent = () => {
   const location = useLocation();
   const { user, isLoaded, isSignedIn } = useUser();
+  const { isLoading, startLoading, stopLoading } = useLoading();
+
+  useEffect(() => {
+    // Show premium loader on every route change for a full cycle (3.6s) to ensure all steps are seen
+    startLoading();
+    const timer = setTimeout(() => {
+      stopLoading();
+    }, 3600); // 3.6s matches the full animation cycle (1.2s * 3 stages)
+    return () => clearTimeout(timer);
+  }, [location.pathname]);
+
   const isAdminRoute = location.pathname.startsWith('/admin');
   const isOnboardingRoute = location.pathname.startsWith('/onboarding');
   const isAuthRoute = location.pathname.startsWith('/auth');
@@ -89,8 +105,15 @@ const AppContent = () => {
       return null;
   }
 
+  if (!isLoaded) {
+    return <PremiumLoader />;
+  }
+
   return (
     <>
+      <AnimatePresence>
+        {isLoading && <PremiumLoader />}
+      </AnimatePresence>
       <ScrollToTop />
       <Routes>
         {/* Onboarding Routes */}
@@ -165,7 +188,7 @@ const AppContent = () => {
       {/* Global AI Chat Widget - Hide on admin pages and onboarding */}
       {!isAdminRoute && !isOnboardingRoute && <TripAIChatWidget />}
       {/* Tour Guide for new users */}
-      {!isAdminRoute && !isOnboardingRoute && <TourGuide />}
+      {!isAdminRoute && !isOnboardingRoute}
       {/* Global Upload Progress Bar */}
       <UploadProgressBar />
     </>
@@ -173,19 +196,21 @@ const AppContent = () => {
 };
 
 const App = () => (
-  <UploadProgressProvider>
-    <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <NotificationProvider>
-          <AppContent />
-        </NotificationProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-  </UploadProgressProvider>
+  <LoadingProvider>
+    <UploadProgressProvider>
+      <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <NotificationProvider>
+            <AppContent />
+          </NotificationProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+    </UploadProgressProvider>
+  </LoadingProvider>
 );
 
 export default App;
