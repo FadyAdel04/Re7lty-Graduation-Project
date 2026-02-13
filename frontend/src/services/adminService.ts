@@ -270,6 +270,14 @@ export const adminService = {
         }
     },
 
+    async deleteUser(clerkId: string, token?: string) {
+        const response = await axios.delete(`${API_URL}/api/admin/users/${clerkId}`, {
+            headers: getAuthHeaders(token),
+            withCredentials: true
+        });
+        return response.data;
+    },
+
     async getTopTrips(token?: string, limit: number = 5) {
         try {
             const response = await axios.get(`${API_URL}/api/analytics/top-trips?limit=${limit}`, {

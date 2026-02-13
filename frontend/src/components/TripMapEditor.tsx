@@ -30,6 +30,7 @@ interface TripMapEditorProps {
   onLocationsChange: (locations: TripLocation[]) => void;
   onRouteChange: (route: [number, number][]) => void;
   destination?: string;
+  className?: string;
 }
 
 interface MapCenterUpdaterProps {
@@ -92,6 +93,8 @@ const cityCoordinates: Record<string, [number, number]> = {
   sharm: [27.9158, 34.3300],
   dahab: [28.5021, 34.5197],
   bahariya: [27.8751, 28.3481],
+  cairo: [30.0444, 31.2357],
+  giza: [30.0131, 31.2089],
 };
 
 // City name mapping for search filtering
@@ -118,7 +121,7 @@ const cityNameEnMap: Record<string, string> = {
   bahariya: "Bahariya Oasis",
 };
 
-const TripMapEditor = ({ locations, route, onLocationsChange, onRouteChange, destination }: TripMapEditorProps) => {
+const TripMapEditor = ({ locations, route, onLocationsChange, onRouteChange, destination, className }: TripMapEditorProps) => {
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
   const [isAddingManually, setIsAddingManually] = useState(false);
   const [isDrawingRoute, setIsDrawingRoute] = useState(false);
@@ -269,7 +272,7 @@ const TripMapEditor = ({ locations, route, onLocationsChange, onRouteChange, des
   };
 
   return (
-    <div className="space-y-4">
+    <div className={`space-y-4 h-full flex flex-col ${className || ''}`}>
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h3 className="text-lg font-semibold flex items-center gap-2">
@@ -415,7 +418,7 @@ const TripMapEditor = ({ locations, route, onLocationsChange, onRouteChange, des
         )}
       </div>
 
-      <div className="relative h-[500px] rounded-xl overflow-hidden border-2 border-border shadow-lg" style={{ position: 'relative', width: '100%', isolation: 'isolate' }}>
+      <div className={`relative rounded-xl overflow-hidden border-2 border-border shadow-lg flex-1 ${!destination ? 'min-h-[500px]' : ''}`} style={{ position: 'relative', width: '100%', isolation: 'isolate' }}>
         <MapContainer
           center={mapCenter}
           zoom={mapZoom}

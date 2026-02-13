@@ -1,4 +1,4 @@
-import { Clock, Heart, Star, Snowflake, Sun, Leaf, Cloud, Flag } from "lucide-react";
+import { Clock, Heart, Star, Snowflake, Sun, Leaf, Cloud, Flag, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,9 +19,10 @@ interface TripCardProps {
   likes: number;
   ownerId?: string; // Clerk user ID for profile linking
   season?: 'winter' | 'summer' | 'fall' | 'spring';
+  postType?: 'quick' | 'detailed';
 }
 
-const TripCard = ({ id, title, destination, duration, rating, image, author, authorImage, likes, ownerId, season }: TripCardProps) => {
+const TripCard = ({ id, title, destination, duration, rating, image, author, authorImage, likes, ownerId, season, postType }: TripCardProps) => {
   const [isLiked, setIsLiked] = useState(false);
   
   // Use ownerId for profile link if available, otherwise fallback to author name (for backward compatibility)
@@ -62,6 +63,12 @@ const TripCard = ({ id, title, destination, duration, rating, image, author, aut
             <Badge className={`absolute top-3 left-3 ${seasonConfig.color} border-0 backdrop-blur-sm flex items-center gap-1.5 px-3 py-1.5`}>
               <span className="text-base">{seasonConfig.emoji}</span>
               <span className="font-semibold">{seasonConfig.label}</span>
+            </Badge>
+          )}
+          {postType === 'quick' && (
+            <Badge className="absolute bottom-3 right-3 bg-amber-500 text-white border-0 backdrop-blur-sm flex items-center gap-1.5 px-3 py-1.5 z-10 shadow-lg">
+              <Zap className="h-3.5 w-3.5 fill-white" />
+              <span className="font-semibold">بوست سريع</span>
             </Badge>
           )}
           <Button

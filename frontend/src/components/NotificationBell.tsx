@@ -61,9 +61,11 @@ const NotificationBell = () => {
     if (notification.link) {
       navigate(notification.link);
     } else if (notification.tripId) {
-      // For general trips, try slug if available in metadata, or use tripId
-      const slug = notification.metadata?.tripSlug || notification.tripId;
-      navigate(`/corporate-trips/${slug}`);
+      if (notification.metadata?.tripSlug) {
+        navigate(`/corporate-trips/${notification.metadata.tripSlug}`);
+      } else {
+        navigate(`/trips/${notification.tripId}`);
+      }
     } else if (notification.actorId) {
       navigate(`/user/${notification.actorId}`);
     }

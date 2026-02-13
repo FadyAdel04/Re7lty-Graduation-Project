@@ -8,7 +8,7 @@ const NotificationSchema = new Schema(
     actorImage: String,
     type: {
       type: String,
-      enum: ["love", "save", "comment", "follow", "system"],
+      enum: ["love", "save", "comment", "follow", "system", "tag"],
       required: true,
     },
     message: { type: String, required: true },

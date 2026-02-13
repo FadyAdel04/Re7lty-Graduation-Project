@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { Upload, Image as ImageIcon, Video, X, MapPin } from 'lucide-react';
+import { Upload, Image as ImageIcon, Video, X, MapPin, Smile } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { TripLocation } from './TripMapEditor';
+import EmojiPicker, { Theme } from "emoji-picker-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface LocationMediaManagerProps {
   locations: TripLocation[];
@@ -116,7 +118,27 @@ const LocationMediaManager = ({ locations, onLocationsChange }: LocationMediaMan
               {/* Location Details */}
               <div className="space-y-3">
                 <div className="space-y-2">
-                  <Label>اسم المكان *</Label>
+                  <div className="flex items-center justify-between">
+                    <Label>اسم المكان *</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-primary transition-colors">
+                          <Smile className="h-5 w-5" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="p-0 border-none shadow-2xl rounded-2xl overflow-hidden mb-2" side="top" align="end">
+                        <EmojiPicker
+                          onEmojiClick={(emojiData) => updateLocationDetails(location.id, 'name', (location.name || "") + emojiData.emoji)}
+                          theme={Theme.LIGHT}
+                          autoFocusSearch={false}
+                          width={320}
+                          height={400}
+                          searchPlaceholder="بحث عن رمز..."
+                          previewConfig={{ showPreview: false }}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
                   <Input
                     placeholder="مثال: قلعة قايتباي"
                     value={location.name}
@@ -124,8 +146,28 @@ const LocationMediaManager = ({ locations, onLocationsChange }: LocationMediaMan
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label>وصف المكان</Label>
+                <div className="space-y-2 relative">
+                  <div className="flex items-center justify-between">
+                    <Label>وصف المكان</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-primary transition-colors">
+                          <Smile className="h-5 w-5" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="p-0 border-none shadow-2xl rounded-2xl overflow-hidden mb-2" side="top" align="end">
+                        <EmojiPicker
+                          onEmojiClick={(emojiData) => updateLocationDetails(location.id, 'description', (location.description || "") + emojiData.emoji)}
+                          theme={Theme.LIGHT}
+                          autoFocusSearch={false}
+                          width={320}
+                          height={400}
+                          searchPlaceholder="بحث عن رمز..."
+                          previewConfig={{ showPreview: false }}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
                   <Textarea
                     placeholder="اكتب وصفاً عن تجربتك في هذا المكان..."
                     rows={3}

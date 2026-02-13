@@ -24,6 +24,16 @@ import AdminLayout from "@/components/admin/AdminLayout";
 import SubmissionsModal from "@/components/admin/SubmissionsModal";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const CompaniesManagementPage = () => {
   const { user } = useUser();
@@ -37,6 +47,7 @@ const CompaniesManagementPage = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmissionsOpen, setIsSubmissionsOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState<any>(null);
+  const [companyToDelete, setCompanyToDelete] = useState<any>(null);
 
   useEffect(() => {
     const adminEmail = 'supermincraft52@gmail.com';
@@ -84,15 +95,19 @@ const CompaniesManagementPage = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm('هل تريد حذف هذه الشركة؟ سيتم إلغاء تفعيل جميع رحلاتها.')) {
-      try {
-        const token = await getToken();
-        await adminService.deleteCompany(id, token || undefined);
-        fetchData();
-      } catch (error) {
-        alert('حدث خطأ أثناء الحذف');
-      }
+  const handleDelete = async () => {
+    if (!companyToDelete) return;
+
+    try {
+      setLoading(true);
+      const token = await getToken();
+      await adminService.deleteCompany(companyToDelete._id, token || undefined);
+      setCompanyToDelete(null);
+      fetchData();
+    } catch (error) {
+      alert('حدث خطأ أثناء الحذف');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -234,13 +249,13 @@ const CompaniesManagementPage = () => {
                                 >
                                   <Edit className="h-4 w-4" />
                                 </Button>
-                                <Button 
-                                  size="sm" 
-                                  className="flex-1 h-11 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 border-0"
-                                  onClick={() => handleDelete(company._id)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
+                                 <Button 
+                                   size="sm" 
+                                   className="flex-1 h-11 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 border-0"
+                                   onClick={() => setCompanyToDelete(company)}
+                                 >
+                                   <Trash2 className="h-4 w-4" />
+                                 </Button>
                              </div>
                           </CardContent>
                        </Card>
@@ -265,6 +280,45 @@ const CompaniesManagementPage = () => {
             if (!open) fetchData();
           }}
         />
+
+        {/* Company Deletion Confirmation Modal */}
+        <AlertDialog open={!!companyToDelete} onOpenChange={(open) => !open && setCompanyToDelete(null)}>
+          <AlertDialogContent className="rounded-[2.5rem] border-0 shadow-2xl p-0 overflow-hidden max-w-md bg-white">
+            <div className="bg-rose-500 h-2 w-full" />
+            <div className="p-8">
+              <AlertDialogHeader>
+                <div className="w-20 h-20 bg-rose-50 rounded-3xl flex items-center justify-center text-rose-600 mb-6 mx-auto animate-bounce">
+                  <Building2 className="w-10 h-10" />
+                </div>
+                <AlertDialogTitle className="text-2xl font-black text-gray-900 text-center font-cairo">
+                  حذف الشركة نهائياً؟
+                </AlertDialogTitle>
+                <AlertDialogDescription className="text-gray-500 font-bold text-center mt-2 leading-relaxed">
+                  أنت على وشك حذف شركة <span className="text-gray-900">{companyToDelete?.name}</span>. 
+                  هذا الإجراء سيؤدي لإيقاف كافة رحلاتها وإزالة بياناتها من النظام.
+                  <br />
+                  <span className="text-rose-600 font-black mt-2 block italic text-xs">احذر: هذا الإجراء سيؤثر على الرحلات المرتبطة!</span>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className="mt-10 flex flex-col gap-3 sm:flex-row-reverse sm:gap-4">
+                <Button 
+                  onClick={handleDelete}
+                  className="h-14 flex-1 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black shadow-xl shadow-rose-100 transition-all active:scale-95"
+                >
+                  نعم، احذف الشركة
+                </Button>
+                <AlertDialogCancel asChild>
+                  <Button 
+                    variant="ghost"
+                    className="h-14 flex-1 rounded-2xl bg-gray-50 text-gray-500 font-black hover:bg-gray-100 transition-all"
+                  >
+                    إلغاء
+                  </Button>
+                </AlertDialogCancel>
+              </AlertDialogFooter>
+            </div>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AdminLayout>
   );

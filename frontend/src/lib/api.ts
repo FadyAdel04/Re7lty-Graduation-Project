@@ -582,4 +582,41 @@ export async function getUserFollowing(clerkId: string) {
   return res.json();
 }
 
+export async function getCloudinarySignature(token: string) {
+  const res = await fetch(`${BASE}/api/trips/cloudinary-signature`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || 'Failed to get Cloudinary signature');
+  }
+  return await res.json() as { signature: string; timestamp: number; cloudName: string; apiKey: string; folder: string };
+}
 
+export async function adminDeleteUser(clerkId: string, token: string) {
+  const res = await fetch(`${BASE}/api/admin/users/${clerkId}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to delete user');
+  }
+  return res.json();
+}
+
+export async function searchUsers(query: string, token?: string) {
+  const res = await fetch(`${BASE}/api/users/search?q=${encodeURIComponent(query)}`, {
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  if (!res.ok) {
+    throw new Error('Failed to search users');
+  }
+  return res.json();
+}

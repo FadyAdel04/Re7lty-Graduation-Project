@@ -5,6 +5,8 @@ import { TripLove } from "../models/TripLove";
 import { CorporateCompany } from "../models/CorporateCompany";
 import { CorporateTrip } from "../models/CorporateTrip";
 import { CompanySubmission } from "../models/CompanySubmission";
+import ContentReport from "../models/ContentReport";
+import Complaint from "../models/Complaint";
 import { requireAuthStrict, getAuth } from "../utils/auth";
 
 const router = Router();
@@ -34,6 +36,7 @@ router.get('/overview', requireAuthStrict, async (req, res) => {
             totalCompanies,
             totalCorporateTrips,
             totalReactions,
+            totalReports,
             weekAgoDate
         ] = await Promise.all([
             User.countDocuments({}),
@@ -41,8 +44,13 @@ router.get('/overview', requireAuthStrict, async (req, res) => {
             CorporateCompany.countDocuments({ isActive: true }),
             CorporateTrip.countDocuments({ isActive: true }),
             TripLove.countDocuments({}),
+            ContentReport.countDocuments({}).then((count) => count + 0), // Base logic
             Promise.resolve(getWeekAgoDate())
         ]);
+
+        // Add Complaint count to totalReports
+        const totalComplaints = await Complaint.countDocuments({});
+        const finalTotalReports = totalReports + totalComplaints;
 
         // Get weekly active users (users who created trips or reacted in last 7 days)
         const [weeklyActiveUsers, weeklyTrips, weeklyReactions] = await Promise.all([
@@ -111,7 +119,8 @@ router.get('/overview', requireAuthStrict, async (req, res) => {
             totalComments,
             weeklyComments,
             totalCompanies,
-            totalCorporateTrips
+            totalCorporateTrips,
+            totalReports: finalTotalReports
         });
     } catch (error: any) {
         console.error('Error fetching overview analytics:', error);
@@ -340,7 +349,11 @@ router.get('/reports', requireAuthStrict, async (req, res) => {
             topTrips,
             topCompanies,
             submissionStats,
-            dailyBreakdown
+            dailyBreakdown,
+            totalContentReports,
+            newContentReports,
+            totalComplaints,
+            newComplaints
         ] = await Promise.all([
             // Total counts
             User.countDocuments({}),
@@ -440,7 +453,7 @@ router.get('/reports', requireAuthStrict, async (req, res) => {
                     const dayEnd = new Date(currentDate);
                     dayEnd.setHours(23, 59, 59, 999);
 
-                    const [dayUsers, dayTrips, dayReactions, dayComments] = await Promise.all([
+                    const [dayUsers, dayTrips, dayReactions, dayComments, dayContentReports, dayComplaints] = await Promise.all([
                         User.countDocuments({ createdAt: { $gte: dayStart, $lte: dayEnd } }),
                         Trip.countDocuments({ createdAt: { $gte: dayStart, $lte: dayEnd } }),
                         TripLove.countDocuments({ createdAt: { $gte: dayStart, $lte: dayEnd } }),
@@ -472,7 +485,9 @@ router.get('/reports', requireAuthStrict, async (req, res) => {
                                     total: { $sum: '$commentCount' }
                                 }
                             }
-                        ]).then(res => res[0]?.total || 0)
+                        ]).then(res => res[0]?.total || 0),
+                        ContentReport.countDocuments({ createdAt: { $gte: dayStart, $lte: dayEnd } }),
+                        Complaint.countDocuments({ createdAt: { $gte: dayStart, $lte: dayEnd } })
                     ]);
 
                     days.push({
@@ -481,14 +496,21 @@ router.get('/reports', requireAuthStrict, async (req, res) => {
                         users: dayUsers,
                         trips: dayTrips,
                         reactions: dayReactions,
-                        comments: dayComments
+                        comments: dayComments,
+                        reports: dayContentReports + dayComplaints
                     });
 
                     currentDate.setDate(currentDate.getDate() + 1);
                 }
 
                 return days;
-            })()
+            })(),
+
+            // Reports counts
+            ContentReport.countDocuments({}),
+            ContentReport.countDocuments({ createdAt: { $gte: start, $lte: end } }),
+            Complaint.countDocuments({}),
+            Complaint.countDocuments({ createdAt: { $gte: start, $lte: end } })
         ]);
 
         // Format submission stats
@@ -538,7 +560,9 @@ router.get('/reports', requireAuthStrict, async (req, res) => {
                 totalReactions,
                 newReactions,
                 totalComments,
-                newComments
+                newComments,
+                totalReports: totalContentReports + totalComplaints,
+                newReports: newContentReports + newComplaints
             },
             charts: {
                 tripDistribution,

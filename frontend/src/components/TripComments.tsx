@@ -1,19 +1,21 @@
-import { useEffect, useState } from "react";
-import { Heart, Send, Lock, Trash2, Loader2, MessageSquare } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { Heart, Send, Lock, Trash2, Loader2, MessageSquare, Smile, User } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Comment } from "@/lib/trips-data";
+import { Comment as TripComment } from "@/lib/trips-data";
 import { SignedIn, SignedOut, SignInButton, useUser, useAuth } from "@clerk/clerk-react";
 import { useToast } from "@/hooks/use-toast";
-import { addTripComment, toggleTripCommentLove, deleteTripComment } from "@/lib/api";
+import { addTripComment, toggleTripCommentLove, deleteTripComment, searchUsers } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import EmojiPicker, { Theme } from "emoji-picker-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface TripCommentsProps {
   tripId: string;
-  initialComments: Comment[];
-  onCommentAdded?: (comment: Comment) => void;
-  onCommentUpdated?: (commentId: string, changes: Partial<Comment>) => void;
+  initialComments: TripComment[];
+  onCommentAdded?: (comment: TripComment) => void;
+  onCommentUpdated?: (commentId: string, changes: Partial<TripComment>) => void;
   onCommentDeleted?: (commentId: string) => void;
   tripOwnerId?: string;
 }
@@ -29,15 +31,76 @@ const TripComments = ({
   const { user } = useUser();
   const { isSignedIn, getToken } = useAuth();
   const { toast } = useToast();
-  const [commentsList, setCommentsList] = useState<Comment[]>(initialComments || []);
+  const [commentsList, setCommentsList] = useState<TripComment[]>(initialComments || []);
   const [newComment, setNewComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pendingCommentId, setPendingCommentId] = useState<string | null>(null);
   const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
 
+  // Mention state
+  const [mentionQuery, setMentionQuery] = useState("");
+  const [showMentions, setShowMentions] = useState(false);
+  const [mentionResults, setMentionResults] = useState<any[]>([]);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
   useEffect(() => {
     setCommentsList(initialComments || []);
   }, [initialComments, tripId]);
+
+  // Handle mention search
+  useEffect(() => {
+    const search = async () => {
+      if (mentionQuery && mentionQuery.length > 1) {
+        try {
+          const results = await searchUsers(mentionQuery);
+          setMentionResults(results.slice(0, 5)); // Limit to 5 results
+        } catch (err) {
+          console.error("Failed to search users for mention", err);
+        }
+      } else {
+        setMentionResults([]);
+      }
+    };
+    const timer = setTimeout(search, 300);
+    return () => clearTimeout(timer);
+  }, [mentionQuery]);
+
+  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    setNewComment(val);
+
+    const cursor = e.target.selectionStart;
+    const textBeforeCursor = val.slice(0, cursor);
+    const words = textBeforeCursor.split(/\s/); // Split by whitespace
+    const lastWord = words[words.length - 1];
+
+    if (lastWord.startsWith('@')) {
+      setShowMentions(true);
+      setMentionQuery(lastWord.slice(1));
+    } else {
+      setShowMentions(false);
+      setMentionQuery("");
+    }
+  };
+
+  const insertMention = (username: string) => {
+    if (!textareaRef.current) return;
+    
+    const cursor = textareaRef.current.selectionStart;
+    const textBeforeCursor = newComment.slice(0, cursor);
+    const textAfterCursor = newComment.slice(cursor);
+    
+    const lastAtPos = textBeforeCursor.lastIndexOf('@');
+    const newTextBefore = textBeforeCursor.slice(0, lastAtPos);
+    
+    const newValue = `${newTextBefore}@${username} ${textAfterCursor}`;
+    setNewComment(newValue);
+    setShowMentions(false);
+    setMentionQuery("");
+    
+    // Reset focus
+    textareaRef.current.focus();
+  };
 
   const handleAddComment = async () => {
     if (!newComment.trim()) return;
@@ -152,11 +215,23 @@ const TripComments = ({
     }
   };
 
-  const canDeleteComment = (comment: Comment) => {
+  const canDeleteComment = (comment: TripComment) => {
     if (!user) return false;
     if (comment.authorId && user.id === comment.authorId) return true;
     if (tripOwnerId && user.id === tripOwnerId) return true;
     return false;
+  };
+
+  // Helper to highlight mentions in comments
+  const formatCommentContent = (content: string) => {
+    // Regex for mentions: @username
+    const parts = content.split(/(@\w+)/g);
+    return parts.map((part, i) => {
+      if (part.startsWith('@')) {
+        return <span key={i} className="text-indigo-600 font-bold">{part}</span>;
+      }
+      return part;
+    });
   };
 
   return (
@@ -210,8 +285,8 @@ const TripComments = ({
                 </div>
 
                 <div className="relative">
-                  <div className="inline-block px-4 py-2.5 rounded-2xl bg-gray-50 border border-gray-100/50 text-sm text-gray-700 leading-relaxed max-w-[90%]">
-                    {comment.content}
+                  <div className="inline-block px-4 py-2.5 rounded-2xl bg-gray-50 border border-gray-100/50 text-sm text-gray-700 leading-relaxed max-w-[90%] whitespace-pre-wrap">
+                    {formatCommentContent(comment.content)}
                   </div>
                   
                   <button
@@ -245,16 +320,63 @@ const TripComments = ({
       </div>
 
       {/* Sticky Input Area */}
-      <div className="mt-4 pt-4 border-t border-gray-100">
+      <div className="mt-4 pt-4 border-t border-gray-100 relative">
         <SignedIn>
           <div className="relative">
+            {showMentions && mentionResults.length > 0 && (
+              <div className="absolute bottom-full mb-2 left-0 w-64 bg-white rounded-xl shadow-xl border border-gray-100 max-h-48 overflow-y-auto z-50">
+                 <div className="p-2 space-y-1">
+                   {mentionResults.map(u => (
+                     <button
+                       key={u._id}
+                       onClick={() => insertMention(u.username)}
+                       className="w-full flex items-center gap-2 p-2 hover:bg-gray-50 rounded-lg transition-colors text-right"
+                     >
+                       <Avatar className="h-6 w-6">
+                         <AvatarImage src={u.imageUrl} />
+                         <AvatarFallback>{u.username?.charAt(0)}</AvatarFallback>
+                       </Avatar>
+                       <div className="flex flex-col items-start">
+                         <span className="text-sm font-bold text-gray-900">{u.username}</span>
+                         <span className="text-xs text-gray-500">{u.fullName}</span>
+                       </div>
+                     </button>
+                   ))}
+                 </div>
+              </div>
+            )}
+            
             <Textarea
-              placeholder="اكتب تعليقك هنا..."
+              ref={textareaRef}
+              placeholder="اكتب تعليقك هنا... (استخدم @ لذكر شخص)"
               value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
+              onChange={handleTextChange}
               className="min-h-[100px] w-full rounded-2xl bg-gray-50 border-gray-100 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/50 transition-all resize-none p-4 pr-4 pb-12 text-sm font-medium"
             />
             <div className="absolute bottom-3 left-3 flex items-center gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
+                  >
+                    <Smile className="h-5 w-5" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="p-0 border-none shadow-2xl rounded-2xl overflow-hidden mb-2" side="top" align="start">
+                  <EmojiPicker
+                    onEmojiClick={(emojiData) => setNewComment(prev => prev + emojiData.emoji)}
+                    theme={Theme.LIGHT}
+                    autoFocusSearch={false}
+                    width={320}
+                    height={400}
+                    searchPlaceholder="بحث عن رمز..."
+                    previewConfig={{ showPreview: false }}
+                  />
+                </PopoverContent>
+              </Popover>
+
               <Button 
                 onClick={handleAddComment}
                 disabled={!newComment.trim() || isSubmitting}

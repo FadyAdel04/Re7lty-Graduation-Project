@@ -5,7 +5,7 @@ import Footer from "@/components/Footer";
 import { listTrips, toggleTripLove, toggleTripSave, toggleFollowUser, getUserFollowing } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Heart, MessageCircle, Share2, Bookmark, MapPin, Star, Clock, MoreHorizontal, LayoutGrid, TrendingUp, ArrowRight, Sparkles, Calendar, Flag } from "lucide-react";
+import { Heart, MessageCircle, Share2, Bookmark, MapPin, Star, Clock, MoreHorizontal, LayoutGrid, TrendingUp, ArrowRight, Sparkles, Calendar, Flag, Video, Play, Zap } from "lucide-react";
 import TripComments from "@/components/TripComments";
 import ReportTripDialog from "@/components/ReportTripDialog";
 import { SignedIn, useAuth, useUser } from "@clerk/clerk-react";
@@ -81,6 +81,7 @@ const Timeline = () => {
   const [trips, setTrips] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [myStoriesCount, setMyStoriesCount] = useState(0);
+  const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
 
   const userTrips = trips.filter(t => t.ownerId === userId);
   const uniqueDestinations = new Set(userTrips.map(t => normalizeCity(t.city || t.destination)).filter(c => c !== 'unknown'));
@@ -346,6 +347,7 @@ const Timeline = () => {
   }).filter(trip => {
     if (filters.onlyTrips && trip.isAIGenerated) return false;
     if (filters.season && filters.season !== 'all' && trip.season !== filters.season) return false;
+    if (filters.postType && filters.postType !== 'all' && trip.postType !== filters.postType) return false;
     return true;
   });
 
@@ -446,23 +448,57 @@ const Timeline = () => {
                                       {trip.destination}
                                       <MapPin className="w-3 h-3 text-orange-400" />
                                    </div>
-                                </div>
+                                 </div>
                              </div>
                              
-                             <ReportTripDialog 
-                               tripId={id} 
-                               tripTitle={trip.title}
-                               trigger={
-                                 <Button variant="ghost" size="icon" className="rounded-full text-gray-400">
-                                   <Flag className="w-5 h-5" />
-                                 </Button>
-                               }
-                             />
+                             <div className="flex items-center gap-2">
+                               {trip.postType === 'quick' && (
+                                 <Badge className="bg-amber-500/10 text-amber-600 border-amber-200/50 gap-1 px-3 py-1 font-black">
+                                   <Zap className="w-3.5 h-3.5 fill-amber-600" />
+                                   بوست سريع
+                                 </Badge>
+                               )}
+                               <ReportTripDialog 
+                                 tripId={id} 
+                                 tripTitle={trip.title}
+                                 trigger={
+                                   <Button variant="ghost" size="icon" className="rounded-full text-gray-400">
+                                     <Flag className="w-5 h-5" />
+                                   </Button>
+                                 }
+                               />
+                             </div>
                           </div>
 
-                          <div className="relative aspect-video overflow-hidden cursor-pointer" onDoubleClick={() => handleToggleLove(trip, true)}>
-                             <img src={activeSrc} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                             <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                           <div className="relative aspect-video overflow-hidden cursor-pointer" onDoubleClick={() => handleToggleLove(trip, true)}>
+                             {playingVideoId === id && trip.activities?.[0]?.videos?.[0] ? (
+                               <video 
+                                 src={trip.activities[0].videos[0]} 
+                                 autoPlay 
+                                 controls 
+                                 className="w-full h-full object-contain bg-black"
+                                 onEnded={() => setPlayingVideoId(null)}
+                               />
+                             ) : (
+                               <>
+                                 <img src={activeSrc} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                                 
+                                 {trip.postType === 'quick' && trip.activities?.[0]?.videos?.length > 0 && (
+                                   <div 
+                                     className="absolute inset-0 flex items-center justify-center z-10"
+                                     onClick={(e) => {
+                                       e.stopPropagation();
+                                       setPlayingVideoId(id);
+                                     }}
+                                   >
+                                      <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center group-hover:scale-110 transition-transform shadow-2xl">
+                                         <Play className="w-8 h-8 text-white fill-white translate-x-0.5" />
+                                      </div>
+                                   </div>
+                                 )}
+                               </>
+                             )}
                              
                              <AnimatePresence>
                                {showHeartByTrip[id] && (

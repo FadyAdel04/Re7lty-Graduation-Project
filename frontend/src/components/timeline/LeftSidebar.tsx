@@ -21,6 +21,7 @@ export interface TimelineFilters {
   onlyTrips: boolean;
   onlyTips: boolean;
   season?: string;
+  postType?: string;
 }
 
 interface LeftSidebarProps {
@@ -101,31 +102,6 @@ const LeftSidebar = ({ filters, onFiltersChange, userStats, upcomingTrip }: Left
             />
           </div>
 
-          <div className="border-t border-gray-50 pt-4 mt-2 space-y-4">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="onlyTrips" className="text-sm font-bold text-gray-700">
-                قصص الرحلات
-              </Label>
-              <Checkbox
-                id="onlyTrips"
-                checked={filters.onlyTrips}
-                onCheckedChange={(checked) => handleFilterChange("onlyTrips", checked as boolean)}
-                className="rounded-lg h-5 w-5"
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <Label htmlFor="onlyTips" className="text-sm font-bold text-gray-700">
-                نصائح السفر
-              </Label>
-              <Checkbox
-                id="onlyTips"
-                checked={filters.onlyTips}
-                onCheckedChange={(checked) => handleFilterChange("onlyTips", checked as boolean)}
-                className="rounded-lg h-5 w-5"
-              />
-            </div>
-          </div>
 
           <div className="pt-2">
              <Label className="text-xs font-bold text-gray-400 mb-3 block">فرز حسب الفصل</Label>
@@ -142,6 +118,23 @@ const LeftSidebar = ({ filters, onFiltersChange, userStats, upcomingTrip }: Left
                 <SelectItem value="summer">صيف</SelectItem>
                 <SelectItem value="fall">خريف</SelectItem>
                 <SelectItem value="spring">ربيع</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="pt-2 border-t border-gray-50">
+             <Label className="text-xs font-bold text-gray-400 mb-3 block">نوع المنشور</Label>
+             <Select
+              value={filters.postType || "all"}
+              onValueChange={(value) => handleFilterChange("postType", value)}
+            >
+              <SelectTrigger className="h-10 rounded-xl bg-gray-50 border-0 focus:ring-1 focus:ring-orange-500 font-bold text-xs">
+                <SelectValue placeholder="كل الأنواع" />
+              </SelectTrigger>
+              <SelectContent className="font-cairo">
+                <SelectItem value="all">كل الأنواع</SelectItem>
+                <SelectItem value="detailed">رحلات تفصيلية</SelectItem>
+                <SelectItem value="quick">بوستات سريعة</SelectItem>
               </SelectContent>
             </Select>
           </div>

@@ -124,6 +124,28 @@ async function buildTripsFromRefs(refDocs: any[], req: any, viewerId?: string | 
  *       401:
  *         description: Unauthorized
  */
+// Search users
+router.get('/search', async (req, res) => {
+  try {
+    const { q } = req.query as { q: string };
+    if (!q) return res.json([]);
+
+    const users = await User.find({
+      $or: [
+        { fullName: { $regex: q, $options: 'i' } },
+        { username: { $regex: q, $options: 'i' } },
+      ],
+    })
+      .select('clerkId fullName username imageUrl')
+      .limit(10);
+
+    res.json(users);
+  } catch (error: any) {
+    console.error('Error searching users:', error);
+    res.status(500).json({ error: 'Failed to search users' });
+  }
+});
+
 // Complete Onboarding (Traveler Role)
 router.post('/onboarding', requireAuthStrict, async (req, res) => {
   try {
@@ -570,10 +592,11 @@ router.get('/:clerkId', async (req, res) => {
     }
     // If existingUser has coverImage and Clerk doesn't, keep the DB value (don't update)
 
-    const [followersCount, followingCount, tripsCount, likesAgg, viewerFollowsDoc, storiesCount] = await Promise.all([
+    const [followersCount, followingCount, detailedTripsCount, quickTripsCount, likesAgg, viewerFollowsDoc, storiesCount] = await Promise.all([
       Follow.countDocuments({ followingId: clerkId }),
       Follow.countDocuments({ followerId: clerkId }),
-      Trip.countDocuments({ ownerId: clerkId }),
+      Trip.countDocuments({ ownerId: clerkId, postType: { $ne: 'quick' } }), // detailed trips (includes legacy trips without postType)
+      Trip.countDocuments({ ownerId: clerkId, postType: 'quick' }), // quick trips
       Trip.aggregate([
         { $match: { ownerId: clerkId } },
         { $group: { _id: null, totalLikes: { $sum: { $ifNull: ['$likes', 0] } } } },
@@ -584,14 +607,17 @@ router.get('/:clerkId', async (req, res) => {
       import('../models/Story').then(({ Story }) => Story.countDocuments({ userId: clerkId })),
     ]);
     const totalLikes = likesAgg?.[0]?.totalLikes || 0;
+    const tripsCount = detailedTripsCount + quickTripsCount;
 
     // Compute activity score and badge level (must stay in sync with frontend logic)
+    // Detailed trips earn more points (20) than quick trips (8) to incentivize full trip details
     const activityScore =
-      tripsCount * 20 +    // publishing trips
-      storiesCount * 5 +   // sharing stories
-      totalLikes * 2 +     // engagement from others
-      followersCount * 5 + // social influence
-      followingCount * 1;  // community engagement
+      detailedTripsCount * 20 +  // publishing detailed trips (higher reward)
+      quickTripsCount * 8 +      // publishing quick trips (lower reward)
+      storiesCount * 5 +         // sharing stories
+      totalLikes * 2 +           // engagement from others
+      followersCount * 5 +       // social influence
+      followingCount * 1;        // community engagement
 
     let badgeLevel: "none" | "bronze" | "silver" | "gold" | "diamond" | "legend" = "none";
     if (activityScore >= 2000) {

@@ -16,8 +16,13 @@ import {
   Plus,
   Maximize2,
   Quote,
-  Navigation,
+  Timer,
+  Bus,
   Image as ImageIcon,
+  Video,
+  Play,
+  Zap,
+  Navigation,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -26,7 +31,7 @@ import { Badge } from "@/components/ui/badge";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import TripComments from "@/components/TripComments";
-import { egyptTrips, Comment } from "@/lib/trips-data";
+import { egyptTrips, Comment as TripComment } from "@/lib/trips-data";
 import { getTrip, toggleTripLove, toggleFollowUser, toggleTripSave } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -220,6 +225,8 @@ useEffect(() => {
           foodAndRestaurants: apiTrip.foodAndRestaurants || [],
           hotels: apiTrip.hotels || [],
           comments: apiTrip.comments || [],
+          postType: apiTrip.postType || 'detailed',
+          taggedUsers: apiTrip.taggedUsers || [],
           postedAt: apiTrip.postedAt || new Date().toISOString(),
         };
         setTrip(transformedTrip);
@@ -417,7 +424,7 @@ useEffect(() => {
     }
   };
 
-  const handleCommentAdded = (comment: Comment) => {
+  const handleCommentAdded = (comment: TripComment) => {
     setTrip((prev) => {
       if (!prev) return prev;
       return {
@@ -427,13 +434,13 @@ useEffect(() => {
     });
   };
 
-  const handleCommentUpdated = (commentId: string, changes: Partial<Comment>) => {
+  const handleCommentUpdated = (commentId: string, changes: Partial<TripComment>) => {
     setTrip((prev) => {
       if (!prev) return prev;
       if (!Array.isArray(prev.comments)) return prev;
       return {
         ...prev,
-        comments: prev.comments.map((c: Comment) =>
+        comments: prev.comments.map((c: TripComment) =>
           c.id === commentId ? { ...c, ...changes } : c
         ),
       };
@@ -443,7 +450,7 @@ useEffect(() => {
   const handleCommentDeleted = (commentId: string) => {
     setTrip((prev) => {
       if (!prev) return prev;
-      const updatedComments = (prev.comments || []).filter((c: Comment) => c.id !== commentId);
+      const updatedComments = (prev.comments || []).filter((c: TripComment) => c.id !== commentId);
       return {
         ...prev,
         comments: updatedComments,
@@ -480,11 +487,17 @@ useEffect(() => {
     );
   }
 
-  // Collect all images for the gallery
+  // Collect all images and videos for the gallery
   const galleryImages = [
     trip.image,
     ...trip.activities.flatMap((a: any) => a.images || [])
-  ].filter(Boolean).slice(0, 5);
+  ].filter(Boolean);
+
+  const galleryVideos = [
+    ...trip.activities.flatMap((a: any) => a.videos || [])
+  ].filter(Boolean);
+
+  const isQuickTrip = trip.postType === 'quick';
 
   return (
     <div className="min-h-screen bg-[#F1F5F9] font-cairo text-right pb-20" dir="rtl">
@@ -496,14 +509,25 @@ useEffect(() => {
          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/20 to-transparent" />
          
          <div className="container mx-auto px-4 h-full flex flex-col justify-center relative z-10 pt-20">
+            <div className="flex items-center gap-3 mb-4">
+               {isQuickTrip && (
+                 <div className="bg-amber-500 text-white px-6 py-2 rounded-r-none rounded-l-2xl font-black text-sm flex items-center gap-2 shadow-2xl animate-pulse relative overflow-hidden group">
+                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                   <Zap className="w-5 h-5 fill-white" />
+                   <span>بوست سريع ⚡</span>
+                 </div>
+               )}
+            </div>
             <h1 className="text-4xl md:text-6xl font-black text-white drop-shadow-lg max-w-4xl leading-tight">
                {trip.title}
             </h1>
             <div className="flex gap-3 mt-6">
-               <Badge className="bg-orange-600 text-white border-none px-6 py-2 rounded-xl font-black">{trip.city}</Badge>
-               <Badge className="bg-white/20 backdrop-blur-md text-white border-white/20 px-6 py-2 rounded-xl font-black">
-                  {trip.season === 'winter' ? '❄️ الشتاء' : trip.season === 'summer' ? '☀️ الصيف' : trip.season === 'fall' ? '🍂 خريف' : '🌸 الربيع'}
-               </Badge>
+               <Badge className="bg-orange-600 text-white border-none px-6 py-2 rounded-xl font-black text-lg">{trip.city}</Badge>
+               {!isQuickTrip && trip.season && (
+                 <Badge className="bg-white/20 backdrop-blur-md text-white border-white/20 px-6 py-2 rounded-xl font-black text-lg">
+                    {trip.season === 'winter' ? '❄️ الشتاء' : trip.season === 'summer' ? '☀️ الصيف' : trip.season === 'fall' ? '🍂 خريف' : '🌸 الربيع'}
+                 </Badge>
+               )}
             </div>
          </div>
       </div>
@@ -545,92 +569,181 @@ useEffect(() => {
                   <div className="p-10 space-y-6">
                      <h2 className="text-2xl font-black text-gray-900 flex items-center gap-3">
                         <div className="w-2 h-8 bg-indigo-600 rounded-full" />
-                        نظرة عامة على المغامرة
+                        {isQuickTrip ? "قصة الرحلة" : "نظرة عامة على المغامرة"}
                      </h2>
                      <p className="text-xl text-gray-500 leading-relaxed font-medium">
                         {trip.description}
                      </p>
+                     {/* Tagged Friends / Travel Companions */}
+                     {trip.taggedUsers && trip.taggedUsers.length > 0 && (
+                        <div className="pt-8 border-t border-gray-50 space-y-4 text-right">
+                           <div className="flex items-center justify-end gap-2">
+                              <span className="text-lg font-black text-gray-900">رفقاء الرحلة</span>
+                              <Users className="w-5 h-5 text-indigo-600" />
+                           </div>
+                           <div className="flex flex-wrap justify-end gap-4">
+                              {trip.taggedUsers.map((u: any) => (
+                                <Link 
+                                  to={`/profile/${u.userId}`}
+                                  key={u.userId}
+                                  className="flex items-center gap-3 bg-gray-50 hover:bg-indigo-50 px-4 py-2.5 rounded-2xl group transition-all border border-transparent hover:border-indigo-100 shadow-sm flex-row-reverse"
+                                >
+                                   <div className="relative">
+                                      <img src={u.imageUrl} className="w-10 h-10 rounded-full border-2 border-white shadow-sm object-cover" />
+                                      <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-orange-500 rounded-full border-2 border-white" />
+                                   </div>
+                                   <div className="flex flex-col text-right">
+                                      <span className="text-sm font-black text-gray-900 group-hover:text-indigo-600 transition-colors line-clamp-1">{u.fullName}</span>
+                                      <span className="text-[10px] text-gray-400 font-bold uppercase">مسافر مغامر</span>
+                                   </div>
+                                </Link>
+                              ))}
+                           </div>
+                        </div>
+                     )}
                   </div>
                </Card>
 
-               {/* Timeline Activities */}
-               <div className="space-y-6">
-                  <h2 className="text-2xl font-black text-gray-900 px-4">خط السير <span className="text-indigo-600">التفصيلي</span></h2>
-                  <div className="space-y-4">
-                     {trip.days.map((day: any, idx: number) => (
-                        <Card key={idx} className="border-0 shadow-lg rounded-[2.5rem] bg-white overflow-hidden group">
-                           <div className="p-8">
-                              <div className="flex items-center gap-6 mb-8">
-                                 <div className="w-16 h-16 rounded-2xl bg-indigo-50 border-2 border-indigo-100 flex items-center justify-center text-indigo-600 font-black text-2xl">
-                                    {idx + 1}
-                                 </div>
-                                 <h3 className="text-2xl font-black text-gray-900">{day.title || `اليوم ${idx + 1}`}</h3>
-                              </div>
-                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                 {day.activities
-                                   .filter((actIdx: number) => actIdx >= 0 && actIdx < trip.activities.length)
-                                   .map((actIdx: number) => {
-                                      const activity = trip.activities[actIdx];
-                                      return (
-                                        <div 
-                                          key={actIdx} 
-                                          onClick={() => setDialogActivityIdx(actIdx)}
-                                          className="p-4 rounded-[2rem] bg-gray-50/50 border border-transparent hover:border-indigo-100 hover:bg-indigo-50/30 transition-all flex items-center gap-4 cursor-pointer group/item"
-                                        >
-                                           <div className="w-20 h-16 rounded-2xl overflow-hidden shadow-sm bg-white shrink-0">
-                                              <img src={activity.images?.[0]} className="w-full h-full object-cover group-hover/item:scale-110 transition-transform duration-500" />
-                                           </div>
-                                           <span className="font-black text-gray-700 text-lg uppercase line-clamp-1">{activity.name}</span>
-                                        </div>
-                                      );
-                                   })}
-                              </div>
-                           </div>
-                        </Card>
-                     ))}
-                  </div>
-               </div>
+               {/* Quick Trip Media Gallery / Video Player */}
+               {isQuickTrip && (
+                 <div className="space-y-8">
+                    {galleryVideos.length > 0 && (
+                      <div className="space-y-6">
+                        <h2 className="text-2xl font-black text-gray-900 px-4 flex items-center gap-3">
+                          <Video className="w-7 h-7 text-indigo-600" />
+                          فيديوهات من الرحلة
+                        </h2>
+                        <div className="grid grid-cols-1 gap-6">
+                          {galleryVideos.map((vidUrl: string, idx: number) => (
+                            <Card key={idx} className="border-0 shadow-2xl rounded-[2.5rem] bg-black overflow-hidden aspect-video relative group">
+                              <video 
+                                src={vidUrl} 
+                                controls 
+                                className="w-full h-full object-contain"
+                                poster={trip.image}
+                              />
+                            </Card>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
-               {/* Place of Stay (Hotels) */}
-               {trip.hotels && trip.hotels.length > 0 && (
-                 <div className="space-y-6">
-                    <h2 className="text-2xl font-black text-gray-900 px-4">أماكن الإقامة</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                       {trip.hotels.map((hotel: any, idx: number) => (
-                          <Card key={idx} className="border-0 shadow-lg rounded-[2rem] bg-white overflow-hidden p-4">
-                             <div className="flex gap-4 items-center">
-                                <img src={hotel.image} className="w-24 h-24 rounded-2xl object-cover" />
-                                <div>
-                                   <h4 className="font-black text-gray-800">{hotel.name}</h4>
-                                   <div className="flex items-center gap-1 text-amber-500 mt-1">
-                                      <Star className="w-3 h-3 fill-current" /> <span className="text-xs font-black">{hotel.rating}</span>
-                                   </div>
-                                </div>
-                             </div>
+                    <div className="space-y-6">
+                      <h2 className="text-2xl font-black text-gray-900 px-4 flex items-center gap-3">
+                         <ImageIcon className="w-7 h-7 text-orange-500" />
+                         صور الرحلة
+                      </h2>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {galleryImages.filter(img => img !== trip.image).map((imgUrl: string, idx: number) => (
+                          <Card key={idx} className="border-0 shadow-lg rounded-[2.5rem] bg-white overflow-hidden aspect-square group">
+                            <img src={imgUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                           </Card>
-                       ))}
+                        ))}
+                      </div>
                     </div>
                  </div>
                )}
 
-               {/* Food & Restaurants */}
-               {trip.foodAndRestaurants && trip.foodAndRestaurants.length > 0 && (
-                 <div className="space-y-6">
-                    <h2 className="text-2xl font-black text-gray-900 px-4">تجارب الطعام</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                       {trip.foodAndRestaurants.map((food: any, idx: number) => (
-                          <Card key={idx} className="border-0 shadow-lg rounded-[2rem] bg-white overflow-hidden p-4">
-                             <div className="flex gap-4 items-center">
-                                <img src={food.image} className="w-24 h-24 rounded-2xl object-cover" />
-                                <div>
-                                   <h4 className="font-black text-gray-800">{food.name}</h4>
-                                   <Badge className="bg-orange-50 text-orange-600 border-none mt-1">{food.rating} ⭐</Badge>
-                                </div>
-                             </div>
-                          </Card>
-                       ))}
-                    </div>
-                 </div>
+               {!isQuickTrip && (
+                 <>
+                   {/* Timeline Activities */}
+                   <div className="space-y-6">
+                      <h2 className="text-2xl font-black text-gray-900 px-4">خط السير <span className="text-indigo-600">التفصيلي</span></h2>
+                      <div className="space-y-4">
+                         {trip.days.map((day: any, idx: number) => (
+                            <Card key={idx} className="border-0 shadow-lg rounded-[2.5rem] bg-white overflow-hidden group">
+                               <div className="p-8">
+                                  <div className="flex items-center gap-6 mb-8">
+                                     <div className="w-16 h-16 rounded-2xl bg-indigo-50 border-2 border-indigo-100 flex items-center justify-center text-indigo-600 font-black text-2xl">
+                                        {idx + 1}
+                                     </div>
+                                     <h3 className="text-2xl font-black text-gray-900">{day.title || `اليوم ${idx + 1}`}</h3>
+                                  </div>
+                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                     {day.activities
+                                       .filter((actIdx: number) => actIdx >= 0 && actIdx < trip.activities.length)
+                                       .map((actIdx: number) => {
+                                          const activity = trip.activities[actIdx];
+                                          const hasVideo = activity.videos && activity.videos.length > 0;
+                                          return (
+                                            <div 
+                                              key={actIdx} 
+                                              onClick={() => setDialogActivityIdx(actIdx)}
+                                              className="p-4 rounded-[2rem] bg-gray-50/50 border border-transparent hover:border-indigo-100 hover:bg-indigo-50/30 transition-all flex items-center gap-4 cursor-pointer group/item"
+                                            >
+                                               <div className="w-20 h-16 rounded-2xl overflow-hidden shadow-sm bg-white shrink-0 relative">
+                                                  <img src={activity.images?.[0]} className="w-full h-full object-cover group-hover/item:scale-110 transition-transform duration-500" />
+                                                  {hasVideo && (
+                                                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                                                      <Play className="w-6 h-6 text-white fill-white" />
+                                                    </div>
+                                                  )}
+                                               </div>
+                                               <span className="font-black text-gray-700 text-lg uppercase line-clamp-1">{activity.name}</span>
+                                            </div>
+                                          );
+                                       })}
+                                  </div>
+                               </div>
+                            </Card>
+                         ))}
+                      </div>
+                   </div>
+
+                   {/* Place of Stay (Hotels) */}
+                   {trip.hotels && trip.hotels.length > 0 && (
+                     <div className="space-y-6">
+                        <h2 className="text-2xl font-black text-gray-900 px-4">أماكن الإقامة</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                           {trip.hotels.map((hotel: any, idx: number) => (
+                              <Card key={idx} className="border-0 shadow-lg rounded-[2rem] bg-white overflow-hidden p-4">
+                                 <div className="flex gap-4 items-center">
+                                    {hotel.image ? (
+                                       <img src={hotel.image} className="w-24 h-24 rounded-2xl object-cover" />
+                                    ) : (
+                                       <div className="w-24 h-24 rounded-2xl bg-gray-100 flex items-center justify-center shrink-0">
+                                          <MapPin className="w-8 h-8 text-gray-300" />
+                                       </div>
+                                    )}
+                                    <div>
+                                       <h4 className="font-black text-gray-800">{hotel.name}</h4>
+                                       <div className="flex items-center gap-1 text-amber-500 mt-1">
+                                          <Star className="w-3 h-3 fill-current" /> <span className="text-xs font-black">{hotel.rating}</span>
+                                       </div>
+                                    </div>
+                                 </div>
+                              </Card>
+                           ))}
+                        </div>
+                     </div>
+                   )}
+
+                   {/* Food & Restaurants */}
+                   {trip.foodAndRestaurants && trip.foodAndRestaurants.length > 0 && (
+                     <div className="space-y-6">
+                        <h2 className="text-2xl font-black text-gray-900 px-4">تجارب الطعام</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                           {trip.foodAndRestaurants.map((food: any, idx: number) => (
+                              <Card key={idx} className="border-0 shadow-lg rounded-[2rem] bg-white overflow-hidden p-4">
+                                 <div className="flex gap-4 items-center">
+                                    {food.image ? (
+                                       <img src={food.image} className="w-24 h-24 rounded-2xl object-cover" />
+                                    ) : (
+                                       <div className="w-24 h-24 rounded-2xl bg-gray-100 flex items-center justify-center shrink-0">
+                                          <Utensils className="w-8 h-8 text-gray-300" />
+                                       </div>
+                                    )}
+                                    <div>
+                                       <h4 className="font-black text-gray-800">{food.name}</h4>
+                                       <Badge className="bg-orange-50 text-orange-600 border-none mt-1">{food.rating} ⭐</Badge>
+                                    </div>
+                                 </div>
+                              </Card>
+                           ))}
+                        </div>
+                     </div>
+                   )}
+                 </>
                )}
             </div>
 

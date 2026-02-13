@@ -23,6 +23,16 @@ import TripFormDialog from "@/components/admin/TripFormDialog";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const TripsManagementPage = () => {
   const { user } = useUser();
@@ -35,6 +45,7 @@ const TripsManagementPage = () => {
   // Dialog State
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTrip, setEditingTrip] = useState<any>(null);
+  const [tripToDelete, setTripToDelete] = useState<any>(null);
 
   useEffect(() => {
     const adminEmail = 'supermincraft52@gmail.com';
@@ -82,15 +93,19 @@ const TripsManagementPage = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm('هل تريد حذف هذه الرحلة؟')) {
-      try {
-        const token = await getToken();
-        await adminService.deleteTrip(id, token || undefined);
-        fetchData();
-      } catch (error) {
-        alert('حدث خطأ أثناء الحذف');
-      }
+  const handleDelete = async () => {
+    if (!tripToDelete) return;
+
+    try {
+      setLoading(true);
+      const token = await getToken();
+      await adminService.deleteTrip(tripToDelete._id, token || undefined);
+      setTripToDelete(null);
+      fetchData();
+    } catch (error) {
+      alert('حدث خطأ أثناء الحذف');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -217,7 +232,7 @@ const TripsManagementPage = () => {
                                <Button 
                                  size="sm" 
                                  className="flex-1 h-12 rounded-2xl bg-rose-50 text-rose-600 hover:bg-rose-100 border-0"
-                                 onClick={() => handleDelete(trip._id)}
+                                 onClick={() => setTripToDelete(trip)}
                                >
                                  <Trash2 className="h-4 w-4" />
                                </Button>
@@ -239,6 +254,45 @@ const TripsManagementPage = () => {
         companies={companies}
         onSuccess={fetchData}
       />
+
+      {/* Trip Deletion Confirmation Modal */}
+      <AlertDialog open={!!tripToDelete} onOpenChange={(open) => !open && setTripToDelete(null)}>
+        <AlertDialogContent className="rounded-[2.5rem] border-0 shadow-2xl p-0 overflow-hidden max-w-md bg-white">
+          <div className="bg-rose-500 h-2 w-full" />
+          <div className="p-8">
+            <AlertDialogHeader>
+              <div className="w-20 h-20 bg-rose-50 rounded-3xl flex items-center justify-center text-rose-600 mb-6 mx-auto animate-bounce">
+                <Trash2 className="w-10 h-10" />
+              </div>
+              <AlertDialogTitle className="text-2xl font-black text-gray-900 text-center font-cairo">
+                حذف الرحلة نهائياً؟
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-gray-500 font-bold text-center mt-2 leading-relaxed">
+                أنت على وشك حذف رحلة <span className="text-gray-900">{tripToDelete?.title}</span>. 
+                سيتم إزالة كافة تفاصيل الرحلة من قاعدة البيانات ولا يمكن استرجاعها.
+                <br />
+                <span className="text-rose-600 font-black mt-2 block italic text-xs">احذر: هذا الإجراء نهائي!</span>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="mt-10 flex flex-col gap-3 sm:flex-row-reverse sm:gap-4">
+              <Button 
+                onClick={handleDelete}
+                className="h-14 flex-1 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black shadow-xl shadow-rose-100 transition-all active:scale-95"
+              >
+                نعم، احذف الرحلة
+              </Button>
+              <AlertDialogCancel asChild>
+                <Button 
+                  variant="ghost"
+                  className="h-14 flex-1 rounded-2xl bg-gray-50 text-gray-500 font-black hover:bg-gray-100 transition-all"
+                >
+                  إلغاء
+                </Button>
+              </AlertDialogCancel>
+            </AlertDialogFooter>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminLayout>
   );
 };

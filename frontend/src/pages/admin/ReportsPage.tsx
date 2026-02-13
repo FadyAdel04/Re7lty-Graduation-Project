@@ -18,6 +18,8 @@ import {
   Bookmark, 
   Plane, 
   ThumbsUp,
+  MapPin,
+  Sparkles,
   Zap,
   ArrowUpRight,
   PieChart as PieIcon,
@@ -136,16 +138,18 @@ const ReportsPage = () => {
                 {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4 text-orange-500" />}
                 تصدير PDF
               </Button>
+
            </div>
         </div>
 
         {/* Overview Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
            {[
              { title: "إجمالي المستخدمين", value: reportData?.overview?.totalUsers, change: reportData?.overview?.newUsers, icon: Users, color: "indigo" },
              { title: "الرحلات المضافة", value: reportData?.overview?.totalTrips, change: reportData?.overview?.newTrips, icon: Plane, color: "emerald" },
              { title: "الشركات النشطة", value: reportData?.overview?.totalCompanies, change: reportData?.overview?.activeCompanies, icon: Building2, color: "purple" },
              { title: "إجمالي التفاعلات", value: reportData?.overview?.totalReactions, change: reportData?.overview?.newReactions, icon: Activity, color: "rose" },
+             { title: "إجمالي البلاغات", value: reportData?.overview?.totalReports, change: reportData?.overview?.newReports, icon: FileText, color: "orange" },
            ].map((stat, i) => (
              <Card key={i} className="border-0 shadow-xl shadow-gray-200/40 rounded-[2rem] overflow-hidden group">
                 <CardContent className="p-6">
@@ -347,6 +351,7 @@ const ReportsPage = () => {
                           <th className="px-6 py-4 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">الرحلات</th>
                           <th className="px-6 py-4 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">التفاعلات</th>
                           <th className="px-6 py-4 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">التعليقات</th>
+                          <th className="px-6 py-4 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">البلاغات</th>
                        </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
@@ -366,6 +371,9 @@ const ReportsPage = () => {
                              </td>
                              <td className="px-6 py-4 text-center">
                                 <span className="inline-flex h-8 px-3 rounded-lg bg-purple-50 text-purple-600 font-black text-xs items-center">{day.comments}</span>
+                             </td>
+                             <td className="px-6 py-4 text-center">
+                                <span className="inline-flex h-8 px-3 rounded-lg bg-orange-50 text-orange-600 font-black text-xs items-center">{day.reports}</span>
                              </td>
                           </tr>
                        ))}

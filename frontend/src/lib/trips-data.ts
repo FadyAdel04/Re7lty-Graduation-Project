@@ -13,14 +13,19 @@ export interface Comment {
 export interface TripActivity {
   name: string;
   images: string[];
+  videos?: string[];
   coordinates: { lat: number; lng: number };
   day: number;
+  description?: string;
+  price?: number;
 }
 export interface FoodPlace {
   name: string;
   image: string;
   rating: number;
   description?: string;
+  location?: string;
+  type?: string;
 }
 export interface Hotel {
   name: string;
@@ -28,6 +33,8 @@ export interface Hotel {
   rating: number;
   description?: string;
   priceRange?: string;
+  location?: string;
+  bookingUrl?: string;
 }
 export interface TripDay {
   title: string;

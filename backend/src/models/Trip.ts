@@ -63,10 +63,20 @@ const TripSchema = new Schema({
   days: [DaySchema],
   foodAndRestaurants: [FoodSchema],
   hotels: [HotelSchema],
+  taggedUsers: [{
+    userId: String,
+    fullName: String,
+    imageUrl: String,
+  }],
   comments: [CommentSchema],
   postedAt: { type: Date, default: () => new Date() },
   ownerId: { type: String, index: true }, // Clerk user id
   isAIGenerated: { type: Boolean, default: false }, // Flag for AI-generated trips
+  postType: {
+    type: String,
+    enum: ['detailed', 'quick'],
+    default: 'detailed',
+  }, // 'detailed' = full trip with itinerary, 'quick' = simple post with photos & description
 }, { timestamps: true });
 
 TripSchema.index({ postedAt: -1 });

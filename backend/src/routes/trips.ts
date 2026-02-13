@@ -22,6 +22,26 @@ if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && proce
 
 const router = Router();
 
+// Route to get signature for signed Cloudinary upload from frontend
+router.get("/cloudinary-signature", requireAuthStrict, (req, res) => {
+  const timestamp = Math.round(new Date().getTime() / 1000);
+  const signature = cloudinary.utils.api_sign_request(
+    {
+      timestamp: timestamp,
+      folder: 're7lty/frontend_uploads',
+    },
+    process.env.CLOUDINARY_API_SECRET!
+  );
+
+  res.json({
+    signature,
+    timestamp,
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+    apiKey: process.env.CLOUDINARY_API_KEY,
+    folder: 're7lty/frontend_uploads'
+  });
+});
+
 
 /**
  * @swagger
@@ -405,9 +425,17 @@ router.post('/', requireAuthStrict, async (req, res) => {
       }
 
       // Check Cloudinary configuration
-      if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
-        console.warn(`[Trip Creation] Cloudinary not configured. Storing media as base64 in MongoDB.`);
-        return dataUrl; // Fallback to base64
+      const isCloudinaryConfigured = !!(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET);
+
+      // Calculate approximate size (base64 is ~1.33x original size)
+      const approxSizeMB = dataUrl.length / (1024 * 1024);
+
+      if (!isCloudinaryConfigured) {
+        if (approxSizeMB > 4) { // 4MB base64 limit for MongoDB
+          throw new Error(`Cloudinary not configured and file is too large (${approxSizeMB.toFixed(1)}MB) to store in database. Please configure Cloudinary.`);
+        }
+        console.warn(`[Trip Creation] Cloudinary not configured. Storing small media (${approxSizeMB.toFixed(1)}MB) as base64 in MongoDB.`);
+        return dataUrl;
       }
 
       const [, mediaType, ext, b64] = match;
@@ -418,15 +446,19 @@ router.post('/', requireAuthStrict, async (req, res) => {
           `data:${mediaType}/${ext};base64,${b64}`,
           {
             folder: `re7lty/${subdir}`,
-            resource_type: 'auto', // Let Cloudinary auto-detect the resource type
+            resource_type: 'auto',
           }
         );
 
         console.log(`[Trip Creation] Successfully uploaded to Cloudinary: ${uploadResult.secure_url}`);
-        return uploadResult.secure_url; // Return Cloudinary URL
+        return uploadResult.secure_url;
       } catch (error: any) {
-        console.error(`[Trip Creation] Cloudinary upload failed: ${error.message}. Falling back to base64.`);
-        return dataUrl; // Fallback to base64 on error
+        console.error(`[Trip Creation] Cloudinary upload failed: ${error.message}`);
+        // If Cloudinary fails, we must not store large files in MongoDB
+        if (approxSizeMB > 4) {
+          throw new Error(`Cloudinary upload failed and file is too large (${approxSizeMB.toFixed(1)}MB) for fallback. Error: ${error.message}`);
+        }
+        return dataUrl; // Fallback for small files only
       }
     };
 
@@ -505,16 +537,19 @@ router.post('/', requireAuthStrict, async (req, res) => {
       });
     }
 
+    const postType = restBody.postType === 'quick' ? 'quick' : 'detailed';
+
     const tripData = {
       ...mediaReadyBody,
       ownerId: userId, // Clerk user ID (from Clerk Express SDK)
       author: authorName, // Author name from Clerk (always use Clerk data)
       authorFollowers: authorFollowers,
+      postType, // 'detailed' or 'quick'
     };
 
     // Validate trip data structure before creating
-    // Ensure activities have valid structure
-    if (Array.isArray(tripData.activities)) {
+    // Only validate activities for detailed posts
+    if (postType === 'detailed' && Array.isArray(tripData.activities)) {
       for (let i = 0; i < tripData.activities.length; i++) {
         const activity = tripData.activities[i];
         if (!activity.name || typeof activity.name !== 'string') {
@@ -543,6 +578,7 @@ router.post('/', requireAuthStrict, async (req, res) => {
       title: tripData.title,
       destination: tripData.destination,
       city: tripData.city,
+      postType: tripData.postType,
       activitiesCount: Array.isArray(tripData.activities) ? tripData.activities.length : 0,
       daysCount: Array.isArray(tripData.days) ? tripData.days.length : 0,
       foodCount: Array.isArray(tripData.foodAndRestaurants) ? tripData.foodAndRestaurants.length : 0,
@@ -599,6 +635,29 @@ router.post('/', requireAuthStrict, async (req, res) => {
     } catch (userError: any) {
       console.error('Error updating user in database:', userError.message);
       // Continue even if user update fails - trip is still created
+    }
+
+    // Send notifications to tagged users
+    if (Array.isArray(created.taggedUsers) && created.taggedUsers.length > 0) {
+      const { actorName, actorImage } = await getActorSnapshot(userId);
+      for (const tagged of created.taggedUsers) {
+        if (tagged.userId && tagged.userId !== userId) {
+          try {
+            await createNotification({
+              recipientId: tagged.userId,
+              actorId: userId,
+              actorName,
+              actorImage,
+              type: "tag",
+              message: `${actorName} قام بذكرك في رحلة "${created.title}"`,
+              tripId: created._id,
+              metadata: { tripTitle: created.title },
+            });
+          } catch (err) {
+            console.error(`Error notifying tagged user ${tagged.userId}:`, err);
+          }
+        }
+      }
     }
 
     const formatted = formatTripMedia(created, req, userId);
@@ -871,7 +930,7 @@ router.post('/:id/comments', requireAuthStrict, async (req, res) => {
     trip.comments.unshift(newComment as any);
     await trip.save();
 
-    if (trip.ownerId) {
+    if (trip.ownerId && trip.ownerId !== userId) {
       try {
         await createNotification({
           recipientId: trip.ownerId,
@@ -886,6 +945,36 @@ router.post('/:id/comments', requireAuthStrict, async (req, res) => {
         });
       } catch (err) {
         console.error("Error creating comment notification:", err);
+      }
+    }
+
+    // Handle @mentions
+    const mentionRegex = /@(\w+)/g;
+    const mentions = [...new Set([...content.matchAll(mentionRegex)].map(m => m[1]))]; // Unique mentions usernames
+
+    if (mentions.length > 0) {
+      // Find users by username
+      const mentionedUsers = await User.find({ username: { $in: mentions } });
+
+      for (const mentionedUser of mentionedUsers) {
+        // Avoid sending notification if mentioned user is the comment author
+        if (mentionedUser.clerkId && mentionedUser.clerkId !== userId) {
+          try {
+            await createNotification({
+              recipientId: mentionedUser.clerkId,
+              actorId: userId,
+              actorName: authorName,
+              actorImage: clerkUser.imageUrl,
+              type: "tag", // using existing 'tag' type for mentions
+              message: `${authorName} ذكرك في تعليق: "${content.substring(0, 40)}${content.length > 40 ? '...' : ''}"`,
+              tripId: trip._id,
+              commentId: newCommentId,
+              metadata: { snippet: content.slice(0, 120) },
+            });
+          } catch (err) {
+            console.error(`Error creating mention notification for ${mentionedUser.username}:`, err);
+          }
+        }
       }
     }
 

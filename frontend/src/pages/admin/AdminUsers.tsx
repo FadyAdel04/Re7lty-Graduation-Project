@@ -9,6 +9,16 @@ import AdminLayout from "@/components/admin/AdminLayout";
 import { Search, Mail, Calendar, User, MoreVertical, ShieldCheck, MailWarning, UserMinus, Users as UsersIcon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const AdminUsers = () => {
   const { getToken } = useAuth();
@@ -16,6 +26,7 @@ const AdminUsers = () => {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [userToDelete, setUserToDelete] = useState<any>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -47,9 +58,27 @@ const AdminUsers = () => {
     }
   };
 
+  const handleDeleteUser = async () => {
+    if (!userToDelete) return;
+
+    try {
+      setLoading(true);
+      const token = await getToken();
+      await adminService.deleteUser(userToDelete._id, token || undefined);
+      // Refresh list
+      await fetchUsers();
+      setUserToDelete(null);
+    } catch (error: any) {
+      console.error('Error deleting user:', error);
+      alert(error.response?.data?.error || "فشل حذف المستخدم");
+    } finally {
+      setLoading(false);
+    }
+  };
+   
   const filteredUsers = users.filter(user =>
-    user.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchQuery.toLowerCase())
+    (user.fullName || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (user.email || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -177,6 +206,7 @@ const AdminUsers = () => {
                               <User className="h-5 w-5" />
                            </Button>
                            <Button
+                              onClick={() => setUserToDelete(user)}
                               variant="ghost"
                               className="h-12 w-12 rounded-2xl bg-white text-gray-400 hover:bg-rose-50 hover:text-rose-600 transition-all shadow-sm border border-gray-100"
                            >
@@ -190,6 +220,45 @@ const AdminUsers = () => {
              </div>
            )}
         </div>
+
+        {/* Delete Confirmation Modal */}
+        <AlertDialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
+          <AlertDialogContent className="rounded-[2.5rem] border-0 shadow-2xl p-0 overflow-hidden max-w-md bg-white">
+            <div className="bg-rose-500 h-2 w-full" />
+            <div className="p-8">
+              <AlertDialogHeader>
+                <div className="w-20 h-20 bg-rose-50 rounded-3xl flex items-center justify-center text-rose-600 mb-6 mx-auto animate-bounce">
+                  <UserMinus className="w-10 h-10" />
+                </div>
+                <AlertDialogTitle className="text-2xl font-black text-gray-900 text-center font-cairo">
+                  حذف المستخدم نهائياً؟
+                </AlertDialogTitle>
+                <AlertDialogDescription className="text-gray-500 font-bold text-center mt-2 leading-relaxed">
+                  أنت على وشك حذف <span className="text-gray-900">{userToDelete?.fullName}</span>. 
+                  هذا الإجراء سيؤدي لحذف كافة بياناته، رحلاته، وتفاعلاته. 
+                  <br />
+                  <span className="text-rose-600 font-black mt-2 block italic text-xs">لا يمكن التراجع عن هذا الإجراء!</span>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className="mt-10 flex flex-col gap-3 sm:flex-row-reverse sm:gap-4">
+                <Button 
+                  onClick={handleDeleteUser}
+                  className="h-14 flex-1 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black shadow-xl shadow-rose-100 transition-all active:scale-95"
+                >
+                  نعم، احذف الحساب
+                </Button>
+                <AlertDialogCancel asChild>
+                  <Button 
+                    variant="ghost"
+                    className="h-14 flex-1 rounded-2xl bg-gray-50 text-gray-500 font-black hover:bg-gray-100 transition-all"
+                  >
+                    إلغاء
+                  </Button>
+                </AlertDialogCancel>
+              </AlertDialogFooter>
+            </div>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AdminLayout>
   );
