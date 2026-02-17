@@ -82,7 +82,35 @@ router.post("/", requireAuthStrict, async (req, res) => {
         // Calculate total price (extract number from price string)
         const priceMatch = trip.price.match(/\d+/);
         const unitPrice = priceMatch ? parseInt(priceMatch[0]) : 0;
-        const totalPrice = unitPrice * numberOfPeople;
+        let totalPrice = unitPrice * numberOfPeople;
+        let discountApplied = 0;
+
+        const { couponId } = req.body;
+        if (couponId) {
+            const { Coupon } = await import("../models/Coupon");
+            const coupon = await Coupon.findById(couponId);
+            if (coupon && coupon.isActive && coupon.expiryDate > new Date()) {
+                // Ensure coupon belongs to the same company
+                if (coupon.companyId.toString() === trip.companyId.toString()) {
+                    if (coupon.applicableTrips.length === 0 || coupon.applicableTrips.some(id => id.toString() === tripId)) {
+                        if (coupon.discountType === 'percentage') {
+                            discountApplied = (totalPrice * coupon.discountValue) / 100;
+                        } else {
+                            discountApplied = coupon.discountValue;
+                        }
+                        totalPrice = Math.max(0, totalPrice - discountApplied);
+
+                        // Increment usage
+                        coupon.usageCount += 1;
+                        await coupon.save();
+                    }
+                }
+            }
+        }
+
+        // Calculate commission (5%) and net amount (95%)
+        const commissionAmount = parseFloat((totalPrice * 0.05).toFixed(2));
+        const netAmount = parseFloat((totalPrice - commissionAmount).toFixed(2));
 
         // Use provided contact info or fallback to Clerk data
         const userEmail = email || user.emailAddresses?.[0]?.emailAddress || "no-email@provided.com";
@@ -114,10 +142,14 @@ router.post("/", requireAuthStrict, async (req, res) => {
             bookingDate: new Date(bookingDate),
             specialRequests: specialRequests || "",
             totalPrice,
+            commissionAmount,
+            netAmount,
             status: "pending",
             selectedSeats: selectedSeats || [],
             transportationType: trip.transportationType || 'bus-48',
-            seatNumber: (selectedSeats && selectedSeats.length > 0) ? selectedSeats[0] : undefined
+            seatNumber: (selectedSeats && selectedSeats.length > 0) ? selectedSeats[0] : undefined,
+            couponId: couponId || undefined,
+            discountApplied
         });
 
         // Notify company owner about new booking
@@ -612,7 +644,7 @@ router.get("/analytics", requireAuthStrict, async (req, res) => {
             todayBookings,
             weekBookings,
             monthBookings,
-            totalRevenue,
+            revenueData,
             todayRevenue,
             weekRevenue,
             monthRevenue
@@ -625,26 +657,62 @@ router.get("/analytics", requireAuthStrict, async (req, res) => {
             Booking.countDocuments({ companyId, createdAt: { $gte: startOfMonth } }),
             Booking.aggregate([
                 { $match: { companyId, status: "accepted" } },
-                { $group: { _id: null, total: { $sum: "$totalPrice" } } }
+                {
+                    $group: {
+                        _id: null,
+                        total: { $sum: "$totalPrice" },
+                        commission: { $sum: "$commissionAmount" },
+                        net: { $sum: "$netAmount" }
+                    }
+                }
             ]),
             Booking.aggregate([
                 { $match: { companyId, status: "accepted", createdAt: { $gte: startOfDay } } },
-                { $group: { _id: null, total: { $sum: "$totalPrice" } } }
+                {
+                    $group: {
+                        _id: null,
+                        total: { $sum: "$totalPrice" },
+                        commission: { $sum: "$commissionAmount" },
+                        net: { $sum: "$netAmount" }
+                    }
+                }
             ]),
             Booking.aggregate([
                 { $match: { companyId, status: "accepted", createdAt: { $gte: startOfWeek } } },
-                { $group: { _id: null, total: { $sum: "$totalPrice" } } }
+                {
+                    $group: {
+                        _id: null,
+                        total: { $sum: "$totalPrice" },
+                        commission: { $sum: "$commissionAmount" },
+                        net: { $sum: "$netAmount" }
+                    }
+                }
             ]),
             Booking.aggregate([
                 { $match: { companyId, status: "accepted", createdAt: { $gte: startOfMonth } } },
-                { $group: { _id: null, total: { $sum: "$totalPrice" } } }
+                {
+                    $group: {
+                        _id: null,
+                        total: { $sum: "$totalPrice" },
+                        commission: { $sum: "$commissionAmount" },
+                        net: { $sum: "$netAmount" }
+                    }
+                }
             ])
         ]);
 
         // Get bookings by trip
         const bookingsByTrip = await Booking.aggregate([
             { $match: { companyId } },
-            { $group: { _id: "$tripTitle", count: { $sum: 1 }, revenue: { $sum: "$totalPrice" } } },
+            {
+                $group: {
+                    _id: "$tripTitle",
+                    count: { $sum: 1 },
+                    revenue: { $sum: "$totalPrice" },
+                    commission: { $sum: "$commissionAmount" },
+                    net: { $sum: "$netAmount" }
+                }
+            },
             { $sort: { count: -1 } },
             { $limit: 10 }
         ]);
@@ -659,7 +727,9 @@ router.get("/analytics", requireAuthStrict, async (req, res) => {
                 $group: {
                     _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
                     count: { $sum: 1 },
-                    revenue: { $sum: "$totalPrice" }
+                    revenue: { $sum: "$totalPrice" },
+                    commission: { $sum: "$commissionAmount" },
+                    net: { $sum: "$netAmount" }
                 }
             },
             { $sort: { _id: 1 } }
@@ -674,19 +744,48 @@ router.get("/analytics", requireAuthStrict, async (req, res) => {
         ] = await Promise.all([
             Booking.aggregate([
                 { $match: { companyId, paymentStatus: "paid" } },
-                { $group: { _id: null, total: { $sum: "$totalPrice" } } }
+                {
+                    $group: {
+                        _id: null,
+                        total: { $sum: "$totalPrice" },
+                        commission: { $sum: "$commissionAmount" },
+                        net: { $sum: "$netAmount" }
+                    }
+                }
             ]),
             Booking.aggregate([
                 { $match: { companyId, paymentStatus: "pending" } },
-                { $group: { _id: null, total: { $sum: "$totalPrice" } } }
+                {
+                    $group: {
+                        _id: null,
+                        total: { $sum: "$totalPrice" },
+                        commission: { $sum: "$commissionAmount" },
+                        net: { $sum: "$netAmount" }
+                    }
+                }
             ]),
             Booking.aggregate([
                 { $match: { companyId, paymentStatus: "refunded" } },
-                { $group: { _id: null, total: { $sum: "$totalPrice" } } }
+                {
+                    $group: {
+                        _id: null,
+                        total: { $sum: "$totalPrice" },
+                        commission: { $sum: "$commissionAmount" },
+                        net: { $sum: "$netAmount" }
+                    }
+                }
             ]),
             Booking.aggregate([
                 { $match: { companyId } },
-                { $group: { _id: "$paymentStatus", count: { $sum: 1 }, total: { $sum: "$totalPrice" } } }
+                {
+                    $group: {
+                        _id: "$paymentStatus",
+                        count: { $sum: 1 },
+                        total: { $sum: "$totalPrice" },
+                        commission: { $sum: "$commissionAmount" },
+                        net: { $sum: "$netAmount" }
+                    }
+                }
             ])
         ]);
 
@@ -700,11 +799,15 @@ router.get("/analytics", requireAuthStrict, async (req, res) => {
                 monthBookings
             },
             revenue: {
-                total: totalRevenue[0]?.total || 0,
+                total: revenueData[0]?.total || 0,
+                commission: revenueData[0]?.commission || 0,
+                net: revenueData[0]?.net || 0,
                 today: todayRevenue[0]?.total || 0,
                 week: weekRevenue[0]?.total || 0,
                 month: monthRevenue[0]?.total || 0,
                 paid: paidRevenue[0]?.total || 0,
+                paidCommission: paidRevenue[0]?.commission || 0,
+                paidNet: paidRevenue[0]?.net || 0,
                 pending: pendingRevenue[0]?.total || 0,
                 refunded: refundedRevenue[0]?.total || 0
             },

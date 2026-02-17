@@ -490,32 +490,6 @@ const TripDetailsPage = () => {
 
                <BookingCard trip={trip} company={company} />
                
-               <div className="mt-8 p-8 bg-zinc-50 rounded-[2.5rem] border border-zinc-100 space-y-6">
-                  <div className="flex items-center gap-4">
-                     <div className={`h-16 w-16 rounded-2xl bg-gradient-to-br ${company.color} p-0.5 shadow-xl`}>
-                        <div className="w-full h-full bg-white rounded-[14px] flex items-center justify-center overflow-hidden">
-                           {company.logo.startsWith('http') ? (
-                             <img src={company.logo} alt={company.name} className="w-full h-full object-cover" />
-                           ) : (
-                             <span className="text-xl font-black text-gray-900">{company.logo}</span>
-                           )}
-                        </div>
-                     </div>
-                     <div>
-                        <h3 className="font-black text-gray-900 text-xl">{company.name}</h3>
-                        <div className="flex items-center gap-1.5">
-                           <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
-                           <span className="text-sm font-bold text-gray-600">{company.rating} تقييم</span>
-                        </div>
-                     </div>
-                  </div>
-                  <Separator className="opacity-50" />
-                  <Link to={`/companies/${company.id}`}>
-                    <Button variant="outline" className="w-full h-14 rounded-2xl font-black border-zinc-200 hover:bg-zinc-900 hover:text-white transition-all shadow-sm">
-                      عرض ملف الشركة
-                    </Button>
-                  </Link>
-               </div>
              </div>
           </div>
         </div>

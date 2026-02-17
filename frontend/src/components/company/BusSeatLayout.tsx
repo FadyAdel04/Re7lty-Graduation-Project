@@ -204,9 +204,9 @@ const BusSeatLayout = ({
 
     if (type === 'bus-48' || (type as string) === 'bus-50') {
       columns.push([
-        { id: 'driver', type: 'driver', label: 'LENKER' },
+        { id: 'driver', type: 'driver', label: 'السائق' },
         { id: 'aisle-0', type: 'aisle' },
-        { id: 'guide', type: 'guide', label: 'REISELEITER' }
+        { id: 'guide', type: 'guide', label: 'المرافق' }
       ]);
 
       let seatCounter = 1;
@@ -227,7 +227,7 @@ const BusSeatLayout = ({
         if (c === 6) {
           col.push({ id: 'wc', type: 'wc', label: 'WC' });
         } else if (c === 7) {
-          col.push({ id: 'door-mid', type: 'door', label: 'EINSTIEG' });
+          col.push({ id: 'door-mid', type: 'door', label: 'المدخل' });
         } else {
           col.push({ id: seatCounter.toString(), type: 'seat', label: seatCounter.toString(), ...getSeatStatus(seatCounter.toString()) });
           seatCounter++;
@@ -416,16 +416,16 @@ const BusSeatLayout = ({
               </div>
             )}
 
-            <div className="relative overflow-x-auto w-full pb-6 scrollbar-hide py-4">
-              <Card className="inline-flex p-10 bg-zinc-50/50 border-zinc-200 rounded-[3rem] shadow-inner relative min-w-full md:min-w-0">
-                  {/* Visual Decoration */}
-                  <div className="absolute top-0 left-10 right-10 h-1 bg-zinc-200/50 rounded-full" />
-                  <div className="absolute bottom-0 left-10 right-10 h-1 bg-zinc-200/50 rounded-full" />
+            <div className="relative w-full py-2 flex justify-center">
+              <Card className="inline-flex p-6 md:p-8 bg-zinc-50/50 border-zinc-200 rounded-[3rem] shadow-inner relative">
+                  {/* Visual Decoration - Side Walls of the Bus */}
+                  <div className="absolute left-0 top-10 bottom-10 w-1 bg-zinc-200/50 rounded-full" />
+                  <div className="absolute right-0 top-10 bottom-10 w-1 bg-zinc-200/50 rounded-full" />
                   
-                  <div className="flex gap-4">
-                      {layout.map((col, cIdx) => (
-                          <div key={cIdx} className="flex flex-col gap-5 items-center">
-                              {col.map((seat, sIdx) => {
+                  <div className="flex flex-col gap-3">
+                      {layout.map((row, rIdx) => (
+                          <div key={rIdx} className="flex flex-row gap-3 items-center justify-center">
+                              {row.map((seat, sIdx) => {
                                   if (seat.type === 'aisle') {
                                       return <div key={sIdx} className="w-10 h-10 md:w-12 md:h-12" />;
                                   }
@@ -446,9 +446,9 @@ const BusSeatLayout = ({
                                           </div>
                                       );
                                   }
-
+ 
                                   const isSelected = selectedSeats.includes(seat.id);
-
+ 
                                   return (
                                       <TooltipProvider key={sIdx}>
                                           <Tooltip>

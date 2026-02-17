@@ -31,6 +31,8 @@ type NotificationInput = {
   tripId?: any;
   commentId?: any;
   metadata?: Record<string, any>;
+  isRead?: boolean;
+  link?: string;
 };
 
 export async function createNotification(input: NotificationInput) {
@@ -44,6 +46,8 @@ export async function createNotification(input: NotificationInput) {
     tripId,
     commentId,
     metadata,
+    isRead,
+    link,
   } = input;
 
   if (!recipientId) return null;
@@ -59,6 +63,8 @@ export async function createNotification(input: NotificationInput) {
     tripId,
     commentId,
     metadata,
+    isRead,
+    link,
   });
 
   const pusher = getPusher();

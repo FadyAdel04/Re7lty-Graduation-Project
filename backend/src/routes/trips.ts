@@ -10,6 +10,7 @@ import { formatTripMedia, formatComment, toAbsoluteUrl } from "../utils/tripForm
 import { createNotification } from "../utils/notificationDispatcher";
 import { v2 as cloudinary } from "cloudinary";
 import { toxicityService } from "../utils/toxicity";
+import ContentReport from "../models/ContentReport";
 
 // Configure Cloudinary if credentials are available
 if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
@@ -726,10 +727,7 @@ const toggleTripLoveHandler = async (req: any, res: any) => {
       // Update trip in database
       await Trip.updateOne(
         { _id: trip._id },
-        {
-          $inc: { likes: -1, weeklyLikes: -1 },
-          $set: { likes: Math.max(0, (trip.likes || 0) - 1) } // Safety check for negative
-        }
+        { $inc: { likes: -1, weeklyLikes: -1 } }
       );
 
       // Sync local object for response
@@ -1233,6 +1231,7 @@ router.put('/:id', requireAuthStrict, async (req, res) => {
 });
 
 // Delete trip (requires auth and ownership)
+// Delete trip (requires auth: Owner or Admin)
 router.delete('/:id', requireAuthStrict, async (req, res) => {
   try {
     // Check if MongoDB is connected
@@ -1254,18 +1253,52 @@ router.delete('/:id', requireAuthStrict, async (req, res) => {
     }
 
     // Check if user is the owner
-    if (trip.ownerId !== userId) {
+    const isOwner = trip.ownerId === userId;
+
+    // Check if user is admin
+    let isAdmin = false;
+    try {
+      const user = await clerkClient.users.getUser(userId);
+      const adminEmail = 'supermincraft52@gmail.com';
+      isAdmin = !!user.emailAddresses.find(email => email.emailAddress === adminEmail);
+    } catch (e) {
+      console.error('Error checking admin status', e);
+    }
+
+    if (!isOwner && !isAdmin) {
       return res.status(403).json({ error: 'Forbidden', message: 'You can only delete your own trips' });
     }
 
-    // Remove trip from user's trips array
+    // Remove trip from OWNER's trips array (Target trip.ownerId, not userId if admin)
     await User.updateOne(
-      { clerkId: userId },
+      { clerkId: trip.ownerId },
       { $pull: { trips: trip._id } }
     );
 
     // Delete the trip
     await Trip.findByIdAndDelete(req.params.id);
+
+    // If Admin deleted it (and is not owner), notify the owner and resolve reports
+    if (isAdmin && !isOwner) {
+      // Send notification
+      await createNotification({
+        recipientId: trip.ownerId,
+        actorId: userId,
+        actorName: "إدارة رحلتي",
+        actorImage: "/assets/logo.png",
+        type: "system",
+        message: `تم حذف رحلتك "${trip.title}" لمخالفتها شروط النشر وسياسات المجتمع.`,
+        isRead: false,
+        // No link since trip is deleted
+      });
+
+      // Resolve any pending reports for this trip
+      // Note: ContentReport should already be imported at top
+      await ContentReport.updateMany(
+        { tripId: req.params.id },
+        { status: 'resolved', adminNotes: 'Deleted by admin due to violation' }
+      );
+    }
 
     res.json({ message: 'Trip deleted successfully' });
   } catch (error: any) {

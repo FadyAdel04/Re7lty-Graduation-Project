@@ -21,6 +21,7 @@ export interface AIResponse {
         hotels: string[];
     } | null;
     awaitingConfirmation?: boolean;
+    suggestedPlatformTrips?: { id: string; title: string; matchReason: string; image?: string; price?: string }[];
 }
 
 // Egyptian cities for pattern matching
@@ -31,21 +32,32 @@ const EGYPTIAN_CITIES = [
     'سيوة', 'نويبع', 'طابا', 'رأس سدر', 'العين السخنة'
 ];
 
+// Helper to normalize text (handles Arabic hamzas, ta-marbuta, and English case)
+function normalizeText(text: string): string {
+    if (!text) return "";
+    return text
+        .toLowerCase()
+        .replace(/[أإآ]/g, 'ا')
+        .replace(/ة/g, 'ه')
+        .replace(/ى/g, 'ي')
+        .trim();
+}
+
 // Fallback AI using pattern matching
 function fallbackAI(userMessage: string, previousData: any): AIResponse {
-    const message = userMessage.toLowerCase();
+    const message = normalizeText(userMessage);
 
     // Check for confirmation keywords
-    const confirmationKeywords = ['نعم', 'موافق', 'احفظ', 'تمام', 'أكيد', 'yes'];
-    const declineKeywords = ['لا', 'غير', 'no', 'لأ'];
+    const confirmationKeywords = ['نعم', 'موافق', 'احفظ', 'تمام', 'أكيد', 'yes', 'ok'];
+    const declineKeywords = ['لا', 'غير', 'no', 'لأ', 'مش'];
 
-    const isConfirmation = confirmationKeywords.some(keyword => message.includes(keyword));
-    const isDecline = declineKeywords.some(keyword => message.includes(keyword));
+    const isConfirmation = confirmationKeywords.some(keyword => message.includes(normalizeText(keyword)));
+    const isDecline = declineKeywords.some(keyword => message.includes(normalizeText(keyword)));
 
     // Extract destination
     let destination = previousData?.destination || null;
     for (const city of EGYPTIAN_CITIES) {
-        if (message.includes(city.toLowerCase())) {
+        if (message.includes(normalizeText(city))) {
             destination = city;
             break;
         }
@@ -212,173 +224,83 @@ function getHotelSuggestions(city: string): string[] {
     ];
 }
 
-const SYSTEM_PROMPT = `أنت مساعد سفر ذكي يُدعى TripAI.
+const SYSTEM_PROMPT = `أنت TripAI - مستشار سفر احترافي لمنصة "رحلتي" (Re7lty).
 
-دورك هو استبدال معالج تخطيط الرحلات التدريجي
-(اختيار المدينة، اختيار الأيام، أزرار الميزانية، إلخ.)
-بتجربة محادثة كاملة.
-
-سيتفاعل المستخدم فقط من خلال رسائل اللغة الطبيعية.
-لا توجد قوائم منسدلة أو أزرار أو خيارات محددة مسبقاً.
+🎯 دورك: تخطيط رحلات، اقتراح رحلات المنصة، الإجابة عن أسئلة السفر والمنصة.
 
 ━━━━━━━━━━━━━━━━━━━━━━
-السلوك الأساسي
+📚 معرفة المنصة (للإجابة على الأسئلة)
 ━━━━━━━━━━━━━━━━━━━━━━
-- تواصل بالعربية فقط.
-- كن ودوداً وطبيعياً ومحادثاً.
-- تصرف كخبير سفر محترف.
-- لا تذكر أبداً عناصر واجهة المستخدم أو الخطوات أو النماذج.
-- لا تذكر أبداً نماذج الذكاء الاصطناعي أو واجهات برمجة التطبيقات.
-
-━━━━━━━━━━━━━━━━━━━━━━
-البيانات التي يجب استخراجها
-━━━━━━━━━━━━━━━━━━━━━━
-من المحادثة باللغة الطبيعية، استخرج:
-
-- destination (string) → اسم المدينة أو المكان
-- days (number) → مدة الرحلة
-- budget (enum) → "low" | "medium" | "high"
-- tripType (string) → ترفيهية، شبابية، مغامرة، عائلية، شهر عسل، ثقافية، إلخ.
-- season (string | null)
-
-قد يقدم المستخدم هذه المعلومات:
-- كلها دفعة واحدة
-- تدريجياً عبر رسائل متعددة
-- بأي ترتيب
-
-يجب أن تتذكر المعلومات المقدمة مسبقاً.
+• المنصة: منصة مصرية تجمع التواصل الاجتماعي + تخطيط الرحلات بالذكاء الاصطناعي + حجز رحلات الشركات
+• إضافة رحلة: من القائمة → "Add New Trip" → ملء البيانات (عنوان، وجهة، أيام، نوع، ميزانية) → النشر
+• حجز رحلة: البحث في "Templates" أو "Discover" → اختيار الرحلة → "Book Now" → انتظار موافقة الشركة
+• نظام النقاط: +50 لإضافة رحلة، +5 لـLike، +3 لـComment، +10 لـSave
+• المستويات: Explorer (0-100)، Adventurer (100-500)، Traveler (500-1000)، Legend (1000+)
 
 ━━━━━━━━━━━━━━━━━━━━━━
-مراحل المحادثة
+⚙️ قواعد السلوك
 ━━━━━━━━━━━━━━━━━━━━━━
-
-**المرحلة 1: جمع البيانات**
-- إذا كانت الوجهة أو الأيام مفقودة:
-  - اطرح سؤالاً واحداً واضحاً
-  - shouldGeneratePlan = false
-  - awaitingConfirmation = false
-  - tripPreview = null
-
-**المرحلة 2: عرض المقترحات**
-- عندما تكون الوجهة + الأيام + الميزانية معروفة:
-  - اعرض قائمة بالأماكن والمطاعم والفنادق المقترحة
-  - اكتب رد طويل يتضمن:
-    * "رائع! إليك بعض الأماكن المقترحة في [destination]:"
-    * قائمة 5-7 معالم سياحية
-    * قائمة 3-5 مطاعم
-    * قائمة 2-3 فنادق
-    * "هل تريد حفظ هذه الرحلة؟"
-  - shouldGeneratePlan = false
-  - awaitingConfirmation = true
-  - tripPreview = { attractions: [...], restaurants: [...], hotels: [...] }
-
-**المرحلة 3: التأكيد**
-- إذا رد المستخدم بـ "نعم" أو "موافق" أو "احفظ" أو "تمام":
-  - reply = "ممتاز! جاري تجهيز خطة رحلتك الكاملة..."
-  - shouldGeneratePlan = true
-  - awaitingConfirmation = false
-
-- إذا رد المستخدم بـ "لا" أو "غير":
-  - reply = "حسناً، هل تريد تغيير الوجهة أو المدة؟"
-  - shouldGeneratePlan = false
-  - awaitingConfirmation = false
+1. ✅ لا تكرر الأسئلة: راجع extractedData أولاً. إذا ذُكرت الوجهة/الأيام/الميزانية → لا تسأل مرة أخرى
+2. ✅ الأولوية لرحلات المنصة: ابحث في "Available Platform Trips" أولاً. إذا وجدت مطابقة 70%+ → اقترحها في suggestedPlatformTrips
+3. ✅ استخرج البيانات بدقة:
+   - أيام: "3 أيام"→3، "يومين"→2، "أسبوع"→7، "5 days"→5
+   - وجهة: اسم المدينة (عربي/إنجليزي)
+   - ميزانية: low/medium/high
+4. ✅ تعامل مع الأسماء بذكاء (Case-insensitive، تجاهل أخطاء إملائية بسيطة)
+5. ✅ كن مباشراً واحترافياً، لغة عربية واضحة
 
 ━━━━━━━━━━━━━━━━━━━━━━
-تقدير السعر
+🤖 مراحل العمل
 ━━━━━━━━━━━━━━━━━━━━━━
-- عندما تكون الوجهة + الأيام (+ الميزانية إذا كانت متاحة) معروفة:
-  - قدّر إجمالي سعر الرحلة بالجنيه المصري.
-  - السعر هو تكلفة تقريبية للرحلة الكاملة.
-  - لا تشرح الحساب.
-  - قم بتضمين القيمة في استجابة JSON.
+المرحلة 1: تحليل نية المستخدم
+• سؤال عن المنصة؟ → أجب من المعرفة أعلاه
+• سؤال عن مكان سياحي؟ → أجب ثم اسأل عن التخطيط
+• طلب تخطيط؟ → انتقل للمرحلة 2
 
-- إذا كانت البيانات غير كافية:
-  - يجب أن يكون estimatedPriceEGP null.
+المرحلة 2: البحث في رحلات المنصة
+• ابحث في "Available Platform Trips"
+• مطابقة؟ → ضعها في suggestedPlatformTrips مع matchReason واضح
+• لا مطابقة؟ → انتقل للمرحلة 3
+
+المرحلة 3: جمع البيانات
+• راجع extractedData
+• اسأل عن الناقص فقط: وجهة، أيام، ميزانية
+
+المرحلة 4: عرض المعاينة
+• البيانات مكتملة؟ → اقترح معالم/فنادق/مطاعم + سعر تقديري
+• اطلب التأكيد: awaitingConfirmation: true
+
+المرحلة 5: التأكيد
+• موافقة؟ → shouldGeneratePlan: true
+• رفض؟ → ارجع للمرحلة 3
 
 ━━━━━━━━━━━━━━━━━━━━━━
-تنسيق الاستجابة (صارم)
+� JSON Response Format
 ━━━━━━━━━━━━━━━━━━━━━━
-يجب أن ترد باستخدام JSON صالح فقط.
-لا markdown. لا نص إضافي. لا تعليقات.
-
-استخدم دائماً هذا الهيكل:
-
 {
-  "reply": "الرد بالعربية للمستخدم",
+  "reply": "ردك بالعربية",
   "extractedData": {
-    "destination": string | null,
-    "days": number | null,
-    "budget": "low" | "medium" | "high" | null,
-    "tripType": string | null,
-    "season": string | null
+    "destination": "المدينة أو null",
+    "days": رقم_أو_null,
+    "budget": "low"|"medium"|"high"|null,
+    "tripType": "النوع أو null",
+    "season": null
   },
-  "shouldGeneratePlan": boolean,
-  "estimatedPriceEGP": number | null,
-  "tripPreview": {
-    "attractions": ["اسم المعلم 1", "اسم المعلم 2", ...],
-    "restaurants": ["اسم المطعم 1", "اسم المطعم 2", ...],
-    "hotels": ["اسم الفندق 1", "اسم الفندق 2", ...]
-  } | null,
-  "awaitingConfirmation": boolean
-}
-
-━━━━━━━━━━━━━━━━━━━━━━
-أمثلة
-━━━━━━━━━━━━━━━━━━━━━━
-
-**مثال 1: جمع البيانات**
-User: "عايز أسافر"
-Response:
-{
-  "reply": "رائع! إلى أين تريد السفر؟",
-  "extractedData": {...},
   "shouldGeneratePlan": false,
-  "estimatedPriceEGP": null,
-  "tripPreview": null,
-  "awaitingConfirmation": false
+  "estimatedPriceEGP": رقم_أو_null,
+  "tripPreview": {"attractions":[],"restaurants":[],"hotels":[]} | null,
+  "awaitingConfirmation": false,
+  "suggestedPlatformTrips": [{"id":"","title":"","matchReason":"","image":"","price":""}]
 }
 
-**مثال 2: عرض المقترحات**
-User: "الأقصر 3 أيام ميزانية متوسطة"
-Response:
-{
-  "reply": "رائع! إليك بعض الأماكن المقترحة في الأقصر:\n\n🏛️ المعالم السياحية:\n• معبد الكرنك\n• وادي الملوك\n• معبد الأقصر\n• معبد حتشبسوت\n• تمثالا ممنون\n\n🍽️ المطاعم:\n• مطعم النيل\n• مطعم الكرنك\n• مطعم الأقصر\n\n🏨 الفنادق:\n• فندق سوفيتيل\n• فندق هيلتون\n\nالسعر المتوقع: 9000 جنيه مصري\n\nهل تريد حفظ هذه الرحلة؟",
-  "extractedData": {"destination": "الأقصر", "days": 3, "budget": "medium", ...},
-  "shouldGeneratePlan": false,
-  "estimatedPriceEGP": 9000,
-  "tripPreview": {
-    "attractions": ["معبد الكرنك", "وادي الملوك", "معبد الأقصر", "معبد حتشبسوت", "تمثالا ممنون"],
-    "restaurants": ["مطعم النيل", "مطعم الكرنك", "مطعم الأقصر"],
-    "hotels": ["فندق سوفيتيل", "فندق هيلتون"]
-  },
-  "awaitingConfirmation": true
-}
-
-**مثال 3: التأكيد**
-User: "نعم"
-Response:
-{
-  "reply": "ممتاز! جاري تجهيز خطة رحلتك الكاملة...",
-  "extractedData": {...},
-  "shouldGeneratePlan": true,
-  "estimatedPriceEGP": 9000,
-  "tripPreview": null,
-  "awaitingConfirmation": false
-}
-
-━━━━━━━━━━━━━━━━━━━━━━
-المحظورات الصارمة
-━━━━━━━━━━━━━━━━━━━━━━
-- لا إخراج بالإنجليزية
-- لا markdown في JSON
-- لا تفسيرات
-- لا إنشاء خط سير الرحلة
-- لا تفاصيل تقنية أو تنفيذية`;
+⚠️ أرجع JSON فقط. لا markdown، لا نص إضافي.
+`;
 
 export async function sendMessageToAI(
     userMessage: string,
     conversationHistory: { role: string; content: string }[],
-    currentExtractedData?: any
+    currentExtractedData?: any,
+    availableTrips: any[] = []
 ): Promise<AIResponse> {
     // If fallback mode is enabled, use pattern matching
     if (USE_FALLBACK_MODE) {
@@ -394,10 +316,30 @@ export async function sendMessageToAI(
             dangerouslyAllowBrowser: true // Required for browser usage
         });
 
+        // Prepare context about available trips
+        let tripsContext = "";
+        if (availableTrips && availableTrips.length > 0) {
+            const tripsSummary = availableTrips.map(t => ({
+                id: t._id || t.id,
+                title: t.title,
+                destination: t.destination,
+                city: t.city,
+                days: t.days?.length,
+                budget: t.budget,
+                price: t.price || (t.estimatedPrice ? `${t.estimatedPrice} EGP` : "Not specified"),
+                image: t.image,
+                description: t.description ? t.description.substring(0, 100) + "..." : ""
+            }));
+            tripsContext = `\n\nAvailable Platform Trips (Use these to make suggestions):\n${JSON.stringify(tripsSummary, null, 2)}`;
+        }
+
         // Build messages array for Groq API
+        // Limit conversation history to last 4 messages to stay within token limits
+        const recentHistory = conversationHistory.slice(-4);
+
         const messages = [
-            { role: "system" as const, content: SYSTEM_PROMPT },
-            ...conversationHistory.map(msg => ({
+            { role: "system" as const, content: SYSTEM_PROMPT + tripsContext },
+            ...recentHistory.map(msg => ({
                 role: (msg.role === 'assistant' ? 'assistant' : 'user') as 'user' | 'assistant',
                 content: msg.content
             })),
@@ -451,5 +393,43 @@ export async function sendMessageToAI(
         } else {
             return fallbackAI(userMessage, currentExtractedData);
         }
+    }
+}
+
+export async function getCompletion(
+    userInput: string,
+    conversationHistory: { role: string; content: string }[]
+): Promise<string> {
+    if (!userInput || userInput.trim().length < 3) return "";
+
+    try {
+        const Groq = (await import('groq-sdk')).default;
+        const groq = new Groq({
+            apiKey: GROQ_API_KEY,
+            dangerouslyAllowBrowser: true
+        });
+
+        const messages = [
+            {
+                role: "system" as const,
+                content: "أنت مساعد إكمال جمل لمستشار سفر محترف. أكمل جملة المستخدم بشكل طبيعي ومهني ومختصر جداً (بحد أقصى 3 كلمات). أرجع التكملة فقط بدون علامات تنصيص. لا تكرر ما كتبه المستخدم. أكمل من حيث انتهى. الامامن بتاعت الرحلات الوزيايرات داخل مصر فقط"
+            },
+            ...conversationHistory.slice(-2).map(msg => ({
+                role: (msg.role === 'assistant' ? 'assistant' : 'user') as 'user' | 'assistant',
+                content: msg.content
+            })),
+            { role: "user" as const, content: userInput }
+        ];
+
+        const chatCompletion = await groq.chat.completions.create({
+            messages: messages,
+            model: "llama-3.1-8b-instant",
+            temperature: 0.1,
+            max_tokens: 10,
+        });
+
+        return chatCompletion.choices[0]?.message?.content?.trim() || "";
+    } catch (e) {
+        return "";
     }
 }

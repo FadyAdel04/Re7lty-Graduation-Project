@@ -41,10 +41,14 @@ export interface BookingAnalytics {
     };
     revenue: {
         total: number;
+        commission: number;
+        net: number;
         today: number;
         week: number;
         month: number;
         paid: number;
+        paidCommission: number;
+        paidNet: number;
         pending: number;
         refunded: number;
     };
@@ -52,11 +56,15 @@ export interface BookingAnalytics {
         _id: string;
         count: number;
         revenue: number;
+        commission: number;
+        net: number;
     }>;
     dailyBookings: Array<{
         _id: string;
         count: number;
         revenue: number;
+        commission: number;
+        net: number;
     }>;
 }
 

@@ -7,6 +7,7 @@ import { CorporateTrip } from "../models/CorporateTrip";
 import { CompanySubmission } from "../models/CompanySubmission";
 import ContentReport from "../models/ContentReport";
 import Complaint from "../models/Complaint";
+import { Booking } from "../models/Booking";
 import { requireAuthStrict, getAuth } from "../utils/auth";
 
 const router = Router();
@@ -580,6 +581,123 @@ router.get('/reports', requireAuthStrict, async (req, res) => {
     } catch (error: any) {
         console.error('Error fetching reports data:', error);
         res.status(500).json({ error: 'Failed to fetch reports data', message: error.message });
+    }
+});
+
+/**
+ * GET /api/analytics/admin/bookings
+ * Get platform-wide booking commission analytics (Admin only)
+ */
+router.get('/admin/bookings', requireAuthStrict, async (req, res) => {
+    try {
+        const { userId } = getAuth(req);
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        // Admin check
+        const adminEmail = 'supermincraft52@gmail.com';
+        const { clerkClient } = await import("../utils/auth");
+        const user = await clerkClient.users.getUser(userId);
+        if (user.primaryEmailAddress?.emailAddress !== adminEmail) {
+            return res.status(403).json({ error: 'Forbidden: Admin access required' });
+        }
+
+        const { companyId, startDate, endDate } = req.query;
+
+        const matchStage: any = { status: "accepted" };
+
+        if (companyId) {
+            const mongoose = await import("mongoose");
+            try {
+                matchStage.companyId = new mongoose.Types.ObjectId(companyId as string);
+            } catch (e) {
+                // Ignore invalid ID
+            }
+        }
+
+        if (startDate || endDate) {
+            matchStage.createdAt = {};
+            if (startDate) {
+                const sDate = new Date(startDate as string);
+                sDate.setHours(0, 0, 0, 0);
+                matchStage.createdAt.$gte = sDate;
+            }
+            if (endDate) {
+                const eDate = new Date(endDate as string);
+                eDate.setHours(23, 59, 59, 999);
+                matchStage.createdAt.$lte = eDate;
+            }
+        }
+
+        // Calculate total earnings
+        const earningsStats = await Booking.aggregate([
+            { $match: matchStage },
+            {
+                $group: {
+                    _id: null,
+                    totalGrossValue: { $sum: "$totalPrice" },
+                    totalCommission: { $sum: "$commissionAmount" },
+                    totalNetValue: { $sum: "$netAmount" },
+                    bookingCount: { $sum: 1 }
+                }
+            }
+        ]);
+
+        // Commission per company
+        const companyStats = await Booking.aggregate([
+            { $match: matchStage },
+            {
+                $group: {
+                    _id: "$companyId",
+                    companyName: { $first: "$companyName" },
+                    totalCommission: { $sum: "$commissionAmount" },
+                    totalGross: { $sum: "$totalPrice" },
+                    bookingCount: { $sum: 1 }
+                }
+            },
+            { $sort: { totalCommission: -1 } }
+        ]);
+
+        // Daily commission trends (last 30 days)
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        const dailyTrends = await Booking.aggregate([
+            {
+                $match: {
+                    ...matchStage,
+                    createdAt: { $gte: thirtyDaysAgo }
+                }
+            },
+            {
+                $group: {
+                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+                    commission: { $sum: "$commissionAmount" },
+                    bookings: { $sum: 1 }
+                }
+            },
+            { $sort: { "_id": 1 } }
+        ]);
+
+        res.json({
+            overview: earningsStats[0] || {
+                totalGrossValue: 0,
+                totalCommission: 0,
+                totalNetValue: 0,
+                bookingCount: 0
+            },
+            companies: companyStats,
+            dailyTrends,
+            filters: {
+                companyId,
+                startDate,
+                endDate
+            }
+        });
+    } catch (error: any) {
+        console.error('Error fetching admin booking analytics:', error);
+        res.status(500).json({ error: 'Failed to fetch admin booking analytics', message: error.message });
     }
 });
 

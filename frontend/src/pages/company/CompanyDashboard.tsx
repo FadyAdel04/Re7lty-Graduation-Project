@@ -6,7 +6,7 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart, Activity, Users, Map, Plus, DollarSign, Calendar, LogOut, AlertTriangle, Loader2, Settings, Bus, Check, RefreshCcw, Bell, MessageCircle } from "lucide-react";
+import { BarChart, Activity, Users, Map, Plus, DollarSign, Calendar, LogOut, AlertTriangle, Loader2, Settings, Bus, Check, RefreshCcw, Bell, MessageCircle, Ticket } from "lucide-react";
 import BusSeatLayout from "@/components/company/BusSeatLayout";
 import { useToast } from "@/components/ui/use-toast";
 import { corporateTripsService } from "@/services/corporateTripsService";
@@ -19,10 +19,10 @@ import { Progress } from "@/components/ui/progress";
 import { ResponsiveContainer, BarChart as ReBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, Legend, PieChart, Pie, Cell } from 'recharts';
 import { companyService } from "@/services/companyService";
 import { CompanyChat } from "@/components/company/CompanyChat";
+import CouponManagement from "@/components/company/CouponManagement";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import PaymentDialog from "@/components/company/PaymentDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -87,17 +87,11 @@ const CompanyDashboard = () => {
     const [selectedTripForSeats, setSelectedTripForSeats] = useState<any>(null);
     const [isSavingSeats, setIsSavingSeats] = useState(false);
 
-    // Plan State
-    const [currentPlan, setCurrentPlan] = useState<'free' | 'advanced' | 'professional'>('free');
-    const PLAN_LIMITS = { free: 3, advanced: 5, professional: 8 };
-    const tripsUsed = myTrips.length;
-    const tripsLimit = PLAN_LIMITS[currentPlan];
-    const tripsLeft = tripsLimit - tripsUsed;
-    const canAddTrip = tripsLeft > 0;
+    const canAddTrip = true;
 
     // Payment State
     const [showPaymentDialog, setShowPaymentDialog] = useState(false);
-    const [selectedPlanForUpgrade, setSelectedPlanForUpgrade] = useState<{ id: 'advanced' | 'professional', name: string, price: string } | null>(null);
+    const [selectedPlanForUpgrade, setSelectedPlanForUpgrade] = useState<any>(null);
 
     // Fetch Company Data & Trips
     useEffect(() => {
@@ -369,21 +363,7 @@ const CompanyDashboard = () => {
         }
     };
 
-    const handleUpgradeClick = (id: 'advanced' | 'professional', name: string, price: string) => {
-        setSelectedPlanForUpgrade({ id, name, price });
-        setShowPaymentDialog(true);
-    };
 
-    const handlePaymentSuccess = () => {
-        if (selectedPlanForUpgrade) {
-            setCurrentPlan(selectedPlanForUpgrade.id);
-            toast({
-                 title: "مبروك! تمت الترقية بنجاح 🎉",
-                 description: `أنت الآن تستمتع بمميزات ${selectedPlanForUpgrade.name}.`,
-                 className: "bg-green-50 border-green-200 text-green-900"
-            });
-        }
-    };
 
     return (
         <div className="min-h-screen bg-gray-50 font-cairo" dir="rtl">
@@ -399,13 +379,7 @@ const CompanyDashboard = () => {
                 initialData={selectedTripForEdit}
             />
 
-            <PaymentDialog 
-                open={showPaymentDialog}
-                onOpenChange={setShowPaymentDialog}
-                planName={selectedPlanForUpgrade?.name || ''}
-                price={selectedPlanForUpgrade?.price || ''}
-                onSuccess={handlePaymentSuccess}
-            />
+
 
             <div className="container mx-auto px-4 py-8">
                 <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
@@ -491,51 +465,44 @@ const CompanyDashboard = () => {
                     <Card className="rounded-[2rem] border-0 shadow-sm hover:shadow-md transition-shadow">
                         <CardContent className="p-6 flex items-center gap-4">
                             <div className="p-4 rounded-2xl bg-indigo-50 text-indigo-600">
-                                <Map className="w-8 h-8" />
+                                <Users className="w-8 h-8" />
                             </div>
                             <div>
-                                <p className="text-gray-500 font-bold text-sm">الرحلات النشطة</p>
-                                <h3 className="text-3xl font-black text-gray-900 mt-1">{myTrips.length}</h3>
+                                <p className="text-gray-500 font-bold text-sm">إجمالي الحجوزات</p>
+                                <h3 className="text-3xl font-black text-gray-900 mt-1">{stats?.overview?.totalBookings || 0}</h3>
                             </div>
                         </CardContent>
                     </Card>
                     <Card className="rounded-[2rem] border-0 shadow-sm hover:shadow-md transition-shadow">
                         <CardContent className="p-6 flex items-center gap-4">
                             <div className="p-4 rounded-2xl bg-emerald-50 text-emerald-600">
-                                <Users className="w-8 h-8" />
+                                <DollarSign className="w-8 h-8" />
                             </div>
                             <div>
-                                <p className="text-gray-500 font-bold text-sm">إجمالي الحجوزات</p>
-                                <h3 className="text-3xl font-black text-gray-900 mt-1">{bookings.length}</h3>
+                                <p className="text-gray-500 font-bold text-sm">إجمالي الإيرادات</p>
+                                <h3 className="text-2xl font-black text-gray-900 mt-1">{(stats?.revenue?.total || 0).toLocaleString()} ج.م</h3>
                             </div>
                         </CardContent>
                     </Card>
                     <Card className="rounded-[2rem] border-0 shadow-sm hover:shadow-md transition-shadow">
                         <CardContent className="p-6 flex items-center gap-4">
                             <div className="p-4 rounded-2xl bg-orange-50 text-orange-600">
-                                <Activity className="w-8 h-8" />
+                                <AlertTriangle className="w-8 h-8" />
                             </div>
                             <div>
-                                <p className="text-gray-500 font-bold text-sm">المشاهدات</p>
-                                <h3 className="text-3xl font-black text-gray-900 mt-1">
-                                    {myTrips.reduce((acc, curr) => acc + (curr.views || 0), 0)}
-                                </h3>
+                                <p className="text-gray-500 font-bold text-sm">عمولة المنصة (5%)</p>
+                                <h3 className="text-2xl font-black text-gray-900 mt-1">{(stats?.revenue?.commission || 0).toLocaleString()} ج.م</h3>
                             </div>
                         </CardContent>
                     </Card>
-                    <Card className="rounded-[2rem] border-0 shadow-sm hover:shadow-md transition-shadow">
+                    <Card className="rounded-[2rem] border-0 shadow-sm hover:shadow-md transition-shadow bg-indigo-600 text-white">
                         <CardContent className="p-6 flex items-center gap-4">
-                            <div className="p-4 rounded-2xl bg-purple-50 text-purple-600">
-                                <DollarSign className="w-8 h-8" />
+                            <div className="p-4 rounded-2xl bg-white/20 text-white border border-white/30 backdrop-blur-md">
+                                <Check className="w-8 h-8" />
                             </div>
                             <div>
-                                <p className="text-gray-500 font-bold text-sm">الإيرادات</p>
-                                <h3 className="text-3xl font-black text-gray-900 mt-1">
-                                    {bookings
-                                        .filter(b => b.status === 'accepted')
-                                        .reduce((acc, curr) => acc + (curr.totalPrice || 0), 0)
-                                        .toLocaleString()} ج.م
-                                </h3>
+                                <p className="text-white/80 font-bold text-sm">صافي الربح (95%)</p>
+                                <h3 className="text-2xl font-black text-white mt-1">{(stats?.revenue?.net || 0).toLocaleString()} ج.م</h3>
                             </div>
                         </CardContent>
                     </Card>
@@ -550,10 +517,10 @@ const CompanyDashboard = () => {
                                 {[
                                     { id: 'trips', label: 'الرحلات', icon: Map },
                                     { id: 'bookings', label: 'الحجوزات', icon: Users, badge: bookings.filter(b => b.status === 'pending').length },
-                                    { id: 'contact', label: 'الرسائل', icon: MessageCircle, badge: 0 }, // Unread chat count could go here
+                                    { id: 'coupons', label: 'كوبونات الخصم', icon: Ticket },
+                                    { id: 'contact', label: 'الرسائل', icon: MessageCircle, badge: 0 },
                                     { id: 'seats', label: 'توزيع المقاعد', icon: Bus },
                                     { id: 'reports', label: 'التقارير', icon: BarChart },
-                                    { id: 'subscription', label: 'الاشتراك', icon: Activity },
                                     { id: 'settings', label: 'الإعدادات', icon: Settings },
                                 ].map((tab) => (
                                     <button
@@ -578,23 +545,10 @@ const CompanyDashboard = () => {
                             </nav>
                             
                             <div className="mt-8 pt-6 border-t border-gray-100 px-4 space-y-4">
-                                <div className="space-y-2">
-                                    <div className="flex justify-between items-center text-xs font-bold text-gray-500">
-                                        <span>الباقة الحالية</span>
-                                        <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200">{currentPlan === 'free' ? 'مجانية' : currentPlan === 'advanced' ? 'متقدمة' : 'محترفين'}</Badge>
-                                    </div>
-                                    <div className="flex justify-between items-center text-xs font-bold text-gray-900">
-                                        <span>الرحلات المستخدمة</span>
-                                        <span>{tripsUsed} / {tripsLimit}</span>
-                                    </div>
-                                    <Progress value={(tripsUsed / tripsLimit) * 100} className="h-2 bg-gray-100" />
-                                    {!canAddTrip && <p className="text-[10px] text-red-500 font-bold text-center">وصلت للحد الأقصى للرحلات</p>}
-                                </div>
-                                
                                 <div className="p-4 rounded-2xl bg-orange-50 border border-orange-100">
-                                    <p className="text-xs font-bold text-orange-600 mb-2">هل تحتاج مساعدة؟</p>
-                                    <p className="text-[10px] text-orange-400 leading-relaxed">فريق دعم الرحلتى متواجد لمساعدتك في إدارة شركتك.</p>
-                                    <Button variant="link" className="text-orange-600 p-0 h-auto text-[10px] font-black mt-2">تواصل معنا</Button>
+                                    <p className="text-xs font-bold text-orange-600 mb-2">نظام العمولات</p>
+                                    <p className="text-[10px] text-orange-400 leading-relaxed">تطبق عمولة 5% على كل حجز ناجح. يتم تحصيل العمولة تلقائياً.</p>
+                                    <Button variant="link" className="text-orange-600 p-0 h-auto text-[10px] font-black mt-2">اعرف المزيد</Button>
                                 </div>
                             </div>
                         </Card>
@@ -611,6 +565,7 @@ const CompanyDashboard = () => {
                                         <TabsTrigger value="bookings">bookings</TabsTrigger>
                                         <TabsTrigger value="contact">contact</TabsTrigger>
                                         <TabsTrigger value="seats">seats</TabsTrigger>
+                                        <TabsTrigger value="coupons">coupons</TabsTrigger>
                                         <TabsTrigger value="reports">reports</TabsTrigger>
                                         <TabsTrigger value="subscription">subscription</TabsTrigger>
                                         <TabsTrigger value="settings">settings</TabsTrigger>
@@ -768,6 +723,12 @@ const CompanyDashboard = () => {
                                             )}
                                          </div>
                                      </div>
+                                </TabsContent>
+                                <TabsContent value="coupons" className="p-8 m-0 focus-visible:outline-none">
+                                    <div className="flex items-center justify-between mb-8">
+                                        <h2 className="text-2xl font-black text-gray-900">إدارة الكوبونات</h2>
+                                    </div>
+                                    <CouponManagement />
                                 </TabsContent>
 
                                 <TabsContent value="reports" className="p-8 m-0 focus-visible:outline-none">
@@ -932,61 +893,7 @@ const CompanyDashboard = () => {
                                     </div>
                                 </TabsContent>
 
-                                <TabsContent value="subscription" className="p-8 m-0 focus-visible:outline-none">
-                                     <h2 className="text-2xl font-black text-gray-900 mb-8">خطط الاشتراك</h2>
-                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                         {/* Basic Plan */}
-                                         <div className="border-2 border-indigo-100 rounded-3xl p-6 relative bg-white hover:border-indigo-200 transition-all">
-                                             <h3 className="text-xl font-black text-gray-900 mb-2">الباقة الأساسية</h3>
-                                             <div className="text-3xl font-black text-indigo-600 mb-6">مجاناً</div>
-                                              <ul className="space-y-3 mb-8 text-gray-600 text-sm">
-                                                 <li className="flex gap-2"><Check className="w-4 h-4 text-emerald-500" /> إدارة وإضافة ٣ رحلات شهرياً</li>
-                                                 <li className="flex gap-2"><Check className="w-4 h-4 text-emerald-500" /> لوحة تحكم أساسية</li>
-                                             </ul>
-                                             <Button className="w-full rounded-xl bg-gray-100 text-gray-900 hover:bg-gray-200" disabled>مشترك حالياً</Button>
-                                         </div>
-                                         
-                                         {/* Pro Plan */}
-                                         <div className="border-2 border-indigo-600 rounded-3xl p-6 relative bg-indigo-50/30 hover:shadow-xl transition-all scale-105 shadow-lg">
-                                             <div className="absolute top-0 right-0 bg-indigo-600 text-white text-xs font-bold px-3 py-1 rounded-bl-xl rounded-tr-2xl">الأكثر طلباً</div>
-                                             <h3 className="text-xl font-black text-gray-900 mb-2">الباقة المتقدمة</h3>
-                                             <div className="text-3xl font-black text-gray-900 mb-6">2,999 <span className="text-sm text-gray-500 font-normal">ج.م / شهرياً</span></div>
-                                             <ul className="space-y-3 mb-8 text-gray-600 text-sm">
-                                                 <li className="flex gap-2"><Check className="w-4 h-4 text-emerald-500" /> إدارة وإضافة ٥ رحلات شهرياً</li>
-                                                 <li className="flex gap-2"><Check className="w-4 h-4 text-emerald-500" /> تحليلات متقدمة</li>
-                                                 <li className="flex gap-2"><Check className="w-4 h-4 text-emerald-500" /> دعم فني ذو أولوية</li>
-                                             </ul>
-                                             <Button 
-                                                 className="w-full rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-100"
-                                                 onClick={() => handleUpgradeClick('advanced', 'الباقة المتقدمة', '2,999')}
-                                                 disabled={currentPlan === 'advanced' || currentPlan === 'professional'}
-                                             >
-                                                 {currentPlan === 'advanced' ? 'باقتك الحالية' : currentPlan === 'professional' ? 'لديك باقة أعلى' : 'اشترك الآن'}
-                                             </Button>
-                                         </div>
-
-                                          {/* Premium Plan */}
-                                         <div className="border border-gray-200 rounded-3xl p-6 hover:shadow-xl transition-all relative overflow-hidden group bg-white">
-                                             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-400 to-red-500" />
-                                             <h3 className="text-xl font-black text-gray-900 mb-2">باقة المحترفين</h3>
-                                             <div className="text-3xl font-black text-gray-900 mb-6">3,999 <span className="text-sm text-gray-500 font-normal">ج.م / شهرياً</span></div>
-                                             <ul className="space-y-3 mb-8 text-gray-600 text-sm">
-                                                 <li className="flex gap-2"><Check className="w-4 h-4 text-emerald-500" /> إدارة وإضافة ٨ رحلات شهرياً</li>
-                                                 <li className="flex gap-2"><Check className="w-4 h-4 text-emerald-500" /> جميع المميزات السابقة</li>
-                                                 <li className="flex gap-2"><Check className="w-4 h-4 text-emerald-500" /> ظهور مميز في الصفحة الرئيسية</li>
-                                             </ul>
-                                             <Button 
-                                                 className="w-full rounded-xl bg-gray-900 hover:bg-black text-white"
-                                                 onClick={() => handleUpgradeClick('professional', 'باقة المحترفين', '3,999')}
-                                                 disabled={currentPlan === 'professional'}
-                                             >
-                                                 {currentPlan === 'professional' ? 'باقتك الحالية' : 'اشترك الآن'}
-                                             </Button>
-                                         </div>
-                                     </div>
-                                </TabsContent>
-
-                                <TabsContent value="settings" className="p-8 m-0 focus-visible:outline-none">
+                                 <TabsContent value="settings" className="p-8 m-0 focus-visible:outline-none">
                                     <h2 className="text-2xl font-black text-gray-900 mb-8">إعدادات الشركة</h2>
                                     <form onSubmit={handleSaveSettings}>
                                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">

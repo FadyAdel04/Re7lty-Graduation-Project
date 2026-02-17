@@ -18,7 +18,7 @@ const TripAIChatWidget = () => {
           onClick={() => navigate("/trip-assistant")}
         >
           <Bot className="ml-2 h-5 w-5" />
-          <span className="hidden md:inline">مساعد الرحلات الذكي</span>
+          <span className="hidden md:inline">مساعدك الذكي</span>
         </Button>
       </div>
     </div>

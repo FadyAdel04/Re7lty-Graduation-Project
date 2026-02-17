@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { formatFacebookDate } from "@/lib/dateUtils";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { listTrips, toggleTripLove, toggleTripSave, toggleFollowUser, getUserFollowing } from "@/lib/api";
@@ -28,12 +29,7 @@ import { Badge } from "@/components/ui/badge";
 import { PassportBadge } from "@/components/profile/DigitalPassport";
 import { cn } from "@/lib/utils";
 
-function formatDate(iso: string): string {
-  try {
-    const date = new Date(iso);
-    return date.toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' });
-  } catch { return ''; }
-}
+
 
 const getTripIdentifier = (trip: any) => {
   if (!trip) return "";
@@ -159,7 +155,7 @@ const Timeline = () => {
             if (!uniqueUsers.has(trip.ownerId)) {
               uniqueUsers.set(trip.ownerId, {
                 userId: trip.ownerId, fullName: trip.author, imageUrl: trip.authorImage,
-                status: `نشر ${formatDate(trip.postedAt)}`, tripCount: 1, isFollowing: false,
+                status: `نشر ${formatFacebookDate(trip.postedAt)}`, tripCount: 1, isFollowing: false,
               });
             } else { uniqueUsers.get(trip.ownerId)!.tripCount += 1; }
           }
@@ -194,7 +190,7 @@ const Timeline = () => {
                if (!uniqueFollowing.has(trip.ownerId)) {
                   uniqueFollowing.set(trip.ownerId, {
                     userId: trip.ownerId, fullName: trip.author, imageUrl: trip.authorImage,
-                    status: `نشر ${formatDate(trip.postedAt)}`, tripCount: 1, isFollowing: true,
+                    status: `نشر ${formatFacebookDate(trip.postedAt)}`, tripCount: 1, isFollowing: true,
                   });
                } else { uniqueFollowing.get(trip.ownerId)!.tripCount++; }
              } 
@@ -203,7 +199,7 @@ const Timeline = () => {
                if (!uniqueSuggestions.has(trip.ownerId)) {
                    uniqueSuggestions.set(trip.ownerId, {
                       userId: trip.ownerId, fullName: trip.author, imageUrl: trip.authorImage,
-                      status: `نشر ${formatDate(trip.postedAt)}`, tripCount: 1, isFollowing: false,
+                      status: `نشر ${formatFacebookDate(trip.postedAt)}`, tripCount: 1, isFollowing: false,
                       points: trip.authorPoints || 200,
                    });
                } else { uniqueSuggestions.get(trip.ownerId)!.tripCount++; }
@@ -224,7 +220,7 @@ const Timeline = () => {
                if (!allFoundUsers.has(trip.ownerId)) {
                    allFoundUsers.set(trip.ownerId, {
                      userId: trip.ownerId, fullName: trip.author, imageUrl: trip.authorImage,
-                     status: `نشر ${formatDate(trip.postedAt)}`, tripCount: 1, isFollowing,
+                     status: `نشر ${formatFacebookDate(trip.postedAt)}`, tripCount: 1, isFollowing,
                      points: trip.authorPoints || 200,
                    });
                } else { allFoundUsers.get(trip.ownerId)!.tripCount++; }
@@ -442,7 +438,7 @@ const Timeline = () => {
                                         />
                                      </div>
                                     <div className="flex items-center gap-2 text-xs text-gray-500">
-                                       {formatDate(trip.postedAt)}
+                                       {formatFacebookDate(trip.postedAt)}
                                        <Clock className="w-3 h-3 text-orange-400" />
                                       <span className="text-gray-300">|</span>
                                       {trip.destination}

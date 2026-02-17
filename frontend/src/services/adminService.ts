@@ -378,5 +378,46 @@ export const adminService = {
             console.error('Error fetching reports data:', error);
             throw error;
         }
+    },
+
+    // Content Moderation Reports
+    async getContentReports(token?: string, status?: string) {
+        const response = await axios.get(`${API_URL}/api/content-reports`, {
+            params: { status },
+            headers: getAuthHeaders(token),
+            withCredentials: true
+        });
+        return response.data;
+    },
+
+    async updateReportStatus(id: string, status: string, adminNotes?: string, token?: string) {
+        const response = await axios.patch(
+            `${API_URL}/api/content-reports/${id}`,
+            { status, adminNotes },
+            {
+                headers: getAuthHeaders(token),
+                withCredentials: true
+            }
+        );
+        return response.data;
+    },
+
+    // Delete regular user trip (moderation)
+    async deleteUserTrip(id: string, token?: string) {
+        const response = await axios.delete(`${API_URL}/api/trips/${id}`, {
+            headers: getAuthHeaders(token),
+            withCredentials: true
+        });
+        return response.data;
+    },
+
+    // Booking & Commission Analytics (Admin)
+    async getAdminBookingAnalytics(token?: string, filters?: { companyId?: string, startDate?: string, endDate?: string }) {
+        const response = await axios.get(`${API_URL}/api/analytics/admin/bookings`, {
+            params: filters,
+            headers: getAuthHeaders(token),
+            withCredentials: true
+        });
+        return response.data;
     }
 };

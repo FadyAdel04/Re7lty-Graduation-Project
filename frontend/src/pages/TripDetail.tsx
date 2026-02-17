@@ -211,6 +211,8 @@ useEffect(() => {
           rating: apiTrip.rating || 4.5,
           image: apiTrip.image || '',
           author: apiTrip.author || 'مستخدم',
+          authorImage: apiTrip.authorImage,
+          authorBadge: apiTrip.authorBadge,
           authorFollowers: apiTrip.authorFollowers || 0,
           ownerId: apiTrip.ownerId,
           likes: apiTrip.likes || 0,
@@ -505,7 +507,7 @@ useEffect(() => {
 
       {/* 1. Immersive Hero Background */}
       <div className="relative h-[45vh] w-full overflow-hidden">
-         <img src={trip.image} className="w-full h-full object-cover" alt={trip.title} />
+         <img src={trip.image} className="w-full h-full object-cover" alt={trip.title} loading="eager" />
          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/20 to-transparent" />
          
          <div className="container mx-auto px-4 h-full flex flex-col justify-center relative z-10 pt-20">
@@ -532,32 +534,66 @@ useEffect(() => {
          </div>
       </div>
 
-      {/* 2. Floating Stats Island */}
+      {/* 2. Key Details & Author */}
       <div className="container mx-auto px-4 -mt-12 relative z-30">
          <Card className="border-0 shadow-2xl rounded-[2.5rem] bg-white overflow-hidden p-2">
-            <div className="grid grid-cols-2 md:grid-cols-4 items-center">
-               <div className="p-6 text-center border-l md:border-l border-gray-100 last:border-0">
-                  <span className="block text-gray-400 text-xs font-black uppercase mb-1">المدة الزمني</span>
-                  <span className="text-2xl font-black text-indigo-600 flex items-center justify-center gap-2"><Clock className="w-5 h-5" /> {trip.duration}</span>
+            <div className="grid grid-cols-2 md:grid-cols-5 items-center divide-x divide-x-reverse divide-gray-100">
+               
+               {/* Author Column */}
+               <div className="p-3 pl-6 flex items-center gap-4 h-24">
+                  <Link to={`/user/${trip.ownerId}`} className="shrink-0 relative group">
+                     <div className="w-14 h-14 rounded-2xl overflow-hidden shadow-sm ring-2 ring-indigo-50 group-hover:ring-indigo-100 transition-all bg-gray-100">
+                        <img 
+                          src={trip.authorImage || `https://api.dicebear.com/7.x/avataaars/svg?seed=${trip.ownerId || trip.author}`} 
+                          alt={trip.author}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        />
+                     </div>
+                     <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white shadow-sm" />
+                  </Link>
+                  <div className="flex flex-col min-w-0">
+                     <span className="text-[10px] text-gray-400 font-black uppercase mb-0.5">رحلة بواسطة</span>
+                     <Link to={`/user/${trip.ownerId}`} className="text-gray-900 font-black text-sm hover:text-indigo-600 transition-colors truncate block max-w-[120px]">
+                        {trip.author}
+                     </Link>
+                  </div>
                </div>
-               <div className="p-6 text-center border-l md:border-l border-gray-100 last:border-0">
-                  <span className="block text-gray-400 text-xs font-black uppercase mb-1">الميزانية</span>
-                  <span className="text-2xl font-black text-emerald-600 flex items-center justify-center gap-2"><DollarSign className="w-5 h-5" /> {trip.budget}</span>
+
+               {/* Duration */}
+               <div className="p-3 text-center h-24 flex flex-col justify-center">
+                  <span className="block text-gray-400 text-[10px] font-black uppercase mb-1">المدة</span>
+                  <span className="text-xl font-black text-indigo-600 flex items-center justify-center gap-1.5">
+                     <Clock className="w-5 h-5 opacity-80" /> {trip.duration}
+                  </span>
                </div>
-               <div className="p-6 text-center border-l md:border-l border-gray-100 last:border-0">
-                  <span className="block text-gray-400 text-xs font-black uppercase mb-1">التقييم العام</span>
-                  <span className="text-2xl font-black text-amber-500 flex items-center justify-center gap-2"><Star className="w-5 h-5 fill-current" /> {trip.rating}</span>
+
+               {/* Budget */}
+               <div className="p-3 text-center h-24 flex flex-col justify-center">
+                  <span className="block text-gray-400 text-[10px] font-black uppercase mb-1">الميزانية</span>
+                  <span className="text-xl font-black text-emerald-600 flex items-center justify-center gap-1.5">
+                     <DollarSign className="w-5 h-5 opacity-80" /> {trip.budget}
+                  </span>
                </div>
-               <div className="p-4">
-                  <Button onClick={handleShare} className="w-full h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black gap-2 shadow-lg shadow-indigo-100 transition-all">
-                     <Share2 className="w-5 h-5" /> شارك التجربة
+
+               {/* Rating */}
+               <div className="p-3 text-center h-24 flex flex-col justify-center">
+                  <span className="block text-gray-400 text-[10px] font-black uppercase mb-1">التقييم</span>
+                  <span className="text-xl font-black text-amber-500 flex items-center justify-center gap-1.5">
+                     <Star className="w-5 h-5 fill-current" /> {trip.rating}
+                  </span>
+               </div>
+
+               {/* Share Action */}
+               <div className="p-3 h-24 flex items-center justify-center">
+                  <Button onClick={handleShare} className="w-full h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black gap-2 shadow-lg shadow-indigo-100 transition-all text-sm">
+                     <Share2 className="w-5 h-5" /> مشاركة
                   </Button>
                </div>
             </div>
          </Card>
       </div>
 
-      {/* 3. Main Dashboard Layout */}
+      {/* 4. Main Dashboard Layout */}
       <div className="container mx-auto px-4 mt-12">
          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             
@@ -636,7 +672,7 @@ useEffect(() => {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {galleryImages.filter(img => img !== trip.image).map((imgUrl: string, idx: number) => (
                           <Card key={idx} className="border-0 shadow-lg rounded-[2.5rem] bg-white overflow-hidden aspect-square group">
-                            <img src={imgUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                            <img src={imgUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" loading="lazy" />
                           </Card>
                         ))}
                       </div>
@@ -699,7 +735,7 @@ useEffect(() => {
                               <Card key={idx} className="border-0 shadow-lg rounded-[2rem] bg-white overflow-hidden p-4">
                                  <div className="flex gap-4 items-center">
                                     {hotel.image ? (
-                                       <img src={hotel.image} className="w-24 h-24 rounded-2xl object-cover" />
+                                       <img src={hotel.image} className="w-24 h-24 rounded-2xl object-cover" loading="lazy" />
                                     ) : (
                                        <div className="w-24 h-24 rounded-2xl bg-gray-100 flex items-center justify-center shrink-0">
                                           <MapPin className="w-8 h-8 text-gray-300" />
@@ -727,7 +763,7 @@ useEffect(() => {
                               <Card key={idx} className="border-0 shadow-lg rounded-[2rem] bg-white overflow-hidden p-4">
                                  <div className="flex gap-4 items-center">
                                     {food.image ? (
-                                       <img src={food.image} className="w-24 h-24 rounded-2xl object-cover" />
+                                       <img src={food.image} className="w-24 h-24 rounded-2xl object-cover" loading="lazy" />
                                     ) : (
                                        <div className="w-24 h-24 rounded-2xl bg-gray-100 flex items-center justify-center shrink-0">
                                           <Utensils className="w-8 h-8 text-gray-300" />

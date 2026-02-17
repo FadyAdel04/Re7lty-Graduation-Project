@@ -10,6 +10,7 @@ import { addTripComment, toggleTripCommentLove, deleteTripComment, searchUsers }
 import { cn } from "@/lib/utils";
 import EmojiPicker, { Theme } from "emoji-picker-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { formatFacebookDate } from "@/lib/dateUtils";
 
 interface TripCommentsProps {
   tripId: string;
@@ -260,7 +261,7 @@ const TripComments = ({
                 <div className="flex items-baseline justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-black text-gray-900">{comment.author}</span>
-                    <span className="text-[10px] text-gray-400 font-medium">{comment.date}</span>
+                    <span className="text-[10px] text-gray-400 font-medium">{formatFacebookDate(comment.date)}</span>
                   </div>
                   
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

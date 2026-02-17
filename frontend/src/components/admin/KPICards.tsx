@@ -7,11 +7,12 @@ import {
   Users,
   CheckCircle2,
   Activity,
-  ArrowUpRight
+  ArrowUpRight,
+  DollarSign
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-
+ 
 interface KPICardsProps {
   stats: {
     totalUsers: number;
@@ -24,10 +25,12 @@ interface KPICardsProps {
     weeklyComments: number;
     totalCompanies: number;
     totalCorporateTrips: number;
+    totalCommission: number;
+    bookingCount: number;
   };
   loading?: boolean;
 }
-
+ 
 const KPICards: React.FC<KPICardsProps> = ({ stats, loading = false }) => {
   const cards = [
     {
@@ -37,6 +40,15 @@ const KPICards: React.FC<KPICardsProps> = ({ stats, loading = false }) => {
       color: 'indigo',
       change: `+${stats.weeklyActiveUsers}`,
       label: 'نشط أسبوعياً',
+    },
+    {
+      title: 'أرباح المنصة (5% لكل حجز)',
+      value: stats.totalCommission,
+      icon: DollarSign,
+      color: 'rose',
+      change: `${stats.bookingCount}`,
+      label: 'إجمالي التذاكر المباعة',
+      isCurrency: true
     },
     {
       title: 'الرحلات والمنشورات',
@@ -53,14 +65,6 @@ const KPICards: React.FC<KPICardsProps> = ({ stats, loading = false }) => {
       color: 'rose',
       change: `+${stats.weeklyReactions}`,
       label: 'تفاعل جديد',
-    },
-    {
-      title: 'التعليقات والمشاركات',
-      value: stats.totalComments,
-      icon: MessageCircle,
-      color: 'orange',
-      change: `+${stats.weeklyComments}`,
-      label: 'تعليق جديد',
     },
     {
       title: 'الشركات والشركاء',
@@ -104,25 +108,26 @@ const KPICards: React.FC<KPICardsProps> = ({ stats, loading = false }) => {
         >
            <Card className="border-0 shadow-xl shadow-gray-200/50 rounded-[2rem] overflow-hidden group hover:scale-[1.02] transition-all duration-500">
              <CardContent className="p-6">
-               <div className="flex items-center justify-between mb-4">
-                  <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg transition-transform group-hover:rotate-12", getColors(card.color))}>
-                     <card.icon className="w-6 h-6" />
-                  </div>
-                  <div className="h-8 px-2.5 rounded-full bg-gray-50 flex items-center gap-1 text-[10px] font-black text-gray-400">
-                     <ArrowUpRight className="w-3 h-3 text-emerald-500" />
-                     {card.label}
-                  </div>
-               </div>
-               
-               <h4 className="text-gray-400 font-black text-[10px] uppercase tracking-wider mb-1">{card.title}</h4>
-               <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-black text-gray-900 leading-none">
-                    {card.value.toLocaleString('ar-EG')}
-                  </span>
-                  <span className={cn("text-xs font-black", card.color === 'rose' ? 'text-rose-500' : 'text-emerald-500')}>
-                    {card.change}
-                  </span>
-               </div>
+                <div className="flex items-center justify-between mb-4">
+                   <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg transition-transform group-hover:rotate-12", getColors(card.color))}>
+                      <card.icon className="w-6 h-6" />
+                   </div>
+                   <div className="h-8 px-2.5 rounded-full bg-gray-50 flex items-center gap-1 text-[10px] font-black text-gray-400">
+                      <ArrowUpRight className="w-3 h-3 text-emerald-500" />
+                      {card.label}
+                   </div>
+                </div>
+                
+                <h4 className="text-gray-400 font-black text-[10px] uppercase tracking-wider mb-1">{card.title}</h4>
+                <div className="flex items-baseline gap-2">
+                   <span className="text-2xl font-black text-gray-900 leading-none">
+                     {card.value.toLocaleString('ar-EG')}
+                     {('isCurrency' in card) && <span className="text-xs mr-1 text-gray-400">ج.م</span>}
+                   </span>
+                   <span className={cn("text-xs font-black", card.color === 'rose' && !('isCurrency' in card) ? 'text-rose-500' : 'text-emerald-500')}>
+                     {card.change}
+                   </span>
+                </div>
                
                {/* Decorative Sparkle */}
                <div className="absolute top-[-20%] right-[-10%] w-24 h-24 bg-current opacity-[0.03] rounded-full blur-2xl pointer-events-none transition-all group-hover:scale-150" />

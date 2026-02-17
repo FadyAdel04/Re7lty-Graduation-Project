@@ -32,6 +32,8 @@ const BookingSchema = new Schema(
         rejectionReason: { type: String },
 
         totalPrice: { type: Number, required: true }, // Calculated: numberOfPeople * price
+        commissionAmount: { type: Number, required: true, default: 0 }, // 5% platform commission
+        netAmount: { type: Number, required: true, default: 0 }, // 95% company revenue
         paymentStatus: {
             type: String,
             enum: ["pending", "paid", "refunded", "partially_paid"],
@@ -45,6 +47,8 @@ const BookingSchema = new Schema(
         cancellationReason: { type: String },
         seatNumber: { type: String },
         selectedSeats: [{ type: String }],
+        couponId: { type: Schema.Types.ObjectId, ref: "Coupon" },
+        discountApplied: { type: Number, default: 0 },
     },
     { timestamps: true }
 );

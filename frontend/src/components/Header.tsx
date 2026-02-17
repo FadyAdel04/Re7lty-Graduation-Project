@@ -212,7 +212,7 @@ const Header = ({ onSearch }: HeaderProps) => {
               src={logo}
               alt="رحلتي"
               className={cn(
-                "w-auto transition-all duration-500 group-hover:scale-105 group-hover:-rotate-3 object-contain relative z-10",
+                "w-auto transition-all duration-500 group-hover:scale-125 group-hover:-rotate-3 object-contain relative z-10",
                 scrolled ? "h-12 md:h-16" : "h-14 md:h-20"
               )}
             />
@@ -228,7 +228,6 @@ const Header = ({ onSearch }: HeaderProps) => {
               <NavItem to="/timeline" icon={Compass} label="الرحلات" id="nav-timeline" />
               <NavItem to="/templates" icon={Briefcase} label="الشركات" id="nav-templates" />
               <NavItem to="/leaderboard" icon={Trophy} label="المتصدرين" id="nav-leaderboard" />
-              {isAdmin && <NavItem to="/admin/dashboard" icon={Shield} label="لوحة التحكم" id="nav-admin" />}
             </nav>
 
             {/* Premium Search Bar */}
@@ -326,7 +325,15 @@ const Header = ({ onSearch }: HeaderProps) => {
             <SignedIn>
               <NotificationBell />
               
-              {user?.publicMetadata?.role === 'company_owner' ? (
+              {isAdmin ? (
+                <Link to="/admin/dashboard" className="hidden sm:block" id="nav-admin-dashboard">
+                  <Button className="h-12 px-6 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black text-sm gap-2 shadow-lg shadow-rose-100 hover:shadow-rose-200 transition-all duration-300 relative overflow-hidden group">
+                    <span className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+                    <Shield className="h-5 w-5 relative z-10" />
+                    <span className="relative z-10">لوحة الإدارة</span>
+                  </Button>
+                </Link>
+              ) : user?.publicMetadata?.role === 'company_owner' ? (
                 <Link to="/company/dashboard" className="hidden sm:block" id="nav-company-dashboard">
                   <Button className="h-12 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm gap-2 shadow-lg shadow-indigo-100 hover:shadow-indigo-200 transition-all duration-300 relative overflow-hidden group">
                     <span className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
@@ -344,7 +351,7 @@ const Header = ({ onSearch }: HeaderProps) => {
                 </Link>
               )}
               
-              {user && user.publicMetadata?.role !== 'company_owner' && (
+              {user && user.publicMetadata?.role !== 'company_owner' && !isAdmin && (
                 <Link to={`/user/${user.id}`} className="hidden md:flex items-center gap-3 pl-1 pr-4 py-1 rounded-2xl bg-gray-50/50 border border-gray-100/50 hover:bg-indigo-50 transition-all group">
                   <div className="text-right">
                     <p className="text-[10px] font-black text-indigo-500 leading-none mb-1">مرحباً بك</p>
@@ -416,7 +423,7 @@ const Header = ({ onSearch }: HeaderProps) => {
                   <div className="p-8 border-t border-gray-100">
                     <SignedIn>
                        <div className="px-4 py-2 mb-2 border-b border-gray-50">
-                          {user && user.publicMetadata?.role !== 'company_owner' && (
+                          {user && user.publicMetadata?.role !== 'company_owner' && !isAdmin && (
                             <Link 
                               to={`/user/${user.id}`} 
                               className="flex items-center gap-4 p-4 rounded-2xl text-indigo-600 font-black bg-indigo-50 shadow-sm"
@@ -435,7 +442,14 @@ const Header = ({ onSearch }: HeaderProps) => {
                           )}
                        </div>
                        
-                       {user?.publicMetadata?.role === 'company_owner' ? (
+                       {isAdmin ? (
+                        <Link to="/admin/dashboard">
+                          <Button className="w-full h-15 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black flex items-center justify-center gap-3 shadow-xl shadow-rose-100 transition-all active:scale-95">
+                            <Shield className="h-5 w-5" />
+                            لوحة الإدارة
+                          </Button>
+                        </Link>
+                       ) : user?.publicMetadata?.role === 'company_owner' ? (
                          <Link to="/company/dashboard">
                           <Button className="w-full h-15 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black flex items-center justify-center gap-3 shadow-xl shadow-indigo-100 transition-all active:scale-95">
                             <Shield className="h-5 w-5" />

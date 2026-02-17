@@ -14,7 +14,8 @@ import {
   X,
   PlusCircle,
   FileCheck,
-  LogOut
+  LogOut,
+  ShieldAlert
 } from 'lucide-react';
 import { useClerk } from '@clerk/clerk-react';
 import { cn } from '@/lib/utils';
@@ -83,6 +84,13 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
       icon: FileCheck,
       color: 'text-pink-600',
       bgColor: 'bg-pink-50/50'
+    },
+    {
+      name: 'إدارة المحتوى',
+      path: '/admin/moderation',
+      icon: ShieldAlert,
+      color: 'text-red-600',
+      bgColor: 'bg-red-50/50'
     },
     {
       name: 'البلاغات و التعليقات',

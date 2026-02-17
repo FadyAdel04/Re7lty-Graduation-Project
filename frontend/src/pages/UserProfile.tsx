@@ -375,13 +375,27 @@ const UserProfile = () => {
 
     try {
       setIsUpdatingField(prev => ({ ...prev, [fieldName]: true }));
-      const token = await getToken();
       
       const updateData: any = {};
-      if (fieldName === 'fullName') updateData.fullName = value;
-      if (fieldName === 'bio') updateData.bio = value;
-      if (fieldName === 'location') updateData.location = value;
+      
+      // 1. Update Clerk First (Only for supported fields like name)
+      // Note: bio/location are stored in publicMetadata check is read-only on frontend
+      // We rely on the backend to update those in Clerk
+      if (fieldName === 'fullName') {
+        const parts = value.split(' ');
+        const firstName = parts[0];
+        const lastName = parts.slice(1).join(' ');
+        await clerkUser.update({
+          firstName,
+          lastName,
+        });
+        updateData.fullName = value;
+      } else {
+        updateData[fieldName] = value;
+      }
 
+      // 2. Sync with Backend (MongoDB)
+      const token = await getToken();
       await updateUserProfile(updateData, token || undefined);
 
       toast({
@@ -414,8 +428,22 @@ const UserProfile = () => {
   };
 
   const handleProfileImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    let file = e.target.files?.[0];
     if (!file || !clerkUser || !isOwnProfile) return;
+
+    // Ensure valid image mime type for Clerk
+    // Sometimes browsers set empty type or octet-stream for images
+    if (!file.type || !file.type.startsWith('image/')) {
+       console.log('Original file type:', file.type);
+       const ext = file.name.split('.').pop()?.toLowerCase();
+       let mimeType = 'image/jpeg';
+       if (ext === 'png') mimeType = 'image/png';
+       if (ext === 'webp') mimeType = 'image/webp';
+       if (ext === 'gif') mimeType = 'image/gif';
+       
+       // Create new file with correct type
+       file = new File([file], file.name, { type: mimeType });
+    }
 
     try {
       // Show loading state
@@ -424,28 +452,24 @@ const UserProfile = () => {
         description: "يرجى الانتظار",
       });
 
-      // Convert file to base64
-      const reader = new FileReader();
-      const base64Image = await new Promise<string>((resolve, reject) => {
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
+      // 1. Update Clerk Profile Image
+      await clerkUser.setProfileImage({ file });
+      await clerkUser.reload(); // Get fresh data
+      const newImageUrl = clerkUser.imageUrl;
 
-      // Update local state immediately for preview
-      setProfileImage(base64Image);
+      // Update local state immediately
+      setProfileImage(newImageUrl);
 
-      // Save to database
+      // 2. Sync with Backend (MongoDB)
       const token = await getToken();
       const updatedUser = await updateUserProfile(
         {
-          imageUrl: base64Image,
+          imageUrl: newImageUrl,
         },
         token || undefined
       );
 
-      if (updatedUser && updatedUser.imageUrl) {
-        setProfileImage(updatedUser.imageUrl);
+      if (updatedUser) {
         // Notify other components with the updated user data
         window.dispatchEvent(new CustomEvent('userProfileUpdated', { detail: updatedUser }));
       }

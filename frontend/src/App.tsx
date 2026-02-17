@@ -37,6 +37,7 @@ import TripsManagementPage from "./pages/admin/TripsManagementPage";
 import AdminUsers from "./pages/admin/AdminUsers";
 import ReportsPage from "./pages/admin/ReportsPage";
 import ComplaintsPage from "./pages/admin/ComplaintsPage";
+import AdminContentModeration from "./pages/admin/AdminContentModeration";
 import { NotificationProvider } from "./contexts/NotificationContext";
 
 import CompanyDashboard from "./pages/company/CompanyDashboard";
@@ -171,6 +172,7 @@ const AppContent = () => {
         <Route path="/admin/trips" element={<TripsManagementPage />} />
         <Route path="/admin/users" element={<AdminUsers />} />
         <Route path="/admin/reports" element={<ReportsPage />} />
+        <Route path="/admin/moderation" element={<AdminContentModeration />} />
         <Route path="/admin/complaints" element={<ComplaintsPage />} />
         
         {/* Company Public Details Page */}
@@ -185,8 +187,8 @@ const AppContent = () => {
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>
-      {/* Global AI Chat Widget - Hide on admin pages and onboarding */}
-      {!isAdminRoute && !isOnboardingRoute && <TripAIChatWidget />}
+      {/* Global AI Chat Widget - Hide on admin pages, onboarding, and the AI chat page itself */}
+      {!isAdminRoute && !isOnboardingRoute && location.pathname !== '/trip-assistant' && <TripAIChatWidget />}
       {/* Tour Guide for new users */}
       {!isAdminRoute && !isOnboardingRoute}
       {/* Global Upload Progress Bar */}

@@ -16,23 +16,25 @@ import {
   Sparkles,
   Clock,
   Zap,
+  ArrowUpRight,
 } from "lucide-react";
 import { getTripPlan, type TripPlan } from "@/lib/travel-advisor-api";
 import { useToast } from "@/hooks/use-toast";
-import { createTrip } from "@/lib/api";
+import { createTrip, listTrips } from "@/lib/api";
 import { useAuth } from "@clerk/clerk-react";
 import { getCurrentSeason } from "@/lib/season-utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { sendMessageToAI, type AIResponse } from "@/lib/openrouter-client";
+import { sendMessageToAI, getCompletion, type AIResponse } from "@/lib/openrouter-client";
 
 type Message = {
   id: number;
   type: 'ai' | 'user';
   text: string;
   timestamp: Date;
+  suggestedPlatformTrips?: { id: string; title: string; matchReason: string; image?: string; price?: string }[];
 };
 
 type ExtractedData = {
@@ -48,7 +50,7 @@ const TripAIChat = () => {
     {
       id: 1,
       type: 'ai',
-      text: 'مرحباً! أنا TripAI، مساعدك الشخصي لتخطيط الرحلات 🌍✨ سأساعدك في تصميم رحلة أحلامك. أخبرني، إلى أين تريد السفر؟',
+      text: 'مرحباً بك! أنا TripAI، مستشارك الشخصي لتخطيط الرحلات. 🌍✨ يسعدني مساعدتك في تصميم رحلة استثنائية. أخبرني، ما هي وجهتك القادمة؟',
       timestamp: new Date(),
     },
   ]);
@@ -71,6 +73,22 @@ const TripAIChat = () => {
   const [selectedHotels, setSelectedHotels] = useState<Set<string>>(new Set());
   const [isCreatingTrip, setIsCreatingTrip] = useState(false);
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
+  const [availableTrips, setAvailableTrips] = useState<any[]>([]);
+  const [suggestion, setSuggestion] = useState<string>('');
+
+  useEffect(() => {
+    const fetchTrips = async () => {
+        try {
+            const res = await listTrips({ limit: 50, sort: 'likes' });
+            if (res.items) {
+                setAvailableTrips(res.items);
+            }
+        } catch (e) {
+            console.error("Failed to fetch trips for AI", e);
+        }
+    };
+    fetchTrips();
+  }, []);
 
   const { toast } = useToast();
   const { isSignedIn, getToken } = useAuth();
@@ -79,18 +97,43 @@ const TripAIChat = () => {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages]);
+    const timer = setTimeout(() => {
+      if (scrollRef.current) {
+        const viewport = scrollRef.current.closest('[data-radix-scroll-area-viewport]');
+        if (viewport) {
+          viewport.scrollTo({
+            top: viewport.scrollHeight,
+            behavior: "smooth"
+          });
+        }
+      }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [messages, isLoading, isGeneratingPlan]);
 
-  const addMessage = (type: 'ai' | 'user', text: string) => {
+  useEffect(() => {
+    const fetchSuggestion = async () => {
+      if (userInput.trim().length > 5 && !isLoading) {
+        const text = await getCompletion(userInput, conversationHistory);
+        setSuggestion(text);
+      } else {
+        setSuggestion('');
+      }
+    };
+
+    const debounce = setTimeout(fetchSuggestion, 800);
+    return () => clearTimeout(debounce);
+  }, [userInput, conversationHistory, isLoading]);
+
+  const addMessage = (type: 'ai' | 'user', text: string, suggestions?: { id: string; title: string; matchReason: string; image?: string; price?: string }[]) => {
     setMessages(prev => [...prev, {
       id: prev.length + 1,
       type,
       text,
       timestamp: new Date(),
+      suggestedPlatformTrips: suggestions
     }]);
+    setSuggestion(''); // Clear suggestion when message is added
   };
 
   const handleSendMessage = async () => {
@@ -112,10 +155,13 @@ const TripAIChat = () => {
         ...(contextMessage ? [{ role: 'system', content: contextMessage }] : []),
       ];
 
-      const response: AIResponse = await sendMessageToAI(userMessage, updatedHistory, extractedData);
+
+
+      const response: AIResponse = await sendMessageToAI(userMessage, updatedHistory, extractedData, availableTrips);
+
 
       // Add AI response to messages
-      addMessage('ai', response.reply);
+      addMessage('ai', response.reply, response.suggestedPlatformTrips);
 
       // Update conversation history
       setConversationHistory([
@@ -265,7 +311,12 @@ const TripAIChat = () => {
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Tab' && suggestion) {
+      e.preventDefault();
+      setUserInput(prev => prev + (suggestion.startsWith(' ') ? '' : ' ') + suggestion);
+      setSuggestion('');
+    }
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
@@ -491,7 +542,7 @@ const TripAIChat = () => {
                 </div>
              </div>
 
-             <ScrollArea className="flex-1 p-6" ref={scrollRef}>
+             <ScrollArea className="flex-1 p-6">
                 <div className="space-y-6">
                    <AnimatePresence>
                       {messages.map((m) => (
@@ -512,6 +563,46 @@ const TripAIChat = () => {
                            )}>
                               {m.text}
                            </div>
+
+                           {/* Suggested Platform Trips */}
+                           {m.suggestedPlatformTrips && m.suggestedPlatformTrips.length > 0 && (
+                               <div className="mt-3 space-y-2 w-full">
+                                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1 px-1">رحلات مقترحة من المنصة</p>
+                                   {m.suggestedPlatformTrips.map(trip => (
+                                       <div 
+                                           key={trip.id} 
+                                           className="bg-white border border-indigo-100 rounded-2xl overflow-hidden shadow-sm hover:border-indigo-300 transition-all cursor-pointer group flex flex-col"
+                                           onClick={() => window.open(`/trips/${trip.id}`, '_blank')}
+                                       >
+                                           {trip.image && (
+                                               <div className="w-full h-24 overflow-hidden relative">
+                                                   <img src={trip.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                                   {trip.price && (
+                                                       <div className="absolute top-2 right-2 bg-indigo-600 text-white text-[9px] font-black px-2 py-1 rounded-lg shadow-lg">
+                                                           {trip.price}
+                                                       </div>
+                                                   )}
+                                               </div>
+                                           )}
+                                           <div className="p-3">
+                                               <div className="flex justify-between items-start gap-2">
+                                                   <h4 className="text-xs font-black text-indigo-700 group-hover:text-indigo-600 line-clamp-1">{trip.title}</h4>
+                                                   <ArrowUpRight className="w-3 h-3 text-gray-400 group-hover:text-indigo-500 shrink-0" />
+                                               </div>
+                                                <p className="text-[10px] text-gray-500 mt-1 line-clamp-2 leading-relaxed">{trip.matchReason}</p>
+                                                {!trip.image && trip.price && (
+                                                    <div className="mt-2 flex items-center gap-2">
+                                                        <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">
+                                                            السعر: {trip.price}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                           </div>
+                                       </div>
+                                   ))}
+                               </div>
+                           )}
+
                            <span className="text-[8px] font-black text-gray-300 uppercase mt-1.5 tracking-tighter">
                               {m.timestamp.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
                            </span>
@@ -524,25 +615,60 @@ const TripAIChat = () => {
                          </div>
                       )}
                    </AnimatePresence>
+                   <div ref={scrollRef} />
                 </div>
              </ScrollArea>
 
              {/* Message Input */}
              <div className="p-6 bg-gray-50/50 border-t border-gray-100">
+                {/* Suggested Messages */}
+                {!userInput && !isLoading && !isGeneratingPlan && (
+                  <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide no-scrollbar">
+                    {[
+                      { text: `ما هي أفضل الوجهات السياحية في فصل ${getCurrentSeason()}؟`, icon: <Star className="w-3 h-3" /> },
+                      { text: "أريد تخطيط رحلة استرخاء في دهب", icon: <Zap className="w-3 h-3" /> },
+                      { text: "اقترح لي معالم تاريخية في الأقصر", icon: <Camera className="w-3 h-3" /> },
+                    ].map((s, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => {
+                           setUserInput(s.text);
+                           inputRef.current?.focus();
+                        }}
+                        className="shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-indigo-100 text-[10px] font-black text-indigo-600 hover:bg-indigo-50 hover:border-indigo-300 transition-all shadow-sm"
+                      >
+                        {s.icon}
+                        {s.text}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
                 <div className="flex gap-3">
-                   <Input
-                     ref={inputRef}
-                     value={userInput}
-                     onChange={(e) => setUserInput(e.target.value)}
-                     onKeyPress={handleKeyPress}
-                     placeholder="اكتب رسالتك هنا..."
-                     className="flex-1 h-12 rounded-2xl border-gray-200 focus:border-indigo-400 focus:ring-indigo-400 font-bold"
-                     disabled={isLoading || isGeneratingPlan}
-                   />
+                   <div className="relative flex-1 group">
+                      <Input
+                        ref={inputRef}
+                        value={userInput}
+                        onChange={(e) => setUserInput(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        placeholder="اكتب رسالتك هنا..."
+                        className="h-12 rounded-2xl border-gray-200 focus:border-indigo-400 focus:ring-indigo-400 font-bold bg-white relative z-10"
+                        disabled={isLoading || isGeneratingPlan}
+                      />
+                      {suggestion && userInput && (
+                        <div className="absolute inset-0 h-12 flex items-center px-3 pointer-events-none text-gray-400 z-20 select-none">
+                          <span className="invisible whitespace-pre text-sm font-bold">{userInput}</span>
+                          <span className="whitespace-pre text-sm font-bold opacity-50">{suggestion.startsWith(' ') || userInput.endsWith(' ') ? '' : ' '}{suggestion}</span>
+                          <div className="mr-auto flex items-center gap-1.5 opacity-60">
+                             <span className="text-[9px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded border border-gray-200 font-black uppercase tracking-tighter">Tab</span>
+                          </div>
+                        </div>
+                      )}
+                   </div>
                    <Button
                      onClick={handleSendMessage}
                      disabled={!userInput.trim() || isLoading || isGeneratingPlan}
-                     className="h-12 w-12 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-100 disabled:opacity-50"
+                     className="h-12 w-12 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-100 disabled:opacity-50 transition-all shrink-0"
                    >
                      <Send className="h-5 w-5" />
                    </Button>

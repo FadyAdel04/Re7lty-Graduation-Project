@@ -19,6 +19,7 @@ import contentReportsRouter from "./routes/contentReports";
 import adminCommentsRouter from "./routes/adminComments";
 import bookingsRouter from "./routes/bookings";
 import chatRouter from "./routes/chat";
+import couponsRouter from "./routes/coupons";
 import { connectToDatabase } from "./db";
 import mongoose from "mongoose";
 
@@ -819,6 +820,7 @@ export function createApp() {
     // Bookings routes
     app.use("/api/bookings", bookingsRouter);
     app.use("/api/chat", chatRouter);
+    app.use("/api/coupons", couponsRouter);
 
     // Admin Comments Integration (part of complaints section)
     app.use("/api/admin/complaints/comments", adminCommentsRouter);

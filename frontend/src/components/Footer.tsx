@@ -45,6 +45,8 @@ const Footer = () => {
                 </a>
               ))}
             </div>
+
+
           </div>
 
           {/* Navigation Links (2 Columns) */}
@@ -115,6 +117,27 @@ const Footer = () => {
                   +20 123 456 7890 <br />
                   9 ص - 6 م (الأحد-الخميس)
                 </p>
+              </div>
+            </div>
+
+            {/* App Badges */}
+            <div className="pt-6 space-y-3">
+              <p className="text-gray-400 text-xs font-bold">قريباً على الهواتف الذكية</p>
+              <div className="flex flex-row flex-wrap gap-3">
+                <div className="opacity-40 grayscale cursor-not-allowed select-none">
+                  <img 
+                    src="https://upload.wikimedia.org/wikipedia/commons/3/3c/Download_on_the_App_Store_Badge.svg" 
+                    alt="App Store" 
+                    className="h-10 w-auto"
+                  />
+                </div>
+                <div className="opacity-40 grayscale cursor-not-allowed select-none">
+                  <img 
+                    src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg" 
+                    alt="Google Play" 
+                    className="h-10 w-auto"
+                  />
+                </div>
               </div>
             </div>
           </div>
