@@ -7,7 +7,14 @@ const ItineraryDaySchema = new Schema({
     activities: [{ type: String }]
 }, { _id: false });
 
+const TransportationUnitSchema = new Schema({
+    type: { type: String, enum: ['bus-48', 'minibus-28', 'van-14', 'bus-50'], required: true },
+    capacity: { type: Number, required: true },
+    count: { type: Number, default: 1 }
+}, { _id: false });
+
 const SeatBookingSchema = new Schema({
+    busIndex: { type: Number, default: 0 }, // 0-indexed reference to transportations array
     seatNumber: { type: String, required: true },
     passengerName: { type: String, required: true },
     bookingId: { type: Schema.Types.ObjectId, ref: 'Booking' },
@@ -53,7 +60,8 @@ const CorporateTripSchema = new Schema({
     views: { type: Number, default: 0 },
     transportationImages: [{ type: String }], // Array of transportation image URLs
     availableSeats: { type: Number, default: 0 },
-    transportationType: { type: String, enum: ['bus-48', 'minibus-28', 'van-14'], default: 'bus-48' },
+    transportationType: { type: String, enum: ['bus-48', 'minibus-28', 'van-14', 'bus-50'], default: 'bus-48' },
+    transportations: [TransportationUnitSchema],
     seatBookings: [SeatBookingSchema],
     createdBy: { type: String }, // Clerk ID of admin who created
 }, { timestamps: true });

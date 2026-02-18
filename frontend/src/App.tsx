@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Index from "./pages/Index";
 import TripDetail from "./pages/TripDetail";
 import CreateTrip from "./pages/CreateTrip";
@@ -13,6 +13,8 @@ import Templates from "./pages/Templates";
 import Auth from "./pages/Auth";
 import SignUpPage from "./pages/SignUp";
 import UserProfile from "./pages/UserProfile";
+import DirectMessages from "./pages/DirectMessages";
+import TripGroupMessages from "./pages/TripGroupMessages";
 
 import NotFound from "./pages/NotFound";
 import Timeline from "./pages/Timeline";
@@ -68,13 +70,24 @@ const AppContent = () => {
   const { user, isLoaded, isSignedIn } = useUser();
   const { isLoading, startLoading, stopLoading } = useLoading();
 
+  const prevPathRef = useRef(location.pathname);
+
   useEffect(() => {
-    // Show premium loader on every route change for a full cycle (3.6s) to ensure all steps are seen
-    startLoading();
-    const timer = setTimeout(() => {
-      stopLoading();
-    }, 3600); // 3.6s matches the full animation cycle (1.2s * 3 stages)
-    return () => clearTimeout(timer);
+    const isMessagingRoute = (path: string) => path === '/messages' || path === '/trip-groups';
+    
+    // Don't show loader when navigating BETWEEN /messages and /trip-groups
+    const isTransitioningBetweenMessaging = isMessagingRoute(prevPathRef.current) && isMessagingRoute(location.pathname);
+
+    if (!isTransitioningBetweenMessaging) {
+      startLoading();
+      const timer = setTimeout(() => {
+        stopLoading();
+      }, 3600);
+      prevPathRef.current = location.pathname;
+      return () => clearTimeout(timer);
+    }
+    
+    prevPathRef.current = location.pathname;
   }, [location.pathname]);
 
   const isAdminRoute = location.pathname.startsWith('/admin');
@@ -124,7 +137,7 @@ const AppContent = () => {
         {/* Public Routes */}
         <Route path="/" element={<Index />} />
         <Route path="/timeline" element={<Timeline />} />
-        <Route path="/templates" element={<Templates />} />
+        <Route path="/agency" element={<Templates />} />
         <Route path="/leaderboard" element={<Leaderboard />} />
         <Route path="/discover" element={<DiscoverPage />} />
         <Route path="/auth" element={<Auth />} />
@@ -142,6 +155,8 @@ const AppContent = () => {
         {/* User profile routes - all profiles use /user/:id format */}
         <Route path="/user/:id" element={<UserProfile />} />
         <Route path="/user/:id/network" element={<UserConnectionsPage />} />
+        <Route path="/messages" element={<ProtectedRoute><DirectMessages /></ProtectedRoute>} />
+        <Route path="/trip-groups" element={<ProtectedRoute><TripGroupMessages /></ProtectedRoute>} />
         
         {/* Protected Routes */}
         <Route

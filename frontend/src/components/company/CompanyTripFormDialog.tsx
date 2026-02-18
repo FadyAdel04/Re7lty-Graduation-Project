@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 // import { adminService } from "@/services/adminService"; // Replaced
 import { corporateTripsService } from "@/services/corporateTripsService"; // New service
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -84,6 +85,30 @@ const CompanyTripFormDialog = ({ open, onOpenChange, onSuccess, initialData }: C
     seatBookings: []
   });
 
+  const calculateTransportations = (totalSeats: number) => {
+    let remaining = totalSeats;
+    const units: { type: string; capacity: number; count: number }[] = [];
+    
+    // Fill with 48-seat buses
+    const bigBuses = Math.floor(remaining / 48);
+    if (bigBuses > 0) {
+      units.push({ type: 'bus-48', capacity: 48, count: bigBuses });
+      remaining %= 48;
+    }
+    
+    if (remaining > 0) {
+      if (remaining > 28) {
+        units.push({ type: 'bus-48', capacity: 48, count: 1 });
+      } else if (remaining > 14) {
+        units.push({ type: 'minibus-28', capacity: 28, count: 1 });
+      } else {
+        units.push({ type: 'van-14', capacity: 14, count: 1 });
+      }
+    }
+    
+    return units;
+  };
+
   useEffect(() => {
     if (open) {
       if (initialData) {
@@ -96,45 +121,64 @@ const CompanyTripFormDialog = ({ open, onOpenChange, onSuccess, initialData }: C
           season: initialData?.season || "winter",
           difficulty: initialData?.difficulty || "سهل",
           transportationType: initialData?.transportationType || "bus-48",
+          transportations: initialData?.transportations || calculateTransportations(parseInt(initialData.availableSeats) || 0),
           seatBookings: initialData?.seatBookings || [],
           availableSeats: initialData.availableSeats || "",
           transportationImages: initialData.transportationImages?.length > 0 ? initialData.transportationImages : ["", ""],
           isActive: initialData.isActive !== undefined ? initialData.isActive : true,
         });
       } else {
-        setFormData({
-          title: "",
-          destination: "",
-          duration: "",
-          price: "",
-          season: "winter",
-          rating: 4.5,
-          shortDescription: "",
-          fullDescription: "",
-          difficulty: "متوسط",
-          maxGroupSize: "",
-          meetingLocation: "",
-          startDate: "",
-          endDate: "",
-          images: ["", ""],
-          itinerary: [{ day: 1, title: "", description: "" }],
-          includedServices: [""],
-          excludedServices: [""],
-          transportationImages: ["", ""],
-          availableSeats: "",
-          isActive: true,
-          bookingMethod: {
-            whatsapp: true,
-            phone: true,
-            website: false
-          },
-          transportationType: "bus-48",
-          seatBookings: []
-        });
+        // Try to load draft from local storage
+        const savedDraft = localStorage.getItem("companyTripDraft");
+        if (savedDraft) {
+          try {
+            setFormData(JSON.parse(savedDraft));
+          } catch (e) {
+            console.error("Failed to parse trip draft", e);
+          }
+        } else {
+          setFormData({
+            title: "",
+            destination: "",
+            duration: "",
+            price: "",
+            season: "winter",
+            rating: 4.5,
+            shortDescription: "",
+            fullDescription: "",
+            difficulty: "متوسط",
+            maxGroupSize: "",
+            meetingLocation: "",
+            startDate: "",
+            endDate: "",
+            images: ["", ""],
+            itinerary: [{ day: 1, title: "", description: "" }],
+            includedServices: [""],
+            excludedServices: [""],
+            transportationImages: ["", ""],
+            availableSeats: "",
+            isActive: true,
+            bookingMethod: {
+              whatsapp: true,
+              phone: true,
+              website: false
+            },
+            transportationType: "bus-48",
+            transportations: [],
+            seatBookings: []
+          });
+        }
       }
       setActiveTab("basic");
     }
   }, [initialData, open]);
+
+  // Save draft to localStorage only for new trips
+  useEffect(() => {
+    if (open && !initialData) {
+      localStorage.setItem("companyTripDraft", JSON.stringify(formData));
+    }
+  }, [formData, open, initialData]);
 
   const handleArrayChange = (field: string, index: number, value: string) => {
     const newArray = [...formData[field]];
@@ -191,6 +235,7 @@ const CompanyTripFormDialog = ({ open, onOpenChange, onSuccess, initialData }: C
       } else {
         await corporateTripsService.createMyTrip(processedData, token || undefined);
         toast({ title: "تم نشر الرحلة بنجاح", description: "ستظهر رحلتك الآن في صفحة الشركات" });
+        localStorage.removeItem("companyTripDraft"); // Clear draft after successful creation
       }
 
       onSuccess();
@@ -214,7 +259,7 @@ const CompanyTripFormDialog = ({ open, onOpenChange, onSuccess, initialData }: C
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 overflow-hidden border-0 rounded-[2.5rem] shadow-2xl" dir="rtl">
+      <DialogContent className="max-w-[1400px] w-[95vw] h-[95vh] flex flex-col p-0 overflow-hidden border-0 rounded-[2.5rem] shadow-2xl" dir="rtl">
         
         <DialogHeader className="px-10 pt-10 pb-6 border-b border-gray-100 bg-white shrink-0">
            <div className="flex items-center justify-between">
@@ -232,7 +277,7 @@ const CompanyTripFormDialog = ({ open, onOpenChange, onSuccess, initialData }: C
            </div>
 
            <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-8">
-              <TabsList className="bg-gray-50 h-14 p-1.5 rounded-2xl gap-2 w-full max-w-2xl overflow-x-auto scrollbar-none">
+              <TabsList className="bg-gray-50 h-14 p-1.5 rounded-2xl gap-2 w-full max-w-4xl overflow-x-auto scrollbar-none">
                  {tabItems.map((tab) => (
                     <TabsTrigger 
                        key={tab.id} 
@@ -248,7 +293,7 @@ const CompanyTripFormDialog = ({ open, onOpenChange, onSuccess, initialData }: C
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden bg-[#FDFDFF]">
-           <ScrollArea className="flex-1 px-10 py-10">
+           <ScrollArea className="flex-1 px-12 py-12">
               <AnimatePresence mode="wait">
                  <motion.div
                     key={activeTab}
@@ -395,43 +440,75 @@ const CompanyTripFormDialog = ({ open, onOpenChange, onSuccess, initialData }: C
                                       onChange={(e) => setFormData({...formData, rating: parseFloat(e.target.value) || 4.5})}
                                    />
                                 </div>
-                                <div className="space-y-2">
-                                   <Label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">المقاعد المتاحة</Label>
-                                    <Input
-                                        type="number"
-                                        className="h-14 rounded-2xl bg-white border-gray-100 shadow-sm font-bold text-gray-900"
-                                        value={formData.availableSeats}
-                                        onChange={(e) => {
-                                            const val = parseInt(e.target.value) || 0;
-                                            const suggested = val <= 14 ? 'van-14' : val <= 28 ? 'minibus-28' : 'bus-48';
-                                            setFormData({
-                                                ...formData, 
-                                                availableSeats: val,
-                                                transportationType: suggested
-                                            });
-                                        }}
-                                        placeholder="مثال: 15"
-                                    />
-                                </div>
-                                <div className="space-y-4">
-                                    <Label className="text-sm font-black text-gray-900 mr-2 flex items-center gap-2">
-                                        <Bus className="w-4 h-4 text-indigo-600" />
-                                        نوع وسيلة النقل
-                                    </Label>
-                                    <Select 
-                                        value={formData.transportationType} 
-                                        onValueChange={(val: any) => setFormData({...formData, transportationType: val})}
-                                    >
-                                        <SelectTrigger className="h-14 rounded-2xl bg-white border-gray-100 shadow-sm font-bold">
-                                            <SelectValue placeholder="اختر نوع الحافلة" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="bus-48">حافلة فاخرة (48 مقعد)</SelectItem>
-                                            <SelectItem value="minibus-28">ميني باص (28 مقعد)</SelectItem>
-                                            <SelectItem value="van-14">ميكروباص (14 مقعد)</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
+                                 <div className="space-y-2">
+                                    <Label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">المقاعد المتاحة</Label>
+                                     <Input
+                                         type="number"
+                                         className="h-14 rounded-2xl bg-white border-gray-100 shadow-sm font-bold text-gray-900"
+                                         value={formData.availableSeats}
+                                         onChange={(e) => {
+                                             const val = parseInt(e.target.value) || 0;
+                                             const transportUnits = calculateTransportations(val);
+                                             const suggested = transportUnits.length > 0 ? transportUnits[0].type : 'bus-48';
+                                             
+                                             setFormData({
+                                                 ...formData, 
+                                                 availableSeats: val,
+                                                 transportationType: suggested,
+                                                 transportations: transportUnits
+                                             });
+                                         }}
+                                         placeholder="مثال: 15"
+                                     />
+                                 </div>
+                                 <div className="space-y-4">
+                                     <Label className="text-sm font-black text-gray-900 mr-2 flex items-center gap-2">
+                                         <Bus className="w-4 h-4 text-indigo-600" />
+                                         وسائل النقل المخصصة
+                                     </Label>
+                                     
+                                     {formData.transportations && formData.transportations.length > 0 ? (
+                                         <div className="flex flex-wrap gap-2 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                                             {formData.transportations.map((unit: any, idx: number) => (
+                                                 <Badge key={idx} variant="secondary" className="px-3 py-1.5 rounded-xl bg-white border-gray-200 text-indigo-700 font-black text-xs flex items-center gap-2">
+                                                     <div className="w-2 h-2 rounded-full bg-indigo-500" />
+                                                     {unit.count}x {
+                                                         unit.type === 'bus-48' ? 'حافلة (48 مقعد)' : 
+                                                         unit.type === 'minibus-28' ? 'ميني باص (28 مقعد)' : 
+                                                         'ميكروباص (14 مقعد)'
+                                                     }
+                                                 </Badge>
+                                             ))}
+                                         </div>
+                                     ) : (
+                                         <Select 
+                                             value={formData.transportationType} 
+                                             onValueChange={(val: any) => {
+                                                 const cap = val === 'bus-48' ? 48 : val === 'minibus-28' ? 28 : 14;
+                                                 setFormData({
+                                                     ...formData, 
+                                                     transportationType: val,
+                                                     transportations: [{ type: val, capacity: cap, count: 1 }]
+                                                 });
+                                             }}
+                                         >
+                                             <SelectTrigger className="h-14 rounded-2xl bg-white border-gray-100 shadow-sm font-bold">
+                                                 <SelectValue placeholder="اختر نوع الحافلة" />
+                                             </SelectTrigger>
+                                             <SelectContent>
+                                                 <SelectItem value="bus-48">حافلة فاخرة (48 مقعد)</SelectItem>
+                                                 <SelectItem value="minibus-28">ميني باص (28 مقعد)</SelectItem>
+                                                 <SelectItem value="van-14">ميكروباص (14 مقعد)</SelectItem>
+                                             </SelectContent>
+                                         </Select>
+                                     )}
+                                     
+                                     {formData.availableSeats > 48 && (
+                                         <p className="text-[10px] font-bold text-amber-600 px-2">
+                                             💡 تم حساب وسائل النقل تلقائياً لتغطية {formData.availableSeats} مقعد.
+                                         </p>
+                                     )}
+                                 </div>
                              </div>
 
                              <div className="space-y-2">
@@ -661,7 +738,7 @@ const CompanyTripFormDialog = ({ open, onOpenChange, onSuccess, initialData }: C
                     )}
 
                     {activeTab === 'settings' && (
-                       <div className="max-w-2xl mx-auto space-y-10">
+                       <div className="max-w-5xl mx-auto space-y-10">
                           <div className="space-y-4">
                              <Label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">طرق الحجز والدفع</Label>
                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

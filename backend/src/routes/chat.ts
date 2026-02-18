@@ -161,7 +161,8 @@ router.post('/:conversationId/messages', ClerkExpressRequireAuth(), async (req, 
             conversationId,
             senderId: userId,
             senderType,
-            content
+            content,
+            readBy: [userId]
         });
 
         // Update conversation
@@ -177,11 +178,19 @@ router.post('/:conversationId/messages', ClerkExpressRequireAuth(), async (req, 
                 message
             });
 
-            // Also trigger a general 'new-conversation-message' for the recipient's main list
-            const recipientId = senderType === 'user' ? conversation.companyId.toString() : conversation.userId;
-            pusher.trigger(`user-chats-${recipientId}`, 'update-conversation', {
-                conversation
-            });
+            // Recipient: when user sends, company owner (Clerk ID) gets update on dashboard
+            if (senderType === 'user') {
+                const company = await CorporateCompany.findById(conversation.companyId);
+                if (company?.ownerId) {
+                    pusher.trigger(`user-chats-${company.ownerId}`, 'update-conversation', {
+                        conversation: conversation.toObject ? conversation.toObject() : conversation
+                    });
+                }
+            } else {
+                pusher.trigger(`user-chats-${conversation.userId}`, 'update-conversation', {
+                    conversation: conversation.toObject ? conversation.toObject() : conversation
+                });
+            }
         }
 
         // Notification Logic
@@ -230,6 +239,85 @@ router.post('/:conversationId/messages', ClerkExpressRequireAuth(), async (req, 
     } catch (error) {
         console.error('Error sending message:', error);
         res.status(500).json({ error: 'Failed to send message' });
+    }
+});
+
+/**
+ * Mark conversation as read
+ */
+router.post('/:conversationId/read', ClerkExpressRequireAuth(), async (req, res) => {
+    try {
+        const { conversationId } = req.params;
+        const myId = req.auth?.userId;
+
+        if (!myId) return res.status(401).json({ error: 'Unauthorized' });
+
+        const conversation = await Conversation.findById(conversationId);
+        if (!conversation) return res.status(404).json({ error: 'Conversation not found' });
+
+        // Reset unread count if I am the intended receiver
+        // Improvement: logic to check if I am user or company owner
+        conversation.unreadCount = 0;
+        await conversation.save();
+
+        // Mark all messages as read by me
+        await Message.updateMany(
+            { conversationId, readBy: { $ne: myId } },
+            { $addToSet: { readBy: myId }, read: true }
+        );
+
+        // Notify other participants that messages were read
+        const pusher = getPusher();
+        if (pusher) {
+            pusher.trigger(`conversation-${conversationId}`, 'messages-read', {
+                readerId: myId
+            });
+        }
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error marking as read:', error);
+        res.status(500).json({ error: 'Failed to mark as read' });
+    }
+});
+
+/**
+ * Toggle reaction on a message
+ */
+router.post('/messages/:messageId/reaction', ClerkExpressRequireAuth(), async (req, res) => {
+    try {
+        const { messageId } = req.params;
+        const { emoji } = req.body;
+        const myId = req.auth?.userId;
+
+        if (!myId) return res.status(401).json({ error: 'Unauthorized' });
+
+        const message = await Message.findById(messageId);
+        if (!message) return res.status(404).json({ error: 'Message not found' });
+
+        const existingReactionIndex = message.reactions?.findIndex(r => r.userId === myId && r.emoji === emoji) ?? -1;
+
+        if (existingReactionIndex > -1) {
+            message.reactions.splice(existingReactionIndex, 1);
+        } else {
+            if (!message.reactions) (message as any).reactions = [];
+            message.reactions.push({ emoji, userId: myId });
+        }
+
+        await message.save();
+
+        const pusher = getPusher();
+        if (pusher) {
+            pusher.trigger(`conversation-${message.conversationId}`, 'message-reaction', {
+                messageId,
+                reactions: message.reactions
+            });
+        }
+
+        res.json(message);
+    } catch (error) {
+        console.error('Error toggling reaction:', error);
+        res.status(500).json({ error: 'Failed to update reaction' });
     }
 });
 

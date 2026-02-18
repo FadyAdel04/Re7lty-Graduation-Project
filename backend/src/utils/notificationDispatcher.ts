@@ -26,7 +26,7 @@ type NotificationInput = {
   actorId: string;
   actorName: string;
   actorImage?: string | null;
-  type: "love" | "save" | "comment" | "follow" | "system" | "tag";
+  type: "love" | "save" | "comment" | "follow" | "system" | "tag" | "message";
   message: string;
   tripId?: any;
   commentId?: any;

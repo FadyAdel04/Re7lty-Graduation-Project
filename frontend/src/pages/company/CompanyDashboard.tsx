@@ -19,7 +19,17 @@ import { Progress } from "@/components/ui/progress";
 import { ResponsiveContainer, BarChart as ReBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, Legend, PieChart, Pie, Cell } from 'recharts';
 import { companyService } from "@/services/companyService";
 import { CompanyChat } from "@/components/company/CompanyChat";
+import { chatService } from "@/services/chatService";
+import { getTripGroups } from "@/lib/tripGroupApi";
+import { createPusherClient } from "@/lib/pusher-client";
 import CouponManagement from "@/components/company/CouponManagement";
+import { exportTripDetailsToPDF } from "@/services/TripExportService";
+import TripsTab from "@/components/company/dashboard/TripsTab";
+import BookingsTab from "@/components/company/dashboard/BookingsTab";
+import SeatsTab from "@/components/company/dashboard/SeatsTab";
+import ReportsTab from "@/components/company/dashboard/ReportsTab";
+import SettingsTab from "@/components/company/dashboard/SettingsTab";
+import SummaryTab from "@/components/company/dashboard/SummaryTab";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -33,6 +43,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+
+import { cn } from "@/lib/utils";
 
 const CompanyDashboard = () => {
     const { user, isLoaded } = useUser();
@@ -85,13 +97,21 @@ const CompanyDashboard = () => {
     const [stats, setStats] = useState<any>(null);
     const [selectedTripForEdit, setSelectedTripForEdit] = useState<any>(null);
     const [selectedTripForSeats, setSelectedTripForSeats] = useState<any>(null);
+    const [currentBusIndex, setCurrentBusIndex] = useState(0);
     const [isSavingSeats, setIsSavingSeats] = useState(false);
+
+    useEffect(() => {
+        setCurrentBusIndex(0);
+    }, [selectedTripForSeats]);
 
     const canAddTrip = true;
 
     // Payment State
     const [showPaymentDialog, setShowPaymentDialog] = useState(false);
     const [selectedPlanForUpgrade, setSelectedPlanForUpgrade] = useState<any>(null);
+
+    // Messages unread count (contact tab badge) – updated in real time by CompanyChat
+    const [messagesUnreadCount, setMessagesUnreadCount] = useState(0);
 
     // Fetch Company Data & Trips
     useEffect(() => {
@@ -154,6 +174,90 @@ const CompanyDashboard = () => {
             }
         }
     }, [isLoaded, user, navigate, getToken]);
+    
+    // Real-time Messages Unread Count
+    useEffect(() => {
+        if (!isLoaded || !user) return;
+        
+        // Use a flag to avoid state updates after unmount
+        let isMounted = true;
+        let pusher: any = null;
+        let channels: string[] = [];
+
+        const fetchTotalUnread = async () => {
+            try {
+                const token = await getToken();
+                if (!token) return;
+                const [conversations, groups] = await Promise.all([
+                    chatService.getConversations(token, true).catch(() => []),
+                    getTripGroups(token).catch(() => [])
+                ]);
+                if (isMounted) {
+                    const convs = (conversations as any[]) || [];
+                    const grps = (groups as any[]) || [];
+                    const total = convs.reduce((acc: number, c: any) => acc + (c.unreadCount || 0), 0) + 
+                                  grps.reduce((acc: number, g: any) => acc + (g.unreadCount || 0), 0);
+                    // Only update if not on contact tab
+                    if (activeTab !== 'contact') {
+                        setMessagesUnreadCount(total);
+                    } else {
+                        setMessagesUnreadCount(0);
+                    }
+                }
+            } catch (err) {
+                console.error("Error fetching total unread:", err);
+            }
+        };
+
+        const initializePusher = async () => {
+            try {
+                const token = await getToken();
+                if (!token) return;
+
+                const groups = await getTripGroups(token).catch(() => []);
+                
+                // Fetch initial count
+                fetchTotalUnread();
+
+                // Setup Pusher
+                pusher = createPusherClient(import.meta.env.VITE_PUSHER_KEY, import.meta.env.VITE_PUSHER_CLUSTER || 'eu');
+                
+                // 1. Subscribe to Company-User direct chats
+                const directChannelName = `user-chats-${user.id}`;
+                const directChannel = pusher.subscribe(directChannelName);
+                channels.push(directChannelName);
+                
+                directChannel.bind('update-conversation', () => { fetchTotalUnread(); });
+                directChannel.bind('new-message', () => { fetchTotalUnread(); });
+
+                // 2. Subscribe to each trip group for real-time unread updates
+                groups.forEach((group: any) => {
+                    const groupChannelName = `trip-group-${group._id}`;
+                    const groupChannel = pusher.subscribe(groupChannelName);
+                    channels.push(groupChannelName);
+                    
+                    groupChannel.bind('new-message', () => { fetchTotalUnread(); });
+                    groupChannel.bind('messages-read', () => { fetchTotalUnread(); });
+                });
+
+            } catch (err) {
+                console.error("Pusher init error in dashboard", err);
+            }
+        };
+
+        initializePusher();
+
+        // Also refresh periodically just in case
+        const interval = setInterval(fetchTotalUnread, 60000);
+
+        return () => {
+            isMounted = false;
+            clearInterval(interval);
+            if (pusher) {
+                channels.forEach(name => pusher.unsubscribe(name));
+            }
+        };
+    }, [isLoaded, user, getToken, activeTab]);
 
     // Data Refresh Handlers
     const refreshAllData = async () => {
@@ -239,6 +343,27 @@ const CompanyDashboard = () => {
             setStats(data);
         } catch (error) {
             console.error("Error fetching analytics", error);
+        }
+    };
+
+    const handleExportTrip = async (trip: any) => {
+        try {
+            toast({
+                title: "جاري التحضير",
+                description: "يتم الآن إنشاء ملف PDF لتفاصيل الرحلة...",
+            });
+            await exportTripDetailsToPDF(trip);
+            toast({
+                title: "تم الاستخراج",
+                description: "تم تحميل ملف تفاصيل الرحلة بنجاح.",
+            });
+        } catch (error) {
+            console.error("Export error", error);
+            toast({
+                title: "خطأ",
+                description: "فشل استخراج ملف PDF، يرجى المحاولة مرة أخرى.",
+                variant: "destructive"
+            });
         }
     };
 
@@ -336,13 +461,21 @@ const CompanyDashboard = () => {
         setIsSavingSeats(true);
         try {
             const token = await getToken();
+            
+            // Add busIndex to new bookings
+            const bookingsWithBusIndex = newBookings.map(b => ({ ...b, busIndex: currentBusIndex }));
+            
+            // Merge with other buses
+            const otherBusBookings = (selectedTripForSeats.seatBookings || []).filter((s: any) => (s.busIndex || 0) !== currentBusIndex);
+            const combinedBookings = [...otherBusBookings, ...bookingsWithBusIndex];
+
             const response = await fetch(`${import.meta.env.VITE_API_URL || "http://127.0.0.1:5000"}/api/corporate/trips/${selectedTripForSeats._id || selectedTripForSeats.id}`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ seatBookings: newBookings })
+                body: JSON.stringify({ seatBookings: combinedBookings })
             });
 
             if (!response.ok) throw new Error("Failed to save seats");
@@ -353,7 +486,11 @@ const CompanyDashboard = () => {
             });
             
             // Update local state
-            setMyTrips(prev => prev.map(t => (t._id === selectedTripForSeats._id || t.id === selectedTripForSeats.id) ? { ...t, seatBookings: newBookings } : t));
+            const updatedTrips = myTrips.map(t => (t._id === selectedTripForSeats._id || t.id === selectedTripForSeats.id) ? { ...t, seatBookings: combinedBookings } : t);
+            setMyTrips(updatedTrips);
+            
+            // Also update the selected trip for the UI to reflect changes
+            setSelectedTripForSeats(prev => ({ ...prev, seatBookings: combinedBookings }));
             
         } catch (error) {
             console.error(error);
@@ -461,55 +598,14 @@ const CompanyDashboard = () => {
                 </AlertDialog>
 
                 {/* Stats Overview */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    <Card className="rounded-[2rem] border-0 shadow-sm hover:shadow-md transition-shadow">
-                        <CardContent className="p-6 flex items-center gap-4">
-                            <div className="p-4 rounded-2xl bg-indigo-50 text-indigo-600">
-                                <Users className="w-8 h-8" />
-                            </div>
-                            <div>
-                                <p className="text-gray-500 font-bold text-sm">إجمالي الحجوزات</p>
-                                <h3 className="text-3xl font-black text-gray-900 mt-1">{stats?.overview?.totalBookings || 0}</h3>
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Card className="rounded-[2rem] border-0 shadow-sm hover:shadow-md transition-shadow">
-                        <CardContent className="p-6 flex items-center gap-4">
-                            <div className="p-4 rounded-2xl bg-emerald-50 text-emerald-600">
-                                <DollarSign className="w-8 h-8" />
-                            </div>
-                            <div>
-                                <p className="text-gray-500 font-bold text-sm">إجمالي الإيرادات</p>
-                                <h3 className="text-2xl font-black text-gray-900 mt-1">{(stats?.revenue?.total || 0).toLocaleString()} ج.م</h3>
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Card className="rounded-[2rem] border-0 shadow-sm hover:shadow-md transition-shadow">
-                        <CardContent className="p-6 flex items-center gap-4">
-                            <div className="p-4 rounded-2xl bg-orange-50 text-orange-600">
-                                <AlertTriangle className="w-8 h-8" />
-                            </div>
-                            <div>
-                                <p className="text-gray-500 font-bold text-sm">عمولة المنصة (5%)</p>
-                                <h3 className="text-2xl font-black text-gray-900 mt-1">{(stats?.revenue?.commission || 0).toLocaleString()} ج.م</h3>
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Card className="rounded-[2rem] border-0 shadow-sm hover:shadow-md transition-shadow bg-indigo-600 text-white">
-                        <CardContent className="p-6 flex items-center gap-4">
-                            <div className="p-4 rounded-2xl bg-white/20 text-white border border-white/30 backdrop-blur-md">
-                                <Check className="w-8 h-8" />
-                            </div>
-                            <div>
-                                <p className="text-white/80 font-bold text-sm">صافي الربح (95%)</p>
-                                <h3 className="text-2xl font-black text-white mt-1">{(stats?.revenue?.net || 0).toLocaleString()} ج.م</h3>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
+                <SummaryTab
+                  stats={stats}
+                  tripsCount={myTrips.length}
+                  tripsViews={myTrips.reduce((acc, t) => acc + (t?.views ?? 0), 0)}
+                />
 
                 {/* Main Content with Sidebar */}
-                <div className="flex flex-col lg:flex-row gap-8">
+                <div className="flex flex-col lg:flex-row gap-8 pt-8">
                     {/* Sidebar */}
                     <aside className="w-full lg:w-72 shrink-0">
                         <Card className="rounded-[2.5rem] border-0 shadow-lg overflow-hidden p-4 sticky top-24">
@@ -518,14 +614,17 @@ const CompanyDashboard = () => {
                                     { id: 'trips', label: 'الرحلات', icon: Map },
                                     { id: 'bookings', label: 'الحجوزات', icon: Users, badge: bookings.filter(b => b.status === 'pending').length },
                                     { id: 'coupons', label: 'كوبونات الخصم', icon: Ticket },
-                                    { id: 'contact', label: 'الرسائل', icon: MessageCircle, badge: 0 },
+                                    { id: 'contact', label: 'الرسائل', icon: MessageCircle, badge: messagesUnreadCount },
                                     { id: 'seats', label: 'توزيع المقاعد', icon: Bus },
                                     { id: 'reports', label: 'التقارير', icon: BarChart },
                                     { id: 'settings', label: 'الإعدادات', icon: Settings },
                                 ].map((tab) => (
                                     <button
                                         key={tab.id}
-                                        onClick={() => setActiveTab(tab.id)}
+                                        onClick={() => {
+                                            setActiveTab(tab.id);
+                                            if (tab.id === 'contact') setMessagesUnreadCount(0);
+                                        }}
                                         className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl font-bold transition-all ${
                                             activeTab === tab.id 
                                             ? "bg-indigo-600 text-white shadow-xl shadow-indigo-200" 
@@ -557,7 +656,7 @@ const CompanyDashboard = () => {
                     {/* Content Area */}
                     <div className="flex-1 min-w-0">
                         <Card className="rounded-[2.5rem] border-0 shadow-lg overflow-hidden min-h-[600px]">
-                            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                            <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); if (v === 'contact') setMessagesUnreadCount(0); }} className="w-full">
                                 {/* Hide the default TabsList but keep it for functionality */}
                                 <div className="hidden">
                                      <TabsList>
@@ -591,7 +690,12 @@ const CompanyDashboard = () => {
                                      ) : myTrips.length > 0 ? (
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                             {myTrips.map(trip => (
-                                                <TripCardEnhanced key={trip.id} trip={trip} onEdit={handleEditTrip} />
+                                                <TripCardEnhanced 
+                                                    key={trip.id} 
+                                                    trip={trip} 
+                                                    onEdit={handleEditTrip} 
+                                                    onExport={handleExportTrip} 
+                                                />
                                             ))}
                                         </div>
                                      ) : (
@@ -661,7 +765,7 @@ const CompanyDashboard = () => {
                                 </TabsContent>
 
                                 <TabsContent value="contact" className="p-8 m-0 focus-visible:outline-none">
-                                     <CompanyChat />
+                                     <CompanyChat onUnreadChange={setMessagesUnreadCount} />
                                 </TabsContent>
 
                                 <TabsContent value="seats" className="p-8 m-0 focus-visible:outline-none">
@@ -677,22 +781,28 @@ const CompanyDashboard = () => {
                                      
                                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                                          <div className="lg:col-span-1 space-y-4">
-                                            {myTrips.map(trip => (
-                                                <button 
-                                                    key={trip.id || trip._id}
-                                                    onClick={() => setSelectedTripForSeats(trip)}
-                                                    className={`w-full p-4 rounded-2xl text-right transition-all border-2 ${selectedTripForSeats?.id === trip.id || selectedTripForSeats?._id === trip._id ? 'border-indigo-600 bg-indigo-50 shadow-lg' : 'border-gray-100 hover:border-gray-200 bg-white'}`}
-                                                >
-                                                    <p className="font-black text-gray-900 mb-1">{trip.title}</p>
-                                                    <div className="flex items-center gap-2 text-xs text-gray-500 font-bold">
-                                                        <Calendar className="w-3 h-3" />
-                                                        {new Date(trip.startDate).toLocaleDateString()}
-                                                        <span className="mx-1">•</span>
-                                                        <Bus className="w-3 h-3" />
-                                                        {trip.transportationType === 'van-14' ? '14 مقعد' : '50 مقعد'}
-                                                    </div>
-                                                </button>
-                                            ))}
+                                            {myTrips.map(trip => {
+                                                const totalCap = trip.transportations?.length > 0 
+                                                    ? trip.transportations.reduce((sum: number, t: any) => sum + (t.capacity * (t.count || 1)), 0)
+                                                    : (trip.transportationType === 'van-14' ? 14 : trip.transportationType === 'minibus-28' ? 28 : 48);
+                                                
+                                                return (
+                                                    <button 
+                                                        key={trip.id || trip._id}
+                                                        onClick={() => setSelectedTripForSeats(trip)}
+                                                        className={`w-full p-4 rounded-2xl text-right transition-all border-2 ${selectedTripForSeats?.id === trip.id || selectedTripForSeats?._id === trip._id ? 'border-indigo-600 bg-indigo-50 shadow-lg' : 'border-gray-100 hover:border-gray-200 bg-white'}`}
+                                                    >
+                                                        <p className="font-black text-gray-900 mb-1">{trip.title}</p>
+                                                        <div className="flex items-center gap-2 text-xs text-gray-500 font-bold">
+                                                            <Calendar className="w-3 h-3" />
+                                                            {new Date(trip.startDate).toLocaleDateString()}
+                                                            <span className="mx-1">•</span>
+                                                            <Bus className="w-3 h-3" />
+                                                            {totalCap} مقعد
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })}
                                          </div>
 
                                          <div className="lg:col-span-2">
@@ -705,12 +815,36 @@ const CompanyDashboard = () => {
                                                         </div>
                                                         {isSavingSeats && <Loader2 className="w-6 h-6 animate-spin text-indigo-600" />}
                                                     </div>
+
+                                                    {/* Bus Selection Tabs if multiple buses */}
+                                                    {selectedTripForSeats.transportations?.length > 0 && (
+                                                        <div className="w-full mb-8 p-4 bg-gray-50 rounded-2xl border border-gray-100 flex flex-wrap gap-2">
+                                                            {selectedTripForSeats.transportations.map((unit: any, idx: number) => (
+                                                                <Button
+                                                                    key={idx}
+                                                                    variant={currentBusIndex === idx ? "default" : "outline"}
+                                                                    className={cn(
+                                                                        "rounded-xl h-10 font-bold transition-all",
+                                                                        currentBusIndex === idx ? "bg-indigo-600 text-white shadow-md" : "bg-white hover:border-indigo-200"
+                                                                    )}
+                                                                    onClick={() => setCurrentBusIndex(idx)}
+                                                                >
+                                                                    <Bus className="w-4 h-4 ml-2" />
+                                                                    {unit.type === 'bus-48' ? 'حافلة' : unit.type === 'minibus-28' ? 'ميني باص' : 'ميكروباص'} {unit.count > 1 ? `(${idx + 1})` : ''}
+                                                                </Button>
+                                                            ))}
+                                                        </div>
+                                                    )}
                                                     
                                                     <BusSeatLayout 
-                                                        type={selectedTripForSeats.transportationType || 'bus-48'} 
-                                                        bookedSeats={selectedTripForSeats.seatBookings || []}
+                                                        type={
+                                                            selectedTripForSeats.transportations?.length > 0 
+                                                            ? selectedTripForSeats.transportations[currentBusIndex].type 
+                                                            : (selectedTripForSeats.transportationType || 'bus-48')
+                                                        } 
+                                                        bookedSeats={(selectedTripForSeats.seatBookings || []).filter((s: any) => (s.busIndex || 0) === currentBusIndex)}
                                                         isAdmin={true}
-                                                        onSaveSeats={handleSaveSeats}
+                                        onSaveSeats={handleSaveSeats}
                                                         totalBookedPassengers={bookings.filter(b => (b.tripId as any) === (selectedTripForSeats._id || selectedTripForSeats.id) && b.status === 'accepted').length}
                                                         tripBookings={bookings.filter(b => (b.tripId as any) === (selectedTripForSeats._id || selectedTripForSeats.id) && b.status === 'accepted')}
                                                     />
@@ -725,10 +859,10 @@ const CompanyDashboard = () => {
                                      </div>
                                 </TabsContent>
                                 <TabsContent value="coupons" className="p-8 m-0 focus-visible:outline-none">
-                                    <div className="flex items-center justify-between mb-8">
-                                        <h2 className="text-2xl font-black text-gray-900">إدارة الكوبونات</h2>
-                                    </div>
-                                    <CouponManagement />
+                                        <div className="flex items-center justify-between mb-8">
+                                            <h2 className="text-2xl font-black text-gray-900">إدارة الكوبونات</h2>
+                                        </div>
+                                        <CouponManagement />
                                 </TabsContent>
 
                                 <TabsContent value="reports" className="p-8 m-0 focus-visible:outline-none">

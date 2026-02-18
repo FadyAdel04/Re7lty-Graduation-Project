@@ -134,6 +134,7 @@ router.get('/me', ClerkExpressRequireAuth(), async (req, res) => {
                         },
                         tags: submission.tripTypes.split(',').map(t => t.trim()),
                         isActive: true,
+                        ownerId: req.auth?.userId,
                         createdBy: req.auth?.userId
                     });
                 }

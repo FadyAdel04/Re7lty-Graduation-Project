@@ -10,7 +10,11 @@ export interface Message {
     senderType: 'user' | 'company';
     content: string;
     read: boolean;
+    readBy?: string[];
+    reactions?: { emoji: string; userId: string }[];
     createdAt: string;
+    type?: string;
+    mediaUrl?: string;
 }
 
 export interface Conversation {
@@ -73,6 +77,32 @@ export const chatService = {
         const response = await axios.post(
             `${API_URL}/api/chat/${conversationId}/messages`,
             { content, senderType },
+            {
+                headers: getAuthHeaders(token),
+                withCredentials: true
+            }
+        );
+        return response.data;
+    },
+
+    // Mark as read
+    async markAsRead(conversationId: string, token?: string): Promise<{ success: boolean }> {
+        const response = await axios.post(
+            `${API_URL}/api/chat/${conversationId}/read`,
+            {},
+            {
+                headers: getAuthHeaders(token),
+                withCredentials: true
+            }
+        );
+        return response.data;
+    },
+
+    // Toggle reaction
+    async toggleReaction(messageId: string, emoji: string, token?: string): Promise<Message> {
+        const response = await axios.post(
+            `${API_URL}/api/chat/messages/${messageId}/reaction`,
+            { emoji },
             {
                 headers: getAuthHeaders(token),
                 withCredentials: true

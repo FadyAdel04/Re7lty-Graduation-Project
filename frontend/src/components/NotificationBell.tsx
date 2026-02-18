@@ -53,6 +53,16 @@ const NotificationBell = () => {
       notification.message.includes('حجز') || 
       notification.message.toLowerCase().includes('booking');
 
+    if (notification.type === 'message' && notification.metadata?.conversationId) {
+       navigate(`/messages?conv=${notification.metadata.conversationId}`);
+       return;
+    }
+
+    if (notification.metadata?.type === 'trip_group' && notification.metadata?.groupId) {
+       navigate(`/trip-groups?id=${notification.metadata.groupId}`);
+       return;
+    }
+
     if (isBooking && user?.id) {
        navigate(`/user/${user.id}?tab=bookings`);
        return;

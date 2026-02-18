@@ -620,3 +620,88 @@ export async function searchUsers(query: string, token?: string) {
   }
   return res.json();
 }
+
+// === Direct Chat API ===
+
+export async function startDirectChat(targetUserId: string, token: string) {
+  const res = await fetch(`${BASE}/api/direct-chat/start`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ targetUserId }),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || 'Failed to start direct chat');
+  }
+  return res.json();
+}
+
+export async function getDirectConversations(token: string) {
+  const res = await fetch(`${BASE}/api/direct-chat/conversations`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) throw new Error('Failed to fetch conversations');
+  return res.json();
+}
+
+export async function getDirectMessages(conversationId: string, token: string) {
+  const res = await fetch(`${BASE}/api/direct-chat/${conversationId}/messages`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) throw new Error('Failed to fetch messages');
+  return res.json();
+}
+
+export async function sendDirectMessage(conversationId: string, content: string, token: string, type: 'text' | 'image' | 'voice' | 'video' = 'text', mediaUrl?: string) {
+  const res = await fetch(`${BASE}/api/direct-chat/${conversationId}/messages`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ content, type, mediaUrl }),
+  });
+  if (!res.ok) throw new Error('Failed to send message');
+  return res.json();
+}
+
+export async function markDirectChatRead(conversationId: string, token: string) {
+  const res = await fetch(`${BASE}/api/direct-chat/${conversationId}/read`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) throw new Error('Failed to mark chat as read');
+  return res.json();
+}
+
+export async function searchChatUsers(query: string, token: string) {
+  const res = await fetch(`${BASE}/api/direct-chat/search-users?query=${encodeURIComponent(query)}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) throw new Error('Failed to search users');
+  return res.json();
+}
+
+export async function toggleMessageReaction(messageId: string, emoji: string, token: string) {
+  const res = await fetch(`${BASE}/api/direct-chat/messages/${messageId}/reaction`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ emoji }),
+  });
+  if (!res.ok) throw new Error('Failed to toggle reaction');
+  return res.json();
+}

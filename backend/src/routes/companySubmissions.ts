@@ -398,6 +398,7 @@ router.put('/admin/:id/approve', requireAuthStrict, requireAdmin, async (req, re
                     },
                     tags: submission.tripTypes.split(',').map(t => t.trim()),
                     isActive: true,
+                    ownerId: submission.userId,
                     createdBy: adminId
                 });
                 companyId = newCompany._id;

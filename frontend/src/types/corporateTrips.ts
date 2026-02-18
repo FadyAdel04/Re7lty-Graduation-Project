@@ -56,8 +56,14 @@ export interface Trip {
     views?: number;
     transportationImages?: string[];
     availableSeats?: number;
-    transportationType?: 'bus-48' | 'minibus-28' | 'van-14';
+    transportationType?: 'bus-48' | 'minibus-28' | 'van-14' | 'bus-50';
+    transportations?: {
+        type: 'bus-48' | 'minibus-28' | 'van-14' | 'bus-50';
+        capacity: number;
+        count: number;
+    }[];
     seatBookings?: {
+        busIndex?: number;
         seatNumber: string;
         passengerName: string;
         bookingId?: string;

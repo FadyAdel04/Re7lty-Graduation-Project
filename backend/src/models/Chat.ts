@@ -6,6 +6,11 @@ const MessageSchema = new Schema({
     senderType: { type: String, enum: ['user', 'company'], required: true },
     content: { type: String, required: true },
     read: { type: Boolean, default: false },
+    readBy: [{ type: String }], // List of Clerk IDs who read the message
+    reactions: [{
+        emoji: { type: String, required: true },
+        userId: { type: String, required: true } // Clerk ID
+    }],
 }, { timestamps: true });
 
 const ConversationSchema = new Schema({

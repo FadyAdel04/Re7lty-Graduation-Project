@@ -6,6 +6,7 @@ import { ClerkExpressRequireAuth } from '@clerk/clerk-sdk-node';
 import { persistBase64 } from '../utils/media';
 import { createNotification } from '../utils/notificationDispatcher';
 import { Booking } from '../models/Booking';
+import { ensureTripGroupExists } from '../utils/tripChatManager';
 
 
 /**
@@ -392,7 +393,7 @@ router.post('/admin/create', ClerkExpressRequireAuth(), requireAdmin, async (req
         if (!tripData.endDate) delete tripData.endDate;
         if (!tripData.maxGroupSize) delete tripData.maxGroupSize;
 
-        const trip = new CorporateTrip(tripData);
+        const trip = new CorporateTrip(tripData) as any;
         await trip.save();
 
         // Update company trips count
@@ -400,6 +401,9 @@ router.post('/admin/create', ClerkExpressRequireAuth(), requireAdmin, async (req
             trip.companyId,
             { $inc: { tripsCount: 1 } }
         );
+
+        // Ensure trip group exists
+        await ensureTripGroupExists(trip._id.toString(), req.auth?.userId);
 
         res.status(201).json({
             success: true,
@@ -466,7 +470,7 @@ router.post('/me/create', ClerkExpressRequireAuth(), async (req, res) => {
         if (!tripData.endDate) delete tripData.endDate;
         if (!tripData.maxGroupSize) delete tripData.maxGroupSize;
 
-        const trip = new CorporateTrip(tripData);
+        const trip = new CorporateTrip(tripData) as any;
         await trip.save();
 
         // Update company trips count
@@ -474,6 +478,9 @@ router.post('/me/create', ClerkExpressRequireAuth(), async (req, res) => {
             user.companyId,
             { $inc: { tripsCount: 1 } }
         );
+
+        // Ensure trip group exists
+        await ensureTripGroupExists(trip._id.toString(), req.auth?.userId);
 
         res.status(201).json({
             success: true,

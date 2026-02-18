@@ -178,6 +178,9 @@ const CreateTrip = () => {
         setLocations(parsed.locations || []);
         setDays(parsed.days || []);
         setFoodPlaces(parsed.foodPlaces || []);
+        setHotels(parsed.hotels || []);
+        setTaggedUsers(parsed.taggedUsers || []);
+        setPostType(parsed.postType || null);
         setCurrentStep(parsed.currentStep || 1);
       } catch (error) {
         console.error('Failed to load draft:', error);
@@ -196,10 +199,13 @@ const CreateTrip = () => {
       locations,
       days,
       foodPlaces,
+      hotels,
+      taggedUsers,
+      postType,
       currentStep,
     };
     localStorage.setItem('tripDraft', JSON.stringify(dataToSave));
-  }, [tripData, activities, locations, days, foodPlaces, currentStep]);
+  }, [tripData, activities, locations, days, foodPlaces, hotels, taggedUsers, postType, currentStep]);
 
   // Update activities when locations change
   useEffect(() => {

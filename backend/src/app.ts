@@ -19,7 +19,9 @@ import contentReportsRouter from "./routes/contentReports";
 import adminCommentsRouter from "./routes/adminComments";
 import bookingsRouter from "./routes/bookings";
 import chatRouter from "./routes/chat";
+import directChatRouter from "./routes/directChat";
 import couponsRouter from "./routes/coupons";
+import tripGroupChatRouter from "./routes/tripGroupChat";
 import { connectToDatabase } from "./db";
 import mongoose from "mongoose";
 
@@ -99,9 +101,9 @@ export function createApp() {
         exposedHeaders: ['Content-Type', 'Authorization'],
     }));
 
-    // Increase body size limit to handle large image payloads (50MB)
-    app.use(express.json({ limit: "50mb" }));
-    app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+    // Increase body size limit to handle large image/PDF payloads (200MB)
+    app.use(express.json({ limit: "200mb" }));
+    app.use(express.urlencoded({ extended: true, limit: "200mb" }));
 
     // Request logging middleware (for debugging)
     app.use((req, _res, next) => {
@@ -820,6 +822,8 @@ export function createApp() {
     // Bookings routes
     app.use("/api/bookings", bookingsRouter);
     app.use("/api/chat", chatRouter);
+    app.use("/api/direct-chat", directChatRouter);
+    app.use("/api/trip-groups", tripGroupChatRouter);
     app.use("/api/coupons", couponsRouter);
 
     // Admin Comments Integration (part of complaints section)
@@ -834,7 +838,7 @@ export function createApp() {
         if (err.type === "entity.too.large") {
             return res.status(413).json({
                 error: "Payload Too Large",
-                message: "Request payload exceeds the maximum allowed size (50MB). Please reduce image sizes or upload fewer images.",
+                message: "Request payload exceeds the maximum allowed size (200MB).",
             });
         }
 

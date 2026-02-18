@@ -1,4 +1,4 @@
-import { Clock, Star, MapPin, ArrowRight, Calendar, User, Info, Building2, Timer } from "lucide-react";
+import { Clock, Star, MapPin, ArrowRight, Calendar, User, Info, Building2, Timer, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,9 +12,10 @@ interface TripCardEnhancedProps {
   companyLogo?: string;
   showCompanyBadge?: boolean;
   onEdit?: (trip: Trip) => void;
+  onExport?: (trip: Trip) => void;
 }
 
-const TripCardEnhanced = ({ trip, companyName, companyLogo, showCompanyBadge = false, onEdit }: TripCardEnhancedProps) => {
+const TripCardEnhanced = ({ trip, companyName, companyLogo, showCompanyBadge = false, onEdit, onExport }: TripCardEnhancedProps) => {
   const getTimeRemaining = (startDate: string) => {
     const total = Date.parse(startDate) - Date.parse(new Date().toString());
     const days = Math.floor(total / (1000 * 60 * 60 * 24));
@@ -122,10 +123,21 @@ const TripCardEnhanced = ({ trip, companyName, companyLogo, showCompanyBadge = f
                 {onEdit && (
                   <Button 
                     variant="outline" 
-                    className="h-14 w-1 flex-1 max-w-[80px] rounded-2xl border-zinc-200 text-zinc-600 hover:bg-zinc-50 font-black h-14"
+                    className="h-14 w-1 flex-1 max-w-[80px] rounded-2xl border-zinc-200 text-zinc-600 hover:bg-zinc-50 font-black"
                     onClick={(e) => { e.preventDefault(); onEdit(trip); }}
                   >
                     تعديل
+                  </Button>
+                )}
+
+                {onExport && (
+                  <Button 
+                    variant="outline" 
+                    className="h-14 w-1 flex-1 max-w-[100px] rounded-2xl border-indigo-100 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 font-bold gap-2 transition-all"
+                    onClick={(e) => { e.preventDefault(); onExport(trip); }}
+                  >
+                    <span className="hidden sm:inline">PDF</span>
+                    <FileText className="h-5 w-5" />
                   </Button>
                 )}
              </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useUser, useAuth } from "@clerk/clerk-react";
 import { Phone, MessageCircle, Globe, Star, Clock, Calendar, CheckCircle2, Zap, CreditCard, Wallet, Smartphone, ShieldCheck, Users, Loader2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -46,6 +46,8 @@ const BookingCard = ({ trip, company, sticky = false }: BookingCardProps) => {
     cvv: "",
     walletNumber: ""
   });
+
+  const [currentBusIndex, setCurrentBusIndex] = useState(0);
 
   const [couponCode, setCouponCode] = useState("");
   const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
@@ -152,9 +154,47 @@ const BookingCard = ({ trip, company, sticky = false }: BookingCardProps) => {
   };
 
   // Calculate available seats
-  const totalSeats = trip.transportationType === 'minibus-28' ? 28 : trip.transportationType === 'van-14' ? 14 : 48;
+  const transportationUnits = useMemo(() => {
+    const list: any[] = [];
+    if (trip.transportations && trip.transportations.length > 0) {
+        trip.transportations.forEach((t) => {
+            for (let j = 0; j < (t.count || 1); j++) {
+                list.push({ ...t, unitIndex: list.length });
+            }
+        });
+    } else {
+        const capacity = trip.transportationType === 'minibus-28' ? 28 : trip.transportationType === 'van-14' ? 14 : 48;
+        list.push({ type: trip.transportationType || 'bus-48', capacity, count: 1, unitIndex: 0 });
+    }
+    return list;
+  }, [trip.transportations, trip.transportationType]);
+
+  const currentUnit = transportationUnits[currentBusIndex] || transportationUnits[0];
+
+  const totalSeats = transportationUnits.reduce((acc, unit) => acc + (unit.capacity * (unit.count || 1)), 0);
   const bookedSeatsCount = trip.seatBookings?.length || 0;
-  const availableSeats = totalSeats - bookedSeatsCount;
+  const availableSeats = Math.max(0, (trip.maxGroupSize || totalSeats) - bookedSeatsCount);
+
+  // Filter booked seats for current bus
+  const currentBookedSeats = useMemo(() => {
+    return (trip.seatBookings || [])
+        .filter(sb => (sb.busIndex || 0) === currentBusIndex)
+        .map(sb => ({ seatNumber: sb.seatNumber, passengerName: sb.passengerName }));
+  }, [trip.seatBookings, currentBusIndex]);
+
+  // Selected seats for current bus
+  const currentSelectedSeats = useMemo(() => {
+    return bookingData.selectedSeats
+        .filter(s => s.startsWith(`${currentBusIndex}-`))
+        .map(s => s.split('-')[1]);
+  }, [bookingData.selectedSeats, currentBusIndex]);
+
+  const handleSeatSelection = (seats: string[]) => {
+    // Keep seats from other buses, replace seats for current bus
+    const otherBusesSeats = bookingData.selectedSeats.filter(s => !s.startsWith(`${currentBusIndex}-`));
+    const newCurrentSeats = seats.map(s => `${currentBusIndex}-${s}`);
+    setBookingData(prev => ({ ...prev, selectedSeats: [...otherBusesSeats, ...newCurrentSeats] }));
+  };
 
   const handleSubmitBooking = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -405,23 +445,46 @@ const BookingCard = ({ trip, company, sticky = false }: BookingCardProps) => {
                         <Label className="text-[10px] font-bold text-gray-500">مسافر في هذه الرحلة</Label>
                      </div>
 
-                     <div className="relative flex-1 min-h-0 bg-gray-50/30 rounded-xl border border-dashed border-gray-200 flex flex-col items-center">
-                        <p className="text-[9px] font-black text-indigo-400 mt-2 z-10 bg-white px-2 py-0.5 rounded-full border border-indigo-100">اختر {bookingData.numberOfPeople} مقاعد من المخطط</p>
-                        <div className="flex-1 w-full mt-2 overflow-y-auto custom-scrollbar min-h-0">
-                           <div className="flex items-start justify-center p-4">
-                              <div className="scale-[0.85] md:scale-100 transition-transform">
-                                 <BusSeatLayout 
-                                    type={trip.transportationType || 'bus-48'} 
-                                    bookedSeats={trip.seatBookings || []}
-                                    onSelectSeats={(seats) => setBookingData(prev => ({ ...prev, selectedSeats: seats }))}
-                                    initialSelectedSeats={bookingData.selectedSeats}
-                                    maxSelection={bookingData.numberOfPeople}
-                                    isAdmin={false}
-                                 />
-                              </div>
-                           </div>
-                        </div>
-                     </div>
+                      <div className="relative flex-1 min-h-0 bg-gray-50/30 rounded-xl border border-dashed border-gray-200 flex flex-col items-center">
+                         <div className="w-full p-2 border-b border-gray-100 bg-white/50 shrink-0">
+                            {transportationUnits.length > 1 && (
+                               <div className="flex gap-1 overflow-x-auto pb-1 no-scrollbar">
+                                  {transportationUnits.map((unit, idx) => (
+                                     <button
+                                        key={idx}
+                                        type="button"
+                                        onClick={() => setCurrentBusIndex(idx)}
+                                        className={cn(
+                                           "px-3 py-1.5 rounded-lg text-[9px] font-black whitespace-nowrap transition-all border",
+                                           currentBusIndex === idx 
+                                              ? "bg-indigo-600 text-white border-indigo-700 shadow-sm" 
+                                              : "bg-white text-gray-500 border-gray-200 hover:border-indigo-300"
+                                        )}
+                                     >
+                                        {unit.type === 'bus-48' || unit.type === 'bus-50' ? 'حافلة' : unit.type === 'minibus-28' ? 'ميني باص' : 'ميكروباص'} {idx + 1}
+                                     </button>
+                                  ))}
+                               </div>
+                            )}
+                         </div>
+                         <p className="text-[9px] font-black text-indigo-400 mt-2 z-10 bg-white px-2 py-0.5 rounded-full border border-indigo-100">
+                            اختر {bookingData.numberOfPeople} مقاعد ({bookingData.selectedSeats.length} محددة)
+                         </p>
+                         <div className="flex-1 w-full mt-2 overflow-y-auto custom-scrollbar min-h-0">
+                            <div className="flex items-start justify-center p-4">
+                               <div className="scale-[0.85] md:scale-100 transition-transform">
+                                  <BusSeatLayout 
+                                     type={currentUnit.type} 
+                                     bookedSeats={currentBookedSeats}
+                                     onSelectSeats={handleSeatSelection}
+                                     initialSelectedSeats={currentSelectedSeats}
+                                     maxSelection={bookingData.numberOfPeople - (bookingData.selectedSeats.length - currentSelectedSeats.length)}
+                                     isAdmin={false}
+                                  />
+                               </div>
+                            </div>
+                         </div>
+                      </div>
                   </div>
                </div>
 

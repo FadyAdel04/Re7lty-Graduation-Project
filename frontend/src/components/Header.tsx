@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Search, MapPin, Menu, Trophy, Compass, Briefcase, Home, Plus, X, Sparkles, Globe, Shield, Bell, User } from "lucide-react";
+import { Search, MapPin, Menu, Trophy, Compass, Briefcase, Home, Plus, X, Sparkles, Globe, Shield, Bell, User, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link, useNavigate, useLocation } from "react-router-dom";
@@ -195,15 +195,15 @@ const Header = ({ onSearch }: HeaderProps) => {
 
   return (
     <header className={cn(
-      "sticky top-0 z-[5000] w-full transition-all duration-500 font-cairo",
+      "sticky top-0 z-40 w-full transition-all duration-500 font-cairo",
       scrolled 
-        ? "bg-white/70 backdrop-blur-2xl border-b border-white/20 shadow-[0_10px_40px_rgba(0,0,0,0.04)] h-[5rem]" 
-        : "bg-white border-b border-transparent h-24"
+        ? "bg-white/70 backdrop-blur-2xl border-b border-white/20 shadow-[0_10px_40px_rgba(0,0,0,0.04)] h-[4.5rem] lg:h-[5rem]" 
+        : "bg-white border-b border-transparent h-20 lg:h-24"
     )} dir="rtl">
       <div className="container mx-auto px-4 h-full">
         
         {/* Main Content Area */}
-        <div className="flex items-center justify-between h-full gap-8">
+        <div className="flex items-center justify-between h-full gap-4 xl:gap-8">
           
           {/* 1. Logo Section */}
           <Link to="/" className="flex items-center flex-shrink-0 group relative transition-all duration-500">
@@ -219,19 +219,19 @@ const Header = ({ onSearch }: HeaderProps) => {
           </Link>
 
           {/* 2. Navigation & Search (Centered Container) */}
-          <div className="hidden lg:flex flex-1 items-center justify-center gap-6">
+          <div className="hidden lg:flex flex-1 items-center justify-center gap-2 xl:gap-6">
             
             {/* Nav Links */}
             <nav className="flex items-center gap-1">
               <NavItem to="/" icon={Home} label="الرئيسية" exact={true} id="nav-home" />
               <NavItem to="/discover" icon={Sparkles} label="اكتشف" id="nav-discover" />
               <NavItem to="/timeline" icon={Compass} label="الرحلات" id="nav-timeline" />
-              <NavItem to="/templates" icon={Briefcase} label="الشركات" id="nav-templates" />
+              <NavItem to="/agency" icon={Briefcase} label="الشركات" id="nav-templates" />
               <NavItem to="/leaderboard" icon={Trophy} label="المتصدرين" id="nav-leaderboard" />
             </nav>
 
             {/* Premium Search Bar */}
-            <div className="relative w-full max-w-[280px]" ref={searchContainerRef}>
+            <div className="relative w-full lg:max-w-[200px] xl:max-w-[280px]" ref={searchContainerRef}>
               <div className="relative group">
                 <Input
                   type="text"
@@ -314,7 +314,7 @@ const Header = ({ onSearch }: HeaderProps) => {
           </div>
 
           {/* 3. Action Buttons & Profile */}
-          <div className="flex items-center gap-4 order-3">
+          <div className="flex items-center gap-1 order-3">
             
             <div className="lg:hidden flex items-center gap-2">
               <Button variant="ghost" size="icon" className="rounded-2xl hover:bg-indigo-50 text-gray-500 hover:text-indigo-600 transition-colors" onClick={() => setMobileSearchOpen(true)}>
@@ -323,6 +323,12 @@ const Header = ({ onSearch }: HeaderProps) => {
             </div>
 
             <SignedIn>
+              <Link to="/messages" className="hidden sm:block" id="nav-messages">
+                <Button variant="ghost" size="icon" className="rounded-2xl hover:bg-indigo-50 text-gray-500 hover:text-indigo-600 transition-colors relative">
+                   <MessageSquare className="h-5 w-5" />
+                   {/* We can add unread badge logic here later if we want */}
+                </Button>
+              </Link>
               <NotificationBell />
               
               {isAdmin ? (
@@ -345,15 +351,15 @@ const Header = ({ onSearch }: HeaderProps) => {
                 <Link to="/trips/new" className="hidden sm:block" id="nav-create-trip">
                   <Button className="h-12 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm gap-2 shadow-lg shadow-indigo-100 hover:shadow-indigo-200 transition-all duration-300 relative overflow-hidden group">
                     <span className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-                    <Plus className="h-5 w-5 relative z-10" />
-                    <span className="relative z-10">أنشئ رحلة</span>
+                    <Plus className="h-5 w-5 relative z-10 shrink-0" />
+                    <span className="relative z-10 hidden xl:inline">أنشئ رحلة</span>
                   </Button>
                 </Link>
               )}
               
               {user && user.publicMetadata?.role !== 'company_owner' && !isAdmin && (
                 <Link to={`/user/${user.id}`} className="hidden md:flex items-center gap-3 pl-1 pr-4 py-1 rounded-2xl bg-gray-50/50 border border-gray-100/50 hover:bg-indigo-50 transition-all group">
-                  <div className="text-right">
+                  <div className="text-right hidden xl:block">
                     <p className="text-[10px] font-black text-indigo-500 leading-none mb-1">مرحباً بك</p>
                     <p className="text-xs font-black text-gray-700 leading-none truncate max-w-[100px]">{user.fullName || user.username}</p>
                   </div>
@@ -392,8 +398,9 @@ const Header = ({ onSearch }: HeaderProps) => {
                       { to: "/", icon: Home, label: "الرئيسية" },
                       { to: "/discover", icon: Sparkles, label: "اكتشف" },
                       { to: "/timeline", icon: Compass, label: "الرحلات" },
-                      { to: "/templates", icon: Briefcase, label: "الشركات" },
+                      { to: "/agency", icon: Briefcase, label: "الشركات" },
                       { to: "/leaderboard", icon: Trophy, label: "المتصدرين" },
+                      { to: "/messages", icon: MessageSquare, label: "الرسائل" },
                     ].map((item, idx) => {
                       const isActive = item.to === "/" ? location.pathname === "/" : location.pathname.startsWith(item.to);
                       return (

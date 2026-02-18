@@ -55,6 +55,7 @@ import {
   StoryViewerInfo,
   getUserFollowers,
   getUserFollowing,
+  startDirectChat,
 } from "@/lib/api";
 import TripSkeletonLoader from "@/components/TripSkeletonLoader";
 import BusSeatLayout from "@/components/company/BusSeatLayout";
@@ -829,6 +830,31 @@ const UserProfile = () => {
     }
   };
 
+  const handleStartMessage = async () => {
+    if (!id || !isSignedIn) {
+      toast({
+        title: "تسجيل الدخول مطلوب",
+        description: "يجب تسجيل الدخول لبدء محادثة",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const token = await getToken();
+      if (!token) return;
+      
+      const conversation = await startDirectChat(id, token);
+      navigate(`/messages?conv=${conversation._id}`);
+    } catch (error: any) {
+      toast({
+        title: "خطأ",
+        description: error.message || "فشل بدء المحادثة",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getJoinDate = () => {
     if (isOwnProfile && clerkUser?.createdAt) {
       return new Date(clerkUser.createdAt).toLocaleDateString("ar-EG", { year: "numeric", month: "long" });
@@ -1074,17 +1100,27 @@ const UserProfile = () => {
                                 </Button>
                              </div>
                           ) : (
-                             <Button 
-                               onClick={handleToggleFollow} 
-                               disabled={isFollowLoading}
-                               className={cn(
-                                 "w-full h-14 rounded-2xl text-lg font-black gap-3 transition-all",
-                                 isFollowingUser ? "bg-white border-2 border-indigo-100 text-indigo-600 hover:bg-indigo-50" : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl shadow-indigo-100"
-                               )}
-                             >
-                                <Users className="w-6 h-6" />
-                                {isFollowingUser ? "متابَع" : "متابعة"}
-                             </Button>
+                             <div className="grid grid-cols-2 gap-3 w-full">
+                                <Button 
+                                  onClick={handleToggleFollow} 
+                                  disabled={isFollowLoading}
+                                  className={cn(
+                                    "h-14 rounded-2xl text-lg font-black gap-3 transition-all",
+                                    isFollowingUser ? "bg-white border-2 border-indigo-100 text-indigo-600 hover:bg-indigo-50" : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl shadow-indigo-100"
+                                  )}
+                                >
+                                   <Users className="w-6 h-6" />
+                                   {isFollowingUser ? "متابَع" : "متابعة"}
+                                </Button>
+                                <Button 
+                                  onClick={handleStartMessage}
+                                  variant="outline"
+                                  className="h-14 rounded-2xl text-lg font-black gap-3 border-2 border-indigo-100 text-indigo-600 hover:bg-indigo-50"
+                                >
+                                   <MessageCircle className="w-6 h-6" />
+                                   مراسلة
+                                </Button>
+                             </div>
                           )}
                        </div>
                     </CardContent>

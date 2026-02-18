@@ -32,6 +32,7 @@ import { Button } from "@/components/ui/button";
 import { useUser } from "@clerk/clerk-react";
 import { motion } from "framer-motion";
 import { ChatWidget } from "@/components/chat/ChatWidget";
+import { cn } from "@/lib/utils";
 
 const TripDetailsPage = () => {
   const { user } = useUser();
@@ -40,6 +41,7 @@ const TripDetailsPage = () => {
   const [company, setCompany] = useState<Company | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [currentBusIndex, setCurrentBusIndex] = useState(0);
 
   useEffect(() => {
     const fetchTripDetails = async () => {
@@ -133,6 +135,23 @@ const TripDetailsPage = () => {
       </div>
     );
   }
+
+
+  const getTransportLabel = (type: string) => {
+    switch(type) {
+      case 'bus-48': return 'حافلة (48 مقعد)';
+      case 'minibus-28': return 'ميني باص (28 مقعد)';
+      case 'van-14': return 'ميكروباص (14 مقعد)';
+      default: return 'حافلة';
+    }
+  };
+
+  const getSeatCount = () => {
+    if (trip.transportations && trip.transportations.length > 0) {
+      return trip.transportations.reduce((sum, t) => sum + (t.capacity * (t.count || 1)), 0).toString();
+    }
+    return trip.transportationType === 'bus-48' ? '48' : trip.transportationType === 'minibus-28' ? '28' : '14';
+  };
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
@@ -338,7 +357,7 @@ const TripDetailsPage = () => {
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                          {[
-                           { label: 'عدد المقاعد', val: trip.transportationType === 'bus-48' ? '48' : trip.transportationType === 'minibus-28' ? '28' : '14', color: 'indigo' },
+                           { label: 'إجمالي المقاعد', val: getSeatCount(), color: 'indigo' },
                            { label: 'التكييف', val: 'متوفر', color: 'emerald' },
                            { label: 'شواحن USB', val: 'متوفر', color: 'orange' },
                            { label: 'شبكة WiFi', val: 'متوفر', color: 'blue' },
@@ -349,6 +368,29 @@ const TripDetailsPage = () => {
                            </div>
                          ))}
                       </div>
+
+                      {/* Bus Selection Tabs if multiple buses */}
+                      {trip.transportations && trip.transportations.length > 0 && (
+                        <div className="space-y-3 pt-4 border-t border-zinc-100">
+                           <p className="text-xs font-black text-zinc-400 uppercase">اختر المركبة لعرض المقاعد:</p>
+                           <div className="flex flex-wrap gap-2">
+                             {trip.transportations.map((unit, idx) => (
+                               <Button
+                                 key={idx}
+                                 variant={currentBusIndex === idx ? "default" : "outline"}
+                                 className={cn(
+                                   "rounded-xl h-12 font-bold transition-all",
+                                   currentBusIndex === idx ? "bg-indigo-600 shadow-lg shadow-indigo-100 scale-105" : "hover:border-indigo-200"
+                                 )}
+                                 onClick={() => setCurrentBusIndex(idx)}
+                               >
+                                 <Bus className="w-4 h-4 ml-2" />
+                                 {getTransportLabel(unit.type)} {unit.count > 1 ? `(${idx + 1})` : ''}
+                               </Button>
+                             ))}
+                           </div>
+                        </div>
+                      )}
                    </div>
 
                    {trip.transportationImages && trip.transportationImages.length > 0 && (
@@ -365,11 +407,20 @@ const TripDetailsPage = () => {
                 <div className="bg-white rounded-[3rem] p-10 border border-zinc-100 shadow-2xl shadow-zinc-200/50 flex flex-col items-center">
                    <div className="w-full text-center space-y-2 mb-10">
                       <h3 className="text-2xl font-black text-gray-900">مخطط المقاعد</h3>
-                      <p className="text-sm font-bold text-zinc-400 uppercase">توزيع الركاب الافتراضي</p>
+                      <p className="text-sm font-bold text-zinc-400 uppercase">
+                        {trip.transportations && trip.transportations.length > 0 
+                          ? `توزيع الركاب: ${getTransportLabel(trip.transportations[currentBusIndex].type)}`
+                          : "توزيع الركاب الافتراضي"
+                        }
+                      </p>
                    </div>
                    <BusSeatLayout 
-                      type={trip.transportationType || 'bus-50'} 
-                      bookedSeats={trip.seatBookings || []} 
+                      type={
+                        trip.transportations && trip.transportations.length > 0 
+                          ? trip.transportations[currentBusIndex].type as any
+                          : (trip.transportationType || 'bus-48') as any
+                      } 
+                      bookedSeats={(trip.seatBookings || []).filter(s => (s.busIndex || 0) === currentBusIndex)} 
                    />
                 </div>
               </div>

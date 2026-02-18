@@ -4,7 +4,8 @@ import { getNotifications, markNotificationRead, markAllNotificationsRead } from
 import { toast } from "sonner";
 import { createPusherClient } from "@/lib/pusher-client";
 import type Pusher from "pusher-js";
-import { Bell, X, ShieldCheck } from "lucide-react";
+import { Bell, X, ShieldCheck, MessageSquare } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
 import notificationSound from "@/assets/notifications.mp3";
 
 const PUSHER_KEY = import.meta.env.VITE_PUSHER_KEY;
@@ -16,7 +17,7 @@ export type NotificationItem = {
   actorId: string;
   actorName: string;
   actorImage?: string;
-  type: "love" | "save" | "comment" | "follow";
+  type: "love" | "save" | "comment" | "follow" | "message";
   message: string;
   tripId?: string;
   commentId?: string;
@@ -32,6 +33,7 @@ interface NotificationContextType {
   refreshNotifications: () => Promise<void>;
   markAsRead: (id: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
+  setActiveConvId: (id: string | null) => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -42,7 +44,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const pusherRef = useRef<Pusher | null>(null);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const syncUnreadCount = useCallback((items: NotificationItem[]) => {
     const count = items.filter((item) => !item.isRead).length;
@@ -144,8 +149,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     });
 
     const channelName = `user-${user.id}`;
-    console.log("Subscribing to channel:", channelName);
+    const directChannelName = `user-direct-chats-${user.id}`;
+    
+    console.log("Subscribing to channels:", { channelName, directChannelName });
+    
     const channel = client.channel(channelName) || client.subscribe(channelName);
+    const directChannel = client.channel(directChannelName) || client.subscribe(directChannelName);
 
     // Simple notification sound
     const playNotificationSound = () => {
@@ -194,18 +203,82 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     };
 
     channel.bind("notification", handler);
+
+    const directMsgHandler = (data: any) => {
+        // Skip if sender is me
+        if (data.senderId === user.id) return;
+
+        // Skip sound/toast ONLY if we are already in this specific conversation
+        if (location.pathname === '/messages' && activeConvId === data.conversation._id) return;
+
+        playNotificationSound();
+        
+        const newNotif: NotificationItem = {
+          id: data.message._id,
+          recipientId: user.id,
+          actorId: data.senderId,
+          actorName: data.conversation.otherParticipant?.fullName || 'مستخدم',
+          actorImage: data.conversation.otherParticipant?.imageUrl,
+          type: "message",
+          message: data.conversation.lastMessage || 'أرسل رسالة جديدة',
+          createdAt: new Date().toISOString(),
+          isRead: false,
+          metadata: { conversationId: data.conversation._id }
+        };
+
+        setNotifications((prev) => {
+          if (prev.some(n => n.id === newNotif.id)) return prev;
+          const next = [newNotif, ...prev].slice(0, 50);
+          syncUnreadCount(next);
+          return next;
+        });
+
+        toast.custom((t) => (
+          <div 
+            onClick={() => {
+                navigate(`/messages?conv=${data.conversation._id}`);
+                toast.dismiss(t);
+            }}
+            className="bg-white/95 backdrop-blur-xl border border-orange-100 rounded-[1.5rem] p-4 shadow-2xl flex items-start gap-4 animate-in slide-in-from-bottom-5 duration-500 max-w-sm w-full cursor-pointer hover:bg-orange-50/50 transition-all" 
+            dir="rtl"
+          >
+             <div className="w-12 h-12 rounded-2xl bg-orange-500 flex items-center justify-center text-white shadow-lg shadow-orange-100 shrink-0">
+                <MessageSquare className="w-6 h-6" />
+             </div>
+             <div className="flex-1 pt-1">
+                <h4 className="font-black text-gray-900 text-sm mb-1">رسالة جديدة</h4>
+                <p className="text-[10px] font-black text-orange-400 mb-1 leading-none">
+                    {data.conversation.otherParticipant?.fullName || 'مستخدم'}
+                </p>
+                <p className="text-xs font-bold text-gray-500 leading-relaxed truncate">{data.conversation.lastMessage}</p>
+             </div>
+             <button onClick={(e) => { e.stopPropagation(); toast.dismiss(t); }} className="text-gray-300 hover:text-gray-500 transition-colors">
+                <X className="w-4 h-4" />
+             </button>
+          </div>
+        ), {
+          duration: 5000,
+          position: 'bottom-right'
+        });
+    };
+
+    directChannel.bind("update-conversation", directMsgHandler);
+
     // Set initial streaming state based on current connection
     setIsStreaming(client.connection.state === "connected");
 
     return () => {
       channel.unbind("notification", handler);
-      // We don't unsubscribe here to keep the connection alive while the user is logged in
-      // globally, but if the user changes or logs out, the first check in this effect handles disconnect.
+      directChannel.unbind("update-conversation", directMsgHandler);
+      
       if (client.channel(channelName)) {
          client.unsubscribe(channelName);
       }
+      if (client.channel(directChannelName)) {
+         client.unsubscribe(directChannelName);
+      }
     };
-  }, [isSignedIn, user?.id, syncUnreadCount]);
+  }, [isSignedIn, user?.id, syncUnreadCount, location.pathname, navigate]);
 
   const markAsRead = useCallback(
     async (id: string) => {
@@ -251,6 +324,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         refreshNotifications,
         markAsRead,
         markAllAsRead,
+        setActiveConvId,
       }}
     >
       {children}
