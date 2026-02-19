@@ -3,6 +3,9 @@ import { Link } from "react-router-dom";
 import { ArrowRight, TrendingUp, Sparkles, Users2, ShieldCheck, Image as ImageIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { seasonalConfig } from "@/config/seasonalConfig";
+import { motion } from "framer-motion";
+import { Moon, Star } from "lucide-react";
 
 // Platform Features Data
 const FEATURES = [
@@ -95,6 +98,38 @@ const Hero = () => {
            <div className="absolute inset-0 bg-gradient-to-r from-gray-950 via-gray-900/80 to-black/40" />
          </div>
       ))}
+
+      {/* Ramadan Season Layer - Conditional Icons */}
+      {seasonalConfig.isRamadanTheme && (
+        <div className="absolute inset-0 pointer-events-none z-[5]">
+           <motion.div 
+             className="absolute top-10 right-[5%] text-gold opacity-40"
+             animate={{ y: [0, -15, 0], rotate: [-5, 5, -5] }}
+             transition={{ duration: 6, repeat: Infinity }}
+           >
+             <Moon size={120} fill="#D4AF37" />
+           </motion.div>
+           
+           <motion.div 
+             className="absolute top-20 left-[10%] text-gold opacity-30"
+             animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.6, 0.3] }}
+             transition={{ duration: 4, repeat: Infinity }}
+           >
+             <Star size={40} fill="#D4AF37" />
+           </motion.div>
+
+           <motion.div 
+             className="absolute bottom-20 right-[20%] text-gold opacity-20"
+             animate={{ y: [0, -10, 0] }}
+             transition={{ duration: 5, repeat: Infinity }}
+           >
+             <svg width="40" height="60" viewBox="0 0 40 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 0V10" stroke="#D4AF37" strokeWidth="2"/>
+                <path d="M10 10H30L35 25L20 50L5 25L10 10Z" fill="#D4AF37" fillOpacity="0.4" stroke="#D4AF37" strokeWidth="2"/>
+             </svg>
+           </motion.div>
+        </div>
+      )}
 
       {/* Main Content Container */}
       <div className="relative z-10 w-full h-full flex flex-col pt-24 pb-4 container mx-auto px-4">

@@ -13,6 +13,7 @@ import { complaintsService } from "@/services/complaintsService";
 import { useAuth } from "@clerk/clerk-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { seasonalConfig } from "@/config/seasonalConfig";
 
 const Contact = () => {
   const { toast } = useToast();
@@ -69,7 +70,7 @@ const Contact = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] font-cairo text-right flex flex-col" dir="rtl">
+    <div className={cn("min-h-screen font-cairo text-right flex flex-col", seasonalConfig.isRamadanTheme ? "bg-navy-deep ramadan-theme-layer" : "bg-[#F8FAFC]")} dir="rtl">
       <Header />
       
       <main className="flex-1 py-20 px-4">

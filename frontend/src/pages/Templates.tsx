@@ -21,6 +21,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useLoading } from "@/contexts/LoadingContext";
+import RamadanDivider from "@/components/seasonal/RamadanDivider";
+import { seasonalConfig } from "@/config/seasonalConfig";
 
 const CorporateTrips = () => {
   const { getToken, isSignedIn } = useAuth();
@@ -109,6 +111,7 @@ const CorporateTrips = () => {
       <main className="relative z-0">
         {/* 1. Hero Section */}
         <CompanyHero />
+        <RamadanDivider />
 
         {/* 2. Logo Slider Section */}
         <motion.section 
@@ -168,6 +171,7 @@ const CorporateTrips = () => {
             </div>
           </div>
         </motion.section>
+        <RamadanDivider />
 
         {/* Why Travel With Us - Premium Redesign */}
         <section className="py-20 relative overflow-hidden bg-white">
@@ -261,6 +265,7 @@ const CorporateTrips = () => {
             </motion.div>
           </div>
         </section>
+        <RamadanDivider />
 
         {/* 3. Featured Trips Section */}
         <motion.section 

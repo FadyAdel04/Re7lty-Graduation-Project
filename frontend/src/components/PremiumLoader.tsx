@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { Bus, Plane, PlaneTakeoff, Car } from "lucide-react";
+import { Bus, Plane, PlaneTakeoff, Car, Moon, Star as StarIcon } from "lucide-react";
 import { useState, useEffect } from "react";
+import { seasonalConfig } from "@/config/seasonalConfig";
 
 const PremiumLoader = () => {
   const [stage, setStage] = useState(0); // 0: Microbus, 1: Big Bus, 2: Plane
@@ -23,17 +24,49 @@ const PremiumLoader = () => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-white/80 backdrop-blur-2xl"
+      className={`fixed inset-0 z-[99999] flex flex-col items-center justify-center backdrop-blur-2xl ${seasonalConfig.isRamadanTheme ? 'bg-[#050E17]/90' : 'bg-white/80'}`}
       dir="rtl"
     >
+      {/* Ramadan Background Elements */}
+      {seasonalConfig.isRamadanTheme && (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+           <motion.div 
+             className="absolute top-20 right-[15%] text-gold opacity-30"
+             animate={{ rotate: [-10, 10, -10], scale: [1, 1.1, 1] }}
+             transition={{ duration: 6, repeat: Infinity }}
+           >
+             <Moon size={120} fill="#D4AF37" />
+           </motion.div>
+           
+           {[...Array(10)].map((_, i) => (
+             <motion.div
+               key={i}
+               className="absolute text-gold opacity-20"
+               style={{
+                 top: `${Math.random() * 100}%`,
+                 left: `${Math.random() * 100}%`,
+               }}
+               animate={{ opacity: [0.1, 0.4, 0.1], scale: [0.8, 1.2, 0.8] }}
+               transition={{ duration: 2 + Math.random() * 3, repeat: Infinity, delay: Math.random() * 2 }}
+             >
+               <StarIcon size={12 + Math.random() * 10} fill="#D4AF37" />
+             </motion.div>
+           ))}
+        </div>
+      )}
+
       <div className="relative w-80 h-72 flex flex-col items-center justify-center">
         {/* Glowing Background Radial */}
-        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-40 bg-gradient-to-r from-orange-500/5 via-indigo-500/10 to-sky-500/5 rounded-full blur-[100px] animate-pulse" />
+        <div className={`absolute inset-x-0 top-1/2 -translate-y-1/2 h-40 rounded-full blur-[100px] animate-pulse ${
+          seasonalConfig.isRamadanTheme 
+            ? 'bg-gradient-to-r from-gold/10 via-gold/20 to-gold/10' 
+            : 'bg-gradient-to-r from-orange-500/5 via-indigo-500/10 to-sky-500/5'
+        }`} />
         
         {/* Moving Ground Line */}
-        <div className="absolute bottom-24 left-10 right-10 h-1 bg-gray-200/50 rounded-full overflow-hidden">
+        <div className={`absolute bottom-24 left-10 right-10 h-1 rounded-full overflow-hidden ${seasonalConfig.isRamadanTheme ? 'bg-gold/20' : 'bg-gray-200/50'}`}>
           <motion.div
-            className="h-full bg-gradient-to-r from-transparent via-primary to-transparent w-full"
+            className={`h-full w-full ${seasonalConfig.isRamadanTheme ? 'bg-gradient-to-r from-transparent via-gold to-transparent' : 'bg-gradient-to-r from-transparent via-primary to-transparent'}`}
             animate={{
               x: ["100%", "-100%"],
             }}
@@ -47,11 +80,11 @@ const PremiumLoader = () => {
         
         {/* Speed lines on ground */}
         <div className="absolute bottom-20 left-10 right-10 flex flex-col gap-2 opacity-20">
-          <div className="h-0.5 w-full bg-gray-300 rounded-full flex gap-12 overflow-hidden">
+          <div className={`h-0.5 w-full rounded-full flex gap-12 overflow-hidden ${seasonalConfig.isRamadanTheme ? 'bg-gold/10' : 'bg-gray-300'}`}>
              {[...Array(8)].map((_, i) => (
                 <motion.div 
                   key={i} 
-                  className="h-full min-w-[30px] bg-gray-600 rounded-full"
+                  className={`h-full min-w-[30px] rounded-full ${seasonalConfig.isRamadanTheme ? 'bg-gold/40' : 'bg-gray-600'}`}
                   animate={{ x: [150, -150] }}
                   transition={{ duration: 0.4, repeat: Infinity, ease: "linear", delay: i * 0.05 }}
                 />
@@ -93,11 +126,11 @@ const PremiumLoader = () => {
                   ease: "easeInOut"
                 }
               }}
-              className={vehicles[stage].color}
+              className={seasonalConfig.isRamadanTheme ? 'text-gold' : vehicles[stage].color}
             >
                <div className="relative flex items-center justify-center">
                  {/* Main Icon */}
-                 <div className="drop-shadow-[0_20px_30px_rgba(0,0,0,0.15)] filter">
+                 <div className={`filter ${seasonalConfig.isRamadanTheme ? 'drop-shadow-[0_0_15px_rgba(212,175,55,0.6)]' : 'drop-shadow-[0_20px_30px_rgba(0,0,0,0.15)]'}`}>
                    {vehicles[stage].icon}
                  </div>
                  
@@ -117,7 +150,7 @@ const PremiumLoader = () => {
           {[...Array(stage === 2 ? 6 : 3)].map((_, i) => (
             <motion.div
               key={i}
-              className="absolute bg-white/40 border border-white/20 rounded-full blur-[2px]"
+              className={`absolute border rounded-full blur-[2px] ${seasonalConfig.isRamadanTheme ? 'bg-gold/10 border-gold/10' : 'bg-white/40 border-white/20'}`}
               style={{
                 width: 30 + i * 15,
                 height: 8 + i * 4,
@@ -148,11 +181,13 @@ const PremiumLoader = () => {
             exit={{ opacity: 0, y: -10, filter: "blur(4px)" }}
             transition={{ duration: 0.3 }}
           >
-            <h3 className="text-gray-900 font-black text-3xl tracking-tight leading-none">
-              {stage === 0 ? "نبدأ الرحلة..." : stage === 1 ? "نطور الخطة..." : "ننطلق للوجهة!"}
+            <h3 className={`${seasonalConfig.isRamadanTheme ? 'text-gold' : 'text-gray-900'} font-black text-3xl tracking-tight leading-none`}>
+              {seasonalConfig.isRamadanTheme 
+                ? (stage === 0 ? "نستعد للإفطار..." : stage === 1 ? "نجهز السحور..." : "رمضان كريم!")
+                : (stage === 0 ? "نبدأ الرحلة..." : stage === 1 ? "نطور الخطة..." : "ننطلق للوجهة!")}
             </h3>
-            <p className="text-gray-400 font-bold text-xs mt-2 uppercase tracking-[0.3em] opacity-60">
-              {vehicles[stage].subLabel}
+            <p className={`${seasonalConfig.isRamadanTheme ? 'text-gold/60' : 'text-gray-400'} font-bold text-xs mt-2 uppercase tracking-[0.3em] opacity-60`}>
+              {seasonalConfig.isRamadanTheme ? "Ramadan Kareem" : vehicles[stage].subLabel}
             </p>
           </motion.div>
         </AnimatePresence>
@@ -160,12 +195,12 @@ const PremiumLoader = () => {
 
       {/* Modern Progress Bar */}
       <div className="mt-12 w-72 flex flex-col gap-3 items-center">
-        <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden shadow-inner border border-gray-100">
+        <div className={`w-full h-1.5 rounded-full overflow-hidden shadow-inner border ${seasonalConfig.isRamadanTheme ? 'bg-gold/5 border-gold/10' : 'bg-gray-100 border-gray-100'}`}>
           <motion.div
-            className="h-full bg-gradient-to-l from-orange-500 via-indigo-600 to-sky-500 rounded-full"
+            className={`h-full rounded-full ${seasonalConfig.isRamadanTheme ? 'bg-gold' : 'bg-gradient-to-l from-orange-500 via-indigo-600 to-sky-500'}`}
             animate={{
               width: ["0%", "100%"],
-              backgroundColor: ["#f97316", "#4f46e5", "#0ea5e9"]
+              opacity: [0.8, 1, 0.8]
             }}
             transition={{
               duration: 3.6, // Matches the 3-stage loop exactly (1.2 * 3)
@@ -177,9 +212,9 @@ const PremiumLoader = () => {
         <motion.span 
           animate={{ opacity: [0.4, 1, 0.4] }} 
           transition={{ duration: 2, repeat: Infinity }}
-          className="text-gray-400 text-[10px] font-black uppercase tracking-widest"
+          className={`${seasonalConfig.isRamadanTheme ? 'text-gold/60' : 'text-gray-400'} text-[10px] font-black uppercase tracking-widest`}
         >
-          جاري التحميل بكل حب
+          {seasonalConfig.isRamadanTheme ? "كل عام وأنتم بخير ✨" : "جاري التحميل بكل حب"}
         </motion.span>
       </div>
     </motion.div>

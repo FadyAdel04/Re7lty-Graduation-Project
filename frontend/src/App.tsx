@@ -51,6 +51,7 @@ import { TermsAcceptanceModal } from "@/components/TermsAcceptanceModal";
 import Leaderboard from "./pages/Leaderboard";
 import { LoadingProvider, useLoading } from "./contexts/LoadingContext";
 import PremiumLoader from "./components/PremiumLoader";
+import RamadanTheme from "./components/seasonal/RamadanTheme";
 
 
 const queryClient = new QueryClient();
@@ -221,7 +222,9 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <NotificationProvider>
-            <AppContent />
+            <RamadanTheme>
+              <AppContent />
+            </RamadanTheme>
           </NotificationProvider>
         </BrowserRouter>
       </TooltipProvider>

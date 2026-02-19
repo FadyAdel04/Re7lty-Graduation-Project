@@ -10,6 +10,8 @@ import HowItWorksSection from "@/components/home/HowItWorksSection";
 import DiscoverUsersTripsSection from "@/components/home/DiscoverUsersTripsSection";
 import SeasonTripsSection from "@/components/home/SeasonTripsSection";
 
+import { seasonalConfig } from "@/config/seasonalConfig";
+import RamadanHero from "@/components/seasonal/RamadanHero";
 
 const Index = () => {
   return (

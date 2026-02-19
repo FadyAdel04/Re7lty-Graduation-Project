@@ -15,6 +15,8 @@ import {
 import { SignedIn, SignedOut, SignInButton, useUser, SignOutButton } from "@clerk/clerk-react";
 import NotificationBell from "@/components/NotificationBell";
 import { cn } from "@/lib/utils";
+import { seasonalConfig } from "@/config/seasonalConfig";
+import { Moon, Star } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 const logo = "/assets/logo.png";
@@ -216,6 +218,15 @@ const Header = ({ onSearch }: HeaderProps) => {
                 scrolled ? "h-12 md:h-16" : "h-14 md:h-20"
               )}
             />
+            {seasonalConfig.isRamadanTheme && (
+              <motion.div 
+                className="absolute -top-1 -right-4 text-gold opacity-80"
+                animate={{ rotate: [-20, 20, -20], scale: [1, 1.1, 1] }}
+                transition={{ duration: 4, repeat: Infinity }}
+              >
+                <Moon size={18} fill="#D4AF37" />
+              </motion.div>
+            )}
           </Link>
 
           {/* 2. Navigation & Search (Centered Container) */}
@@ -228,6 +239,15 @@ const Header = ({ onSearch }: HeaderProps) => {
               <NavItem to="/timeline" icon={Compass} label="الرحلات" id="nav-timeline" />
               <NavItem to="/agency" icon={Briefcase} label="الشركات" id="nav-templates" />
               <NavItem to="/leaderboard" icon={Trophy} label="المتصدرين" id="nav-leaderboard" />
+              {seasonalConfig.isRamadanTheme && (
+                <motion.div 
+                  className="px-2"
+                  animate={{ opacity: [0.4, 1, 0.4] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                >
+                  <Star size={14} fill="#D4AF37" color="#D4AF37" />
+                </motion.div>
+              )}
             </nav>
 
             {/* Premium Search Bar */}

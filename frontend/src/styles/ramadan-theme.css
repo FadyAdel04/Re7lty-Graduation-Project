@@ -1,0 +1,218 @@
+@import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Aref+Ruqaa:wght@400;700&display=swap');
+
+:root {
+  --ramadan-gold: #D4AF37;
+  --ramadan-gold-glow: rgba(212, 175, 55, 0.6);
+  --ramadan-navy: #0B1C2D;
+  --ramadan-navy-deep: #050E17;
+  --ramadan-purple: #2D1B4D;
+  --ramadan-text: #F5F5F5;
+}
+
+/* Base Theme Layer */
+.ramadan-theme-layer {
+  font-family: 'Amiri', serif;
+  background-color: var(--ramadan-navy);
+  color: var(--ramadan-text);
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.ramadan-theme-layer h1, 
+.ramadan-theme-layer h2, 
+.ramadan-theme-layer h3, 
+.ramadan-theme-layer h4, 
+.ramadan-theme-layer .ramadan-title {
+  font-family: 'Aref Ruqaa', serif;
+  color: var(--ramadan-gold);
+}
+
+/* Hero Section Styles */
+.ramadan-hero-container {
+  position: relative;
+  width: 100%;
+  padding: 100px 20px;
+  background: linear-gradient(135deg, var(--ramadan-navy) 0%, var(--ramadan-purple) 50%, var(--ramadan-navy-deep) 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  overflow: hidden;
+}
+
+/* Twinkling Stars */
+.ramadan-stars-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Crescent Moon */
+.ramadan-crescent-moon {
+  position: absolute;
+  top: 60px;
+  right: 15%;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  box-shadow: -15px 15px 0 0 var(--ramadan-gold);
+  filter: drop-shadow(0 0 20px var(--ramadan-gold-glow));
+  transform: rotate(-20deg);
+  z-index: 1;
+}
+
+/* Lanterns */
+.ramadan-hanging-lantern {
+  position: absolute;
+  top: -10px;
+  filter: drop-shadow(0 0 15px var(--ramadan-gold-glow));
+  z-index: 2;
+}
+
+/* Lights String */
+.ramadan-lights-string {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 40px;
+  z-index: 1000;
+  pointer-events: none;
+  display: flex;
+  justify-content: space-around;
+  padding: 0 10px;
+}
+
+.ramadan-light-bulb {
+  width: 12px;
+  height: 18px;
+  background: var(--ramadan-gold);
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  box-shadow: 0 0 10px var(--ramadan-gold);
+  animation: ramadan-glow 2s infinite alternate;
+}
+
+@keyframes ramadan-glow {
+  from { opacity: 0.6; box-shadow: 0 0 5px var(--ramadan-gold); }
+  to { opacity: 1; box-shadow: 0 0 15px var(--ramadan-gold); }
+}
+
+/* Islamic Geometric Divider */
+.ramadan-geometric-divider {
+  width: 100%;
+  height: 60px;
+  margin: 40px 0;
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0l5.88 18.09H54.12l-14.76 10.72 5.64 17.36L30 35.45l-14.99 10.72 5.64-17.36L5.88 18.09h18.24L30 0z' fill='%23D4AF37' fill-opacity='0.1'/%3E%3C/svg%3E");
+  background-repeat: repeat-x;
+  background-position: center;
+}
+
+/* Floating Particles */
+.ramadan-particle {
+  position: fixed;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.4;
+}
+
+/* Popup Greeting */
+.ramadan-greeting-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(11, 28, 45, 0.95);
+  backdrop-filter: blur(12px);
+  border: 2px solid var(--ramadan-gold);
+  border-radius: 24px;
+  padding: 40px 60px;
+  z-index: 10000;
+  box-shadow: 0 0 60px rgba(0, 0, 0, 0.5), 0 0 30px var(--ramadan-gold-glow);
+  text-align: center;
+}
+
+.ramadan-greeting-text {
+  font-family: 'Aref Ruqaa', serif;
+  font-size: 3rem;
+  color: var(--ramadan-gold);
+  margin-bottom: 20px;
+  text-shadow: 0 0 10px var(--ramadan-gold-glow);
+}
+
+/* Golden Frame (for About page) */
+.ramadan-golden-frame {
+  border: 1px solid var(--ramadan-gold);
+  padding: 20px;
+  position: relative;
+  border-radius: 12px;
+}
+
+.ramadan-golden-frame::before,
+.ramadan-golden-frame::after {
+  content: '✦';
+  position: absolute;
+  color: var(--ramadan-gold);
+  font-size: 24px;
+}
+
+.ramadan-golden-frame::before { top: -12px; left: -12px; }
+.ramadan-golden-frame::after { bottom: -12px; right: -12px; }
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .ramadan-greeting-text {
+    font-size: 2rem;
+  }
+  .ramadan-crescent-moon {
+    right: 5%;
+    width: 60px;
+    height: 60px;
+  }
+}
+
+/* Header & Global Overrides */
+.ramadan-theme-layer header {
+  background-color: rgba(11, 28, 45, 0.8) !important;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.3) !important;
+  backdrop-filter: blur(16px) !important;
+}
+
+.ramadan-theme-layer header .text-gray-500,
+.ramadan-theme-layer header .text-gray-700,
+.ramadan-theme-layer header .text-gray-900 {
+  color: #fff !important;
+}
+
+.ramadan-theme-layer header .text-indigo-600 {
+  color: var(--ramadan-gold) !important;
+}
+
+.ramadan-theme-layer header .bg-indigo-600,
+.ramadan-theme-layer header .bg-orange-600,
+.ramadan-theme-layer main button.bg-orange-500,
+.ramadan-theme-layer main button.bg-indigo-600 {
+  background-color: var(--ramadan-gold) !important;
+  color: var(--ramadan-navy) !important;
+}
+
+.ramadan-theme-layer header .bg-indigo-50 {
+  background-color: rgba(212, 175, 55, 0.1) !important;
+  color: var(--ramadan-gold) !important;
+}
+
+.ramadan-theme-layer .text-indigo-600,
+.ramadan-theme-layer .text-orange-600 {
+  color: var(--ramadan-gold) !important;
+}
+
+.ramadan-theme-layer .bg-orange-600,
+.ramadan-theme-layer .bg-indigo-600 {
+  background-color: var(--ramadan-gold) !important;
+  color: var(--ramadan-navy) !important;
+}
