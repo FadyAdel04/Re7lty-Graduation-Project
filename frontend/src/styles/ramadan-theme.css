@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Aref+Ruqaa:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&family=Lalezar&display=swap');
 
 :root {
   --ramadan-gold: #D4AF37;
@@ -11,7 +11,7 @@
 
 /* Base Theme Layer */
 .ramadan-theme-layer {
-  font-family: 'Amiri', serif;
+  font-family: 'Tajawal', sans-serif;
   background-color: var(--ramadan-navy);
   color: var(--ramadan-text);
   min-height: 100vh;
@@ -24,7 +24,7 @@
 .ramadan-theme-layer h3, 
 .ramadan-theme-layer h4, 
 .ramadan-theme-layer .ramadan-title {
-  font-family: 'Aref Ruqaa', serif;
+  font-family: 'Lalezar', cursive;
   color: var(--ramadan-gold);
 }
 
@@ -138,7 +138,7 @@
 }
 
 .ramadan-greeting-text {
-  font-family: 'Aref Ruqaa', serif;
+  font-family: 'Lalezar', cursive;
   font-size: 3rem;
   color: var(--ramadan-gold);
   margin-bottom: 20px;
@@ -178,9 +178,30 @@
 
 /* Header & Global Overrides */
 .ramadan-theme-layer header {
+  font-family: 'Tajawal', sans-serif !important;
   background-color: rgba(11, 28, 45, 0.8) !important;
   border-bottom: 1px solid rgba(212, 175, 55, 0.3) !important;
   backdrop-filter: blur(16px) !important;
+}
+
+/* Header search bar – clear text and placeholder on dark background */
+.ramadan-theme-layer header input {
+  color: #F5F5F5 !important;
+  caret-color: var(--ramadan-gold);
+}
+.ramadan-theme-layer header input::placeholder {
+  color: rgba(245, 245, 245, 0.75) !important;
+}
+.ramadan-theme-layer header input:focus {
+  background-color: rgba(255, 255, 255, 0.12) !important;
+  border-color: rgba(212, 175, 55, 0.5) !important;
+}
+.ramadan-theme-layer header .group .text-gray-400,
+.ramadan-theme-layer header input ~ svg {
+  color: rgba(245, 245, 245, 0.9) !important;
+}
+.ramadan-theme-layer header .group:focus-within svg {
+  color: var(--ramadan-gold) !important;
 }
 
 .ramadan-theme-layer header .text-gray-500,

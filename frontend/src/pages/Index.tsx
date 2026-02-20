@@ -4,14 +4,16 @@ import Hero from "@/components/Hero";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Building2, CheckCircle2 } from "lucide-react";
-import AISection from "@/components/home/AISection";
-import DiscoverSection from "@/components/home/DiscoverSection";
-import HowItWorksSection from "@/components/home/HowItWorksSection";
-import DiscoverUsersTripsSection from "@/components/home/DiscoverUsersTripsSection";
-import SeasonTripsSection from "@/components/home/SeasonTripsSection";
-
 import { seasonalConfig } from "@/config/seasonalConfig";
-import RamadanHero from "@/components/seasonal/RamadanHero";
+import { lazy, Suspense } from "react";
+
+// Lazy load below-the-fold sections
+const AISection = lazy(() => import("@/components/home/AISection"));
+const DiscoverSection = lazy(() => import("@/components/home/DiscoverSection"));
+const HowItWorksSection = lazy(() => import("@/components/home/HowItWorksSection"));
+const DiscoverUsersTripsSection = lazy(() => import("@/components/home/DiscoverUsersTripsSection"));
+const SeasonTripsSection = lazy(() => import("@/components/home/SeasonTripsSection"));
+const RamadanHero = lazy(() => import("@/components/seasonal/RamadanHero"));
 
 const Index = () => {
   return (
@@ -20,21 +22,21 @@ const Index = () => {
       <main>
         <Hero />
 
-        {/* How It Works Section */}
-        <HowItWorksSection />
+        <Suspense fallback={<div className="h-40" />}>
+          {/* How It Works Section */}
+          <HowItWorksSection />
 
-        {/* AI Showcase Section */}
-        <AISection />
+          {/* AI Showcase Section */}
+          <AISection />
 
+          {/* Discover Users Trips Section */}
+          <div id="featured-trips-section">
+            <DiscoverUsersTripsSection />
+          </div>
 
-
-        {/* Discover Users Trips Section */}
-        <div id="featured-trips-section">
-          <DiscoverUsersTripsSection />
-        </div>
-
-        {/* Seasonal Trips Section */}
-        <SeasonTripsSection />
+          {/* Seasonal Trips Section */}
+          <SeasonTripsSection />
+        </Suspense>
 
         {/* Corporate Trips Teaser */}
         <section id="corporate-trips-section" className="py-20 bg-gradient-to-br from-gray-900 to-gray-800 text-white relative overflow-hidden">

@@ -1,16 +1,17 @@
 import { Link } from "react-router-dom";
 import { Facebook, Twitter, Instagram, Mail, Globe, Sparkles, MapPin, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { seasonalConfig } from "@/config/seasonalConfig";
 
 const logo = "/assets/logo.png";
 
 const Footer = () => {
   return (
-    <footer className="relative bg-white border-t border-gray-100 overflow-hidden font-cairo" dir="rtl">
+    <footer className={cn("relative border-t border-gray-100 overflow-hidden font-cairo", seasonalConfig.isRamadanTheme ? "bg-[#050E17] border-gold/20" : "bg-white")} dir="rtl">
       {/* Decorative Background Elements */}
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-40">
-        <div className="absolute top-[-10%] right-[-5%] w-96 h-96 bg-indigo-50 rounded-full blur-[100px]" />
-        <div className="absolute bottom-[-10%] left-[-5%] w-64 h-64 bg-orange-50 rounded-full blur-[80px]" />
+        <div className={cn("absolute top-[-10%] right-[-5%] w-96 h-96 rounded-full blur-[100px]", seasonalConfig.isRamadanTheme ? "bg-gold/10" : "bg-indigo-50")} />
+        <div className={cn("absolute bottom-[-10%] left-[-5%] w-64 h-64 rounded-full blur-[80px]", seasonalConfig.isRamadanTheme ? "bg-gold/5" : "bg-orange-50")} />
       </div>
 
       <div className="container mx-auto px-6 relative z-10">
@@ -22,7 +23,7 @@ const Footer = () => {
             <Link to="/" className="inline-block group">
               <img src={logo} alt="رحلتي" className="h-20 w-20 drop-shadow-sm group-hover:scale-105 transition-transform duration-500" />
             </Link>
-            <p className="text-gray-500 text-lg font-bold leading-relaxed max-w-md">
+            <p className={cn("text-lg font-bold leading-relaxed max-w-md", seasonalConfig.isRamadanTheme ? "text-white/80" : "text-gray-500")}>
               اكتشف العالم بعيون المسافرين. رحلتي هي بوصلتك لتخطيط مغامرتك القادمة، ومشاركة تجاربك الملهمة مع مجتمع يعشق الاستكشاف.
             </p>
             
@@ -129,6 +130,9 @@ const Footer = () => {
                     src="https://upload.wikimedia.org/wikipedia/commons/3/3c/Download_on_the_App_Store_Badge.svg" 
                     alt="App Store" 
                     className="h-10 w-auto"
+                    loading="lazy"
+                    width="120"
+                    height="40"
                   />
                 </div>
                 <div className="opacity-40 grayscale cursor-not-allowed select-none">
@@ -136,6 +140,9 @@ const Footer = () => {
                     src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg" 
                     alt="Google Play" 
                     className="h-10 w-auto"
+                    loading="lazy"
+                    width="135"
+                    height="40"
                   />
                 </div>
               </div>

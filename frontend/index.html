@@ -1,38 +1,50 @@
 <!doctype html>
 <html lang="ar" dir="rtl">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>رحلتي - Triply | شارك تجارب سفرك</title>
-    <meta name="description" content="منصة مشاركة تجارب السفر والرحلات - اكتشف وخطط وشارك رحلاتك" />
-    <meta name="author" content="Triply" />
 
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>رحلتي - Triply | شارك تجارب سفرك</title>
+  <meta name="description" content="منصة مشاركة تجارب السفر والرحلات - اكتشف وخطط وشارك رحلاتك" />
+  <meta name="author" content="Triply" />
+
+  <!-- Performance Optimizations -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://possible-leopard-29.clerk.accounts.dev">
+
+  <link rel="preload" href="/assets/hero-1.png" as="image" type="image/png" fetchpriority="high">
+  <link rel="preload" href="/assets/logo.png" as="image" type="image/png">
+
+  <!-- Google Fonts Optimized Loading -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&family=Reem+Kufi:wght@400;500;600;700&family=Lalezar&family=Changa:wght@400;700&display=swap"
+    rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript>
     <link
-      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    >
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&family=Reem+Kufi:wght@400;500;600;700&family=Lalezar&family=Changa:wght@400;700&display=swap"
+      rel="stylesheet">
+  </noscript>
 
-    <!-- Open Graph Meta Tags -->
-    <meta property="og:title" content="رحلتي - Triply | شارك تجارب سفرك" />
-    <meta property="og:description" content="منصة مشاركة تجارب السفر والرحلات - اكتشف وخطط وشارك رحلاتك" />
-    <meta property="og:type" content="website" />
-    <meta property="og:image" content="/assets/logo.png" />
+  <!-- Open Graph Meta Tags -->
+  <meta property="og:title" content="رحلتي - Triply | شارك تجارب سفرك" />
+  <meta property="og:description" content="منصة مشاركة تجارب السفر والرحلات - اكتشف وخطط وشارك رحلاتك" />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="/assets/logo.png" />
 
-    <!-- Twitter Meta Tags -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="رحلتي - Triply | شارك تجارب سفرك" />
-    <meta name="twitter:description" content="منصة Triply لمشاركة وتخطيط تجارب السفر والرحلات حول العالم." />
-    <meta name="twitter:image" content="/assets/logo.png" />
+  <!-- Twitter Meta Tags -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="رحلتي - Triply | شارك تجارب سفرك" />
+  <meta name="twitter:description" content="منصة Triply لمشاركة وتخطيط تجارب السفر والرحلات حول العالم." />
+  <meta name="twitter:image" content="/assets/logo.png" />
 
-    <!-- Favicon -->
-    <link rel="icon" type="image/png" href="/src/assets/favicon.png" />
-  </head>
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="/src/assets/favicon.png" />
+</head>
 
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
 </html>

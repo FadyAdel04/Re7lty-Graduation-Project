@@ -82,22 +82,34 @@ const Hero = () => {
   return (
     <section className="relative  min-h-[600px] w-full overflow-hidden font-cairo bg-black">
       
-      {/* Dynamic Background Layer */}
-      {FEATURES.map((feature) => (
-         <div 
-           key={feature.id}
-           className={cn(
-             "absolute inset-0 transition-opacity duration-1000 ease-in-out",
-             activeId === feature.id ? "opacity-100 z-0" : "opacity-0 -z-10"
-           )}
-         >
-           <div 
-             className="absolute inset-0 bg-cover bg-center transform scale-105 transition-transform duration-[10s] ease-linear"
-             style={{ backgroundImage: `url('${feature.image}')` }}
-           />
-           <div className="absolute inset-0 bg-gradient-to-r from-gray-950 via-gray-900/80 to-black/40" />
-         </div>
-      ))}
+      {/* Dynamic Background Layer - Optimized for LCP */}
+      {FEATURES.map((feature) => {
+        const isCurrent = activeId === feature.id;
+        const isNext = feature.id === (activeId === FEATURES.length ? 1 : activeId + 1);
+        
+        if (!isCurrent && !isNext) return null;
+
+        return (
+          <div 
+            key={feature.id}
+            className={cn(
+              "absolute inset-0 transition-opacity duration-1000 ease-in-out",
+              isCurrent ? "opacity-100 z-0" : "opacity-0 -z-10"
+            )}
+          >
+            {/* Using img instead of background-image for faster discovery & fetchPriority */}
+            <img 
+              src={feature.image} 
+              alt="" 
+              className="absolute inset-0 w-full h-full object-cover transform scale-105 transition-transform duration-[10s] ease-linear"
+              fetchPriority={isCurrent ? "high" : "low"}
+              loading={isCurrent ? "eager" : "lazy"}
+              decoding="async"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-gray-950 via-gray-900/80 to-black/40" />
+          </div>
+        );
+      })}
 
       {/* Ramadan Season Layer - Conditional Icons */}
       {seasonalConfig.isRamadanTheme && (
@@ -216,8 +228,21 @@ const Hero = () => {
                       {/* Inner Image for Card (visible only when expanded or purely decorative?) 
                           Let's keep the transparent gradient feel, maybe show a hint of the image 
                       */}
+                      {/* Card Background: Image only for active card to save bandwidth, sleek gradient for others */}
                       <div className="absolute inset-0 opacity-20 transition-opacity duration-500 group-hover:opacity-40">
-                         <img src={feature.image} alt="" className="w-full h-full object-cover" />
+                         {isActive ? (
+                           <img 
+                            src={feature.image} 
+                            alt="" 
+                            className="w-full h-full object-cover" 
+                            loading="eager"
+                            width="400"
+                            height="600"
+                            decoding="async"
+                          />
+                         ) : (
+                           <div className={cn("w-full h-full bg-gradient-to-br", feature.color, "opacity-20")} />
+                         )}
                       </div>
                       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
                       

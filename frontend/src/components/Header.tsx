@@ -196,8 +196,9 @@ const Header = ({ onSearch }: HeaderProps) => {
   };
 
   return (
+    <>
     <header className={cn(
-      "sticky top-0 z-40 w-full transition-all duration-500 font-cairo",
+      "fixed top-0 z-40 w-full transition-all duration-500 font-cairo",
       scrolled 
         ? "bg-white/70 backdrop-blur-2xl border-b border-white/20 shadow-[0_10px_40px_rgba(0,0,0,0.04)] h-[4.5rem] lg:h-[5rem]" 
         : "bg-white border-b border-transparent h-20 lg:h-24"
@@ -205,7 +206,7 @@ const Header = ({ onSearch }: HeaderProps) => {
       <div className="container mx-auto px-4 h-full">
         
         {/* Main Content Area */}
-        <div className="flex items-center justify-between h-full gap-4 xl:gap-8">
+        <div className="flex items-center justify-between h-full gap-4 xl:gap-8 sticky top-0 z-40">
           
           {/* 1. Logo Section */}
           <Link to="/" className="flex items-center flex-shrink-0 group relative transition-all duration-500">
@@ -213,6 +214,9 @@ const Header = ({ onSearch }: HeaderProps) => {
             <img
               src={logo}
               alt="رحلتي"
+              width="80"
+              height="80"
+              fetchPriority="high"
               className={cn(
                 "w-auto transition-all duration-500 group-hover:scale-125 group-hover:-rotate-3 object-contain relative z-10",
                 scrolled ? "h-12 md:h-16" : "h-14 md:h-20"
@@ -568,6 +572,9 @@ const Header = ({ onSearch }: HeaderProps) => {
         )}
       </AnimatePresence>
     </header>
+    {/* Spacer so fixed header does not hide first section on any page */}
+    <div aria-hidden="true" className="h-20 lg:h-24 flex-shrink-0" />
+    </>
   );
 };
 

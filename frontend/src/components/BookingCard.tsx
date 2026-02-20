@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useUser, useAuth } from "@clerk/clerk-react";
-import { Phone, MessageCircle, Globe, Star, Clock, Calendar, CheckCircle2, Zap, CreditCard, Wallet, Smartphone, ShieldCheck, Users, Loader2, Check } from "lucide-react";
+import { Phone, MessageCircle, Globe, Star, Clock, Calendar, CheckCircle2, Zap, CreditCard, Wallet, Smartphone, ShieldCheck, Users, Loader2, Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -48,6 +48,7 @@ const BookingCard = ({ trip, company, sticky = false }: BookingCardProps) => {
   });
 
   const [currentBusIndex, setCurrentBusIndex] = useState(0);
+  const [bookingStep, setBookingStep] = useState<1 | 2 | 3>(1);
 
   const [couponCode, setCouponCode] = useState("");
   const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
@@ -198,6 +199,49 @@ const BookingCard = ({ trip, company, sticky = false }: BookingCardProps) => {
 
   const handleSubmitBooking = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Only allow submit from payment step (step 3)
+    if (bookingStep !== 3) {
+      toast({
+        title: "أكمل خطوة الدفع",
+        description: "يجب إكمال خطوة الدفع لتأكيد الحجز",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Require payment details before confirming
+    if (bookingData.paymentMethod === "credit_card") {
+      const cardNum = (bookingData.cardNumber || "").replace(/\s/g, "");
+      if (!cardNum || cardNum.length < 13) {
+        toast({ title: "أدخل بيانات البطاقة", description: "يرجى إدخال رقم البطاقة بشكل صحيح", variant: "destructive" });
+        return;
+      }
+      if (!bookingData.expiryDate?.trim()) {
+        toast({ title: "أدخل تاريخ الانتهاء", description: "يرجى إدخال تاريخ انتهاء البطاقة (MM/YY)", variant: "destructive" });
+        return;
+      }
+      if (!bookingData.cvv?.trim() || bookingData.cvv.length < 3) {
+        toast({ title: "أدخل رمز CVV", description: "يرجى إدخال رمز الأمان (CVV) الموجود على البطاقة", variant: "destructive" });
+        return;
+      }
+    } else {
+      const walletNum = (bookingData.walletNumber || "").replace(/\s/g, "");
+      if (!walletNum || walletNum.length < 10) {
+        toast({ title: "أدخل رقم المحفظة", description: "يرجى إدخال رقم هاتف المحفظة الإلكترونية", variant: "destructive" });
+        return;
+      }
+    }
+
+    // If user entered a coupon code, they must apply it or clear it
+    if (couponCode.trim() && !appliedCoupon) {
+      toast({
+        title: "الكوبون",
+        description: "قم بتطبيق الكوبون بالضغط على «تطبيق» أو احذف الكود إذا كنت لا تريد استخدامه",
+        variant: "destructive"
+      });
+      return;
+    }
+
     if (!user) {
        toast({
          title: "يجب تسجيل الدخول",
@@ -397,337 +441,279 @@ const BookingCard = ({ trip, company, sticky = false }: BookingCardProps) => {
         </CardContent>
       </Card>
 
-      <Dialog open={showBookingDialog} onOpenChange={setShowBookingDialog}>
-        <DialogContent className="max-w-[95vw] lg:max-w-[1150px] h-[95vh] p-0 font-cairo overflow-hidden rounded-[2rem] md:rounded-[2.5rem] border-0 shadow-2xl flex flex-col" dir="rtl">
-          {/* Minimal Header */}
+      <Dialog open={showBookingDialog} onOpenChange={(open) => { setShowBookingDialog(open); if (!open) setBookingStep(1); }}>
+        <DialogContent className="w-[100vw] max-w-[100vw] sm:max-w-[95vw] lg:max-w-[640px] h-[100dvh] max-h-[100dvh] sm:h-[95vh] sm:max-h-[95vh] p-0 font-cairo overflow-hidden rounded-none sm:rounded-2xl md:rounded-[2.5rem] border-0 shadow-2xl flex flex-col max-sm:left-0 max-sm:top-0 max-sm:right-0 max-sm:bottom-0 max-sm:translate-x-0 max-sm:translate-y-0" dir="rtl">
+          {/* Header with stepper */}
           <div className="bg-gradient-to-r from-indigo-600 to-indigo-800 p-3 md:p-4 text-white relative overflow-hidden shrink-0 border-b border-white/10">
              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl opacity-50" />
-             <div className="relative z-10 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                   <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center backdrop-blur-md">
-                      <Calendar className="w-4 h-4 text-white" />
-                   </div>
-                   <div>
-                      <DialogTitle className="text-lg md:text-xl font-black leading-tight">تأكيد حجز: <span className="text-indigo-200">{trip.title}</span></DialogTitle>
-                      <p className="text-[10px] text-indigo-100/70 font-bold">بوابة الحجز الذكي - رِحلتـي</p>
-                   </div>
-                </div>
-                <div className="hidden md:flex items-center gap-2">
-                   <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 text-[9px] font-black">
-                      <ShieldCheck className="w-3 h-3 ml-1" /> دفع آمن 100%
+             <div className="relative z-10">
+                <div className="flex items-center justify-between gap-2 mb-3">
+                   <DialogTitle className="text-sm sm:text-lg font-black leading-tight truncate">تأكيد حجز: <span className="text-indigo-200">{trip.title}</span></DialogTitle>
+                   <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 text-[9px] font-black shrink-0 hidden sm:inline-flex">
+                      <ShieldCheck className="w-3 h-3 ml-1" /> دفع آمن
                    </Badge>
+                </div>
+                {/* Step indicator */}
+                <div className="flex items-center gap-1 sm:gap-2">
+                   {[1, 2, 3].map((step) => (
+                     <div key={step} className="flex items-center">
+                        <div className={cn(
+                          "flex items-center justify-center rounded-full w-8 h-8 sm:w-9 sm:h-9 text-xs font-black border-2 transition-all",
+                          bookingStep === step ? "bg-white text-indigo-700 border-white" : bookingStep > step ? "bg-emerald-500/30 border-emerald-400 text-emerald-200" : "bg-white/10 border-white/30 text-white/70"
+                        )}>
+                          {bookingStep > step ? <Check className="w-4 h-4" /> : step}
+                        </div>
+                        <span className={cn("mr-1.5 sm:mr-2 text-[10px] sm:text-xs font-bold hidden sm:inline", bookingStep === step ? "text-white" : "text-white/70")}>
+                          {step === 1 ? "البيانات" : step === 2 ? "المقاعد" : "الدفع"}
+                        </span>
+                        {step < 3 && <ChevronLeft className="w-4 h-4 text-white/40 -mr-0.5" />}
+                     </div>
+                   ))}
                 </div>
              </div>
           </div>
 
-          <form onSubmit={handleSubmitBooking} className="flex-1 overflow-hidden flex flex-col bg-gray-50/50">
-            <div className="p-3 md:p-6 grid grid-cols-1 lg:grid-cols-3 gap-4 flex-1 min-h-0">
+          <form
+            onSubmit={handleSubmitBooking}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && bookingStep !== 3) e.preventDefault();
+            }}
+            className="flex-1 min-h-0 flex flex-col bg-gray-50/50 relative overflow-hidden"
+          >
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain p-4 md:p-6 pb-32 sm:pb-28 scroll-smooth custom-scrollbar">
                
-               {/* 1. Trip & Seat Details (4/12 -> 1/3) */}
-               <div className="flex flex-col h-full min-h-0 bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
-                  <div className="flex items-center gap-2 mb-3 shrink-0">
-                     <div className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 border border-indigo-100">
-                        <Users className="w-4 h-4" />
-                     </div>
-                     <h4 className="text-sm font-black text-gray-900">عدد المسافرين والمقاعد</h4>
-                  </div>
+               {/* Step 1: Passenger info + number of people */}
+               {bookingStep === 1 && (
+                 <div className="max-w-lg mx-auto bg-white p-4 sm:p-6 rounded-2xl border border-gray-100 shadow-sm space-y-5">
+                    <div className="flex items-center gap-2">
+                       <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 border border-indigo-100">
+                          <Users className="w-4 h-4" />
+                       </div>
+                       <h4 className="text-base font-black text-gray-900">بيانات المسافرين وعددهم</h4>
+                    </div>
 
-                  <div className="flex-1 flex flex-col gap-3 min-h-0 overflow-hidden">
-                     <div className="flex items-center gap-3 bg-gray-50 p-2 rounded-xl border border-gray-100 shrink-0">
-                        <Input
-                          type="number"
-                          min="1"
-                          max={trip.maxGroupSize || 50}
-                          value={bookingData.numberOfPeople}
-                          onChange={(e) => setBookingData({ ...bookingData, numberOfPeople: parseInt(e.target.value) || 1 })}
-                          className="h-8 text-center text-sm font-black rounded-lg border-gray-200 bg-white focus:ring-1 focus:ring-indigo-500 w-16"
-                        />
-                        <Label className="text-[10px] font-bold text-gray-500">مسافر في هذه الرحلة</Label>
-                     </div>
+                    <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                       <Label className="text-sm font-bold text-gray-600">عدد المسافرين</Label>
+                       <Input
+                         type="number"
+                         min="1"
+                         max={trip.maxGroupSize || 50}
+                         value={bookingData.numberOfPeople}
+                         onChange={(e) => setBookingData({ ...bookingData, numberOfPeople: parseInt(e.target.value) || 1 })}
+                         className="h-11 w-20 text-center text-base font-black rounded-lg border-gray-200 bg-white focus:ring-2 focus:ring-indigo-500 touch-manipulation"
+                       />
+                    </div>
 
-                      <div className="relative flex-1 min-h-0 bg-gray-50/30 rounded-xl border border-dashed border-gray-200 flex flex-col items-center">
-                         <div className="w-full p-2 border-b border-gray-100 bg-white/50 shrink-0">
-                            {transportationUnits.length > 1 && (
-                               <div className="flex gap-1 overflow-x-auto pb-1 no-scrollbar">
-                                  {transportationUnits.map((unit, idx) => (
-                                     <button
-                                        key={idx}
-                                        type="button"
-                                        onClick={() => setCurrentBusIndex(idx)}
-                                        className={cn(
-                                           "px-3 py-1.5 rounded-lg text-[9px] font-black whitespace-nowrap transition-all border",
-                                           currentBusIndex === idx 
-                                              ? "bg-indigo-600 text-white border-indigo-700 shadow-sm" 
-                                              : "bg-white text-gray-500 border-gray-200 hover:border-indigo-300"
-                                        )}
-                                     >
-                                        {unit.type === 'bus-48' || unit.type === 'bus-50' ? 'حافلة' : unit.type === 'minibus-28' ? 'ميني باص' : 'ميكروباص'} {idx + 1}
-                                     </button>
-                                  ))}
-                               </div>
-                            )}
-                         </div>
-                         <p className="text-[9px] font-black text-indigo-400 mt-2 z-10 bg-white px-2 py-0.5 rounded-full border border-indigo-100">
-                            اختر {bookingData.numberOfPeople} مقاعد ({bookingData.selectedSeats.length} محددة)
-                         </p>
-                         <div className="flex-1 w-full mt-2 overflow-y-auto custom-scrollbar min-h-0">
-                            <div className="flex items-start justify-center p-4">
-                               <div className="scale-[0.85] md:scale-100 transition-transform">
-                                  <BusSeatLayout 
-                                     type={currentUnit.type} 
-                                     bookedSeats={currentBookedSeats}
-                                     onSelectSeats={handleSeatSelection}
-                                     initialSelectedSeats={currentSelectedSeats}
-                                     maxSelection={bookingData.numberOfPeople - (bookingData.selectedSeats.length - currentSelectedSeats.length)}
-                                     isAdmin={false}
-                                  />
-                               </div>
-                            </div>
-                         </div>
-                      </div>
-                  </div>
-               </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                       <div className="space-y-1">
+                          <Label className="text-xs font-black text-gray-500">الاسم الأول</Label>
+                          <Input
+                            value={bookingData.firstName}
+                            onChange={(e) => setBookingData({ ...bookingData, firstName: e.target.value })}
+                            className="h-11 rounded-lg bg-gray-50 border-gray-100 placeholder:text-gray-400 text-sm px-3 focus:bg-white touch-manipulation"
+                            placeholder="محمد"
+                            required
+                          />
+                       </div>
+                       <div className="space-y-1">
+                          <Label className="text-xs font-black text-gray-500">اسم العائلة</Label>
+                          <Input
+                            value={bookingData.lastName}
+                            onChange={(e) => setBookingData({ ...bookingData, lastName: e.target.value })}
+                            className="h-11 rounded-lg bg-gray-50 border-gray-100 placeholder:text-gray-400 text-sm px-3 focus:bg-white touch-manipulation"
+                            placeholder="أحمد"
+                            required
+                          />
+                       </div>
+                    </div>
+                    <div className="space-y-1">
+                       <Label className="text-xs font-black text-gray-500">رقم الهاتف</Label>
+                       <Input
+                         type="tel"
+                         inputMode="numeric"
+                         value={bookingData.userPhone}
+                         onChange={(e) => setBookingData({ ...bookingData, userPhone: e.target.value })}
+                         className="h-11 rounded-lg bg-gray-50 border-gray-100 text-sm px-3 focus:bg-white touch-manipulation"
+                         placeholder="01xxxxxxxxx"
+                         required
+                       />
+                    </div>
+                    <div className="space-y-1">
+                       <Label className="text-xs font-black text-gray-500">البريد الإلكتروني</Label>
+                       <Input
+                         type="email"
+                         inputMode="email"
+                         value={bookingData.email}
+                         onChange={(e) => setBookingData({ ...bookingData, email: e.target.value })}
+                         className="h-11 rounded-lg bg-gray-50 border-gray-100 text-sm px-3 focus:bg-white touch-manipulation"
+                         placeholder="example@mail.com"
+                         required
+                       />
+                    </div>
+                    <div className="space-y-1">
+                       <Label className="text-xs font-black text-gray-500">ملاحظات (اختياري)</Label>
+                       <Textarea
+                         value={bookingData.specialRequests}
+                         onChange={(e) => setBookingData({ ...bookingData, specialRequests: e.target.value })}
+                         className="min-h-[88px] rounded-lg bg-gray-50 border-gray-100 resize-none text-sm px-3 focus:bg-white touch-manipulation"
+                         placeholder="هل تود إخبارنا بشيء؟"
+                       />
+                    </div>
+                 </div>
+               )}
 
-               {/* 2. Personal Information (4/12 -> 1/3) */}
-               <div className="flex flex-col h-full min-h-0 bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
-                  <div className="flex items-center gap-2 mb-3 shrink-0">
-                     <div className="w-7 h-7 rounded-lg bg-orange-50 flex items-center justify-center text-orange-600 border border-orange-100">
-                        <Smartphone className="w-4 h-4" />
-                     </div>
-                     <h4 className="text-sm font-black text-gray-900">بيانات التواصل</h4>
-                  </div>
-
-                  <div className="space-y-3 flex-1 overflow-hidden">
-                     <div className="grid grid-cols-2 gap-2">
-                        <div className="space-y-1">
-                           <Label className="text-[10px] font-black text-gray-400 mr-1">الاسم الأول</Label>
-                           <Input
-                             value={bookingData.firstName}
-                             onChange={(e) => setBookingData({ ...bookingData, firstName: e.target.value })}
-                             className="h-9 rounded-lg bg-gray-50 border-gray-100 placeholder:text-gray-300 text-xs px-3 focus:bg-white transition-colors"
-                             placeholder="محمد"
-                             required
-                           />
-                        </div>
-                        <div className="space-y-1">
-                           <Label className="text-[10px] font-black text-gray-400 mr-1">اسم العائلة</Label>
-                           <Input
-                             value={bookingData.lastName}
-                             onChange={(e) => setBookingData({ ...bookingData, lastName: e.target.value })}
-                             className="h-9 rounded-lg bg-gray-50 border-gray-100 placeholder:text-gray-300 text-xs px-3 focus:bg-white transition-colors"
-                             placeholder="أحمد"
-                             required
-                           />
-                        </div>
-                     </div>
-                     <div className="space-y-1">
-                        <Label className="text-[10px] font-black text-gray-400 mr-1">رقم الهاتف</Label>
-                        <Input
-                          type="tel"
-                          value={bookingData.userPhone}
-                          onChange={(e) => setBookingData({ ...bookingData, userPhone: e.target.value })}
-                          className="h-9 rounded-lg bg-gray-50 border-gray-100 text-xs px-3 focus:bg-white transition-colors"
-                          placeholder="01xxxxxxxxx"
-                          required
-                        />
-                     </div>
-                     <div className="space-y-1">
-                        <Label className="text-[10px] font-black text-gray-400 mr-1">البريد الإلكتروني</Label>
-                        <Input
-                          type="email"
-                          value={bookingData.email}
-                          onChange={(e) => setBookingData({ ...bookingData, email: e.target.value })}
-                          className="h-9 rounded-lg bg-gray-50 border-gray-100 text-xs px-3 focus:bg-white transition-colors"
-                          placeholder="example@mail.com"
-                          required
-                        />
-                     </div>
-                     <div className="space-y-1 flex-1 flex flex-col min-h-0">
-                        <Label className="text-[10px] font-black text-gray-400 mr-1">ملاحظات إضافية (اختياري)</Label>
-                        <Textarea
-                          value={bookingData.specialRequests}
-                          onChange={(e) => setBookingData({ ...bookingData, specialRequests: e.target.value })}
-                          className="flex-1 rounded-lg bg-gray-50 border-gray-100 resize-none font-cairo text-xs px-3 focus:bg-white transition-colors"
-                          placeholder="هل تود إخبارنا بشيء؟"
-                        />
-                     </div>
-                  </div>
-               </div>
-
-               {/* 3. Payment Simulation (4/12 -> 1/3) */}
-               <div className="flex flex-col h-full min-h-0">
-                  <div className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm flex-1 flex flex-col min-h-0">
-                     <div className="flex items-center gap-2 mb-3 shrink-0">
-                        <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600 border border-emerald-100">
-                           <CreditCard className="w-4 h-4" />
-                        </div>
-                        <h4 className="text-sm font-black text-gray-900">بوابة الدفع التجريبية</h4>
-                     </div>
-
-                     <div className="flex-1 flex flex-col gap-3 min-h-0 overflow-hidden">
-                        <div className="bg-slate-900 rounded-2xl p-4 text-white space-y-3 relative overflow-hidden group shadow-lg shrink-0">
-                           <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:rotate-12 transition-transform">
-                              <Zap className="w-12 h-12 text-indigo-400" />
-                           </div>
-
-                           <div className="flex p-1 bg-white/5 rounded-lg relative z-10 border border-white/10">
-                              <button
+               {/* Step 2: Choose seats */}
+               {bookingStep === 2 && (
+                 <div className="max-w-lg mx-auto bg-white p-4 sm:p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col min-h-[400px]">
+                    <div className="flex items-center gap-2 mb-4">
+                       <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 border border-indigo-100">
+                          <Users className="w-4 h-4" />
+                       </div>
+                       <h4 className="text-base font-black text-gray-900">اختر مقاعدك</h4>
+                    </div>
+                    <p className="text-xs font-bold text-indigo-600 mb-3">اختر {bookingData.numberOfPeople} مقعد ({bookingData.selectedSeats.length} محددة)</p>
+                    {transportationUnits.length > 1 && (
+                       <div className="flex gap-2 overflow-x-auto pb-2 mb-2">
+                          {transportationUnits.map((unit, idx) => (
+                             <button
+                                key={idx}
                                 type="button"
-                                onClick={() => setBookingData({...bookingData, paymentMethod: 'credit_card'})}
+                                onClick={() => setCurrentBusIndex(idx)}
                                 className={cn(
-                                  "flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md transition-all font-black text-[9px]",
-                                  bookingData.paymentMethod === 'credit_card' ? "bg-white text-slate-900 shadow-md" : "text-gray-400 hover:text-white"
+                                  "px-4 py-2 rounded-xl text-xs font-black whitespace-nowrap transition-all border touch-manipulation",
+                                  currentBusIndex === idx ? "bg-indigo-600 text-white border-indigo-700" : "bg-gray-50 text-gray-600 border-gray-200"
                                 )}
-                              >
-                                 <CreditCard className="w-2.5 h-2.5" /> بطاقة بنكية
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setBookingData({...bookingData, paymentMethod: 'wallet'})}
-                                className={cn(
-                                  "flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md transition-all font-black text-[9px]",
-                                  bookingData.paymentMethod === 'wallet' ? "bg-white text-slate-900 shadow-md" : "text-gray-400 hover:text-white"
-                                )}
-                              >
-                                 <Wallet className="w-2.5 h-2.5" /> محفظة الكترونية
-                              </button>
-                           </div>
+                             >
+                                {unit.type === 'bus-48' || unit.type === 'bus-50' ? 'حافلة' : unit.type === 'minibus-28' ? 'ميني باص' : 'ميكروباص'} {idx + 1}
+                             </button>
+                          ))}
+                       </div>
+                    )}
+                    <div className="flex-1 min-h-[280px] overflow-auto flex justify-center bg-gray-50/50 rounded-xl border border-dashed border-gray-200 p-4">
+                       <div className="scale-[0.75] sm:scale-90 origin-top">
+                          <BusSeatLayout
+                             type={currentUnit.type}
+                             bookedSeats={currentBookedSeats}
+                             onSelectSeats={handleSeatSelection}
+                             initialSelectedSeats={currentSelectedSeats}
+                             maxSelection={bookingData.numberOfPeople - (bookingData.selectedSeats.length - currentSelectedSeats.length)}
+                             isAdmin={false}
+                          />
+                       </div>
+                    </div>
+                 </div>
+               )}
 
-                           <div className="space-y-2 relative z-10">
-                              {bookingData.paymentMethod === 'credit_card' ? (
-                                 <div className="space-y-2 animate-in fade-in zoom-in-95 duration-200">
-                                    <div className="space-y-0.5">
-                                       <Label className="text-[8px] uppercase font-black text-gray-500 mr-1">Card Number</Label>
-                                       <Input 
-                                          placeholder="0000 0000 0000 0000" 
-                                          className="bg-white/5 border-white/10 text-white h-8 rounded-lg tracking-widest placeholder:opacity-20 text-[10px] px-3 focus:border-indigo-500/50"
-                                          value={bookingData.cardNumber}
-                                          onChange={(e) => setBookingData({...bookingData, cardNumber: e.target.value})}
-                                       />
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-2">
-                                       <div className="space-y-0.5">
-                                          <Label className="text-[8px] uppercase font-black text-gray-500 mr-1">Expiry</Label>
-                                          <Input 
-                                             placeholder="MM/YY" 
-                                             className="bg-white/5 border-white/10 text-white h-8 rounded-lg text-center text-[10px] focus:border-indigo-500/50"
-                                             value={bookingData.expiryDate}
-                                             onChange={(e) => setBookingData({...bookingData, expiryDate: e.target.value})}
-                                          />
-                                       </div>
-                                       <div className="space-y-0.5">
-                                          <Label className="text-[8px] uppercase font-black text-gray-500 mr-1">CVV</Label>
-                                          <Input 
-                                             placeholder="***" 
-                                             className="bg-white/5 border-white/10 text-white h-8 rounded-lg text-center text-[10px] focus:border-indigo-500/50"
-                                             value={bookingData.cvv}
-                                             onChange={(e) => setBookingData({...bookingData, cvv: e.target.value})}
-                                          />
-                                       </div>
-                                    </div>
-                                 </div>
-                              ) : (
-                                 <div className="space-y-2 animate-in fade-in zoom-in-95 duration-200">
-                                    <div className="space-y-0.5">
-                                       <Label className="text-[8px] uppercase font-black text-gray-500 mr-1">Wallet Phone Number</Label>
-                                       <div className="relative">
-                                          <Input 
-                                             placeholder="01x xxxx xxxx" 
-                                             className="bg-white/5 border-white/10 text-white h-10 rounded-lg pr-8 text-sm font-black focus:border-indigo-500/50"
-                                             value={bookingData.walletNumber}
-                                             onChange={(e) => setBookingData({...bookingData, walletNumber: e.target.value})}
-                                          />
-                                          <Wallet className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-indigo-400" />
-                                       </div>
-                                    </div>
-                                    <div className="bg-white/5 p-2 rounded-lg border border-white/5 text-center">
-                                       <p className="text-[8px] font-bold text-gray-400 flex items-center justify-center gap-1">
-                                          <CheckCircle2 className="w-3 h-3 text-emerald-500" /> سيصلك تأكيد فوري عبر الرسائل
-                                       </p>
-                                    </div>
-                                 </div>
-                              )}
-                           </div>
-                        </div>
-
-                         <div className="mt-auto space-y-3 shrink-0">
-                           {/* Coupon Input Section */}
-                           <div className="p-3 bg-gray-50 rounded-2xl border border-gray-100">
-                               <Label className="text-[10px] font-black text-gray-400 mb-2 block text-right">هل لديك كوبون خصم؟</Label>
-                               <div className="flex gap-2">
-                                  <div className="relative flex-1">
-                                     <Input 
-                                        value={couponCode}
-                                        onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                                        placeholder="ادخل الكود..."
-                                        className="h-9 pr-8 text-xs font-black rounded-lg border-gray-200 focus:bg-white text-right"
-                                        disabled={!!appliedCoupon}
-                                     />
-                                     <Ticket className="absolute right-2.5 top-2.5 w-3.5 h-3.5 text-gray-400" />
-                                  </div>
-                                  {appliedCoupon ? (
-                                     <Button 
-                                        type="button"
-                                        variant="outline" 
-                                        onClick={() => {setAppliedCoupon(null); setCouponCode("");}}
-                                        className="h-9 px-3 rounded-lg border-red-100 text-red-600 hover:bg-red-50 text-[10px] font-bold"
-                                     >
-                                        إلغاء
-                                     </Button>
-                                  ) : (
-                                     <Button 
-                                        type="button"
-                                        onClick={handleValidateCoupon}
-                                        disabled={!couponCode || isValidatingCoupon}
-                                        className="h-9 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold shadow-sm"
-                                     >
-                                        {isValidatingCoupon ? <Loader2 className="w-3 h-3 animate-spin" /> : "تطبيق"}
-                                     </Button>
-                                  )}
-                               </div>
-                           </div>
-
-                           <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 flex flex-col gap-2">
-                              <div className="flex items-center justify-between border-b border-gray-100 pb-2">
-                                 <span className="text-[10px] font-bold text-gray-500">التكلفة (x{bookingData.numberOfPeople})</span>
-                                 <span className="text-xs font-black text-gray-900">{subtotal.toLocaleString()} ج.م</span>
-                              </div>
-                              
-                              {appliedCoupon && (
-                                <div className="flex items-center justify-between border-b border-gray-100 pb-2 border-dashed">
-                                    <div className="flex items-center gap-1.5 text-emerald-600">
-                                        <Tag className="w-3 h-3" />
-                                        <span className="text-[10px] font-bold">خصم الكوبون ({appliedCoupon.code})</span>
-                                    </div>
-                                    <span className="text-xs font-black text-emerald-600">-{discount.toLocaleString()} ج.م</span>
+               {/* Step 3: Payment */}
+               {bookingStep === 3 && (
+                 <div className="max-w-lg mx-auto space-y-4">
+                    <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+                       <div className="flex items-center gap-2 mb-4">
+                          <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600 border border-emerald-100">
+                             <CreditCard className="w-4 h-4" />
+                          </div>
+                          <h4 className="text-base font-black text-gray-900">الدفع</h4>
+                       </div>
+                       <div className="bg-slate-900 rounded-2xl p-4 text-white space-y-3">
+                          <div className="flex p-1 bg-white/5 rounded-lg border border-white/10">
+                             <button type="button" onClick={() => setBookingData({...bookingData, paymentMethod: 'credit_card'})}
+                                className={cn("flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md font-black text-xs touch-manipulation", bookingData.paymentMethod === 'credit_card' ? "bg-white text-slate-900" : "text-gray-400 hover:text-white")}>
+                                <CreditCard className="w-4 h-4" /> بطاقة بنكية
+                             </button>
+                             <button type="button" onClick={() => setBookingData({...bookingData, paymentMethod: 'wallet'})}
+                                className={cn("flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md font-black text-xs touch-manipulation", bookingData.paymentMethod === 'wallet' ? "bg-white text-slate-900" : "text-gray-400 hover:text-white")}>
+                                <Wallet className="w-4 h-4" /> محفظة
+                             </button>
+                          </div>
+                          {bookingData.paymentMethod === 'credit_card' ? (
+                             <div className="space-y-2">
+                                <Input placeholder="رقم البطاقة" className="bg-white/5 border-white/10 text-white h-10 rounded-lg text-xs" value={bookingData.cardNumber} onChange={(e) => setBookingData({...bookingData, cardNumber: e.target.value})} />
+                                <div className="grid grid-cols-2 gap-2">
+                                   <Input placeholder="MM/YY" className="bg-white/5 border-white/10 text-white h-10 rounded-lg text-center text-xs" value={bookingData.expiryDate} onChange={(e) => setBookingData({...bookingData, expiryDate: e.target.value})} />
+                                   <Input placeholder="CVV" className="bg-white/5 border-white/10 text-white h-10 rounded-lg text-center text-xs" value={bookingData.cvv} onChange={(e) => setBookingData({...bookingData, cvv: e.target.value})} />
                                 </div>
-                              )}
-
-                              <div className="text-center pt-1">
-                                 <p className="text-[9px] font-black text-indigo-500 uppercase mb-0.5">إجمالي المبلغ المستحق</p>
-                                 <p className="text-2xl font-black text-gray-900">{totalPrice.toLocaleString()} <span className="text-xs text-gray-400">ج.م</span></p>
-                              </div>
-                              
-                              <Button
-                                 type="submit"
-                                 disabled={isSubmitting}
-                                 className="w-full h-11 mt-1 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm shadow-xl shadow-indigo-100 border-b-4 border-indigo-800 active:border-b-0 transition-all hover:scale-[1.02]"
-                              >
-                                 {isSubmitting ? (
-                                   <>
-                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                     جاري المعالجة...
-                                   </>
-                                 ) : (
-                                   "تأكيد الحجز والدفع الآن"
-                                 )}
-                              </Button>
-                              <p className="text-[8px] text-center text-gray-400 font-bold">بمجرد الضغط على تأكيد، فإنك توافق على شروط الخدمة</p>
-                           </div>
+                             </div>
+                          ) : (
+                             <div className="relative">
+                                <Input placeholder="01x xxxx xxxx" inputMode="numeric" className="bg-white/5 border-white/10 text-white h-11 rounded-lg pr-10 text-sm" value={bookingData.walletNumber} onChange={(e) => setBookingData({...bookingData, walletNumber: e.target.value})} />
+                                <Wallet className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-indigo-400" />
+                             </div>
+                          )}
+                       </div>
+                    </div>
+                    <div className="p-3 bg-gray-50 rounded-2xl border border-gray-100">
+                       <Label className="text-xs font-black text-gray-500 mb-2 block">كوبون خصم</Label>
+                       <div className="flex gap-2">
+                          <Input value={couponCode} onChange={(e) => setCouponCode(e.target.value.toUpperCase())} placeholder="ادخل الكود..." className="h-10 flex-1 text-sm rounded-lg" disabled={!!appliedCoupon} />
+                          {appliedCoupon ? (
+                             <Button type="button" variant="outline" size="sm" onClick={() => { setAppliedCoupon(null); setCouponCode(""); }} className="text-red-600 border-red-100">إلغاء</Button>
+                          ) : (
+                             <Button type="button" size="sm" onClick={handleValidateCoupon} disabled={!couponCode || isValidatingCoupon} className="bg-indigo-600 hover:bg-indigo-700">{isValidatingCoupon ? <Loader2 className="w-4 h-4 animate-spin" /> : "تطبيق"}</Button>
+                          )}
+                       </div>
+                    </div>
+                    <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
+                       <div className="flex justify-between border-b border-gray-100 pb-2 text-sm">
+                          <span className="text-gray-500 font-bold">التكلفة (x{bookingData.numberOfPeople})</span>
+                          <span className="font-black text-gray-900">{subtotal.toLocaleString()} ج.م</span>
+                       </div>
+                       {appliedCoupon && (
+                         <div className="flex justify-between border-b border-gray-100 py-2 text-sm text-emerald-600">
+                            <span className="font-bold">خصم ({appliedCoupon.code})</span>
+                            <span className="font-black">-{discount.toLocaleString()} ج.م</span>
                          </div>
-                     </div>
-                  </div>
-               </div>
+                       )}
+                       <div className="text-center pt-3">
+                          <p className="text-xs font-black text-indigo-500 uppercase mb-1">الإجمالي</p>
+                          <p className="text-2xl font-black text-gray-900">{totalPrice.toLocaleString()} <span className="text-sm text-gray-400">ج.م</span></p>
+                       </div>
+                    </div>
+                 </div>
+               )}
+            </div>
+
+            {/* Step navigation footer - payment step required to confirm */}
+            <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 flex items-center justify-between gap-3 rounded-t-2xl shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
+               <Button
+                 type="button"
+                 variant="outline"
+                 className="rounded-xl border-gray-200 gap-1 font-bold"
+                 onClick={() => setBookingStep((s) => (s > 1 ? (s - 1) as 1 | 2 | 3 : 1))}
+                 style={{ visibility: bookingStep === 1 ? "hidden" : "visible" }}
+               >
+                 <ChevronRight className="w-4 h-4" /> رجوع
+               </Button>
+               {bookingStep < 3 ? (
+                 <Button
+                   type="button"
+                   className="rounded-xl bg-indigo-600 hover:bg-indigo-700 gap-1 font-black"
+                   onClick={() => {
+                     if (bookingStep === 1) {
+                       if (!bookingData.firstName?.trim() || !bookingData.lastName?.trim() || !bookingData.userPhone?.trim() || !bookingData.email?.trim()) {
+                         toast({ title: "أكمل البيانات", description: "يرجى تعبئة الاسم والهاتف والبريد", variant: "destructive" });
+                         return;
+                       }
+                       setBookingStep(2);
+                     } else if (bookingStep === 2) {
+                       if (bookingData.selectedSeats.length !== bookingData.numberOfPeople) {
+                         toast({ title: "اختر المقاعد", description: `يجب اختيار ${bookingData.numberOfPeople} مقعد`, variant: "destructive" });
+                         return;
+                       }
+                       setBookingStep(3);
+                     }
+                   }}
+                 >
+                   الخطوة التالية <ChevronLeft className="w-4 h-4" />
+                 </Button>
+               ) : (
+                 <Button
+                   type="submit"
+                   disabled={isSubmitting}
+                   className="rounded-xl bg-indigo-600 hover:bg-indigo-700 font-black min-h-[48px] px-6"
+                 >
+                   {isSubmitting ? <><Loader2 className="w-4 h-4 animate-spin ml-2" /> جاري المعالجة...</> : "تأكيد الحجز والدفع الآن"}
+                 </Button>
+               )}
             </div>
           </form>
         </DialogContent>

@@ -181,12 +181,12 @@ const PremiumLoader = () => {
             exit={{ opacity: 0, y: -10, filter: "blur(4px)" }}
             transition={{ duration: 0.3 }}
           >
-            <h3 className={`${seasonalConfig.isRamadanTheme ? 'text-gold' : 'text-gray-900'} font-black text-3xl tracking-tight leading-none`}>
+            <h3 className={`${seasonalConfig.isRamadanTheme ? 'text-gold font-lalezar' : 'text-gray-900'} font-black text-3xl tracking-tight leading-none`} style={seasonalConfig.isRamadanTheme ? { fontFamily: 'Lalezar, cursive' } : {}}>
               {seasonalConfig.isRamadanTheme 
                 ? (stage === 0 ? "نستعد للإفطار..." : stage === 1 ? "نجهز السحور..." : "رمضان كريم!")
                 : (stage === 0 ? "نبدأ الرحلة..." : stage === 1 ? "نطور الخطة..." : "ننطلق للوجهة!")}
             </h3>
-            <p className={`${seasonalConfig.isRamadanTheme ? 'text-gold/60' : 'text-gray-400'} font-bold text-xs mt-2 uppercase tracking-[0.3em] opacity-60`}>
+            <p className={`${seasonalConfig.isRamadanTheme ? 'text-gold/60' : 'text-gray-400'} font-bold text-xs mt-2 uppercase tracking-[0.3em] opacity-60`} style={seasonalConfig.isRamadanTheme ? { fontFamily: 'Reem Kufi, sans-serif' } : {}}>
               {seasonalConfig.isRamadanTheme ? "Ramadan Kareem" : vehicles[stage].subLabel}
             </p>
           </motion.div>

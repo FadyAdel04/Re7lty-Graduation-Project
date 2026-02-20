@@ -78,7 +78,15 @@ const DiscoverUsersTripsSection = () => {
                     }}
                  >
                     <div className="relative aspect-[4/3] rounded-xl overflow-hidden mb-3 group">
-                       <img src={item.image} alt={item.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                       <img 
+                        src={item.image} 
+                        alt={item.title} 
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                        loading="lazy"
+                        width="300"
+                        height="225"
+                        decoding="async"
+                       />
                        <div className="absolute top-2 right-2 bg-black/50 backdrop-blur-md text-white text-xs px-2 py-1 rounded-md flex items-center gap-1">
                           <MapPin className="h-3 w-3" /> مصر
                        </div>
