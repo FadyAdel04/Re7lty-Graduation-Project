@@ -796,7 +796,7 @@ const DirectMessages = () => {
                                                      </div>
                                                   )}
                                                   {msg.type === 'text' && (
-                                                     <p className="text-sm font-bold leading-relaxed">{msg.content}</p>
+                                                     <p className="text-[15px] font-medium leading-[1.7] tracking-wide font-cairo">{msg.content}</p>
                                                   )}
                                                </div>
 
@@ -992,7 +992,7 @@ const DirectMessages = () => {
                                     onChange={(e) => setNewMessage(e.target.value)}
                                     placeholder="اكتب رسالتك هنا..." 
                                     disabled={isUploading}
-                                    className="flex-1 bg-transparent border-0 focus-visible:ring-0 text-sm font-bold h-12"
+                                    className="flex-1 bg-transparent border-0 focus-visible:ring-0 text-[15px] font-medium h-12 placeholder:text-gray-400 font-cairo"
                                  />
                                   <Button 
                                     disabled={isUploading || (!newMessage.trim() && pendingFiles.length === 0)} 

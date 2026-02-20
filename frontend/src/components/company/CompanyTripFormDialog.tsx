@@ -38,6 +38,15 @@ import {
 } from "lucide-react";
 import BusSeatLayout from "./BusSeatLayout";
 import { cn } from "@/lib/utils";
+import {
+  validateTripTitle,
+  validateDescription,
+  validatePrice,
+  validateSeats,
+  validateStartDate,
+  validateReturnDate,
+  validateImageFile,
+} from "@/lib/validators";
 import { motion, AnimatePresence } from "framer-motion";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/components/ui/use-toast";
@@ -205,6 +214,12 @@ const CompanyTripFormDialog = ({ open, onOpenChange, onSuccess, initialData }: C
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
     const file = e.target.files?.[0];
     if (file) {
+        const imgCheck = validateImageFile(file);
+        if (!imgCheck.valid) {
+            toast({ title: "خطأ في الصورة", description: imgCheck.message, variant: "destructive" });
+            e.target.value = "";
+            return;
+        }
         const reader = new FileReader();
         reader.onloadend = () => {
             handleArrayChange('images', index, reader.result as string);
@@ -216,6 +231,50 @@ const CompanyTripFormDialog = ({ open, onOpenChange, onSuccess, initialData }: C
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
+    const tCheck = validateTripTitle(formData.title);
+    if (!tCheck.valid) {
+      toast({ title: "خطأ في العنوان", description: tCheck.message, variant: "destructive" });
+      setLoading(false);
+      return;
+    }
+    const descVal = formData.fullDescription || formData.shortDescription || "";
+    const dCheck = validateDescription(descVal);
+    if (!dCheck.valid) {
+      toast({ title: "خطأ في الوصف", description: dCheck.message, variant: "destructive" });
+      setLoading(false);
+      return;
+    }
+    const pCheck = validatePrice(formData.price);
+    if (!pCheck.valid) {
+      toast({ title: "خطأ في السعر", description: pCheck.message, variant: "destructive" });
+      setLoading(false);
+      return;
+    }
+    const seatsVal = formData.availableSeats || formData.maxGroupSize || 0;
+    const bookedCount = initialData ? (initialData.seatBookings?.length || 0) : 0;
+    const sCheck = validateSeats(seatsVal, bookedCount);
+    if (!sCheck.valid) {
+      toast({ title: "خطأ في المقاعد", description: sCheck.message, variant: "destructive" });
+      setLoading(false);
+      return;
+    }
+    if (formData.startDate) {
+      const sdCheck = validateStartDate(formData.startDate);
+      if (!sdCheck.valid) {
+        toast({ title: "خطأ في التاريخ", description: sdCheck.message, variant: "destructive" });
+        setLoading(false);
+        return;
+      }
+    }
+    if (formData.startDate && formData.endDate) {
+      const rdCheck = validateReturnDate(formData.endDate, formData.startDate);
+      if (!rdCheck.valid) {
+        toast({ title: "خطأ في التاريخ", description: rdCheck.message, variant: "destructive" });
+        setLoading(false);
+        return;
+      }
+    }
 
     try {
       const token = await getToken();

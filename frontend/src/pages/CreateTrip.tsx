@@ -19,10 +19,11 @@ import { TripLocation } from "@/components/TripMapEditor";
 import LocationMediaManager from "@/components/LocationMediaManager";
 import { useToast } from "@/hooks/use-toast";
 import { useUser, useAuth } from "@clerk/clerk-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Trip, TripActivity, TripDay, FoodPlace, Hotel } from "@/lib/trips-data";
 import { createTrip, getCloudinarySignature, searchUsers } from "@/lib/api";
 import UploadProgressLoader from "@/components/UploadProgressLoader";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const CreateTrip = () => {
   const { toast } = useToast();
@@ -130,6 +131,9 @@ const CreateTrip = () => {
   // Step 5: Hotels
   const [hotels, setHotels] = useState<Hotel[]>([]);
   const [newHotel, setNewHotel] = useState<{name:string, description:string, location:string, bookingUrl:string}>({ name: '', description: '', location: '', bookingUrl: '' });
+
+  // Terms & policy acceptance - required to share trip
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   // Comprehensive list of Egypt's cities and governorates
   const EGYPT_CITIES = [
@@ -318,12 +322,24 @@ const CreateTrip = () => {
 
   const nextStep = () => {
     if (currentStep === 1) {
-      if (!tripData.title || !tripData.destination || !tripData.duration || !tripData.budget || !tripData.description) {
-        toast({
-          title: "معلومات ناقصة",
-          description: "الرجاء ملء جميع الحقول المطلوبة",
-          variant: "destructive",
-        });
+      if (!tripData.title?.trim()) {
+        toast({ title: "العنوان مطلوب", description: "أدخل عنواناً لرحلتك", variant: "destructive" });
+        return;
+      }
+      if (!tripData.destination?.trim()) {
+        toast({ title: "الوجهة مطلوبة", description: "اختر وجهة الرحلة", variant: "destructive" });
+        return;
+      }
+      if (!tripData.duration?.trim()) {
+        toast({ title: "المدة مطلوبة", description: "أدخل مدة الرحلة", variant: "destructive" });
+        return;
+      }
+      if (!tripData.budget?.trim()) {
+        toast({ title: "الميزانية مطلوبة", description: "أدخل ميزانية الرحلة", variant: "destructive" });
+        return;
+      }
+      if (!tripData.description?.trim()) {
+        toast({ title: "الوصف مطلوب", description: "اكتب وصفاً لرحلتك", variant: "destructive" });
         return;
       }
       // Auto-set city from destination
@@ -385,20 +401,42 @@ const CreateTrip = () => {
 
 
   const handleSubmit = async (isEarlyShare = false) => {
-    // Validate all data
-    if (!tripData.title || !tripData.destination || !tripData.duration || !tripData.budget || !tripData.description) {
+    // Terms acceptance required
+    if (!termsAccepted) {
       toast({
-        title: "معلومات ناقصة",
-        description: "الرجاء ملء جميع الحقول المطلوبة",
+        title: "موافقة مطلوبة",
+        description: "يجب الموافقة على الشروط وسياسة الخصوصية لمشاركة رحلتك",
         variant: "destructive",
       });
       return;
     }
 
+    // Individual validation with specific toasts
+    if (!tripData.title?.trim()) {
+      toast({ title: "العنوان مطلوب", description: "أدخل عنواناً لرحلتك", variant: "destructive" });
+      return;
+    }
+    if (!tripData.destination?.trim()) {
+      toast({ title: "الوجهة مطلوبة", description: "اختر وجهة الرحلة", variant: "destructive" });
+      return;
+    }
+    if (!tripData.duration?.trim()) {
+      toast({ title: "المدة مطلوبة", description: "أدخل مدة الرحلة", variant: "destructive" });
+      return;
+    }
+    if (!tripData.budget?.trim()) {
+      toast({ title: "الميزانية مطلوبة", description: "أدخل ميزانية الرحلة", variant: "destructive" });
+      return;
+    }
+    if (!tripData.description?.trim()) {
+      toast({ title: "الوصف مطلوب", description: "اكتب وصفاً لرحلتك", variant: "destructive" });
+      return;
+    }
+
     if (!isEarlyShare && activities.length === 0) {
       toast({
-        title: "معلومات ناقصة",
-        description: "الرجاء إضافة نشاط واحد على الأقل",
+        title: "الأنشطة مطلوبة",
+        description: "أضف نشاطاً واحداً على الأقل على الخريطة",
         variant: "destructive",
       });
       return;
@@ -621,12 +659,24 @@ const CreateTrip = () => {
 
   // Quick post submit
   const handleQuickSubmit = async () => {
-    if (!tripData.title || !tripData.destination || !tripData.description) {
+    if (!termsAccepted) {
       toast({
-        title: "معلومات ناقصة",
-        description: "الرجاء ملء العنوان والوجهة والوصف",
+        title: "موافقة مطلوبة",
+        description: "يجب الموافقة على الشروط وسياسة الخصوصية لمشاركة رحلتك",
         variant: "destructive",
       });
+      return;
+    }
+    if (!tripData.title?.trim()) {
+      toast({ title: "العنوان مطلوب", description: "أدخل عنواناً للبوست", variant: "destructive" });
+      return;
+    }
+    if (!tripData.destination?.trim()) {
+      toast({ title: "الوجهة مطلوبة", description: "اختر وجهة الرحلة", variant: "destructive" });
+      return;
+    }
+    if (!tripData.description?.trim()) {
+      toast({ title: "الوصف مطلوب", description: "اكتب وصفاً للرحلة", variant: "destructive" });
       return;
     }
 
@@ -1130,14 +1180,22 @@ const CreateTrip = () => {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex flex-col sm:flex-row gap-4 pt-6">
-                      <Button onClick={handleQuickSubmit} className="h-16 flex-[2] rounded-[1.5rem] bg-indigo-600 hover:bg-indigo-700 text-white text-xl font-black shadow-2xl shadow-indigo-100 transition-all hover:scale-[1.02]">
-                        انشر البوست 🚀
-                      </Button>
-                      <Button variant="outline" onClick={() => setPostType(null)} className="h-16 flex-1 rounded-[1.5rem] border-gray-100 text-gray-500 font-bold hover:bg-gray-50">
-                        <ArrowRight className="ml-2 w-5 h-5" />
-                        رجوع
-                      </Button>
+                    <div className="pt-6 space-y-4">
+                      <div className="flex items-start gap-3 p-4 rounded-2xl bg-gray-50 border border-gray-100">
+                        <Checkbox id="terms-quick" checked={termsAccepted} onCheckedChange={(v) => setTermsAccepted(!!v)} className="mt-0.5 rounded border-gray-300 data-[state=checked]:bg-indigo-600" />
+                        <label htmlFor="terms-quick" className="text-sm font-medium text-gray-700 cursor-pointer leading-relaxed">
+                          أوافق على <Link to="/terms" target="_blank" className="text-indigo-600 hover:underline font-bold">شروط الاستخدام</Link> و <Link to="/privacy" target="_blank" className="text-indigo-600 hover:underline font-bold">سياسة الخصوصية</Link> لمشاركة رحلتي
+                        </label>
+                      </div>
+                      <div className="flex flex-col sm:flex-row gap-4">
+                        <Button onClick={handleQuickSubmit} disabled={!termsAccepted} className="h-16 flex-[2] rounded-[1.5rem] bg-indigo-600 hover:bg-indigo-700 text-white text-xl font-black shadow-2xl shadow-indigo-100 transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100">
+                          انشر البوست 🚀
+                        </Button>
+                        <Button variant="outline" onClick={() => setPostType(null)} className="h-16 flex-1 rounded-[1.5rem] border-gray-100 text-gray-500 font-bold hover:bg-gray-50">
+                          <ArrowRight className="ml-2 w-5 h-5" />
+                          رجوع
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -1420,17 +1478,25 @@ const CreateTrip = () => {
                            </div>
                         </div>
 
-                        <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t border-gray-100 mt-6">
-                           <Button variant="outline" onClick={prevStep} className="h-14 px-8 rounded-[1.5rem] border-gray-200 font-bold text-gray-500 hover:text-gray-900">
-                              السابق
-                           </Button>
-                           <Button onClick={nextStep} className="h-14 flex-[2] rounded-[1.5rem] bg-orange-600 hover:bg-orange-700 text-white text-lg font-black shadow-lg shadow-orange-100 transition-all hover:scale-[1.01]">
-                              التالي
-                              <ArrowLeft className="mr-3 w-5 h-5" />
-                           </Button>
-                           <Button variant="ghost" onClick={() => handleSubmit(true)} className="h-14 flex-1 rounded-[1.5rem] text-gray-400 font-bold hover:bg-emerald-50 hover:text-emerald-600">
-                              نشر سريع
-                           </Button>
+                        <div className="pt-6 border-t border-gray-100 mt-6 space-y-4">
+                           <div className="flex items-start gap-3 p-4 rounded-2xl bg-gray-50 border border-gray-100">
+                              <Checkbox id="terms-step1" checked={termsAccepted} onCheckedChange={(v) => setTermsAccepted(!!v)} className="mt-0.5 rounded border-gray-300 data-[state=checked]:bg-indigo-600" />
+                              <label htmlFor="terms-step1" className="text-sm font-medium text-gray-700 cursor-pointer leading-relaxed">
+                                 أوافق على <Link to="/terms" target="_blank" className="text-indigo-600 hover:underline font-bold">شروط الاستخدام</Link> و <Link to="/privacy" target="_blank" className="text-indigo-600 hover:underline font-bold">سياسة الخصوصية</Link> لمشاركة رحلتي
+                              </label>
+                           </div>
+                           <div className="flex flex-col sm:flex-row gap-4">
+                              <Button variant="outline" onClick={prevStep} className="h-14 px-8 rounded-[1.5rem] border-gray-200 font-bold text-gray-500 hover:text-gray-900">
+                                 السابق
+                              </Button>
+                              <Button onClick={nextStep} className="h-14 flex-[2] rounded-[1.5rem] bg-orange-600 hover:bg-orange-700 text-white text-lg font-black shadow-lg shadow-orange-100 transition-all hover:scale-[1.01]">
+                                 التالي
+                                 <ArrowLeft className="mr-3 w-5 h-5" />
+                              </Button>
+                              <Button variant="ghost" onClick={() => handleSubmit(true)} className="h-14 flex-1 rounded-[1.5rem] text-gray-400 font-bold hover:bg-emerald-50 hover:text-emerald-600">
+                                 نشر سريع
+                              </Button>
+                           </div>
                         </div>
                      </CardContent>
                   </Card>
@@ -2161,14 +2227,22 @@ const CreateTrip = () => {
 
                       </CardContent>
                       
-                       <div className="p-8 lg:p-12 bg-gray-50 border-t border-gray-100 flex flex-col md:flex-row gap-6">
-                           <Button onClick={() => handleSubmit(false)} className="h-16 flex-[2] rounded-[1.5rem] bg-indigo-600 hover:bg-indigo-700 text-white text-xl font-black shadow-2xl shadow-indigo-100 transition-all hover:scale-[1.02] flex items-center justify-center gap-3">
-                              نشر الرحلة الآن 🚀
-                              <Check className="w-6 h-6" />
-                           </Button>
-                           <Button variant="outline" onClick={prevStep} className="h-16 flex-1 rounded-[1.5rem] border-gray-200 bg-white text-gray-500 font-black text-lg hover:border-indigo-200 hover:text-indigo-600">
-                              تعديل البيانات
-                           </Button>
+                       <div className="p-8 lg:p-12 bg-gray-50 border-t border-gray-100 flex flex-col gap-6">
+                           <div className="flex items-start gap-3 p-4 rounded-2xl bg-white border border-gray-200 shadow-sm">
+                              <Checkbox id="terms-final" checked={termsAccepted} onCheckedChange={(v) => setTermsAccepted(!!v)} className="mt-0.5 rounded border-gray-300 data-[state=checked]:bg-indigo-600" />
+                              <label htmlFor="terms-final" className="text-sm font-medium text-gray-700 cursor-pointer leading-relaxed">
+                                 أوافق على <Link to="/terms" target="_blank" className="text-indigo-600 hover:underline font-bold">شروط الاستخدام</Link> و <Link to="/privacy" target="_blank" className="text-indigo-600 hover:underline font-bold">سياسة الخصوصية</Link> لمشاركة رحلتي على المنصة
+                              </label>
+                           </div>
+                           <div className="flex flex-col md:flex-row gap-6">
+                              <Button onClick={() => handleSubmit(false)} disabled={!termsAccepted} className="h-16 flex-[2] rounded-[1.5rem] bg-indigo-600 hover:bg-indigo-700 text-white text-xl font-black shadow-2xl shadow-indigo-100 transition-all hover:scale-[1.02] flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100">
+                                 نشر الرحلة الآن 🚀
+                                 <Check className="w-6 h-6" />
+                              </Button>
+                              <Button variant="outline" onClick={prevStep} className="h-16 flex-1 rounded-[1.5rem] border-gray-200 bg-white text-gray-500 font-black text-lg hover:border-indigo-200 hover:text-indigo-600">
+                                 تعديل البيانات
+                              </Button>
+                           </div>
                         </div>
                    </Card>
                 </div>

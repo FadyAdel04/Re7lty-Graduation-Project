@@ -404,6 +404,23 @@ router.post('/', requireAuthStrict, async (req, res) => {
       });
     }
 
+    // AI trip quota: 5 per user per week (rolling 7 days)
+    if (req.body.isAIGenerated === true) {
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      const count = await Trip.countDocuments({
+        ownerId: userId,
+        isAIGenerated: true,
+        postedAt: { $gte: weekAgo },
+      });
+      if (count >= 5) {
+        return res.status(429).json({
+          error: 'AI trip quota exceeded',
+          message: 'لقد استخدمت الحد الأسبوعي لإنشاء الرحلات بالذكاء الاصطناعي (5 رحلات). يرجى المحاولة الأسبوع المقبل.',
+        });
+      }
+    }
+
     // Extract author details from Clerk user
     const authorName = clerkUser.fullName ||
       clerkUser.firstName ||

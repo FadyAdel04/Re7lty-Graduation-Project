@@ -316,26 +316,27 @@ export async function sendMessageToAI(
             dangerouslyAllowBrowser: true // Required for browser usage
         });
 
-        // Prepare context about available trips
+        // Prepare context about available trips (truncated to stay within Groq token limits)
         let tripsContext = "";
         if (availableTrips && availableTrips.length > 0) {
-            const tripsSummary = availableTrips.map(t => ({
+            const limitedTrips = availableTrips.slice(0, 15);
+            const tripsSummary = limitedTrips.map(t => ({
                 id: t._id || t.id,
-                title: t.title,
-                destination: t.destination,
-                city: t.city,
-                days: t.days?.length,
+                title: (t.title || "").slice(0, 50),
+                destination: t.destination || t.city,
                 budget: t.budget,
-                price: t.price || (t.estimatedPrice ? `${t.estimatedPrice} EGP` : "Not specified"),
-                image: t.image,
-                description: t.description ? t.description.substring(0, 100) + "..." : ""
+                price: t.price || (t.estimatedPrice ? `${t.estimatedPrice} EGP` : "")
             }));
-            tripsContext = `\n\nAvailable Platform Trips (Use these to make suggestions):\n${JSON.stringify(tripsSummary, null, 2)}`;
+            tripsContext = `\n\nPlatform Trips:\n${JSON.stringify(tripsSummary)}`;
         }
 
         // Build messages array for Groq API
-        // Limit conversation history to last 4 messages to stay within token limits
-        const recentHistory = conversationHistory.slice(-4);
+        // Limit conversation history to last 3 exchanges and truncate long messages
+        const MAX_MSG_LEN = 400;
+        const recentHistory = conversationHistory.slice(-6).map(msg => ({
+            role: msg.role,
+            content: msg.content.length > MAX_MSG_LEN ? msg.content.slice(0, MAX_MSG_LEN) + "…" : msg.content
+        }));
 
         const messages = [
             { role: "system" as const, content: SYSTEM_PROMPT + tripsContext },
@@ -346,40 +347,56 @@ export async function sendMessageToAI(
             { role: "user" as const, content: userMessage }
         ];
 
-        // Call Groq API using SDK
+        // Call Groq API using SDK (keep payload small to avoid 400 "reduce length")
         const chatCompletion = await groq.chat.completions.create({
             messages: messages,
             model: "llama-3.3-70b-versatile",
             temperature: 0.7,
-            max_tokens: 1024,
+            max_tokens: 600,
         });
 
         const text = chatCompletion.choices[0]?.message?.content || "";
 
-        // Try to parse JSON response
-        try {
-            // Remove markdown code blocks if present
-            let jsonStr = text.trim();
+        // Try to parse JSON response with multiple strategies
+        const parseAIResponse = (str: string): AIResponse | null => {
+            let jsonStr = str.trim().replace(/\ufeff/g, "");
             if (jsonStr.startsWith("```json")) {
-                jsonStr = jsonStr.replace(/```json\n?/g, "").replace(/```\n?/g, "");
+                jsonStr = jsonStr.replace(/^```json\s*/i, "").replace(/\s*```\s*$/g, "");
             } else if (jsonStr.startsWith("```")) {
-                jsonStr = jsonStr.replace(/```\n?/g, "");
+                jsonStr = jsonStr.replace(/^```\s*/, "").replace(/\s*```\s*$/g, "");
             }
-
-            // Try to extract JSON from the response (handle cases where AI adds extra text)
+            const attempts: string[] = [];
             const jsonStart = jsonStr.indexOf('{');
             const jsonEnd = jsonStr.lastIndexOf('}');
-
-            if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
-                jsonStr = jsonStr.substring(jsonStart, jsonEnd + 1);
+            if (jsonStart !== -1 && jsonEnd > jsonStart) {
+                attempts.push(jsonStr.substring(jsonStart, jsonEnd + 1));
+                const lastOpen = jsonStr.lastIndexOf('{');
+                if (lastOpen !== jsonStart && lastOpen < jsonEnd) {
+                    attempts.push(jsonStr.substring(lastOpen, jsonEnd + 1));
+                }
             }
+            for (const candidate of attempts.length ? attempts : [jsonStr]) {
+                const toTry = [
+                    candidate,
+                    candidate.replace(/,(\s*[}\]])/g, "$1"),
+                ];
+                for (const s of toTry) {
+                    try {
+                        const out = JSON.parse(s) as AIResponse;
+                        if (out && typeof out.reply === "string" && out.extractedData) return out;
+                    } catch {
+                        continue;
+                    }
+                }
+            }
+            return null;
+        };
 
-            const parsed = JSON.parse(jsonStr);
-            return parsed as AIResponse;
-        } catch (parseError) {
-            console.error("Failed to parse AI response, using fallback:", text);
-            return fallbackAI(userMessage, currentExtractedData);
-        }
+        const parsed = parseAIResponse(text);
+        if (parsed) return parsed;
+
+        console.warn("Failed to parse AI response, using fallback");
+        return fallbackAI(userMessage, currentExtractedData);
     } catch (error: any) {
         console.error("Groq API Error, using fallback:", error);
 

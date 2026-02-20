@@ -23,6 +23,7 @@ import { useEffect, useState } from "react";
 import { useLoading } from "@/contexts/LoadingContext";
 import RamadanDivider from "@/components/seasonal/RamadanDivider";
 import { seasonalConfig } from "@/config/seasonalConfig";
+import { validateEgyptPhone, validateEmail } from "@/lib/validators";
 
 const CorporateTrips = () => {
   const { getToken, isSignedIn } = useAuth();
@@ -581,6 +582,13 @@ const CorporateTrips = () => {
                       tripTypes: formData.get('tripTypes') as string,
                       message: formData.get('message') as string
                     };
+
+                    const phoneCheck = validateEgyptPhone(data.phone || "");
+                    if (!phoneCheck.valid) { toast({ title: "رقم الهاتف غير صحيح", description: phoneCheck.message, variant: "destructive" }); submitBtn.disabled = false; submitBtn.innerHTML = originalBtnText; return; }
+                    const whatsappCheck = validateEgyptPhone(data.whatsapp || "");
+                    if (!whatsappCheck.valid) { toast({ title: "رقم الواتساب غير صحيح", description: whatsappCheck.message, variant: "destructive" }); submitBtn.disabled = false; submitBtn.innerHTML = originalBtnText; return; }
+                    const emailCheck = validateEmail(data.email || "");
+                    if (!emailCheck.valid) { toast({ title: "البريد الإلكتروني غير صحيح", description: emailCheck.message, variant: "destructive" }); submitBtn.disabled = false; submitBtn.innerHTML = originalBtnText; return; }
 
                     try {
                       const token = await getToken();

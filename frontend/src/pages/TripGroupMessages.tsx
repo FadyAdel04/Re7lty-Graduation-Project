@@ -291,16 +291,16 @@ const TripGroupMessages = () => {
     <div className="min-h-screen bg-[#F8FAFC] font-cairo" dir="rtl">
       <Header />
       
-      <main className="container mx-auto px-0 md:px-4 py-0 md:py-8 h-[calc(100vh-80px)] md:h-[calc(100vh-120px)]">
-         <div className="bg-white backdrop-blur-xl border-y md:border border-gray-100 rounded-none md:rounded-[2.5rem] shadow-2xl h-full overflow-hidden flex flex-col md:flex-row">
+      <main className="container mx-auto px-0 sm:px-2 md:px-4 py-0 sm:py-4 md:py-8 h-[calc(100vh-5rem)] sm:h-[calc(100vh-5.5rem)] md:h-[calc(100vh-6rem)] min-h-0">
+         <div className="bg-white backdrop-blur-xl border-y sm:border border-gray-100 rounded-none sm:rounded-2xl md:rounded-[2.5rem] shadow-xl sm:shadow-2xl h-full overflow-hidden flex flex-col md:flex-row min-h-0">
             
             {/* Sidebar */}
             <div className={cn(
-              "w-full md:w-[380px] border-r border-gray-200 bg-white flex flex-col transition-all duration-300",
+              "w-full md:w-[340px] lg:w-[380px] border-r border-gray-200 bg-white flex flex-col transition-all duration-300 min-h-0 shrink-0",
               activeGroup ? "hidden md:flex" : "flex"
             )}>
                {/* Tabs */}
-               <div className="px-6 pt-6 grid grid-cols-2 gap-2">
+               <div className="px-4 sm:px-6 pt-4 sm:pt-6 grid grid-cols-2 gap-2 shrink-0">
                   <Button 
                      variant="ghost" 
                      className="rounded-xl font-bold text-gray-500 hover:bg-gray-50 h-11"
@@ -323,15 +323,15 @@ const TripGroupMessages = () => {
                   </Button>
                </div>
 
-               <div className="p-6 space-y-4">
-                  <h2 className="text-2xl font-black text-gray-900">الرسائل</h2>
+               <div className="p-4 sm:p-6 space-y-3 sm:space-y-4 shrink-0">
+                  <h2 className="text-xl sm:text-2xl font-black text-gray-900">الرسائل</h2>
                   <div className="relative">
-                     <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                     <Search className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                      <Input 
                         placeholder="بحث في المجموعات..." 
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pr-11 h-12 rounded-2xl bg-gray-50 border-0 focus-visible:ring-indigo-600/20" 
+                        className="pr-10 sm:pr-11 h-11 sm:h-12 rounded-xl sm:rounded-2xl bg-gray-50 border-0 focus-visible:ring-indigo-600/20 text-sm sm:text-base" 
                      />
                   </div>
                </div>
@@ -399,25 +399,25 @@ const TripGroupMessages = () => {
             )}>
                {activeGroup ? (
                   <>
-                     <header className="p-6 border-b border-gray-50 flex items-center justify-between bg-white/50 backdrop-blur-md z-10 sticky top-0">
-                        <div className="flex items-center gap-4">
-                           <Button variant="ghost" size="icon" className="md:hidden h-10 w-10 rounded-xl" onClick={() => {
+                     <header className="p-4 sm:p-6 border-b border-gray-50 flex items-center justify-between gap-3 bg-white/50 backdrop-blur-md z-10 sticky top-0 shrink-0">
+                        <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+                           <Button variant="ghost" size="icon" className="md:hidden h-10 w-10 rounded-xl shrink-0" onClick={() => {
                               setActiveGroup(null);
                               navigate('/trip-groups', { replace: true });
                            }}>
-                              <ChevronRight className="w-6 h-6 rotate-180" />
+                              <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 rotate-180" />
                            </Button>
-                           <Avatar className="h-12 w-12 border-2 border-indigo-100 shadow-sm shrink-0">
+                           <Avatar className="h-10 w-10 sm:h-12 sm:w-12 border-2 border-indigo-100 shadow-sm shrink-0">
                               <AvatarImage src={activeGroup.tripImage} className="object-cover" />
-                              <AvatarFallback className="bg-indigo-600 text-white font-black">
+                              <AvatarFallback className="bg-indigo-600 text-white font-black text-sm sm:text-base">
                                  {activeGroup.name.charAt(0)}
                               </AvatarFallback>
                            </Avatar>
-                           <div className="min-w-0">
-                              <h3 className="text-base font-black text-gray-900 truncate">{activeGroup.name}</h3>
-                              <div className="flex items-center gap-3 mt-1">
-                                 <div className="flex items-center gap-1.5 text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                                    <Calendar className="w-2.5 h-2.5" />
+                           <div className="min-w-0 flex-1">
+                              <h3 className="text-sm sm:text-base font-black text-gray-900 truncate">{activeGroup.name}</h3>
+                              <div className="flex items-center gap-2 sm:gap-3 mt-0.5 sm:mt-1 flex-wrap">
+                                 <div className="flex items-center gap-1.5 text-[9px] sm:text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                                    <Calendar className="w-2.5 h-2.5 shrink-0" />
                                     <span>مجموعة رسمية</span>
                                  </div>
                                  {activeGroup.tripId?.startDate && (
@@ -530,7 +530,7 @@ const TripGroupMessages = () => {
                         </div>
                      )}
 
-                     <ScrollArea className="flex-1 p-6 bg-gray-50/30">
+                     <ScrollArea className="flex-1 min-h-0 p-4 sm:p-6 bg-gray-50/30">
                         <div className="space-y-6">
                            {messages.map((msg, i) => {
                               const isMe = msg.senderId === user?.id;
@@ -568,7 +568,7 @@ const TripGroupMessages = () => {
                                              <AvatarFallback className="bg-indigo-100 text-indigo-600 font-bold text-xs">{displaySenderName?.charAt(0)}</AvatarFallback>
                                           </Avatar>
                                        )}
-                                       <div className={cn("max-w-[75%] space-y-1", isMe ? "items-end text-right" : "items-start text-right")}>
+                                       <div className={cn("max-w-[85%] sm:max-w-[75%] space-y-1", isMe ? "items-end text-right" : "items-start text-right")}>
                                           {!isMe && (
                                              <div className="flex items-center gap-2 flex-wrap mr-1">
                                                 <span className="text-[10px] font-black text-gray-400">{displaySenderName}</span>
@@ -626,7 +626,7 @@ const TripGroupMessages = () => {
                         </div>
                      </ScrollArea>
 
-                     <footer className="p-6 bg-white border-t border-gray-100">
+                     <footer className="p-4 sm:p-6 bg-white border-t border-gray-100 shrink-0">
                         {attachment && (
                            <div className="mb-4 p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100 animate-in slide-in-from-bottom duration-300 relative">
                               <Button 
@@ -667,7 +667,7 @@ const TripGroupMessages = () => {
                               <span>المجموعة مقفلة حالياً للمشاركين.</span>
                            </div>
                         ) : (
-                           <form onSubmit={handleSendMessage} className="flex items-center gap-3">
+                           <form onSubmit={handleSendMessage} className="flex items-center gap-2 sm:gap-3">
                               <input 
                                  type="file" 
                                  ref={fileInputRef} 
@@ -678,35 +678,35 @@ const TripGroupMessages = () => {
                               <div className="flex-1 relative flex items-center">
                                  <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
                                     <PopoverTrigger asChild>
-                                       <Button type="button" variant="ghost" size="icon" className="absolute right-2 h-10 w-10 text-gray-400 hover:text-indigo-600 rounded-xl">
-                                          <Smile className="w-6 h-6" />
+                                       <Button type="button" variant="ghost" size="icon" className="absolute right-1.5 sm:right-2 h-9 w-9 sm:h-10 sm:w-10 text-gray-400 hover:text-indigo-600 rounded-lg sm:rounded-xl">
+                                          <Smile className="w-5 h-5 sm:w-6 sm:h-6" />
                                        </Button>
                                     </PopoverTrigger>
-                                    <PopoverContent side="top" align="start" className="p-0 border-none shadow-2xl rounded-2xl overflow-hidden mb-4">
-                                       <EmojiPicker onEmojiClick={onEmojiClick} theme={Theme.LIGHT} lazyLoadEmojis height={400} />
+                                    <PopoverContent side="top" align="start" className="p-0 border-none shadow-2xl rounded-2xl overflow-hidden mb-2 sm:mb-4 max-h-[70vh]">
+                                       <EmojiPicker onEmojiClick={onEmojiClick} theme={Theme.LIGHT} lazyLoadEmojis height={320} />
                                     </PopoverContent>
                                  </Popover>
                                  <Input 
-                                    placeholder="اكتب رسالتك للمجموعة..." 
-                                    className="w-full h-14 pr-14 pl-20 bg-gray-50 border-none rounded-2xl text-base focus-visible:ring-indigo-600 font-bold"
+                                    placeholder="اكتب رسالتك..." 
+                                    className="w-full h-12 sm:h-14 pr-11 sm:pr-14 pl-14 sm:pl-20 bg-gray-50 border-none rounded-xl sm:rounded-2xl text-sm sm:text-base focus-visible:ring-indigo-600 font-black"
                                     value={newMessage}
                                     onChange={(e) => setNewMessage(e.target.value)}
                                  />
-                                 <div className="absolute left-2 flex items-center gap-1">
+                                 <div className="absolute left-1.5 sm:left-2 flex items-center gap-0.5 sm:gap-1">
                                     <Button 
                                        type="button" 
                                        variant="ghost" 
                                        size="icon" 
-                                       className="h-10 w-10 text-gray-400 hover:text-indigo-600 rounded-xl"
+                                       className="h-9 w-9 sm:h-10 sm:w-10 text-gray-400 hover:text-indigo-600 rounded-lg sm:rounded-xl"
                                        onClick={() => fileInputRef.current?.click()}
                                     >
-                                       <Paperclip className="w-5 h-5" />
+                                       <Paperclip className="w-4 h-4 sm:w-5 sm:h-5" />
                                     </Button>
                                     <Button 
                                        type="button" 
                                        variant="ghost" 
                                        size="icon" 
-                                       className="h-10 w-10 text-gray-400 hover:text-indigo-600 rounded-xl"
+                                       className="h-9 w-9 sm:h-10 sm:w-10 text-gray-400 hover:text-indigo-600 rounded-lg sm:rounded-xl"
                                        onClick={() => {
                                           if (fileInputRef.current) {
                                              fileInputRef.current.accept = "audio/*";
@@ -723,7 +723,7 @@ const TripGroupMessages = () => {
                                  type="submit" 
                                  disabled={!newMessage.trim() && !attachment || isUploading} 
                                  size="icon" 
-                                 className="h-14 w-14 rounded-2xl bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-100 shrink-0"
+                                 className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl sm:rounded-2xl bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-100 shrink-0"
                               >
                                  {isUploading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Send className="w-6 h-6" />}
                               </Button>

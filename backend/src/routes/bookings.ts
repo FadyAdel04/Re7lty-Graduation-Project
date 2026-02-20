@@ -6,6 +6,7 @@ import { CorporateTrip } from "../models/CorporateTrip";
 import { CorporateCompany } from "../models/CorporateCompany";
 import { createNotification } from "../utils/notificationDispatcher";
 import { handleBookingAccepted, handleBookingCancelled } from "../utils/tripChatManager";
+import { validateEgyptPhone, validateEmail } from "../utils/validators";
 
 const router = Router();
 
@@ -28,8 +29,38 @@ router.post("/", requireAuthStrict, async (req, res) => {
             return res.status(400).json({ error: "Missing required fields" });
         }
 
+        const phoneCheck = validateEgyptPhone(String(userPhone || ""));
+        if (!phoneCheck.valid) return res.status(400).json({ error: phoneCheck.message });
+
+        const userEmail = email || user.emailAddresses?.[0]?.emailAddress || "";
+        const emailCheck = validateEmail(userEmail || " ");
+        if (!emailCheck.valid) return res.status(400).json({ error: emailCheck.message });
+
         const trip = await CorporateTrip.findById(tripId);
         if (!trip) return res.status(404).json({ error: "Trip not found" });
+
+        const tripStart = trip.startDate ? new Date(trip.startDate) : null;
+        if (tripStart && tripStart <= new Date()) {
+            return res.status(400).json({ error: "لا يمكن الحجز بعد بدء موعد الرحلة" });
+        }
+
+        let totalSeats = trip.maxGroupSize || (trip as any).availableSeats || 0;
+        if (totalSeats === 0 && (trip as any).transportations?.length) {
+            totalSeats = (trip as any).transportations.reduce((s: number, t: any) => s + (t.capacity || 0) * (t.count || 1), 0);
+        }
+        const bookedCount = (trip.seatBookings?.length || 0) + (await Booking.countDocuments({ tripId, status: { $in: ["pending", "accepted"] } }));
+        if (totalSeats > 0 && bookedCount + numberOfPeople > totalSeats) {
+            return res.status(400).json({ error: "لا توجد مقاعد كافية في هذه الرحلة" });
+        }
+
+        const existingBooking = await Booking.findOne({
+            tripId,
+            userId,
+            status: { $in: ["pending", "accepted"] }
+        });
+        if (existingBooking) {
+            return res.status(400).json({ error: "لديك حجز سابق لهذه الرحلة بالفعل" });
+        }
 
         if (selectedSeats && selectedSeats.length > 0) {
             const alreadyBooked = trip.seatBookings?.some(s => selectedSeats.includes(s.seatNumber));
@@ -65,7 +96,6 @@ router.post("/", requireAuthStrict, async (req, res) => {
         const commissionAmount = parseFloat((totalPrice * 0.05).toFixed(2));
         const netAmount = parseFloat((totalPrice - commissionAmount).toFixed(2));
 
-        const userEmail = email || user.emailAddresses?.[0]?.emailAddress || "no-email@provided.com";
         const userName = (firstName && lastName) ? `${firstName} ${lastName}` : ((user.firstName ? user.firstName + " " : "") + (user.lastName || "") || "User");
 
         const timestamp = Date.now().toString(36).toUpperCase();
@@ -73,7 +103,7 @@ router.post("/", requireAuthStrict, async (req, res) => {
         const bookingReference = `REF-${timestamp}-${randomStr}`;
 
         const booking = await Booking.create({
-            bookingReference, userId, userName, userEmail, userPhone,
+            bookingReference, userId, userName, userEmail: userEmail || user.emailAddresses?.[0]?.emailAddress || "no-email@provided.com", userPhone,
             tripId: trip._id, tripTitle: trip.title, tripDestination: trip.destination, tripPrice: trip.price,
             companyId: company._id, companyName: company.name, numberOfPeople,
             bookingDate: new Date(bookingDate), specialRequests: specialRequests || "",

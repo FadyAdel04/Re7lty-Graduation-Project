@@ -114,6 +114,10 @@ export default {
           "0%": { transform: "translateX(-100%)" },
           "100%": { transform: "translateX(0)" },
         },
+        "guide-border-pulse": {
+          "0%, 100%": { boxShadow: "0 0 0 2px rgba(251,191,36,0.5)" },
+          "50%": { boxShadow: "0 0 0 6px rgba(251,191,36,0.25)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -122,6 +126,7 @@ export default {
         "slide-in": "slide-in 0.6s ease-out",
         "float": "float 3s ease-in-out infinite",
         "marquee": "marquee 25s linear infinite",
+        "guide-border-pulse": "guide-border-pulse 1.5s ease-in-out infinite",
       },
     },
   },

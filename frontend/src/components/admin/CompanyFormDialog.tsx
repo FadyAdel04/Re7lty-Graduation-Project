@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { adminService } from "@/services/adminService";
 import { Loader2 } from "lucide-react";
+import { validateEgyptPhone, validateEmail } from "@/lib/validators";
 
 interface CompanyFormDialogProps {
   open: boolean;
@@ -82,6 +83,12 @@ const CompanyFormDialog = ({ open, onOpenChange, onSuccess, initialData }: Compa
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const phoneCheck = validateEgyptPhone(formData.contactInfo.phone || "");
+    if (!phoneCheck.valid) { alert("رقم الهاتف: " + (phoneCheck.message || "")); return; }
+    const whatsappCheck = validateEgyptPhone(formData.contactInfo.whatsapp || "");
+    if (!whatsappCheck.valid) { alert("رقم الواتساب: " + (whatsappCheck.message || "")); return; }
+    const emailCheck = validateEmail(formData.contactInfo.email || "");
+    if (!emailCheck.valid) { alert("البريد الإلكتروني: " + (emailCheck.message || "")); return; }
     setLoading(true);
 
     try {

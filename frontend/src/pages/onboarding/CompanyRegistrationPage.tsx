@@ -8,6 +8,7 @@ import { CheckCircle2, ChevronRight, Send, Building2 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useToast } from "@/hooks/use-toast";
+import { validateEgyptPhone, validateEmail } from "@/lib/validators";
 
 const CompanyRegistrationPage = () => {
     const { getToken, isSignedIn } = useAuth();
@@ -95,6 +96,13 @@ const CompanyRegistrationPage = () => {
                     tripTypes: formData.get('tripTypes') as string,
                     message: formData.get('message') as string
                   };
+
+                  const phoneCheck = validateEgyptPhone(data.phone || "");
+                  if (!phoneCheck.valid) { toast({ title: "رقم الهاتف غير صحيح", description: phoneCheck.message, variant: "destructive" }); submitBtn.disabled = false; submitBtn.innerHTML = originalBtnText; return; }
+                  const whatsappCheck = validateEgyptPhone(data.whatsapp || "");
+                  if (!whatsappCheck.valid) { toast({ title: "رقم الواتساب غير صحيح", description: whatsappCheck.message, variant: "destructive" }); submitBtn.disabled = false; submitBtn.innerHTML = originalBtnText; return; }
+                  const emailCheck = validateEmail(data.email || "");
+                  if (!emailCheck.valid) { toast({ title: "البريد الإلكتروني غير صحيح", description: emailCheck.message, variant: "destructive" }); submitBtn.disabled = false; submitBtn.innerHTML = originalBtnText; return; }
 
                   try {
                     const token = await getToken();

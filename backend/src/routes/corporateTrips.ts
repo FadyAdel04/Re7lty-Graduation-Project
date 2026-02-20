@@ -7,6 +7,14 @@ import { persistBase64 } from '../utils/media';
 import { createNotification } from '../utils/notificationDispatcher';
 import { Booking } from '../models/Booking';
 import { ensureTripGroupExists } from '../utils/tripChatManager';
+import {
+  validateTripTitle,
+  validateDescription,
+  validatePrice,
+  validateSeats,
+  validateStartDate,
+  validateReturnDate
+} from '../utils/validators';
 
 
 /**
@@ -434,6 +442,22 @@ router.post('/admin/create', ClerkExpressRequireAuth(), requireAdmin, async (req
  *       201:
  *         description: Trip created
  */
+function validateImageBase64(dataUrl: string): { valid: boolean; message?: string } {
+    if (!dataUrl || typeof dataUrl !== 'string') return { valid: true };
+    const m = /^data:(image\/[a-zA-Z+.-]+);base64,(.+)$/.exec(dataUrl);
+    if (!m) return { valid: true }; // not base64, might be URL
+    const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowed.includes(m[1].toLowerCase())) {
+        return { valid: false, message: 'يجب أن تكون الصور من نوع jpeg, png, gif أو webp فقط' };
+    }
+    const base64Len = m[2].length;
+    const approxBytes = (base64Len * 3) / 4;
+    if (approxBytes > 5 * 1024 * 1024) {
+        return { valid: false, message: 'حجم الصورة يجب ألا يتجاوز 5 ميجابايت' };
+    }
+    return { valid: true };
+}
+
 router.post('/me/create', ClerkExpressRequireAuth(), async (req, res) => {
     try {
         // Get user and verify company owner status
@@ -442,6 +466,56 @@ router.post('/me/create', ClerkExpressRequireAuth(), async (req, res) => {
 
         if (!user || !user.companyId || user.role !== 'company_owner') {
             return res.status(403).json({ error: 'Unauthorized: Only company owners can create trips' });
+        }
+
+        const { title, shortDescription, fullDescription, price, maxGroupSize, availableSeats, startDate, endDate } = req.body;
+
+        const tCheck = validateTripTitle(title);
+        if (!tCheck.valid) return res.status(400).json({ error: tCheck.message });
+
+        const descVal = fullDescription || shortDescription || '';
+        const dCheck = validateDescription(descVal);
+        if (!dCheck.valid) return res.status(400).json({ error: dCheck.message });
+
+        const pCheck = validatePrice(price);
+        if (!pCheck.valid) return res.status(400).json({ error: pCheck.message });
+
+        const seatsVal = availableSeats ?? maxGroupSize ?? 0;
+        const sCheck = validateSeats(seatsVal);
+        if (!sCheck.valid) return res.status(400).json({ error: sCheck.message });
+
+        if (startDate) {
+            const sdCheck = validateStartDate(startDate);
+            if (!sdCheck.valid) return res.status(400).json({ error: sdCheck.message });
+        }
+        if (startDate && endDate) {
+            const rdCheck = validateReturnDate(endDate, startDate);
+            if (!rdCheck.valid) return res.status(400).json({ error: rdCheck.message });
+        }
+
+        const startForDup = startDate ? new Date(startDate) : null;
+        if (req.body.destination && startForDup) {
+            const startDay = new Date(startForDup);
+            startDay.setHours(0, 0, 0, 0);
+            const endDay = new Date(startDay);
+            endDay.setDate(endDay.getDate() + 1);
+            const dup = await CorporateTrip.findOne({
+                companyId: user.companyId,
+                destination: req.body.destination,
+                startDate: { $gte: startDay, $lt: endDay },
+                isActive: true
+            });
+            if (dup) return res.status(400).json({ error: 'رحلة بنفس الوجهة وتاريخ البداية موجودة مسبقاً' });
+        }
+
+        const images = req.body.images;
+        if (images && Array.isArray(images)) {
+            for (let i = 0; i < images.length; i++) {
+                if (images[i] && typeof images[i] === 'string') {
+                    const imgCheck = validateImageBase64(images[i]);
+                    if (!imgCheck.valid) return res.status(400).json({ error: imgCheck.message });
+                }
+            }
         }
 
         // Sanitize itinerary: remove items with empty title or description
@@ -540,6 +614,44 @@ router.put('/me/:id', ClerkExpressRequireAuth(), async (req, res) => {
         // Verify that this trip belongs to the user's company
         if (trip.companyId.toString() !== user.companyId.toString()) {
             return res.status(403).json({ error: 'Unauthorized: This trip belongs to another company' });
+        }
+
+        const { title, shortDescription, fullDescription, price, maxGroupSize, availableSeats, startDate, endDate } = req.body;
+
+        if (title !== undefined) {
+            const tCheck = validateTripTitle(title);
+            if (!tCheck.valid) return res.status(400).json({ error: tCheck.message });
+        }
+        if ((fullDescription || shortDescription) !== undefined) {
+            const descVal = fullDescription ?? shortDescription ?? trip.fullDescription ?? trip.shortDescription ?? '';
+            const dCheck = validateDescription(descVal);
+            if (!dCheck.valid) return res.status(400).json({ error: dCheck.message });
+        }
+        if (price !== undefined) {
+            const pCheck = validatePrice(price);
+            if (!pCheck.valid) return res.status(400).json({ error: pCheck.message });
+        }
+        const seatsVal = availableSeats ?? maxGroupSize ?? trip.maxGroupSize ?? trip.availableSeats;
+        if (seatsVal !== undefined) {
+            const bookedCount = trip.seatBookings?.length || 0;
+            const sCheck = validateSeats(seatsVal, bookedCount);
+            if (!sCheck.valid) return res.status(400).json({ error: sCheck.message });
+        }
+        if (startDate) {
+            const sdCheck = validateStartDate(startDate);
+            if (!sdCheck.valid) return res.status(400).json({ error: sdCheck.message });
+        }
+        if (startDate && endDate) {
+            const rdCheck = validateReturnDate(endDate, startDate);
+            if (!rdCheck.valid) return res.status(400).json({ error: rdCheck.message });
+        }
+        if (req.body.images && Array.isArray(req.body.images)) {
+            for (let i = 0; i < req.body.images.length; i++) {
+                if (req.body.images[i] && typeof req.body.images[i] === 'string' && req.body.images[i].startsWith('data:')) {
+                    const imgCheck = validateImageBase64(req.body.images[i]);
+                    if (!imgCheck.valid) return res.status(400).json({ error: imgCheck.message });
+                }
+            }
         }
 
         // Process images if present
@@ -653,15 +765,27 @@ router.put('/admin/:id', ClerkExpressRequireAuth(), requireAdmin, async (req, re
  */
 router.delete('/admin/:id', ClerkExpressRequireAuth(), requireAdmin, async (req, res) => {
     try {
-        const trip = await CorporateTrip.findByIdAndUpdate(
+        const trip = await CorporateTrip.findById(req.params.id);
+        if (!trip) {
+            return res.status(404).json({ error: 'Trip not found' });
+        }
+
+        const bookingsCount = await Booking.countDocuments({
+            tripId: trip._id,
+            status: { $in: ['pending', 'accepted'] }
+        });
+        if (bookingsCount > 0) {
+            return res.status(400).json({
+                error: 'لا يمكن حذف رحلة بها حجوزات',
+                message: `يوجد ${bookingsCount} حجز(ات) لهذه الرحلة. يرجى إلغاء الحجوزات أولاً أو إلغاء تفعيل الرحلة بدلاً من الحذف.`
+            });
+        }
+
+        await CorporateTrip.findByIdAndUpdate(
             req.params.id,
             { isActive: false },
             { new: true }
         );
-
-        if (!trip) {
-            return res.status(404).json({ error: 'Trip not found' });
-        }
 
         // Update company trips count
         await CorporateCompany.findByIdAndUpdate(

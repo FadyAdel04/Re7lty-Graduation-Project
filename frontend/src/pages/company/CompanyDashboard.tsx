@@ -6,7 +6,7 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart, Activity, Users, Map, Plus, DollarSign, Calendar, LogOut, AlertTriangle, Loader2, Settings, Bus, Check, RefreshCcw, Bell, MessageCircle, Ticket } from "lucide-react";
+import { BarChart, Activity, Users, Map, Plus, DollarSign, Calendar, LogOut, AlertTriangle, Loader2, Settings, Bus, Check, RefreshCcw, Bell, MessageCircle, Ticket, BookOpen, ChevronRight, ChevronLeft, FileDown, Edit3, ListChecks, Send, LayoutGrid } from "lucide-react";
 import BusSeatLayout from "@/components/company/BusSeatLayout";
 import { useToast } from "@/components/ui/use-toast";
 import { corporateTripsService } from "@/services/corporateTripsService";
@@ -43,7 +43,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-
 import { cn } from "@/lib/utils";
 
 const CompanyDashboard = () => {
@@ -56,6 +55,18 @@ const CompanyDashboard = () => {
     // UI State
     const [isSwitchingRole, setIsSwitchingRole] = useState(false);
     const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+    const [showGuideDialog, setShowGuideDialog] = useState(false);
+    const [guideStep, setGuideStep] = useState(0);
+
+    const GUIDE_SECTIONS: { id: string; label: string; icon: typeof Map; text: string; actionIcons: { icon: typeof Plus; label: string }[] }[] = [
+        { id: 'trips', label: 'الرحلات', icon: Map, text: 'عرض جميع رحلاتك، إضافة رحلة جديدة، تعديل بيانات أي رحلة، تصدير تفاصيل الرحلة كملف PDF.', actionIcons: [{ icon: Map, label: 'عرض الرحلات' }, { icon: Plus, label: 'إضافة رحلة' }, { icon: Edit3, label: 'تعديل' }, { icon: FileDown, label: 'تصدير PDF' }] },
+        { id: 'bookings', label: 'الحجوزات', icon: Users, text: 'رؤية طلبات الحجز من المسافرين، قبول أو رفض الطلبات. الطلبات الجديدة بشارة حمراء. بعد القبول يُحجز المقعد تلقائياً.', actionIcons: [{ icon: Users, label: 'طلبات الحجز' }, { icon: Check, label: 'قبول' }, { icon: Activity, label: 'قيد الانتظار' }] },
+        { id: 'coupons', label: 'كوبونات الخصم', icon: Ticket, text: 'إنشاء كوبونات خصم (نسبة مئوية أو مبلغ ثابت)، تحديد الرحلات وتاريخ انتهاء الكوبون.', actionIcons: [{ icon: Ticket, label: 'كوبونات' }, { icon: DollarSign, label: 'خصم' }] },
+        { id: 'contact', label: 'الرسائل', icon: MessageCircle, text: 'التواصل مع المسافرين عبر المحادثات. المحادثات الخاصة ومجموعات الرحلات في تبويب واحد.', actionIcons: [{ icon: MessageCircle, label: 'محادثات' }, { icon: Send, label: 'إرسال' }] },
+        { id: 'seats', label: 'توزيع المقاعد', icon: Bus, text: 'اختيار رحلة لرؤية مخطط المقاعد، تعيين المقاعد يدوياً للحجوزات أو تعديل توزيع الحافلات.', actionIcons: [{ icon: Bus, label: 'مخطط المقاعد' }, { icon: LayoutGrid, label: 'توزيع' }] },
+        { id: 'reports', label: 'التقارير', icon: BarChart, text: 'عرض إحصائيات المبيعات والإيرادات وعدد الحجوزات، تتبع العمولة (5%) وصافي الإيرادات.', actionIcons: [{ icon: BarChart, label: 'إحصائيات' }, { icon: DollarSign, label: 'الإيرادات' }, { icon: ListChecks, label: 'الحجوزات' }] },
+        { id: 'settings', label: 'الإعدادات', icon: Settings, text: 'تعديل بيانات شركتك: الاسم، الشعار، وصف الشركة، وأرقام الهاتف والواتساب والبريد الإلكتروني.', actionIcons: [{ icon: Settings, label: 'الإعدادات' }, { icon: Edit3, label: 'تعديل البيانات' }] },
+    ];
     const [acceptedWarning, setAcceptedWarning] = useState(false);
     const [activeTab, setActiveTab] = useState('trips');
 
@@ -606,41 +617,122 @@ const CompanyDashboard = () => {
 
                 {/* Main Content with Sidebar */}
                 <div className="flex flex-col lg:flex-row gap-8 pt-8">
+                    {/* Guide panel - next to sidebar, no overlay */}
+                    {showGuideDialog && (
+                        <Card className="lg:w-80 shrink-0 rounded-[2rem] border-2 border-amber-200 shadow-xl shadow-amber-100/50 bg-white overflow-hidden animate-in fade-in slide-in-from-right-4 duration-300 h-fit sticky top-24" dir="rtl">
+                            <div className="p-5 space-y-4">
+                                <div className="flex items-center gap-3 pb-3 border-b border-amber-100">
+                                    <div className="w-12 h-12 rounded-2xl bg-amber-100 flex items-center justify-center text-amber-600">
+                                        {GUIDE_SECTIONS[guideStep] && (() => {
+                                            const Icon = GUIDE_SECTIONS[guideStep].icon;
+                                            return <Icon className="w-6 h-6" />;
+                                        })()}
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-bold text-amber-600">دليل الاستخدام</p>
+                                        <p className="text-base font-black text-gray-900">{GUIDE_SECTIONS[guideStep]?.label}</p>
+                                    </div>
+                                </div>
+                                <p className="text-sm text-gray-700 leading-relaxed">{GUIDE_SECTIONS[guideStep]?.text}</p>
+                                {GUIDE_SECTIONS[guideStep]?.actionIcons?.length ? (
+                                    <div className="flex flex-wrap gap-2">
+                                        {GUIDE_SECTIONS[guideStep].actionIcons.map((item, i) => {
+                                            const ActionIcon = item.icon;
+                                            return (
+                                                <span key={i} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-50 text-amber-700 text-xs font-bold border border-amber-100">
+                                                    <ActionIcon className="w-3.5 h-3.5 shrink-0" />
+                                                    {item.label}
+                                                </span>
+                                            );
+                                        })}
+                                    </div>
+                                ) : null}
+                                <p className="text-xs text-gray-400">تطبق عمولة 5% على كل حجز ناجح.</p>
+                                <div className="flex items-center justify-between gap-2 pt-3 border-t border-gray-100">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                            const next = Math.max(0, guideStep - 1);
+                                            setGuideStep(next);
+                                            setActiveTab(GUIDE_SECTIONS[next].id);
+                                            if (GUIDE_SECTIONS[next].id === 'contact') setMessagesUnreadCount(0);
+                                        }}
+                                        disabled={guideStep === 0}
+                                        className="rounded-xl gap-1 font-bold text-xs"
+                                    >
+                                        <ChevronRight className="w-4 h-4" />
+                                        السابق
+                                    </Button>
+                                    <span className="text-xs font-bold text-gray-400">{guideStep + 1} / {GUIDE_SECTIONS.length}</span>
+                                    <Button
+                                        size="sm"
+                                        onClick={() => {
+                                            if (guideStep >= GUIDE_SECTIONS.length - 1) {
+                                                setShowGuideDialog(false);
+                                                setGuideStep(0);
+                                                return;
+                                            }
+                                            const next = guideStep + 1;
+                                            setGuideStep(next);
+                                            setActiveTab(GUIDE_SECTIONS[next].id);
+                                            if (GUIDE_SECTIONS[next].id === 'contact') setMessagesUnreadCount(0);
+                                        }}
+                                        className="rounded-xl gap-1 font-bold text-xs bg-indigo-600 hover:bg-indigo-700"
+                                    >
+                                        {guideStep >= GUIDE_SECTIONS.length - 1 ? 'إنهاء' : 'التالي'}
+                                        <ChevronLeft className="w-4 h-4" />
+                                    </Button>
+                                </div>
+                            </div>
+                        </Card>
+                    )}
+
                     {/* Sidebar */}
                     <aside className="w-full lg:w-72 shrink-0">
-                        <Card className="rounded-[2.5rem] border-0 shadow-lg overflow-hidden p-4 sticky top-24">
+                        <Card className="rounded-[2.5rem] border-0 shadow-lg overflow-visible p-4 sticky top-24">
                             <nav className="space-y-2">
-                                {[
-                                    { id: 'trips', label: 'الرحلات', icon: Map },
-                                    { id: 'bookings', label: 'الحجوزات', icon: Users, badge: bookings.filter(b => b.status === 'pending').length },
-                                    { id: 'coupons', label: 'كوبونات الخصم', icon: Ticket },
-                                    { id: 'contact', label: 'الرسائل', icon: MessageCircle, badge: messagesUnreadCount },
-                                    { id: 'seats', label: 'توزيع المقاعد', icon: Bus },
-                                    { id: 'reports', label: 'التقارير', icon: BarChart },
-                                    { id: 'settings', label: 'الإعدادات', icon: Settings },
-                                ].map((tab) => (
+                                <button
+                                    onClick={() => {
+                                        setShowGuideDialog(true);
+                                        setGuideStep(0);
+                                        setActiveTab(GUIDE_SECTIONS[0].id);
+                                        if (GUIDE_SECTIONS[0].id === 'contact') setMessagesUnreadCount(0);
+                                    }}
+                                    className="w-full flex items-center gap-4 px-6 py-4 rounded-2xl font-bold transition-all hover:bg-amber-50 hover:text-amber-600 text-gray-500 border border-amber-100"
+                                >
+                                    <BookOpen className="w-5 h-5" />
+                                    دليل الاستخدام
+                                </button>
+                                {GUIDE_SECTIONS.map((tab, idx) => {
+                                    const badge = tab.id === 'bookings' ? bookings.filter(b => b.status === 'pending').length : tab.id === 'contact' ? messagesUnreadCount : undefined;
+                                    const isGuideHighlight = showGuideDialog && GUIDE_SECTIONS[guideStep]?.id === tab.id;
+                                    return (
                                     <button
                                         key={tab.id}
                                         onClick={() => {
                                             setActiveTab(tab.id);
                                             if (tab.id === 'contact') setMessagesUnreadCount(0);
+                                            if (showGuideDialog) setGuideStep(idx);
                                         }}
-                                        className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl font-bold transition-all ${
+                                        className={cn(
+                                            "w-full flex items-center gap-4 px-6 py-4 rounded-2xl font-bold transition-all relative",
+                                            isGuideHighlight && "ring-2 ring-amber-400 ring-offset-2 ring-offset-white animate-guide-border-pulse",
                                             activeTab === tab.id 
-                                            ? "bg-indigo-600 text-white shadow-xl shadow-indigo-200" 
-                                            : "hover:bg-indigo-50 hover:text-indigo-600 text-gray-500"
-                                        }`}
+                                                ? "bg-indigo-600 text-white shadow-xl shadow-indigo-200" 
+                                                : "hover:bg-indigo-50 hover:text-indigo-600 text-gray-500"
+                                        )}
                                         id={`sidebar-tab-${tab.id}`}
                                     >
                                         <tab.icon className="w-5 h-5" />
                                         <span>{tab.label}</span>
-                                        {tab.badge ? (
+                                        {badge ? (
                                             <span className="mr-auto bg-red-500 text-white text-xs font-black px-2 py-0.5 rounded-full shadow-sm animate-pulse">
-                                                {tab.badge}
+                                                {badge}
                                             </span>
                                         ) : null}
                                     </button>
-                                ))}
+                                );})}
                             </nav>
                             
                             <div className="mt-8 pt-6 border-t border-gray-100 px-4 space-y-4">

@@ -336,6 +336,32 @@ export async function getUserAITrips(token?: string) {
   return fetchUserTripCollection('/api/users/me/ai-trips', token);
 }
 
+export async function getAITripQuota(token?: string): Promise<{ count: number; limit: number; remaining: number } | null> {
+  const res = await fetch(`${BASE}/api/users/me/ai-trips-quota`, {
+    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+  });
+  if (!res.ok) {
+    if (res.status === 401) throw new Error('Unauthorized');
+    if (res.status === 404 || res.status === 400) return null; // Endpoint may not exist on older deployments
+    throw new Error('Failed to fetch AI trip quota');
+  }
+  return res.json();
+}
+
+export async function recordAIPlanUsage(token?: string): Promise<{ count: number; limit: number; remaining: number } | null> {
+  const res = await fetch(`${BASE}/api/users/me/ai-plan-usage`, {
+    method: 'POST',
+    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+  });
+  if (!res.ok) {
+    if (res.status === 401) throw new Error('Unauthorized');
+    if (res.status === 429) throw new Error('AI trip quota exceeded');
+    if (res.status === 404 || res.status === 400) return null; // Endpoint may not exist on older deployments
+    throw new Error('Failed to record AI plan usage');
+  }
+  return res.json();
+}
+
 export async function updateUserProfile(
   data: { bio?: string; location?: string; coverImage?: string; fullName?: string; imageUrl?: string },
   token?: string

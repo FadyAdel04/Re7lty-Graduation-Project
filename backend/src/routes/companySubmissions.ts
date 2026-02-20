@@ -4,6 +4,7 @@ import { requireAdmin } from '../utils/adminMiddleware';
 import { requireAuthStrict, getAuth, clerkClient } from '../utils/auth';
 import { User } from '../models/User';
 import { Notification as NotificationModel } from '../models/Notification';
+import { validateEgyptPhone, validateEmail } from '../utils/validators';
 
 /**
  * @swagger
@@ -108,6 +109,15 @@ router.post('/', requireAuthStrict, async (req, res) => {
                 required: ['companyName', 'email', 'phone', 'whatsapp', 'tripTypes']
             });
         }
+
+        const phoneCheck = validateEgyptPhone(String(phone));
+        if (!phoneCheck.valid) return res.status(400).json({ error: phoneCheck.message });
+
+        const whatsappCheck = validateEgyptPhone(String(whatsapp));
+        if (!whatsappCheck.valid) return res.status(400).json({ error: 'رقم الواتساب: ' + (whatsappCheck.message || '') });
+
+        const emailCheck = validateEmail(String(email));
+        if (!emailCheck.valid) return res.status(400).json({ error: emailCheck.message });
 
         // Create submission
         const submission = new CompanySubmission({

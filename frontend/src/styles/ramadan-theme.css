@@ -78,11 +78,11 @@
 /* Lights String */
 .ramadan-lights-string {
   position: fixed;
-  top: 0;
+  top: 4rem;
   left: 0;
   width: 100%;
   height: 40px;
-  z-index: 1000;
+  z-index: 50;
   pointer-events: none;
   display: flex;
   justify-content: space-around;
@@ -184,17 +184,151 @@
   backdrop-filter: blur(16px) !important;
 }
 
-/* Header search bar – clear text and placeholder on dark background */
-.ramadan-theme-layer header input {
-  color: #F5F5F5 !important;
-  caret-color: var(--ramadan-gold);
+/* All input fields – black text for clarity */
+.ramadan-theme-layer input,
+.ramadan-theme-layer textarea {
+  color: #111827 !important;
+  caret-color: #4f46e5;
 }
-.ramadan-theme-layer header input::placeholder {
-  color: rgba(245, 245, 245, 0.75) !important;
+.ramadan-theme-layer input::placeholder,
+.ramadan-theme-layer textarea::placeholder {
+  color: #6b7280 !important;
 }
-.ramadan-theme-layer header input:focus {
-  background-color: rgba(255, 255, 255, 0.12) !important;
+
+/* Header search bar – desktop focus state */
+.ramadan-theme-layer header input:not(.mobile-search-input):focus {
+  background-color: rgba(255, 255, 255, 0.9) !important;
   border-color: rgba(212, 175, 55, 0.5) !important;
+}
+
+/* Search Bar Input - Enhanced Clarity, icon does not overlap text */
+.ramadan-theme-layer header input[type="text"]:not(.mobile-search-input),
+.ramadan-theme-layer header input:not([type]):not(.mobile-search-input) {
+  font-family: 'Tajawal', sans-serif !important;
+  font-weight: 500 !important;
+  font-size: 16px !important;
+  letter-spacing: 0.3px !important;
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+  border-radius: 8px !important;
+  padding: 10px 44px 10px 16px !important; /* right padding clears search icon */
+  color: #111827 !important;
+  text-shadow: none !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+}
+
+.ramadan-theme-layer header input[type="text"]:focus,
+.ramadan-theme-layer header input:not([type]):focus {
+  background-color: #ffffff !important;
+  border-color: var(--ramadan-gold) !important;
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2) !important;
+  outline: none !important;
+  color: #000000 !important;
+}
+
+/* Search Results Dropdown - Enhanced Readability */
+.ramadan-theme-layer header .absolute .bg-white,
+.ramadan-theme-layer header .search-results-dropdown,
+.ramadan-theme-layer header div[class*="bg-white"]:has(a) {
+  background-color: #ffffff !important;
+  border: 1px solid rgba(212, 175, 55, 0.2) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(212, 175, 55, 0.1) !important;
+  overflow: hidden !important;
+}
+
+/* Result Items */
+.ramadan-theme-layer header .absolute a,
+.ramadan-theme-layer header .search-result-item,
+.ramadan-theme-layer header div[class*="bg-white"] a {
+  font-family: 'Tajawal', sans-serif !important;
+  font-weight: 500 !important;
+  font-size: 15px !important;
+  color: #1f2937 !important;
+  padding: 12px 16px !important;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.1) !important;
+  transition: all 0.2s ease !important;
+  line-height: 1.5 !important;
+  letter-spacing: 0.2px !important;
+  display: block !important;
+  text-decoration: none !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+}
+
+/* Result Item Hover State */
+.ramadan-theme-layer header .absolute a:hover,
+.ramadan-theme-layer header .search-result-item:hover,
+.ramadan-theme-layer header div[class*="bg-white"] a:hover {
+  background-color: rgba(212, 175, 55, 0.08) !important;
+  color: var(--ramadan-navy) !important;
+  padding-left: 20px !important;
+}
+
+/* Result Item Title/Name */
+.ramadan-theme-layer header .absolute a span:first-child,
+.ramadan-theme-layer header .search-result-item .result-title,
+.ramadan-theme-layer header div[class*="bg-white"] a .font-medium {
+  font-weight: 600 !important;
+  color: #111827 !important;
+  display: block !important;
+  margin-bottom: 2px !important;
+}
+
+/* Result Item Subtitle/Description */
+.ramadan-theme-layer header .absolute a span:last-child,
+.ramadan-theme-layer header .search-result-item .result-subtitle,
+.ramadan-theme-layer header div[class*="bg-white"] a .text-sm {
+  font-size: 13px !important;
+  color: #6b7280 !important;
+  font-weight: 400 !important;
+  display: block !important;
+}
+
+/* No Results Message */
+.ramadan-theme-layer header .absolute .text-gray-500,
+.ramadan-theme-layer header .search-no-results {
+  font-family: 'Tajawal', sans-serif !important;
+  font-size: 15px !important;
+  color: #6b7280 !important;
+  padding: 16px !important;
+  text-align: center !important;
+  background-color: #ffffff !important;
+  font-weight: 400 !important;
+}
+
+/* Search Icon */
+.ramadan-theme-layer header .group svg {
+  color: var(--ramadan-gold) !important;
+  opacity: 0.8 !important;
+  transition: opacity 0.2s ease !important;
+}
+
+.ramadan-theme-layer header .group:hover svg {
+  opacity: 1 !important;
+}
+
+/* Mobile search overlay – always dark text on white bg for readability on all themes */
+.mobile-search-overlay input {
+  color: #111827 !important;
+  caret-color: #4f46e5;
+}
+.mobile-search-overlay input::placeholder {
+  color: #6b7280 !important;
+}
+
+/* Mobile search results – same as desktop dropdown, ensure readable text */
+.mobile-search-overlay .text-gray-900,
+.mobile-search-overlay .text-gray-800 {
+  color: #111827 !important;
+}
+.mobile-search-overlay .text-gray-500,
+.mobile-search-overlay .text-gray-400 {
+  color: #6b7280 !important;
+}
+.mobile-search-overlay .text-indigo-500 {
+  color: #4f46e5 !important;
 }
 .ramadan-theme-layer header .group .text-gray-400,
 .ramadan-theme-layer header input ~ svg {

@@ -165,15 +165,15 @@ const Header = ({ onSearch }: HeaderProps) => {
     
     const content = (
         <div className={cn(
-          "flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all duration-300 relative z-10",
+          "flex items-center gap-1.5 px-2.5 py-2 rounded-xl transition-all duration-300 relative z-10",
           isActive 
             ? "text-indigo-600 font-black bg-indigo-50/60" 
             : "text-gray-500 font-bold hover:text-indigo-600 hover:bg-gray-50/50"
         )}>
-          <Icon className={cn("h-4.5 w-4.5 transition-all duration-300", 
+          <Icon className={cn("h-4 w-4 transition-all duration-300", 
             isActive ? "scale-110 drop-shadow-[0_0_8px_rgba(79,70,229,0.3)]" : "group-hover:translate-y-[-2px]"
           )} />
-          <span className="text-sm">{label}</span>
+          <span className="text-xs">{label}</span>
           {isActive && (
             <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1/3 h-0.5 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full" />
           )}
@@ -182,14 +182,14 @@ const Header = ({ onSearch }: HeaderProps) => {
 
     if (isExternal) {
       return (
-        <a href={to} className="relative group px-1 flex flex-col items-center justify-center">
+        <a href={to} className="relative group px-0.5 flex flex-col items-center justify-center">
           {content}
         </a>
       );
     }
 
     return (
-      <Link to={to} id={id} className="relative group px-1 flex flex-col items-center justify-center">
+      <Link to={to} id={id} className="relative group px-0.5 flex flex-col items-center justify-center">
         {content}
       </Link>
     );
@@ -200,13 +200,13 @@ const Header = ({ onSearch }: HeaderProps) => {
     <header className={cn(
       "fixed top-0 z-40 w-full transition-all duration-500 font-cairo",
       scrolled 
-        ? "bg-white/70 backdrop-blur-2xl border-b border-white/20 shadow-[0_10px_40px_rgba(0,0,0,0.04)] h-[4.5rem] lg:h-[5rem]" 
-        : "bg-white border-b border-transparent h-20 lg:h-24"
+        ? "bg-white/70 backdrop-blur-2xl border-b border-white/20 shadow-[0_10px_40px_rgba(0,0,0,0.04)] h-[5rem] sm:h-[5.25rem] lg:h-[5.5rem]" 
+        : "bg-white border-b border-transparent h-[5.5rem] sm:h-24 lg:h-[6.5rem]"
     )} dir="rtl">
-      <div className="container mx-auto px-4 h-full">
+      <div className="container mx-auto px-3 sm:px-4 h-full">
         
         {/* Main Content Area */}
-        <div className="flex items-center justify-between h-full gap-4 xl:gap-8 sticky top-0 z-40">
+        <div className="flex items-center justify-between h-full gap-2 sm:gap-4 xl:gap-8 min-w-0 sticky top-0 z-40">
           
           {/* 1. Logo Section */}
           <Link to="/" className="flex items-center flex-shrink-0 group relative transition-all duration-500">
@@ -214,12 +214,13 @@ const Header = ({ onSearch }: HeaderProps) => {
             <img
               src={logo}
               alt="رحلتي"
-              width="80"
-              height="80"
-              fetchPriority="high"
+              width="100"
+              height="100"
+              loading="eager"
+              decoding="async"
               className={cn(
-                "w-auto transition-all duration-500 group-hover:scale-125 group-hover:-rotate-3 object-contain relative z-10",
-                scrolled ? "h-12 md:h-16" : "h-14 md:h-20"
+                "w-auto transition-all duration-500 group-hover:scale-110 group-hover:-rotate-3 object-contain relative z-10",
+                scrolled ? "h-14 sm:h-16 md:h-20" : "h-16 sm:h-20 md:h-24"
               )}
             />
             {seasonalConfig.isRamadanTheme && (
@@ -234,10 +235,10 @@ const Header = ({ onSearch }: HeaderProps) => {
           </Link>
 
           {/* 2. Navigation & Search (Centered Container) */}
-          <div className="hidden lg:flex flex-1 items-center justify-center gap-2 xl:gap-6">
+          <div className="hidden lg:flex flex-1 items-center justify-center gap-1 xl:gap-2 min-w-0">
             
             {/* Nav Links */}
-            <nav className="flex items-center gap-1">
+            <nav className="flex items-center gap-0.5 shrink-0">
               <NavItem to="/" icon={Home} label="الرئيسية" exact={true} id="nav-home" />
               <NavItem to="/discover" icon={Sparkles} label="اكتشف" id="nav-discover" />
               <NavItem to="/timeline" icon={Compass} label="الرحلات" id="nav-timeline" />
@@ -254,8 +255,8 @@ const Header = ({ onSearch }: HeaderProps) => {
               )}
             </nav>
 
-            {/* Premium Search Bar */}
-            <div className="relative w-full lg:max-w-[200px] xl:max-w-[280px]" ref={searchContainerRef}>
+            {/* Premium Search Bar - wider for normal users */}
+            <div className="relative w-full flex-1 lg:max-w-[280px] xl:max-w-[360px] 2xl:max-w-[420px]" ref={searchContainerRef}>
               <div className="relative group">
                 <Input
                   type="text"
@@ -264,9 +265,9 @@ const Header = ({ onSearch }: HeaderProps) => {
                   onChange={(e) => handleSearch(e.target.value)}
                   onFocus={() => { if (searchValue.trim()) setShowDropdown(true); }}
                   onKeyDown={(e) => { if (e.key === 'Enter') handleSearchSubmit(); }}
-                  className="w-full h-11 px-12 bg-gray-50/80 border-gray-100 rounded-2xl focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/50 transition-all text-sm font-bold shadow-sm placeholder:text-gray-400 text-right"
+                  className="w-full h-10 sm:h-11 pl-4 pr-11 sm:pr-12 text-sm sm:text-base font-bold text-gray-900 placeholder:text-gray-500 min-w-0 bg-gray-50/80 border-gray-100 rounded-xl sm:rounded-2xl focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/50 transition-all shadow-sm text-right"
                 />
-                <Search className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-indigo-600 transition-colors" />
+                <Search className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-indigo-600 transition-colors pointer-events-none shrink-0" aria-hidden="true" />
                 
                 {/* Search Results Dropdown */}
                 <AnimatePresence>
@@ -275,7 +276,7 @@ const Header = ({ onSearch }: HeaderProps) => {
                       initial={{ opacity: 0, y: 10, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      className="absolute top-full right-0 mt-3 w-full bg-white/95 backdrop-blur-xl rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-white/20 overflow-hidden z-50 py-2"
+                      className="absolute top-full right-0 mt-3 w-full bg-gray-50/80 backdrop-blur-xl rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-white/20 overflow-hidden z-50 py-2"
                     >
                       {isSearching ? (
                         <div className="p-8 text-center flex flex-col items-center gap-3">
@@ -357,26 +358,23 @@ const Header = ({ onSearch }: HeaderProps) => {
               
               {isAdmin ? (
                 <Link to="/admin/dashboard" className="hidden sm:block" id="nav-admin-dashboard">
-                  <Button className="h-12 px-6 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black text-sm gap-2 shadow-lg shadow-rose-100 hover:shadow-rose-200 transition-all duration-300 relative overflow-hidden group">
-                    <span className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-                    <Shield className="h-5 w-5 relative z-10" />
-                    <span className="relative z-10">لوحة الإدارة</span>
+                  <Button className="h-10 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs gap-1.5 shadow-lg">
+                    <Shield className="h-4 w-4 shrink-0" />
+                    <span>لوحة الإدارة</span>
                   </Button>
                 </Link>
               ) : user?.publicMetadata?.role === 'company_owner' ? (
                 <Link to="/company/dashboard" className="hidden sm:block" id="nav-company-dashboard">
-                  <Button className="h-12 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm gap-2 shadow-lg shadow-indigo-100 hover:shadow-indigo-200 transition-all duration-300 relative overflow-hidden group">
-                    <span className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-                    <Shield className="h-5 w-5 relative z-10" />
-                    <span className="relative z-10">لوحة الشركة</span>
+                  <Button className="h-10 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs gap-1.5 shadow-lg">
+                    <Shield className="h-4 w-4 shrink-0" />
+                    <span>لوحة الشركة</span>
                   </Button>
                 </Link>
               ) : (
                 <Link to="/trips/new" className="hidden sm:block" id="nav-create-trip">
-                  <Button className="h-12 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm gap-2 shadow-lg shadow-indigo-100 hover:shadow-indigo-200 transition-all duration-300 relative overflow-hidden group">
-                    <span className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-                    <Plus className="h-5 w-5 relative z-10 shrink-0" />
-                    <span className="relative z-10 hidden xl:inline">أنشئ رحلة</span>
+                  <Button className="h-10 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs gap-1.5 shadow-lg">
+                    <Plus className="h-4 w-4 shrink-0" />
+                    <span className="hidden lg:inline">أنشئ رحلة</span>
                   </Button>
                 </Link>
               )}
@@ -412,12 +410,12 @@ const Header = ({ onSearch }: HeaderProps) => {
                   <Menu className="h-6 w-6" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-80 font-cairo p-0 border-0" dir="rtl">
-                <div className="h-full bg-white flex flex-col pt-12">
-                  <SheetHeader className="text-right px-8 mb-8 border-b border-gray-50 pb-6">
+              <SheetContent side="right" className="w-80 font-cairo p-0 border-0 flex flex-col" dir="rtl">
+                <div className="flex-1 min-h-0 flex flex-col pt-12 overflow-hidden">
+                  <SheetHeader className="text-right px-8 mb-4 border-b border-gray-50 pb-4 shrink-0">
                     <SheetTitle className="text-3xl font-black bg-gradient-to-l from-indigo-600 to-purple-600 bg-clip-text text-transparent">القائمة</SheetTitle>
                   </SheetHeader>
-                  <nav className="flex-1 px-4 space-y-2">
+                  <nav className="flex-1 min-h-0 overflow-y-auto px-4 py-2 space-y-1">
                     {[
                       { to: "/", icon: Home, label: "الرئيسية" },
                       { to: "/discover", icon: Sparkles, label: "اكتشف" },
@@ -425,6 +423,7 @@ const Header = ({ onSearch }: HeaderProps) => {
                       { to: "/agency", icon: Briefcase, label: "الشركات" },
                       { to: "/leaderboard", icon: Trophy, label: "المتصدرين" },
                       { to: "/messages", icon: MessageSquare, label: "الرسائل" },
+
                     ].map((item, idx) => {
                       const isActive = item.to === "/" ? location.pathname === "/" : location.pathname.startsWith(item.to);
                       return (
@@ -432,7 +431,7 @@ const Header = ({ onSearch }: HeaderProps) => {
                           key={idx} 
                           to={item.to} 
                           className={cn(
-                            "flex items-center gap-4 p-4 rounded-2xl transition-all duration-300",
+                            "flex items-center gap-4 p-3 rounded-2xl transition-all duration-300",
                             isActive 
                               ? "bg-indigo-50 text-indigo-600 font-black shadow-sm" 
                               : "text-gray-500 font-bold hover:bg-gray-50 hover:text-gray-900"
@@ -444,20 +443,20 @@ const Header = ({ onSearch }: HeaderProps) => {
                       );
                     })}
                   {isAdmin && (
-                      <Link to="/admin/dashboard" className="flex items-center gap-4 p-4 rounded-2xl text-rose-500 font-bold hover:bg-rose-50 transition-all mt-4 border border-rose-100/50">
-                        <Shield className="h-6 w-6" />
-                        <span className="text-lg">لوحة التحكم</span>
+                      <Link to="/admin/dashboard" className="flex items-center gap-4 p-3 rounded-2xl text-rose-500 font-bold hover:bg-rose-50 transition-all mt-2 border border-rose-100/50" onClick={() => document.dispatchEvent(new CustomEvent('sheet-close'))}>
+                        <Shield className="h-5 w-5" />
+                        <span className="text-base">لوحة التحكم</span>
                       </Link>
                     )}
                   </nav>
                   
-                  <div className="p-8 border-t border-gray-100">
+                  <div className="p-4 border-t border-gray-100 shrink-0 bg-white">
                     <SignedIn>
-                       <div className="px-4 py-2 mb-2 border-b border-gray-50">
+                       <div className="px-2 py-2 mb-2 border-b border-gray-50">
                           {user && user.publicMetadata?.role !== 'company_owner' && !isAdmin && (
                             <Link 
                               to={`/user/${user.id}`} 
-                              className="flex items-center gap-4 p-4 rounded-2xl text-indigo-600 font-black bg-indigo-50 shadow-sm"
+                              className="flex items-center gap-3 p-3 rounded-2xl text-indigo-600 font-black bg-indigo-50 shadow-sm"
                             >
                               <Avatar className="h-10 w-10 border-2 border-white shadow-sm">
                                 <AvatarImage src={dbUser?.imageUrl || user.imageUrl} />
@@ -474,22 +473,22 @@ const Header = ({ onSearch }: HeaderProps) => {
                        </div>
                        
                        {isAdmin ? (
-                        <Link to="/admin/dashboard">
-                          <Button className="w-full h-15 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black flex items-center justify-center gap-3 shadow-xl shadow-rose-100 transition-all active:scale-95">
+                        <Link to="/admin/dashboard" onClick={() => document.dispatchEvent(new CustomEvent('sheet-close'))}>
+                          <Button className="w-full h-12 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black flex items-center justify-center gap-2 shadow-lg">
                             <Shield className="h-5 w-5" />
                             لوحة الإدارة
                           </Button>
                         </Link>
                        ) : user?.publicMetadata?.role === 'company_owner' ? (
-                         <Link to="/company/dashboard">
-                          <Button className="w-full h-15 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black flex items-center justify-center gap-3 shadow-xl shadow-indigo-100 transition-all active:scale-95">
+                         <Link to="/company/dashboard" onClick={() => document.dispatchEvent(new CustomEvent('sheet-close'))}>
+                          <Button className="w-full h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black flex items-center justify-center gap-2 shadow-lg">
                             <Shield className="h-5 w-5" />
                             لوحة الشركة
                           </Button>
                          </Link>
                        ) : (
-                         <Link to="/trips/new">
-                          <Button className="w-full h-15 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black flex items-center justify-center gap-3 shadow-xl shadow-indigo-100 transition-all active:scale-95">
+                         <Link to="/trips/new" onClick={() => document.dispatchEvent(new CustomEvent('sheet-close'))}>
+                          <Button className="w-full h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black flex items-center justify-center gap-2 shadow-lg">
                             <Plus className="h-5 w-5" />
                             ابدأ رحلة جديدة
                           </Button>
@@ -505,66 +504,86 @@ const Header = ({ onSearch }: HeaderProps) => {
         </div>
       </div>
 
-      {/* Mobile Search Overlay */}
+      {/* Mobile Search Overlay - always light bg, dark text for readability */}
       <AnimatePresence>
         {mobileSearchOpen && (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-white z-[6000] p-6 lg:hidden"
+            className="mobile-search-overlay fixed inset-0 bg-white z-[6000] p-4 sm:p-6 lg:hidden"
           >
-            <div className="flex items-center gap-3 mb-8">
-               <div className="flex-1 relative">
-                  <Search className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-indigo-500" />
+            <div className="flex items-center gap-2 sm:gap-3 mb-6 sm:mb-8">
+               <div className="flex-1 min-w-0 relative">
+                  <Search className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-indigo-500 pointer-events-none" />
                   <Input
                     autoFocus
                     placeholder="ابحث عن رحلة..."
                     value={searchValue}
                     onChange={(e) => handleSearch(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') handleSearchSubmit(); }}
-                    className="h-14 pr-12 rounded-2xl bg-gray-50 border-0 font-black focus:ring-2 focus:ring-indigo-500/20"
+                    className="mobile-search-input h-12 sm:h-14 pl-4 pr-12 sm:pr-14 rounded-xl sm:rounded-2xl bg-gray-50 border border-gray-100 text-gray-900 placeholder:text-gray-500 text-base font-bold focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/50"
                   />
                </div>
-               <Button variant="ghost" size="icon" onClick={() => setMobileSearchOpen(false)} className="h-14 w-14 rounded-2xl bg-gray-50 hover:bg-gray-100">
-                  <X className="h-6 w-6" />
+               <Button variant="ghost" size="icon" onClick={() => setMobileSearchOpen(false)} className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl sm:rounded-2xl bg-gray-50 hover:bg-gray-100 text-gray-600 shrink-0">
+                  <X className="h-5 w-5 sm:h-6 sm:w-6" />
                </Button>
             </div>
-            {/* Mobile Results */}
-            <div className="overflow-y-auto h-[calc(100vh-180px)] custom-scrollbar">
+            {/* Mobile Results - same design as desktop dropdown */}
+            <div className="mobile-search-results overflow-y-auto h-[calc(100vh-160px)] sm:h-[calc(100vh-180px)] custom-scrollbar bg-gray-50/80 backdrop-blur-xl rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-white/20 py-2">
                {isSearching ? (
-                 <div className="flex flex-col items-center justify-center py-20 gap-4">
-                    <div className="w-12 h-12 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin" />
-                    <p className="font-black text-gray-400">نبحث لك عن الأفضل...</p>
+                 <div className="p-8 text-center flex flex-col items-center gap-3">
+                    <div className="w-8 h-8 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin" />
+                    <p className="text-sm font-black text-gray-400">نبحث لك عن الأفضل...</p>
                  </div>
                ) : (searchResults.length > 0 || userResults.length > 0) ? (
-                 <div className="space-y-8">
-                  {searchResults.map(trip => (
-                    <div key={trip.id} onClick={() => handleTripClick(trip.id)} className="flex items-center gap-4 bg-gray-50 p-4 rounded-3xl active:scale-95 transition-all border border-transparent active:border-indigo-100">
-                       <div className="w-16 h-16 rounded-2xl overflow-hidden bg-indigo-50 shadow-sm flex-shrink-0">
-                          {trip.image ? <img src={trip.image} className="w-full h-full object-cover" /> : <MapPin className="m-auto h-6 w-6 text-indigo-300" />}
-                       </div>
-                       <div className="flex-1">
-                          <p className="font-black text-gray-900 leading-tight mb-1">{trip.title}</p>
-                          <p className="text-sm text-indigo-500 font-bold">{trip.destination || trip.city}</p>
-                       </div>
+                 <div className="max-h-full overflow-y-auto">
+                  {searchResults.length > 0 && (
+                    <div className="mb-2">
+                      <span className="px-5 py-2 text-[10px] font-black text-indigo-400 uppercase tracking-widest">الرحلات الأكثر طلباً</span>
+                      {searchResults.map(trip => (
+                        <button
+                          key={trip._id || trip.id}
+                          type="button"
+                          onClick={() => handleTripClick(String(trip._id || trip.id))}
+                          className="w-full px-5 py-3 hover:bg-indigo-50/50 active:bg-indigo-50 transition-all flex items-center gap-4 text-right"
+                        >
+                          <div className="h-12 w-12 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0 shadow-inner">
+                            {trip.image ? <img src={trip.image} alt="" className="h-full w-full object-cover" /> : <MapPin className="h-6 w-6 m-auto text-gray-300" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-black text-gray-800 truncate">{trip.title}</p>
+                            <p className="text-xs text-indigo-500 font-bold">{trip.destination || trip.city}</p>
+                          </div>
+                        </button>
+                      ))}
                     </div>
-                  ))}
-                  {userResults.map(u => (
-                    <div key={u.clerkId} onClick={() => handleUserClick(u.clerkId)} className="flex items-center gap-4 bg-orange-50/50 p-4 rounded-3xl active:scale-95 transition-all">
-                       <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-sm flex-shrink-0">
-                          <img src={u.imageUrl} className="w-full h-full object-cover" />
-                       </div>
-                       <p className="font-black text-gray-900">{u.fullName || u.username}</p>
+                  )}
+                  {userResults.length > 0 && (
+                    <div className="pt-2 border-t border-gray-50">
+                      <span className="px-5 py-2 text-[10px] font-black text-orange-400 uppercase tracking-widest">المستكشفون</span>
+                      {userResults.map(u => (
+                        <button
+                          key={u.clerkId}
+                          type="button"
+                          onClick={() => handleUserClick(u.clerkId)}
+                          className="w-full px-5 py-3 hover:bg-orange-50/50 active:bg-orange-50 transition-all flex items-center gap-4 text-right"
+                        >
+                          <div className="h-10 w-10 rounded-full bg-orange-100 border-2 border-white shadow-sm overflow-hidden flex-shrink-0">
+                            {u.imageUrl ? <img src={u.imageUrl} alt="" className="h-full w-full object-cover" /> : <span className="flex h-full w-full items-center justify-center font-black text-orange-600 text-sm">{u.fullName?.[0]}</span>}
+                          </div>
+                          <p className="text-sm font-black text-gray-800">{u.fullName || u.username}</p>
+                        </button>
+                      ))}
                     </div>
-                  ))}
+                  )}
                  </div>
                ) : (
-                 <div className="flex flex-col items-center justify-center py-20 text-center px-8">
-                    <div className="w-20 h-20 rounded-full bg-gray-50 flex items-center justify-center mb-6">
-                       <Search className="w-10 h-10 text-gray-200" />
+                 <div className="p-10 text-center space-y-3">
+                    <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto">
+                      <Search className="h-8 w-8 text-gray-200" />
                     </div>
-                    <p className="text-gray-400 font-bold">ابدأ الكتابة للبحث عن مغامرتك...</p>
+                    <p className="text-sm font-black text-gray-400">ابدأ الكتابة للبحث عن مغامرتك</p>
                  </div>
                )}
             </div>
@@ -573,7 +592,7 @@ const Header = ({ onSearch }: HeaderProps) => {
       </AnimatePresence>
     </header>
     {/* Spacer so fixed header does not hide first section on any page */}
-    <div aria-hidden="true" className="h-20 lg:h-24 flex-shrink-0" />
+    <div aria-hidden="true" className="h-[5.5rem] sm:h-24 lg:h-[6.5rem] flex-shrink-0" />
     </>
   );
 };

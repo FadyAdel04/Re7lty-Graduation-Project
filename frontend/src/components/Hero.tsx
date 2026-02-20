@@ -97,12 +97,11 @@ const Hero = () => {
               isCurrent ? "opacity-100 z-0" : "opacity-0 -z-10"
             )}
           >
-            {/* Using img instead of background-image for faster discovery & fetchPriority */}
+            {/* Using img instead of background-image for faster discovery */}
             <img 
               src={feature.image} 
               alt="" 
               className="absolute inset-0 w-full h-full object-cover transform scale-105 transition-transform duration-[10s] ease-linear"
-              fetchPriority={isCurrent ? "high" : "low"}
               loading={isCurrent ? "eager" : "lazy"}
               decoding="async"
             />

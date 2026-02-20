@@ -17,17 +17,18 @@ import {
   Clock,
   Zap,
   ArrowUpRight,
+  LayoutGrid,
 } from "lucide-react";
 import { getTripPlan, type TripPlan } from "@/lib/travel-advisor-api";
 import { useToast } from "@/hooks/use-toast";
-import { createTrip, listTrips } from "@/lib/api";
+import { createTrip, listTrips, getAITripQuota, recordAIPlanUsage } from "@/lib/api";
 import { useAuth } from "@clerk/clerk-react";
 import { getCurrentSeason } from "@/lib/season-utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { sendMessageToAI, getCompletion, type AIResponse } from "@/lib/openrouter-client";
+import { sendMessageToAI, type AIResponse } from "@/lib/openrouter-client";
 
 type Message = {
   id: number;
@@ -74,7 +75,9 @@ const TripAIChat = () => {
   const [isCreatingTrip, setIsCreatingTrip] = useState(false);
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
   const [availableTrips, setAvailableTrips] = useState<any[]>([]);
-  const [suggestion, setSuggestion] = useState<string>('');
+  const [aiQuota, setAiQuota] = useState<{ count: number; limit: number; remaining: number } | null>(null);
+  const [mobileView, setMobileView] = useState<'chat' | 'plan'>('chat'); // For mobile: which panel to show
+  const { isSignedIn, getToken } = useAuth();
 
   useEffect(() => {
     const fetchTrips = async () => {
@@ -90,8 +93,24 @@ const TripAIChat = () => {
     fetchTrips();
   }, []);
 
+  const refreshQuota = async () => {
+    if (!isSignedIn) return;
+    try {
+      const token = await getToken();
+      if (token) {
+        const q = await getAITripQuota(token);
+        setAiQuota(q ?? null);
+      }
+    } catch {
+      setAiQuota(null);
+    }
+  };
+
+  useEffect(() => {
+    refreshQuota();
+  }, [isSignedIn]);
+
   const { toast } = useToast();
-  const { isSignedIn, getToken } = useAuth();
   const navigate = useNavigate();
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -111,20 +130,6 @@ const TripAIChat = () => {
     return () => clearTimeout(timer);
   }, [messages, isLoading, isGeneratingPlan]);
 
-  useEffect(() => {
-    const fetchSuggestion = async () => {
-      if (userInput.trim().length > 5 && !isLoading) {
-        const text = await getCompletion(userInput, conversationHistory);
-        setSuggestion(text);
-      } else {
-        setSuggestion('');
-      }
-    };
-
-    const debounce = setTimeout(fetchSuggestion, 800);
-    return () => clearTimeout(debounce);
-  }, [userInput, conversationHistory, isLoading]);
-
   const addMessage = (type: 'ai' | 'user', text: string, suggestions?: { id: string; title: string; matchReason: string; image?: string; price?: string }[]) => {
     setMessages(prev => [...prev, {
       id: prev.length + 1,
@@ -133,7 +138,6 @@ const TripAIChat = () => {
       timestamp: new Date(),
       suggestedPlatformTrips: suggestions
     }]);
-    setSuggestion(''); // Clear suggestion when message is added
   };
 
   const handleSendMessage = async () => {
@@ -209,6 +213,16 @@ const TripAIChat = () => {
   const fetchTripPlan = async (destination: string | null, days: number | null) => {
     if (!destination || !days) return;
 
+    // Check quota before generating (if signed in and quota available)
+    if (isSignedIn && aiQuota !== null && aiQuota.remaining <= 0) {
+      toast({
+        title: "تم استنفاد الحد الأسبوعي",
+        description: "لقد استخدمت 5 خطط رحلات بالذكاء الاصطناعي هذا الأسبوع. يرجى المحاولة الأسبوع المقبل.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsGeneratingPlan(true);
     addMessage('ai', 'رائع! جاري البحث عن أفضل الأماكن والفنادق والمطاعم في ' + destination + '... 🔍✨');
 
@@ -217,13 +231,25 @@ const TripAIChat = () => {
       
       if (plan) {
         setTripPlan(plan);
+        // Record usage and update quota when plan is shown (counts toward 5/week)
+        if (isSignedIn) {
+          try {
+            const token = await getToken();
+            if (token) {
+              const updated = await recordAIPlanUsage(token);
+              if (updated) setAiQuota(updated);
+            }
+          } catch (e) {
+            // Endpoint may not exist on older deployments - quota stays as is
+          }
+        }
         const allAttractions = new Set(plan.attractions.map((a, idx) => a.location_id || idx.toString()));
         const allRestaurants = new Set(plan.restaurants.map((r, idx) => r.location_id || idx.toString()));
         const allHotels = new Set(plan.hotels.map((h, idx) => h.location_id || idx.toString()));
         setSelectedAttractions(allAttractions);
         setSelectedRestaurants(allRestaurants);
         setSelectedHotels(allHotels);
-        
+        setMobileView('plan'); // Show plan on mobile when ready for user to confirm & choose
         setTimeout(() => {
           addMessage('ai', `تم! 🎉 لقد جهزت لك خطة رحلة متكاملة إلى ${destination}. يمكنك الآن مراجعة المعالم والمطاعم والفنادق واختيار ما يناسبك، ثم احفظ رحلتك.`);
         }, 500);
@@ -303,20 +329,16 @@ const TripAIChat = () => {
 
       const createdTrip = await createTrip(tripData, token);
       toast({ title: "تم الحفظ بنجاح", description: "رحلتك الآن في ملفك الشخصي." });
+      refreshQuota();
       navigate(`/trips/${createdTrip._id || createdTrip.id}`);
     } catch (error: any) {
-      toast({ title: "فشل الحفظ", description: error.message, variant: "destructive" });
+      toast({ title: "فشل الحفظ", description: error.message || "حدث خطأ غير متوقع.", variant: "destructive" });
     } finally {
       setIsCreatingTrip(false);
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Tab' && suggestion) {
-      e.preventDefault();
-      setUserInput(prev => prev + (suggestion.startsWith(' ') ? '' : ' ') + suggestion);
-      setSuggestion('');
-    }
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
@@ -333,13 +355,20 @@ const TripAIChat = () => {
         <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-sky-100 rounded-full blur-[120px]" />
       </div>
 
-      <main className="flex-1 container mx-auto px-6 py-10 relative z-10">
-        <div className="max-w-7xl mx-auto h-[calc(100vh-200px)] min-h-[600px] flex flex-col lg:flex-row gap-8">
+      <main className="flex-1 container mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-10 relative z-10">
+        <div className="max-w-7xl mx-auto h-[calc(100vh-5.5rem)] sm:h-[calc(100vh-6rem)] min-h-[480px] flex flex-col lg:flex-row gap-4 lg:gap-8">
           
-          {/* Result Panel (Left) */}
-          <div className="flex-1 bg-white/70 backdrop-blur-2xl rounded-[2.5rem] border border-gray-100/50 shadow-2xl shadow-indigo-500/5 flex flex-col overflow-hidden animate-in fade-in slide-in-from-left-4 duration-700">
-             <ScrollArea className="flex-1">
-                <div className="p-8 lg:p-12">
+          {/* Result Panel (Left) - Trip plan to confirm & choose favourites */}
+          <div className={cn(
+            "flex-1 bg-white/70 backdrop-blur-2xl rounded-2xl lg:rounded-[2.5rem] border border-gray-100/50 shadow-xl lg:shadow-2xl shadow-indigo-500/5 flex flex-col overflow-hidden min-h-0",
+            tripPlan && "animate-in fade-in slide-in-from-left-4 duration-500",
+            "lg:flex",
+            !tripPlan && "hidden lg:flex",
+            tripPlan && mobileView === 'plan' && "flex",
+            tripPlan && mobileView === 'chat' && "hidden lg:flex"
+          )}>
+             <ScrollArea className="flex-1 min-h-0">
+                <div className="p-4 sm:p-6 lg:p-12">
                    {!tripPlan ? (
                       <div className="h-full flex flex-col items-center justify-center text-center py-24">
                          <div className="w-24 h-24 rounded-[2rem] bg-indigo-50 flex items-center justify-center mb-8 animate-bounce transition-all duration-1000">
@@ -388,17 +417,26 @@ const TripAIChat = () => {
                          )}
                       </div>
                    ) : (
-                      <div className="space-y-12 animate-in fade-in duration-500">
+                      <div className="space-y-8 lg:space-y-12 animate-in fade-in duration-500">
+                         {/* Confirmation banner - review and choose favourites */}
+                         <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 flex items-center gap-3">
+                            <CheckCircle2 className="w-8 h-8 text-indigo-600 shrink-0" />
+                            <div>
+                               <h3 className="font-black text-indigo-900">راجع خطتك واختر المفضلة</h3>
+                               <p className="text-sm font-bold text-indigo-600">اختر المعالم والمطاعم والفنادق التي تريدها ثم اضغط حفظ الرحلة</p>
+                            </div>
+                         </div>
                          {/* Location Header */}
-                         <div className="relative rounded-[2rem] overflow-hidden group">
+                         <div className="relative rounded-xl lg:rounded-[2rem] overflow-hidden group">
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-10" />
                             <img 
                               src={tripPlan.attractions?.[0]?.photo?.images?.large?.url || tripPlan.attractions?.[0]?.photo?.images?.medium?.url} 
-                              className="w-full h-80 object-cover group-hover:scale-110 transition-transform duration-1000"
+                              alt=""
+                              className="w-full h-48 sm:h-64 lg:h-80 object-cover group-hover:scale-110 transition-transform duration-1000"
                             />
-                            <div className="absolute bottom-10 right-10 z-20">
-                               <Badge className="bg-indigo-600 text-white border-0 mb-3 px-4 py-1.5 rounded-full font-black uppercase text-[10px] tracking-widest shadow-lg">وجهة مقترحة</Badge>
-                               <h1 className="text-5xl font-black text-white mb-2 leading-tight">{tripPlan.location.name}</h1>
+                            <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 lg:bottom-10 lg:right-10 z-20">
+                               <Badge className="bg-indigo-600 text-white border-0 mb-2 sm:mb-3 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full font-black uppercase text-[9px] sm:text-[10px] tracking-widest shadow-lg">وجهة مقترحة</Badge>
+                               <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-white mb-2 leading-tight">{tripPlan.location.name}</h1>
                                <div className="flex items-center gap-4 text-white/80 font-bold">
                                   <span className="flex items-center gap-2 bg-black/20 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10">
                                      <Clock className="w-4 h-4 text-sky-400" /> {extractedData.days} {extractedData.days === 1 ? 'يوم' : 'أيام'}
@@ -506,17 +544,20 @@ const TripAIChat = () => {
              {/* Bottom Action Bar */}
              <AnimatePresence>
                 {tripPlan && (
-                  <motion.div initial={{ y: 100 }} animate={{ y: 0 }} className="p-8 border-t border-gray-100 bg-white shadow-[0_-10px_40px_rgba(0,0,0,0.02)] flex items-center justify-between">
-                     <div className="hidden md:block">
+                  <motion.div initial={{ y: 100 }} animate={{ y: 0 }} className="p-4 sm:p-6 lg:p-8 border-t border-gray-100 bg-white shadow-[0_-10px_40px_rgba(0,0,0,0.02)] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+                     <div className="sm:block">
                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">الخطة المختارة</p>
                         <h4 className="text-sm font-black text-gray-900">{selectedAttractions.size + selectedRestaurants.size + selectedHotels.size} عناصر بانتظار الحفظ</h4>
+                        {aiQuota && (
+                          <p className="text-[10px] font-bold text-indigo-500 mt-1">المتبقي هذا الأسبوع: {aiQuota.remaining}/5 رحلات</p>
+                        )}
                      </div>
                      <div className="flex gap-4 w-full md:w-auto">
                         <Button variant="ghost" className="rounded-2xl font-black text-gray-400" onClick={() => window.location.reload()}>إعادة البدء</Button>
                         <Button 
-                          className="flex-1 md:min-w-[240px] h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm gap-3 shadow-xl shadow-indigo-100"
+                          className="flex-1 md:min-w-[240px] h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm gap-3 shadow-xl shadow-indigo-100 disabled:opacity-60"
                           onClick={handleCreateTrip}
-                          disabled={isCreatingTrip}
+                          disabled={isCreatingTrip || (aiQuota !== null && aiQuota.remaining <= 0)}
                         >
                            {isCreatingTrip ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
                            حفظ الرحلة في مفضلتك
@@ -527,22 +568,66 @@ const TripAIChat = () => {
              </AnimatePresence>
           </div>
 
+          {/* Mobile tab switcher when trip plan exists */}
+          {tripPlan && (
+            <div className="lg:hidden flex gap-2 p-2 bg-white/80 rounded-2xl border border-gray-100 shadow-sm shrink-0">
+              <button
+                onClick={() => setMobileView('chat')}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all",
+                  mobileView === 'chat' ? "bg-indigo-600 text-white shadow-md" : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+                )}
+              >
+                <MessageCircle className="w-4 h-4" />
+                المحادثة
+              </button>
+              <button
+                onClick={() => setMobileView('plan')}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all",
+                  mobileView === 'plan' ? "bg-indigo-600 text-white shadow-md" : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+                )}
+              >
+                <LayoutGrid className="w-4 h-4" />
+                خطة الرحلة
+              </button>
+            </div>
+          )}
+
           {/* Chat Panel (Right) */}
-          <div className="w-full lg:w-[420px] bg-white rounded-[2.5rem] border border-gray-100 shadow-xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-right-4 duration-700">
-             <div className="p-6 border-b border-gray-50 flex items-center gap-4 bg-indigo-50/30">
-                <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center shadow-sm">
-                   <div className="relative">
-                      <MessageCircle className="h-6 w-6 text-indigo-600" />
-                      <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white" />
+          <div className={cn(
+            "w-full lg:w-[420px] bg-white rounded-2xl lg:rounded-[2.5rem] border border-gray-100 shadow-xl flex flex-col overflow-hidden min-h-0 shrink-0",
+            "animate-in fade-in slide-in-from-right-4 duration-500",
+            tripPlan && mobileView === 'plan' && "hidden lg:flex",
+            (!tripPlan || mobileView === 'chat') && "flex"
+          )}>
+             <div className="p-4 sm:p-6 border-b border-gray-50 flex flex-col gap-3 bg-indigo-50/30 shrink-0">
+                <div className="flex items-center gap-4">
+                   <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center shadow-sm">
+                      <div className="relative">
+                         <MessageCircle className="h-6 w-6 text-indigo-600" />
+                         <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white" />
+                      </div>
+                   </div>
+                   <div className="flex-1 min-w-0">
+                      <h3 className="font-black text-gray-900 leading-none mb-1 text-lg">TripAI Assistant</h3>
+                      <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">مساعد ذكي للسفر</span>
                    </div>
                 </div>
-                <div>
-                   <h3 className="font-black text-gray-900 leading-none mb-1 text-lg">TripAI Assistant</h3>
-                   <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">مساعد ذكي للسفر</span>
-                </div>
+                {aiQuota !== null && isSignedIn && (
+                   <div className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-white/80 border border-indigo-100 shadow-sm">
+                      <span className="text-xs font-bold text-gray-600">استخدامك هذا الأسبوع</span>
+                      <span className={cn(
+                         "text-sm font-black",
+                         aiQuota.remaining <= 0 ? "text-rose-600" : "text-indigo-600"
+                      )}>
+                         {aiQuota.remaining}/5 رحلات متبقية
+                      </span>
+                   </div>
+                )}
              </div>
 
-             <ScrollArea className="flex-1 p-6">
+             <ScrollArea className="flex-1 min-h-0 p-4 sm:p-6">
                 <div className="space-y-6">
                    <AnimatePresence>
                       {messages.map((m) => (
@@ -655,15 +740,6 @@ const TripAIChat = () => {
                         className="h-12 rounded-2xl border-gray-200 focus:border-indigo-400 focus:ring-indigo-400 font-bold bg-white relative z-10"
                         disabled={isLoading || isGeneratingPlan}
                       />
-                      {suggestion && userInput && (
-                        <div className="absolute inset-0 h-12 flex items-center px-3 pointer-events-none text-gray-400 z-20 select-none">
-                          <span className="invisible whitespace-pre text-sm font-bold">{userInput}</span>
-                          <span className="whitespace-pre text-sm font-bold opacity-50">{suggestion.startsWith(' ') || userInput.endsWith(' ') ? '' : ' '}{suggestion}</span>
-                          <div className="mr-auto flex items-center gap-1.5 opacity-60">
-                             <span className="text-[9px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded border border-gray-200 font-black uppercase tracking-tighter">Tab</span>
-                          </div>
-                        </div>
-                      )}
                    </div>
                    <Button
                      onClick={handleSendMessage}

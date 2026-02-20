@@ -44,6 +44,7 @@ const Leaderboard = lazy(() => import("./pages/Leaderboard"));
 
 import TripAIChatWidget from "@/components/TripAIChatWidget";
 import ScrollToTop from "@/components/ScrollToTop";
+import { Analytics } from "@vercel/analytics/react";
 import { SignedIn, SignedOut, RedirectToSignIn, useUser } from "@clerk/clerk-react";
 import { UploadProgressProvider } from "@/contexts/UploadProgressContext";
 import { UploadProgressBar } from "@/components/UploadProgressBar";
@@ -205,8 +206,12 @@ const AppContent = () => {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
-      {/* Global AI Chat Widget - Hide on admin pages, onboarding, and the AI chat page itself */}
-      {!isAdminRoute && !isOnboardingRoute && location.pathname !== '/trip-assistant' && <TripAIChatWidget />}
+      {/* Global AI Chat Widget - Hide on admin, onboarding, AI page; hide on mobile for messages/trip-groups (overlaps chat) */}
+      {!isAdminRoute && !isOnboardingRoute && location.pathname !== '/trip-assistant' && (
+        <div className={(location.pathname === '/messages' || location.pathname.startsWith('/trip-groups')) ? 'hidden lg:block' : ''}>
+          <TripAIChatWidget />
+        </div>
+      )}
       {/* Tour Guide for new users */}
       {!isAdminRoute && !isOnboardingRoute}
       {/* Global Upload Progress Bar */}
@@ -222,6 +227,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        <Analytics />
         <BrowserRouter>
           <NotificationProvider>
             <RamadanTheme>

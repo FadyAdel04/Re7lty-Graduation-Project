@@ -18,6 +18,7 @@ import { Tag, Ticket } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import BusSeatLayout from "@/components/company/BusSeatLayout";
 import { Link } from "react-router-dom";
+import { validateEgyptPhone, validateEmail } from "@/lib/validators";
 
 interface BookingCardProps {
   trip: Trip;
@@ -249,6 +250,35 @@ const BookingCard = ({ trip, company, sticky = false }: BookingCardProps) => {
          variant: "destructive"
        });
        return;
+    }
+
+    const phoneCheck = validateEgyptPhone(bookingData.userPhone);
+    if (!phoneCheck.valid) {
+      toast({ title: "رقم الهاتف غير صحيح", description: phoneCheck.message, variant: "destructive" });
+      return;
+    }
+    const emailCheck = validateEmail(bookingData.email);
+    if (!emailCheck.valid) {
+      toast({ title: "البريد الإلكتروني غير صحيح", description: emailCheck.message, variant: "destructive" });
+      return;
+    }
+
+    if (trip.startDate && new Date(trip.startDate) <= new Date()) {
+      toast({
+        title: "لا يمكن الحجز",
+        description: "انتهى موعد بدء الرحلة",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (userBookingsForTrip.some(b => b.status === "pending" || b.status === "accepted")) {
+      toast({
+        title: "حجز مكرر",
+        description: "لديك حجز سابق لهذه الرحلة بالفعل",
+        variant: "destructive"
+      });
+      return;
     }
 
     // Validate available seats
