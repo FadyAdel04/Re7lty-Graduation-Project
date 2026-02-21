@@ -1,6 +1,8 @@
 import axios from "axios";
+import { API_BASE_URL } from "@/config/api";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
+const base = API_BASE_URL || "http://127.0.0.1:5000";
+const API_URL = base.replace(/\/+$/, ""); // ensure no trailing slash to avoid double // in paths
 
 export interface Coupon {
     _id: string;
@@ -43,7 +45,9 @@ export const couponService = {
         discountValue: number;
         couponId: string;
     }> => {
-        const response = await axios.post(`${API_URL}/api/coupons/validate`, { code, tripId });
+        const trimmedCode = typeof code === "string" ? code.trim() : "";
+        const id = tripId != null ? String(tripId).trim() : "";
+        const response = await axios.post(`${API_URL}/api/coupons/validate`, { code: trimmedCode, tripId: id });
         return response.data;
     }
 };

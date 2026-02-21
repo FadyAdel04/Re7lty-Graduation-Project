@@ -61,10 +61,14 @@ const BookingCard = ({ trip, company, sticky = false }: BookingCardProps) => {
   } | null>(null);
 
   const handleValidateCoupon = async () => {
-    if (!couponCode) return;
+    const tripId = trip._id || trip.id;
+    if (!couponCode?.trim() || !tripId) {
+      toast({ title: "خطأ", description: "أدخل كود الخصم وتأكد من وجود الرحلة", variant: "destructive" });
+      return;
+    }
     setIsValidatingCoupon(true);
     try {
-        const result = await couponService.validateCoupon(couponCode, (trip._id || trip.id)!);
+        const result = await couponService.validateCoupon(couponCode.trim(), String(tripId));
         if (result.success) {
             setAppliedCoupon({
                 ...result,
@@ -472,7 +476,7 @@ const BookingCard = ({ trip, company, sticky = false }: BookingCardProps) => {
       </Card>
 
       <Dialog open={showBookingDialog} onOpenChange={(open) => { setShowBookingDialog(open); if (!open) setBookingStep(1); }}>
-        <DialogContent className="w-[100vw] max-w-[100vw] sm:max-w-[95vw] lg:max-w-[640px] h-[100dvh] max-h-[100dvh] sm:h-[95vh] sm:max-h-[95vh] p-0 font-cairo overflow-hidden rounded-none sm:rounded-2xl md:rounded-[2.5rem] border-0 shadow-2xl flex flex-col max-sm:left-0 max-sm:top-0 max-sm:right-0 max-sm:bottom-0 max-sm:translate-x-0 max-sm:translate-y-0" dir="rtl">
+        <DialogContent className="w-[100vw] max-w-[100vw] sm:max-w-[95vw] lg:max-w-[640px] h-[100dvh] max-h-[100dvh] sm:h-[95vh] sm:max-h-[95vh] p-0 font-cairo overflow-hidden rounded-none sm:rounded-2xl md:rounded-[2.5rem] border-0 shadow-2xl flex flex-col max-sm:left-0 max-sm:top-0 max-sm:right-0 max-sm:bottom-0 max-sm:translate-x-0 max-sm:translate-y-0 [&>*]:min-h-0" dir="rtl">
           {/* Header with stepper */}
           <div className="bg-gradient-to-r from-indigo-600 to-indigo-800 p-3 md:p-4 text-white relative overflow-hidden shrink-0 border-b border-white/10">
              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl opacity-50" />
@@ -510,7 +514,7 @@ const BookingCard = ({ trip, company, sticky = false }: BookingCardProps) => {
             }}
             className="flex-1 min-h-0 flex flex-col bg-gray-50/50 relative overflow-hidden"
           >
-            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain p-4 md:p-6 pb-32 sm:pb-28 scroll-smooth custom-scrollbar">
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain p-4 md:p-6 pb-40 sm:pb-36 scroll-smooth custom-scrollbar">
                
                {/* Step 1: Passenger info + number of people */}
                {bookingStep === 1 && (
@@ -557,12 +561,17 @@ const BookingCard = ({ trip, company, sticky = false }: BookingCardProps) => {
                        </div>
                     </div>
                     <div className="space-y-1">
-                       <Label className="text-xs font-black text-gray-500">رقم الهاتف</Label>
+                       <Label className="text-xs font-black text-gray-500">رقم الهاتف (11 رقمًا، مثال: 01234567890)</Label>
                        <Input
                          type="tel"
                          inputMode="numeric"
+                         pattern="[0-9]*"
+                         maxLength={11}
                          value={bookingData.userPhone}
-                         onChange={(e) => setBookingData({ ...bookingData, userPhone: e.target.value })}
+                         onChange={(e) => {
+                           const v = e.target.value.replace(/\D/g, "").slice(0, 11);
+                           setBookingData({ ...bookingData, userPhone: v });
+                         }}
                          className="h-11 rounded-lg bg-gray-50 border-gray-100 text-sm px-3 focus:bg-white touch-manipulation"
                          placeholder="01xxxxxxxxx"
                          required

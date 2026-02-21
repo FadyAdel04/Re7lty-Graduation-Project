@@ -109,10 +109,13 @@ router.delete('/:id', ClerkExpressRequireAuth(), async (req, res) => {
 // Validate a coupon
 router.post('/validate', async (req, res) => {
     try {
-        const { code, tripId } = req.body;
+        const rawCode = req.body?.code;
+        const rawTripId = req.body?.tripId;
+        const code = typeof rawCode === 'string' ? rawCode.trim() : '';
+        const tripId = rawTripId != null ? String(rawTripId).trim() : '';
 
         if (!code || !tripId) {
-            return res.status(400).json({ error: 'Code and tripId are required' });
+            return res.status(400).json({ error: 'أدخل كود الخصم وتأكد من الرحلة' });
         }
 
         const trip = await CorporateTrip.findById(tripId);
