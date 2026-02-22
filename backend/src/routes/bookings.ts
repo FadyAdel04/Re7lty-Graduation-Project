@@ -135,8 +135,13 @@ router.post("/", requireAuthStrict, async (req, res) => {
 router.get("/verify/:reference", async (req, res) => {
     try {
         const { reference } = req.params;
-        const booking = await Booking.findOne({ bookingReference: reference });
-        if (!booking) return res.status(404).json({ error: "Booking not found" });
+        const normalizedRef = String(reference).trim().toUpperCase();
+
+        const booking = await Booking.findOne({ bookingReference: normalizedRef });
+        if (!booking) {
+            console.log(`[Verify] Booking not found for reference: "${normalizedRef}" (original: "${reference}")`);
+            return res.status(404).json({ error: "Booking not found" });
+        }
 
         const trip = await CorporateTrip.findById(booking.tripId);
         const company = await CorporateCompany.findById(booking.companyId);
@@ -148,8 +153,8 @@ router.get("/verify/:reference", async (req, res) => {
             company: company ? {
                 name: company.name,
                 logo: company.logo,
-                phone: company.phone,
-                email: company.email
+                phone: company.contactInfo.phone,
+                email: company.contactInfo.email
             } : null
         });
     } catch (error: any) {

@@ -610,9 +610,12 @@ const CompanyDashboard = () => {
         setScanError(null);
         toast({ title: "تم المسح بنجاح", description: "جاري التحقق من الحجز..." });
         
-        let reference = decodedText;
+        let reference = decodedText.trim();
         if (decodedText.includes('/verify-booking/')) {
-            reference = decodedText.split('/verify-booking/').pop() || decodedText;
+            const parts = decodedText.split('/verify-booking/');
+            reference = parts.pop() || decodedText;
+            // Clean up reference: remove query params, hashes, and trailing slashes
+            reference = reference.split('?')[0].split('#')[0].replace(/\/+$/, '').trim();
         }
 
         setIsValidating(true);
