@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useUser, useAuth } from "@clerk/clerk-react";
+import { API_BASE_URL } from "@/config/api";
+
 import { useNavigate, useLocation } from "react-router-dom";
 import Header from "@/components/Header";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -246,7 +248,8 @@ const TripGroupMessages = () => {
         formData.append('type', currentAttachment.type);
       }
 
-      const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:5000') + '/api/trip-groups';
+      const API_BASE = (API_BASE_URL || 'http://localhost:5000') + '/api/trip-groups';
+
       const res = await fetch(`${API_BASE}/${activeGroup._id}/messages`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },

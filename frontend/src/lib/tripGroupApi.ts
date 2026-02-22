@@ -1,4 +1,7 @@
-const API_BASE = (import.meta.env.VITE_API_URL || "http://localhost:5000") + "/api/trip-groups";
+import { API_BASE_URL } from "@/config/api";
+
+const API_BASE = (API_BASE_URL || "http://localhost:5000") + "/api/trip-groups";
+
 
 export async function getTripGroups(token: string) {
     const res = await fetch(`${API_BASE}`, {

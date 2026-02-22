@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { API_BASE_URL } from "@/config/api";
+
 import { useNavigate } from "react-router-dom";
 import { useUser, useAuth, useClerk } from "@clerk/clerk-react";
 import Header from "@/components/Header";
@@ -395,7 +397,7 @@ const CompanyDashboard = () => {
         setIsSwitchingRole(true);
         try {
             const token = await getToken();
-            const response = await fetch(`${import.meta.env.VITE_API_URL || "http://127.0.0.1:5000"}/api/users/me/switch-role`, {
+            const response = await fetch(`${API_BASE_URL}/api/users/me/switch-role`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -472,7 +474,7 @@ const CompanyDashboard = () => {
             const otherBusBookings = (selectedTripForSeats.seatBookings || []).filter((s: any) => (s.busIndex || 0) !== currentBusIndex);
             const combinedBookings = [...otherBusBookings, ...bookingsWithBusIndex];
 
-            const response = await fetch(`${import.meta.env.VITE_API_URL || "http://127.0.0.1:5000"}/api/corporate/trips/${selectedTripForSeats._id || selectedTripForSeats.id}`, {
+            const response = await fetch(`${API_BASE_URL}/api/corporate/trips/${selectedTripForSeats._id || selectedTripForSeats.id}`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
@@ -540,7 +542,14 @@ const CompanyDashboard = () => {
                     html5QrCode.stop().then(() => {
                         setIsScanning(false);
                         setScannerObject(null);
-                    }).catch(err => console.error("Error stopping scanner", err));
+                    }).catch(err => {
+                        // "Cannot stop, scanner is not running or paused" is safe to ignore if we're trying to stop anyway
+                        if (!err?.toString().includes("is not running")) {
+                            console.error("Error stopping scanner", err);
+                        }
+                        setIsScanning(false);
+                        setScannerObject(null);
+                    });
                 };
                 
                 const config = { fps: 10, qrbox: { width: 250, height: 250 } };
@@ -549,8 +558,15 @@ const CompanyDashboard = () => {
                 await html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback, undefined);
             } catch (err: any) {
                 console.error("Scanner start error", err);
-                setScanError("تعذر فتح الكاميرا. يرجى التأكد من إعطاء الإذن.");
+                let message = "تعذر فتح الكاميرا.";
+                if (err?.name === "NotAllowedError" || err?.toString().includes("Permission dismissed")) {
+                    message = "تم رفض إذن الكاميرا. يرجى تفعيل الإذن من إعدادات المتصفح.";
+                } else if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+                    message = "يجب استخدام اتصال آمن (HTTPS) لتشغيل الكاميرا.";
+                }
+                setScanError(message);
                 setIsScanning(false);
+                toast({ title: "خطأ في الكاميرا", description: message, variant: "destructive" });
             }
         }, 300);
     };
@@ -558,7 +574,10 @@ const CompanyDashboard = () => {
     const stopScanner = async () => {
         if (scannerObject) {
             try {
-                await scannerObject.stop();
+                // Check if it's actually running before stopping to avoid "Cannot stop" error
+                if (scannerObject.getState() === 2) { // 2 = SCANNING
+                    await scannerObject.stop();
+                }
                 setScannerObject(null);
             } catch (err) {
                 console.error("Error stopping scanner", err);
@@ -599,7 +618,7 @@ const CompanyDashboard = () => {
         setIsValidating(true);
         try {
             const token = await getToken();
-            const response = await fetch(`${import.meta.env.VITE_API_URL || "http://127.0.0.1:5000"}/api/bookings/verify/${reference}`, {
+            const response = await fetch(`${API_BASE_URL}/api/bookings/verify/${reference}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();

@@ -1,8 +1,7 @@
 import axios from "axios";
 import { API_BASE_URL } from "@/config/api";
 
-const base = API_BASE_URL || "http://127.0.0.1:5000";
-const API_URL = base.replace(/\/+$/, ""); // ensure no trailing slash to avoid double // in paths
+const API_URL = API_BASE_URL;
 
 export interface Coupon {
     _id: string;

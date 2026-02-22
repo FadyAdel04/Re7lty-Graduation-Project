@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@clerk/clerk-react";
+import { API_BASE_URL } from "@/config/api";
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -226,7 +228,7 @@ const CompanyTripFormDialog = ({ open, onOpenChange, onSuccess, initialData }: C
             const token = await getToken();
             
             // Get Cloudinary signature from our backend
-            const sigData = await fetch(`${import.meta.env.VITE_API_URL || "http://127.0.0.1:5000"}/api/trips/cloudinary-signature`, {
+            const sigData = await fetch(`${API_BASE_URL}/api/trips/cloudinary-signature`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             }).then(res => res.json());
 
