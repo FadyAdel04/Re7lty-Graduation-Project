@@ -211,7 +211,7 @@ const CompanyTripFormDialog = ({ open, onOpenChange, onSuccess, initialData }: C
     setFormData({ ...formData, itinerary: newItinerary });
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, index: number, isTransportation: boolean = false) => {
     const file = e.target.files?.[0];
     if (file) {
         const imgCheck = validateImageFile(file);
@@ -220,11 +220,43 @@ const CompanyTripFormDialog = ({ open, onOpenChange, onSuccess, initialData }: C
             e.target.value = "";
             return;
         }
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            handleArrayChange('images', index, reader.result as string);
-        };
-        reader.readAsDataURL(file);
+
+        try {
+            setLoading(true);
+            const token = await getToken();
+            
+            // Get Cloudinary signature from our backend
+            const sigData = await fetch(`${import.meta.env.VITE_API_URL || "http://127.0.0.1:5000"}/api/trips/cloudinary-signature`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            }).then(res => res.json());
+
+            const formDataToUpload = new FormData();
+            formDataToUpload.append('file', file);
+            formDataToUpload.append('api_key', sigData.apiKey);
+            formDataToUpload.append('timestamp', sigData.timestamp.toString());
+            formDataToUpload.append('signature', sigData.signature);
+            formDataToUpload.append('folder', sigData.folder);
+
+            const response = await fetch(
+                `https://api.cloudinary.com/v1_1/${sigData.cloudName}/image/upload`,
+                { method: 'POST', body: formDataToUpload }
+            );
+            
+            if (!response.ok) throw new Error('فشل رفع الصورة إلى Cloudinary');
+            const data = await response.json();
+            
+            if (isTransportation) {
+                handleArrayChange('transportationImages', index, data.secure_url);
+            } else {
+                handleArrayChange('images', index, data.secure_url);
+            }
+            toast({ title: "تم رفع الصورة بنجاح" });
+        } catch (err) {
+            console.error("Upload error", err);
+            toast({ title: "خطأ في الرفع", description: "فشل رفع الصورة، يرجى المحاولة مرة أخرى", variant: "destructive" });
+        } finally {
+            setLoading(false);
+        }
     }
   };
 

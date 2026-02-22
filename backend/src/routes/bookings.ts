@@ -128,6 +128,35 @@ router.post("/", requireAuthStrict, async (req, res) => {
     }
 });
 
+/**
+ * GET /api/bookings/verify/:reference
+ * Public route for QR code verification
+ */
+router.get("/verify/:reference", async (req, res) => {
+    try {
+        const { reference } = req.params;
+        const booking = await Booking.findOne({ bookingReference: reference });
+        if (!booking) return res.status(404).json({ error: "Booking not found" });
+
+        const trip = await CorporateTrip.findById(booking.tripId);
+        const company = await CorporateCompany.findById(booking.companyId);
+
+        res.json({
+            success: true,
+            booking,
+            trip,
+            company: company ? {
+                name: company.name,
+                logo: company.logo,
+                phone: company.phone,
+                email: company.email
+            } : null
+        });
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 router.get("/my-bookings", requireAuthStrict, async (req, res) => {
     try {
         const { userId } = getAuth(req);
@@ -163,6 +192,21 @@ router.post("/:id/cancel", requireAuthStrict, async (req, res) => {
         booking.statusUpdatedAt = new Date();
         await booking.save();
         await handleBookingCancelled(booking.tripId.toString(), booking.userId);
+
+        // Notify company (dashboard) that the user cancelled
+        const company = await CorporateCompany.findById(booking.companyId);
+        const companyOwnerId = company?.ownerId || (company as any)?.createdBy;
+        if (companyOwnerId) {
+            await createNotification({
+                recipientId: companyOwnerId,
+                actorId: booking.userId,
+                actorName: booking.userName,
+                type: "system",
+                message: `ألغى ${booking.userName} حجزه لرحلة "${booking.tripTitle}" (المرجع: ${booking.bookingReference}).`,
+                metadata: { bookingId: booking._id, status: "cancelled", tripId: booking.tripId }
+            } as any);
+        }
+
         res.json({ success: true, booking });
     } catch (error: any) {
         res.status(500).json({ error: error.message });

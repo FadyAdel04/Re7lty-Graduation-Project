@@ -6,7 +6,7 @@ import Footer from "@/components/Footer";
 import { listTrips, toggleTripLove, toggleTripSave, toggleFollowUser, getUserFollowing } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Heart, MessageCircle, Share2, Bookmark, MapPin, Star, Clock, MoreHorizontal, LayoutGrid, TrendingUp, ArrowRight, Sparkles, Calendar, Flag, Video, Play, Zap } from "lucide-react";
+import { Heart, MessageCircle, Share2, Bookmark, MapPin, Star, Clock, MoreHorizontal, LayoutGrid, TrendingUp, ArrowRight, Sparkles, Calendar, Flag, Video, Play, Zap, Filter, MessageSquare as MessageIcon, Image as ImageIcon } from "lucide-react";
 import TripComments from "@/components/TripComments";
 import ReportTripDialog from "@/components/ReportTripDialog";
 import { SignedIn, useAuth, useUser } from "@clerk/clerk-react";
@@ -23,11 +23,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import LeftSidebar, { TimelineFilters } from "@/components/timeline/LeftSidebar";
 import RightSidebar, { FollowedTraveler } from "@/components/timeline/RightSidebar";
 import TimelineHero from "@/components/TimelineHero";
-import TripAIChatWidget from "@/components/TripAIChatWidget";
 import LivePulseMap from "@/components/LivePulseMap";
 import { Badge } from "@/components/ui/badge";
 import { PassportBadge } from "@/components/profile/DigitalPassport";
 import { cn } from "@/lib/utils";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 
 
@@ -62,6 +62,7 @@ const Timeline = () => {
   const [saveState, setSaveState] = useState<Record<string, boolean>>({});
   const [activeStoryGroup, setActiveStoryGroup] = useState<StoryUserGroup | null>(null);
   const [isStoryViewerOpen, setIsStoryViewerOpen] = useState(false);
+  const [showFiltersMobile, setShowFiltersMobile] = useState(false);
 
   const [filters, setFilters] = useState<TimelineFilters>({
     showMyStories: false,
@@ -140,8 +141,17 @@ const Timeline = () => {
       }
     };
 
+    const handleTripUpdated = () => {
+      if (isMounted) loadTrips();
+    };
+
+    window.addEventListener('tripUpdated', handleTripUpdated);
     loadTrips();
-    return () => { isMounted = false; };
+
+    return () => { 
+      isMounted = false; 
+      window.removeEventListener('tripUpdated', handleTripUpdated);
+    };
   }, [isSignedIn, getToken]);
 
   useEffect(() => {
@@ -389,6 +399,30 @@ const Timeline = () => {
 
             {/* CENTER FEED */}
             <div className="lg:col-span-6 space-y-8">
+              {/* Mobile: Filter section toggle */}
+              <div className="flex lg:hidden mb-4">
+                <Sheet open={showFiltersMobile} onOpenChange={setShowFiltersMobile}>
+                  <SheetTrigger asChild>
+                    <Button variant="outline" className="w-full gap-2 rounded-2xl border-orange-200 text-orange-600 hover:bg-orange-50 font-bold py-6">
+                      <Filter className="w-5 h-5" />
+                      تصفية الرحلات
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="right" className="w-[320px] max-w-[90vw] p-0 overflow-y-auto" dir="rtl">
+                    <SheetHeader className="p-4 border-b border-gray-100">
+                      <SheetTitle className="text-right font-black">تصفية الرحلات</SheetTitle>
+                    </SheetHeader>
+                    <div className="p-4 space-y-4">
+                      <LeftSidebar
+                        filters={filters}
+                        onFiltersChange={setFilters}
+                        userStats={userStats}
+                        upcomingTrip={null}
+                      />
+                    </div>
+                  </SheetContent>
+                </Sheet>
+              </div>
               <div className="bg-white rounded-[2.5rem] p-4 shadow-sm border border-gray-100 overflow-hidden">
                 <StoriesBar
                   onUserClick={(user) => { setActiveStoryGroup(user); setIsStoryViewerOpen(true); }}
@@ -449,9 +483,15 @@ const Timeline = () => {
                              
                              <div className="flex items-center gap-2">
                                {trip.postType === 'quick' && (
-                                 <Badge className="bg-amber-500/10 text-amber-600 border-amber-200/50 gap-1 px-3 py-1 font-black">
-                                   <Zap className="w-3.5 h-3.5 fill-amber-600" />
+                                 <Badge className="bg-amber-500/10 text-amber-500 border-amber-200/50 gap-1 px-3 py-1 font-black">
+                                   <Zap className="w-3.5 h-3.5 fill-amber-500" />
                                    بوست سريع
+                                 </Badge>
+                               )}
+                               {trip.postType === 'ask' && (
+                                 <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-200/50 gap-1 px-3 py-1 font-black">
+                                   <MessageCircle className="w-3.5 h-3.5 fill-emerald-600" />
+                                   سؤال واستفسار
                                  </Badge>
                                )}
                                <ReportTripDialog 
@@ -466,67 +506,75 @@ const Timeline = () => {
                              </div>
                           </div>
 
-                           <div className="relative aspect-video overflow-hidden cursor-pointer" onDoubleClick={() => handleToggleLove(trip, true)}>
-                             {playingVideoId === id && trip.activities?.[0]?.videos?.[0] ? (
-                               <video 
-                                 src={trip.activities[0].videos[0]} 
-                                 autoPlay 
-                                 controls 
-                                 className="w-full h-full object-contain bg-black"
-                                 onEnded={() => setPlayingVideoId(null)}
-                               />
-                             ) : (
-                               <>
-                                 <img src={activeSrc} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                                 
-                                 {trip.postType === 'quick' && trip.activities?.[0]?.videos?.length > 0 && (
-                                   <div 
-                                     className="absolute inset-0 flex items-center justify-center z-10"
-                                     onClick={(e) => {
-                                       e.stopPropagation();
-                                       setPlayingVideoId(id);
-                                     }}
-                                   >
-                                      <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center group-hover:scale-110 transition-transform shadow-2xl">
-                                         <Play className="w-8 h-8 text-white fill-white translate-x-0.5" />
-                                      </div>
-                                   </div>
-                                 )}
-                               </>
-                             )}
-                             
-                             <AnimatePresence>
-                               {showHeartByTrip[id] && (
-                                 <motion.div 
-                                   initial={{ opacity: 0, scale: 0.5 }}
-                                   animate={{ opacity: 1, scale: [0.5, 1.2, 1] }}
-                                   exit={{ opacity: 0, scale: 0.5, y: -20 }}
-                                   className="absolute inset-0 flex items-center justify-center pointer-events-none z-20"
-                                 >
-                                   <div className="bg-white/20 backdrop-blur-sm p-8 rounded-full">
-                                      <Heart className="w-20 h-20 text-white fill-white drop-shadow-[0_0_20px_rgba(255,255,255,0.5)]" />
-                                   </div>
-                                 </motion.div>
+                           {(!(trip.postType === 'ask' && !trip.image)) && (
+                             <div className="relative aspect-video overflow-hidden cursor-pointer" onDoubleClick={() => handleToggleLove(trip, true)}>
+                               {playingVideoId === id && trip.activities?.[0]?.videos?.[0] ? (
+                                 <video 
+                                   src={trip.activities[0].videos[0]} 
+                                   autoPlay 
+                                   controls 
+                                   className="w-full h-full object-contain bg-black"
+                                   onEnded={() => setPlayingVideoId(null)}
+                                 />
+                               ) : (
+                                 <>
+                                   {activeSrc ? (
+                                     <img src={activeSrc} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                                   ) : (
+                                     <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                                       <ImageIcon className="w-12 h-12 text-gray-200" />
+                                     </div>
+                                   )}
+                                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                                   
+                                   {trip.postType === 'quick' && trip.activities?.[0]?.videos?.length > 0 && (
+                                     <div 
+                                       className="absolute inset-0 flex items-center justify-center z-10"
+                                       onClick={(e) => {
+                                         e.stopPropagation();
+                                         setPlayingVideoId(id);
+                                       }}
+                                     >
+                                        <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center group-hover:scale-110 transition-transform shadow-2xl">
+                                           <Play className="w-8 h-8 text-white fill-white translate-x-0.5" />
+                                        </div>
+                                     </div>
+                                   )}
+                                 </>
                                )}
-                             </AnimatePresence>
-
-                             <div className="absolute bottom-4 left-4 flex flex-col gap-2 items-end">
-                                <div className="flex items-center gap-2 px-3 py-1.5 bg-black/30 backdrop-blur-md rounded-full text-white text-xs font-bold border border-white/20">
-                                   {trip.rating} / 5
-                                   <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
-                                </div>
-                                {trip.season && (
-                                   <div className="flex items-center gap-2 px-3 py-1.5 bg-orange-600/80 backdrop-blur-md rounded-full text-white text-xs font-bold border border-orange-400/30">
-                                      {trip.season === 'winter' ? 'شتاء' : 
-                                       trip.season === 'summer' ? 'صيف' :
-                                       trip.season === 'fall' ? 'خريف' :
-                                       trip.season === 'spring' ? 'ربيع' : trip.season}
-                                      <Calendar className="w-3.5 h-3.5" />
-                                   </div>
-                                )}
+                               
+                               <AnimatePresence>
+                                 {showHeartByTrip[id] && (
+                                   <motion.div 
+                                     initial={{ opacity: 0, scale: 0.5 }}
+                                     animate={{ opacity: 1, scale: [0.5, 1.2, 1] }}
+                                     exit={{ opacity: 0, scale: 0.5, y: -20 }}
+                                     className="absolute inset-0 flex items-center justify-center pointer-events-none z-20"
+                                   >
+                                     <div className="bg-white/20 backdrop-blur-sm p-8 rounded-full">
+                                        <Heart className="w-20 h-20 text-white fill-white drop-shadow-[0_0_20px_rgba(255,255,255,0.5)]" />
+                                     </div>
+                                   </motion.div>
+                                 )}
+                               </AnimatePresence>
+  
+                               <div className="absolute bottom-4 left-4 flex flex-col gap-2 items-end">
+                                  <div className="flex items-center gap-2 px-3 py-1.5 bg-black/30 backdrop-blur-md rounded-full text-white text-xs font-bold border border-white/20">
+                                     {trip.rating} / 5
+                                     <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
+                                  </div>
+                                  {trip.season && (
+                                     <div className="flex items-center gap-2 px-3 py-1.5 bg-orange-600/80 backdrop-blur-md rounded-full text-white text-xs font-bold border border-orange-400/30">
+                                        {trip.season === 'winter' ? 'شتاء' : 
+                                         trip.season === 'summer' ? 'صيف' :
+                                         trip.season === 'fall' ? 'خريف' :
+                                         trip.season === 'spring' ? 'ربيع' : trip.season}
+                                        <Calendar className="w-3.5 h-3.5" />
+                                     </div>
+                                  )}
+                               </div>
                              </div>
-                          </div>
+                           )}
 
                           {thumbnails.length > 0 && (
                             <div className="flex gap-2 p-4 overflow-x-auto no-scrollbar">
@@ -549,14 +597,22 @@ const Timeline = () => {
                           )}
 
                           <div className="p-6 pt-2 text-right">
-                             <Link to={`/trips/${id}`}>
-                                <h3 className="text-2xl font-black text-gray-900 mb-2 hover:text-orange-600 transition-colors">
-                                  {trip.title}
-                                </h3>
-                             </Link>
-                             <p className="text-gray-500 leading-relaxed line-clamp-2 md:line-clamp-3 mb-6 font-light">
-                                {trip.description}
-                             </p>
+                             {trip.postType !== 'ask' ? (
+                               <>
+                                 <Link to={`/trips/${id}`}>
+                                    <h3 className="text-2xl font-black text-gray-900 mb-2 hover:text-orange-600 transition-colors">
+                                      {trip.title}
+                                    </h3>
+                                 </Link>
+                                 <p className="text-gray-500 leading-relaxed line-clamp-2 md:line-clamp-3 mb-6 font-light">
+                                    {trip.description}
+                                 </p>
+                               </>
+                             ) : (
+                               <p className="text-gray-900 text-xl leading-relaxed mb-6 font-bold">
+                                  {trip.description}
+                               </p>
+                             )}
 
                              <div className="flex items-center justify-between pt-4 border-t border-gray-50">
                                 <div className="flex items-center gap-2">
@@ -586,11 +642,13 @@ const Timeline = () => {
                                    <Button variant="ghost" className="rounded-full h-11 px-4 text-gray-500 hover:bg-gray-50">
                                       <Share2 className="w-5 h-5" />
                                    </Button>
-                                    <Link to={`/trips/${id}`}>
-                                        <Button variant="ghost" size="sm" className="rounded-full px-4 text-orange-600 hover:bg-orange-50 h-11">
-                                            المزيد
-                                        </Button>
-                                    </Link>
+                                    {trip.postType !== 'ask' && (
+                                      <Link to={`/trips/${id}`}>
+                                          <Button variant="ghost" size="sm" className="rounded-full px-4 text-orange-600 hover:bg-orange-50 h-11">
+                                              المزيد
+                                          </Button>
+                                      </Link>
+                                    )}
                                 </div>
                              </div>
                           </div>
@@ -618,7 +676,6 @@ const Timeline = () => {
       </main>
 
       <Footer />
-      <TripAIChatWidget />
       {isStoryViewerOpen && activeStoryGroup && <StoryViewer group={activeStoryGroup} isOpen={isStoryViewerOpen} onClose={() => setIsStoryViewerOpen(false)} />}
       
       <Dialog open={!!activeCommentsTripId} onOpenChange={(open) => !open && setActiveCommentsTripId(null)}>

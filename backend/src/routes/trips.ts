@@ -404,7 +404,7 @@ router.post('/', requireAuthStrict, async (req, res) => {
       });
     }
 
-    // AI trip quota: 5 per user per week (rolling 7 days)
+    // AI trip quota: 3 per user per week (rolling 7 days)
     if (req.body.isAIGenerated === true) {
       const weekAgo = new Date();
       weekAgo.setDate(weekAgo.getDate() - 7);
@@ -413,10 +413,10 @@ router.post('/', requireAuthStrict, async (req, res) => {
         isAIGenerated: true,
         postedAt: { $gte: weekAgo },
       });
-      if (count >= 5) {
+      if (count >= 3) {
         return res.status(429).json({
           error: 'AI trip quota exceeded',
-          message: 'لقد استخدمت الحد الأسبوعي لإنشاء الرحلات بالذكاء الاصطناعي (5 رحلات). يرجى المحاولة الأسبوع المقبل.',
+          message: 'لقد استخدمت الحد الأسبوعي لإنشاء الرحلات بالذكاء الاصطناعي (3 رحلات). يرجى المحاولة الأسبوع المقبل.',
         });
       }
     }
@@ -555,7 +555,7 @@ router.post('/', requireAuthStrict, async (req, res) => {
       });
     }
 
-    const postType = restBody.postType === 'quick' ? 'quick' : 'detailed';
+    const postType = ['quick', 'ask'].includes(restBody.postType) ? restBody.postType : 'detailed';
 
     const tripData = {
       ...mediaReadyBody,
@@ -566,7 +566,7 @@ router.post('/', requireAuthStrict, async (req, res) => {
     };
 
     // Validate trip data structure before creating
-    // Only validate activities for detailed posts
+    // Only validate activities for detailed posts (ask and quick have minimal structure)
     if (postType === 'detailed' && Array.isArray(tripData.activities)) {
       for (let i = 0; i < tripData.activities.length; i++) {
         const activity = tripData.activities[i];

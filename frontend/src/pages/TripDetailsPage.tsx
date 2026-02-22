@@ -25,7 +25,8 @@ import {
   Image as ImageIcon,
   ShieldCheck,
   Check,
-  Armchair
+  Armchair,
+  Zap
 } from "lucide-react";
 import BusSeatLayout from "@/components/company/BusSeatLayout";
 import { Button } from "@/components/ui/button";
@@ -539,7 +540,9 @@ const TripDetailsPage = () => {
                   </motion.div>
                 )}
 
-               <BookingCard trip={trip} company={company} />
+               <div id="booking-card">
+                 <BookingCard trip={trip} company={company} />
+               </div>
                
              </div>
           </div>
@@ -556,6 +559,24 @@ const TripDetailsPage = () => {
           tripTitle={trip.title}
         />
       )}
+
+      {/* Floating Book Button for Mobile & Desktop */}
+      <div className="fixed bottom-6 left-6 z-50 flex flex-col gap-3 items-end">
+        {/* Scroll to top/booking button */}
+        <Button 
+          size="lg" 
+          className="rounded-full shadow-2xl bg-orange-600 hover:bg-orange-700 text-white font-black px-6 py-4 h-auto text-lg gap-2 border-2 border-white/20 backdrop-blur-sm transition-all active:scale-90 group"
+          onClick={() => {
+            const bookingCard = document.getElementById('booking-card');
+            if (bookingCard) {
+              bookingCard.scrollIntoView({ behavior: 'smooth' });
+            }
+          }}
+        >
+          <Zap className="w-6 h-6 fill-white animate-pulse group-hover:scale-110 transition-transform" />
+          <span>احجز الآن</span>
+        </Button>
+      </div>
     </div>
   );
 };

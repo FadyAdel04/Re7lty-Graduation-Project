@@ -82,6 +82,7 @@ const Footer = () => {
             <ul className="space-y-4">
               {[
                 { name: "الدعم", path: "/support" },
+                { name: "التحقق من الحجز", path: "/verify-booking" },
                 { name: "مركز المساعدة", path: "/help" },
                 { name: "اتصل بنا", path: "/contact" },
                 { name: "الشروط والأحكام", path: "/terms" },

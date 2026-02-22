@@ -34,15 +34,7 @@ import TripComments from "@/components/TripComments";
 import { egyptTrips, Comment as TripComment } from "@/lib/trips-data";
 import { getTrip, toggleTripLove, toggleFollowUser, toggleTripSave } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import {
-  MapContainer,
-  TileLayer,
-  Marker,
-  Polyline,
-  Popup,
-  useMap,
-} from "react-leaflet";
-import L from "leaflet";
+import { MapboxTripMap } from "@/components/MapboxTripMap";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { SignedIn, SignedOut, SignInButton, useUser, useAuth } from "@clerk/clerk-react";
 import {
@@ -54,75 +46,6 @@ import {
 import { Edit2, Trash2 } from "lucide-react";
 import { deleteTrip } from "@/lib/api";
 import TripSkeletonLoader from "@/components/TripSkeletonLoader";
-
-function FitBounds({ positions }: { positions: [number, number][] }) {
-  const map = useMap();
-  useEffect(() => {
-    if (positions.length > 1) {
-      map.fitBounds(L.latLngBounds(positions.map(([lat, lng]) => [lat, lng])));
-    } else if (positions.length === 1) {
-      map.setView(positions[0], 13);
-    }
-    // eslint-disable-next-line
-  }, [positions.length]);
-  return null;
-}
-
-function BusTravelAnimator({ positions }: { positions: [number, number][] }) {
-  const map = useMap();
-  useEffect(() => {
-    if (!positions || positions.length < 2) return;
-
-    const busIcon = L.divIcon({
-      className: "bus-travel-icon",
-      html:
-        "<div style='transform: translate(-50%, -50%); font-size: 20px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4))'>🚌</div>",
-    });
-
-    const marker = L.marker(positions[0], { icon: busIcon }).addTo(map);
-
-    let segmentIndex = 0;
-    let t = 0;
-    let rafId: number;
-    const stepIncrement = 0.005; // speed factor (higher = faster)
-
-    const animate = () => {
-      if (segmentIndex >= positions.length - 1) {
-        cancelAnimationFrame(rafId);
-        return;
-      }
-
-      const [fromLat, fromLng] = positions[segmentIndex];
-      const [toLat, toLng] = positions[segmentIndex + 1];
-
-      t += stepIncrement;
-      if (t >= 1) {
-        t = 0;
-        segmentIndex += 1;
-        if (segmentIndex >= positions.length - 1) {
-          marker.setLatLng(positions[positions.length - 1]);
-          cancelAnimationFrame(rafId);
-          return;
-        }
-      }
-
-      const lat = fromLat + (toLat - fromLat) * t;
-      const lng = fromLng + (toLng - fromLng) * t;
-      marker.setLatLng([lat, lng]);
-
-      rafId = requestAnimationFrame(animate);
-    };
-
-    rafId = requestAnimationFrame(animate);
-
-    return () => {
-      cancelAnimationFrame(rafId);
-      map.removeLayer(marker);
-    };
-  }, [map, positions]);
-
-  return null;
-}
 
 const TripDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -788,7 +711,7 @@ useEffect(() => {
                
                {/* Map Widget */}
                <Card className="border-0 shadow-2xl rounded-[2.5rem] bg-indigo-900 overflow-hidden text-white relative">
-                  <div className="h-[350px] relative">
+                  <div className="h-[280px] w-full relative overflow-hidden rounded-[2rem]">
                       <div 
                         onClick={() => setShowFullMap(true)}
                         className="absolute top-4 right-4 bg-indigo-900/60 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 text-sm font-black flex items-center gap-2 cursor-pointer hover:bg-indigo-800 transition-colors z-[1001] shadow-lg"
@@ -796,57 +719,20 @@ useEffect(() => {
                         <Maximize2 className="w-4 h-4 text-orange-400" /> عرض الخريطة المكبرة
                       </div>
                       {trip.activities?.[0]?.coordinates ? (
-                        <MapContainer
-                           center={[trip.activities[0].coordinates.lat, trip.activities[0].coordinates.lng]}
-                           zoom={13}
-                           scrollWheelZoom={false}
-                           style={{ height: "100%", width: "100%" }}
-                        >
-                           <TileLayer url="https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=hCkkPcZUo3rUCAmU8HwE" />
-                           <FitBounds positions={trip.activities.filter((a: any) => a.coordinates).map((a: any) => [a.coordinates.lat, a.coordinates.lng])} />
-                           
-                           {/* Route Line */}
-                           <Polyline 
-                              positions={trip.activities.filter((a: any) => a.coordinates).map((a: any) => [a.coordinates.lat, a.coordinates.lng])}
-                              color="#4F46E5"
-                              weight={3}
-                              opacity={0.6}
-                              dashArray="10, 10"
-                           />
-                           
-                           {/* Bus Animation */}
-                           <BusTravelAnimator positions={trip.activities.filter((a: any) => a.coordinates).map((a: any) => [a.coordinates.lat, a.coordinates.lng])} />
-
-                           {trip.activities.map((act: any, idx: number) => act.coordinates && (
-                             <Marker 
-                               key={idx} 
-                               position={[act.coordinates.lat, act.coordinates.lng]}
-                               eventHandlers={{
-                                 click: () => {
-                                   setDialogActivityIdx(idx);
-                                 },
-                               }}
-                               icon={L.divIcon({
-                                  className: "custom-marker-mini",
-                                  html: `<div style='background:white;color:#4F46E5;width:24px;height:24px;border-radius:full;display:flex;align-items:center;justify-content:center;font-weight:900;box-shadow:0 4px 10px rgba(0,0,0,0.3);cursor:pointer'>${idx+1}</div>`
-                               })}
-                             >
-                               <Popup className="font-cairo text-right">
-                                  <div className="p-1" dir="rtl">
-                                      <h4 className="font-black text-indigo-600 mb-1">{act.name}</h4>
-                                      <p className="text-xs text-gray-500 line-clamp-2">{act.description}</p>
-                                      <Button 
-                                        variant="link" 
-                                        className="p-0 h-auto text-orange-500 text-xs font-black mt-2"
-                                        onClick={() => setDialogActivityIdx(idx)}
-                                      >
-                                        عرض التفاصيل
-                                      </Button>
-                                   </div>
-                                </Popup>
-                             </Marker>
-                           ))}
-                        </MapContainer>
+                        <div className="absolute inset-0 z-0 rounded-[2rem] overflow-hidden">
+                        <MapboxTripMap
+                          key={`map-${trip._id || trip.id}`}
+                          positions={trip.activities
+                            .filter((a: any) => a.coordinates)
+                            .map((a: any) => ({ lat: a.coordinates.lat, lng: a.coordinates.lng }))}
+                          activityNames={trip.activities
+                            .filter((a: any) => a.coordinates)
+                            .map((a: any) => a.name)}
+                          onMarkerClick={setDialogActivityIdx}
+                          height="100%"
+                          className="rounded-[2rem]"
+                        />
+                        </div>
                      ) : (
                         <div className="w-full h-full flex flex-col items-center justify-center bg-indigo-950 p-10 text-center gap-4">
                            <MapPin className="w-12 h-12 text-indigo-400 opacity-30" />
@@ -922,8 +808,8 @@ useEffect(() => {
                   )}
                </Card>
 
-               {/* Comments Widget */}
-               <div className="hidden lg:block">
+               {/* Comments Widget - visible on all screen sizes */}
+               <div>
                   <TripComments
                      tripId={String(trip._id || trip.id)}
                      initialComments={trip.comments || []}
@@ -986,47 +872,18 @@ useEffect(() => {
                </Button>
                
                {trip.activities?.[0]?.coordinates && (
-                 <MapContainer
-                    center={[trip.activities[0].coordinates.lat, trip.activities[0].coordinates.lng]}
-                    zoom={13}
-                    scrollWheelZoom={true}
-                    style={{ height: "100%", width: "100%" }}
-                 >
-                    <TileLayer url="https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=hCkkPcZUo3rUCAmU8HwE" />
-                    <FitBounds positions={trip.activities.filter((a: any) => a.coordinates).map((a: any) => [a.coordinates.lat, a.coordinates.lng])} />
-                    
-                    <Polyline 
-                       positions={trip.activities.filter((a: any) => a.coordinates).map((a: any) => [a.coordinates.lat, a.coordinates.lng])}
-                       color="#4F46E5"
-                       weight={4}
-                       opacity={0.6}
-                       dashArray="10, 15"
-                    />
-                    
-                    <BusTravelAnimator positions={trip.activities.filter((a: any) => a.coordinates).map((a: any) => [a.coordinates.lat, a.coordinates.lng])} />
-
-                    {trip.activities.map((act: any, idx: number) => act.coordinates && (
-                      <Marker 
-                        key={idx} 
-                        position={[act.coordinates.lat, act.coordinates.lng]}
-                        icon={L.divIcon({
-                           className: "custom-marker-full",
-                           html: `<div style='background:white;color:#4F46E5;width:36px;height:36px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:900;box-shadow:0 8px 20px rgba(0,0,0,0.2)'>${idx+1}</div>`
-                        })}
-                      >
-                         <Popup className="font-cairo text-right min-w-[200px]">
-                            <div className="p-2 space-y-2" dir="rtl">
-                               <div className="w-full h-24 rounded-xl overflow-hidden mb-2">
-                                  <img src={act.images?.[0]} className="w-full h-full object-cover" />
-                               </div>
-                               <h4 className="font-black text-indigo-600 text-lg">{act.name}</h4>
-                               <p className="text-sm text-gray-600 leading-relaxed">{act.description}</p>
-                               {act.duration && <Badge variant="secondary" className="bg-indigo-50 text-indigo-600 border-none">{act.duration}</Badge>}
-                            </div>
-                         </Popup>
-                      </Marker>
-                    ))}
-                 </MapContainer>
+                 <MapboxTripMap
+                   key={`fullmap-${trip._id || trip.id}`}
+                   positions={trip.activities
+                     .filter((a: any) => a.coordinates)
+                     .map((a: any) => ({ lat: a.coordinates.lat, lng: a.coordinates.lng }))}
+                   activityNames={trip.activities
+                     .filter((a: any) => a.coordinates)
+                     .map((a: any) => a.name)}
+                   onMarkerClick={setDialogActivityIdx}
+                   height="100%"
+                   className="absolute inset-0 rounded-[2.5rem]"
+                 />
                )}
             </div>
          </DialogContent>

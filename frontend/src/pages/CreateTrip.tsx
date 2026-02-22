@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { MapPin, Calendar, DollarSign, Image as ImageIcon, Plus, Trash2, ArrowRight, ArrowLeft, Check, Star, Utensils, Clock, Sparkles, FileText, Zap, Trophy, Camera, Video, Smile, Users, Search, X, Home, List } from "lucide-react";
+import { MapPin, Calendar, DollarSign, Image as ImageIcon, Plus, Trash2, ArrowRight, ArrowLeft, Check, Star, Utensils, Clock, Sparkles, FileText, Zap, Trophy, Camera, Video, Smile, Users, Search, X, Home, List, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import EmojiPicker, { Theme } from "emoji-picker-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -13,7 +13,6 @@ import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import TripAIChatWidget from "@/components/TripAIChatWidget";
 import TripMapEditor from "@/components/TripMapEditor";
 import { TripLocation } from "@/components/TripMapEditor";
 import LocationMediaManager from "@/components/LocationMediaManager";
@@ -63,7 +62,7 @@ const CreateTrip = () => {
     }
   };
 
-  const [postType, setPostType] = useState<'detailed' | 'quick' | null>(null); // null = selection screen
+  const [postType, setPostType] = useState<'detailed' | 'quick' | 'ask' | null>(null); // null = selection screen
   const [currentStep, setCurrentStep] = useState(1);
   const [uploadProgress, setUploadProgress] = useState({
     show: false,
@@ -75,6 +74,9 @@ const CreateTrip = () => {
 
   // Quick post media
   const [quickMedia, setQuickMedia] = useState<{ files: File[]; previews: string[] }>({ files: [], previews: [] });
+  // Ask post: content + optional single image (no points)
+  const [askContent, setAskContent] = useState("");
+  const [askImage, setAskImage] = useState<{ file: File | null; preview: string }>({ file: null, preview: "" });
   
   // Step 1: Basic Info
   const [tripData, setTripData] = useState({
@@ -791,6 +793,53 @@ const CreateTrip = () => {
     }
   };
 
+  const handleAskSubmit = async () => {
+    if (!termsAccepted) {
+      toast({ title: "موافقة مطلوبة", description: "يجب الموافقة على الشروط وسياسة الخصوصية", variant: "destructive" });
+      return;
+    }
+    if (!askContent.trim()) {
+      toast({ title: "المحتوى مطلوب", description: "اكتب سؤالك أو استفسارك", variant: "destructive" });
+      return;
+    }
+    try {
+      toast({ title: "جاري النشر...", description: "يرجى الانتظار" });
+      const token = await getToken();
+      if (!token) throw new Error("لم يتم العثور على توكن المصادقة");
+      let imageUrl = "";
+      if (askImage.file) {
+        imageUrl = await uploadFileToCloudinary(askImage.file, token);
+      }
+      const title = askContent.trim().slice(0, 80) || "سؤال عن السفر";
+      const payload = {
+        title,
+        destination: "عام",
+        city: "عام",
+        duration: "",
+        budget: "",
+        rating: 4.5,
+        description: askContent.trim(),
+        image: imageUrl,
+        activities: [],
+        days: [],
+        foodAndRestaurants: [],
+        hotels: [],
+        postType: 'ask',
+      };
+      const created = await createTrip(payload as any, token);
+      toast({ title: "تم نشر سؤالك! 🎉", description: "يمكن للآخرين الرد والنقاش" });
+      setAskContent("");
+      setAskImage({ file: null, preview: "" });
+      setTimeout(() => {
+        if (created?._id) navigate(`/trips/${created._id}`);
+        else navigate(`/timeline`);
+      }, 800);
+    } catch (err: any) {
+      console.error('Error creating ask post:', err);
+      toast({ title: "فشل النشر", description: err?.message || "حدث خطأ", variant: "destructive" });
+    }
+  };
+
   const steps = [
     { number: 1, title: "معلومات أساسية" },
     { number: 2, title: "الأنشطة والمواقع" },
@@ -833,7 +882,7 @@ const CreateTrip = () => {
         {/* Post Type Selection Screen */}
         {postType === null && (
           <div className="container mx-auto px-4 -mt-20 relative z-20">
-            <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
               {/* Detailed Trip Card */}
               <button 
                 onClick={() => { setPostType('detailed'); setCurrentStep(1); }}
@@ -855,10 +904,10 @@ const CreateTrip = () => {
                       <FileText className="w-12 h-12 text-white" />
                     </div>
                   </div>
-                  <CardContent className="p-10 space-y-6">
+                  <CardContent className="p-10 space-y-6 text-center">
                     <div>
-                      <h3 className="text-3xl font-black text-gray-900 mb-3">رحلة بالتفاصيل الكاملة</h3>
-                      <p className="text-gray-500 text-lg leading-relaxed">شارك رحلتك مع كل التفاصيل: المواقع على الخريطة، جدول الأيام، المطاعم، الفنادق والأنشطة</p>
+                      <h3 className="text-3xl font-black text-gray-900 mb-3 text-center">رحلة بالتفاصيل الكاملة</h3>
+                      <p className="text-gray-500 text-base leading-relaxed text-center">شارك رحلتك مع كل التفاصيل: المواقع على الخريطة، جدول الأيام، المطاعم، الفنادق والأنشطة</p>
                     </div>
                     <div className="space-y-3">
                       {["تحديد المواقع على الخريطة", "تنظيم جدول الأيام", "إضافة المطاعم والفنادق", "صور وفيديوهات لكل موقع"].map((feat, i) => (
@@ -866,7 +915,7 @@ const CreateTrip = () => {
                           <div className="w-6 h-6 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
                             <Check className="w-3 h-3 text-orange-600" />
                           </div>
-                          <span className="font-bold text-sm">{feat}</span>
+                          <span className="font-bold text-xs">{feat}</span>
                         </div>
                       ))}
                     </div>
@@ -901,10 +950,10 @@ const CreateTrip = () => {
                       <Zap className="w-12 h-12 text-white" />
                     </div>
                   </div>
-                  <CardContent className="p-10 space-y-6">
+                  <CardContent className="p-10 space-y-6 text-center">
                     <div>
-                      <h3 className="text-3xl font-black text-gray-900 mb-3">بوست سريع</h3>
-                      <p className="text-gray-500 text-lg leading-relaxed">شارك صورك وفيديوهاتك مع وصف بسيط — زي أي بوست عادي بس مخصص للسفر</p>
+                      <h3 className="text-3xl font-black text-gray-900 mb-3 text-center">بوست سريع</h3>
+                      <p className="text-gray-500 text-base leading-relaxed text-center">شارك صورك وفيديوهاتك مع وصف بسيط — زي أي بوست عادي بس مخصص للسفر</p>
                     </div>
                     <div className="space-y-3">
                       {["اختيار المدينة", "إضافة صور وفيديوهات", "كتابة وصف الرحلة", "نشر فوري وسريع"].map((feat, i) => (
@@ -912,13 +961,56 @@ const CreateTrip = () => {
                           <div className="w-6 h-6 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
                             <Check className="w-3 h-3 text-indigo-600" />
                           </div>
-                          <span className="font-bold text-sm">{feat}</span>
+                          <span className="font-bold text-xs">{feat}</span>
                         </div>
                       ))}
                     </div>
                     <div className="pt-4">
                       <div className="h-14 bg-indigo-50 rounded-2xl flex items-center justify-center gap-3 text-indigo-600 font-black text-lg group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300">
                         ابدأ الآن
+                        <ArrowLeft className="w-5 h-5 group-hover:-translate-x-2 transition-transform" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </button>
+
+              {/* Ask / Question Card - no points */}
+              <button 
+                onClick={() => { setPostType('ask'); setCurrentStep(1); }}
+                className="group text-right animate-in fade-in slide-in-from-bottom-6 duration-700 delay-300"
+              >
+                <Card className="border-0 shadow-2xl rounded-[3rem] overflow-hidden bg-white hover:shadow-[0_30px_80px_-20px_rgba(34,197,94,0.3)] transition-all duration-500 hover:scale-[1.01] h-full relative text-center">
+                  <div className="h-48 bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 flex items-center justify-center relative overflow-hidden">
+                    <div className="absolute inset-0 opacity-20">
+                      <div className="absolute w-40 h-40 bg-white/10 rounded-full -top-10 -right-10 group-hover:scale-150 transition-transform duration-700" />
+                    </div>
+                    <div className="w-24 h-24 bg-white/20 backdrop-blur-sm rounded-3xl flex items-center justify-center group-hover:rotate-6 transition-transform duration-500">
+                      <MessageCircle className="w-12 h-12 text-white" />
+                    </div>
+                  </div>
+                  <CardContent className="p-10 space-y-6">
+                    <div className="text-center">
+                      <h3 className="text-3xl font-black text-gray-900 mb-3 text-center">سؤال أو استفسار </h3>
+                      <p className="text-gray-500 text-base leading-relaxed text-center">اسأل المسافرين عن أفضل الأماكن، المدن، أو أي نصيحة سفر — نص + صورة اختيارية. لا يمنح نقاط.</p>
+                    </div>
+                    <div className="space-y-3">
+                      {[
+                        { text: "نص حر فقط أو مع صورة ", icon: "" },
+                        { text: "استفسار عن مدن وأماكن ", icon: "" },
+                        { text: "بدون نقاط — للمشاركة فقط ", icon: "" }
+                      ].map((feat, i) => (
+                        <div key={i} className="flex items-center gap-3 text-gray-600">
+                          <div className="w-6 h-6 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
+                            <Check className="w-3 h-3 text-emerald-600" />
+                          </div>
+                          <span className="font-bold text-xs">{feat.text}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="pt-4">
+                      <div className="h-14 bg-emerald-50 rounded-2xl flex items-center justify-center gap-3 text-emerald-600 font-black text-lg group-hover:bg-emerald-600 group-hover:text-white transition-all duration-300">
+                        ابدأ الآن 
                         <ArrowLeft className="w-5 h-5 group-hover:-translate-x-2 transition-transform" />
                       </div>
                     </div>
@@ -1200,6 +1292,100 @@ const CreateTrip = () => {
                   </CardContent>
                 </Card>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* ASK POST FORM */}
+        {postType === 'ask' && (
+          <div className="container mx-auto px-4 -mt-20 relative z-20">
+            <div className="max-w-2xl mx-auto">
+              <Card className="border-0 shadow-2xl rounded-[3rem] overflow-hidden bg-white">
+                <CardHeader className="bg-emerald-50/50 p-10 border-b border-emerald-100/50">
+                  <CardTitle className="text-3xl font-black text-gray-900 flex items-center gap-4">
+                    <div className="w-12 h-12 bg-emerald-600 rounded-2xl flex items-center justify-center text-white">
+                      <MessageCircle className="w-6 h-6" />
+                    </div>
+                    سؤال أو استفسار
+                  </CardTitle>
+                  <p className="text-gray-500 mt-2">اسأل عن أفضل الأماكن، المدن، أو أي نصيحة سفر. لا يمنح نقاط.</p>
+                </CardHeader>
+                <CardContent className="p-10 space-y-6">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-black text-gray-700">المحتوى *</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-colors">
+                            <Smile className="h-5 w-5" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="p-0 border-none shadow-2xl rounded-2xl overflow-hidden mb-2" side="top" align="end">
+                          <EmojiPicker
+                            onEmojiClick={(emojiData) => setAskContent(prev => prev + emojiData.emoji)}
+                            theme={Theme.LIGHT}
+                            autoFocusSearch={false}
+                            width={320}
+                            height={400}
+                            searchPlaceholder="بحث عن رمز..."
+                            previewConfig={{ showPreview: false }}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    <Textarea
+                      value={askContent}
+                      onChange={(e) => setAskContent(e.target.value)}
+                      placeholder="مثال: ما أفضل مدينة للاسترخاء في مصر؟ أو أين أنصح بزيارته في الأقصر؟"
+                      className="min-h-[160px] rounded-2xl border-gray-200 resize-none font-medium text-gray-700 p-4"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-black text-gray-700">صورة اختيارية</Label>
+                    <div className="flex items-center gap-4">
+                      <input
+                        id="ask-image"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) {
+                            setAskImage({ file: f, preview: URL.createObjectURL(f) });
+                          }
+                        }}
+                      />
+                      <label htmlFor="ask-image" className="cursor-pointer flex items-center gap-2 px-4 py-2 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 font-bold hover:bg-emerald-100">
+                        <ImageIcon className="w-4 h-4" />
+                        اختيار صورة
+                      </label>
+                      {askImage.preview && (
+                        <div className="relative inline-block">
+                          <img src={askImage.preview} alt="" className="w-24 h-24 object-cover rounded-xl border" />
+                          <button type="button" onClick={() => setAskImage({ file: null, preview: "" })} className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center">
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 p-4 rounded-2xl bg-gray-50 border border-gray-100">
+                    <Checkbox id="terms-ask" checked={termsAccepted} onCheckedChange={(v) => setTermsAccepted(!!v)} className="mt-0.5 rounded border-gray-300 data-[state=checked]:bg-emerald-600" />
+                    <label htmlFor="terms-ask" className="text-sm font-medium text-gray-700 cursor-pointer leading-relaxed">
+                      أوافق على <Link to="/terms" target="_blank" className="text-emerald-600 hover:underline font-bold">شروط الاستخدام</Link> و <Link to="/privacy" target="_blank" className="text-emerald-600 hover:underline font-bold">سياسة الخصوصية</Link>
+                    </label>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <Button onClick={handleAskSubmit} disabled={!termsAccepted || !askContent.trim()} className="h-14 flex-[2] rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black shadow-xl disabled:opacity-50">
+                      انشر السؤال
+                    </Button>
+                    <Button variant="outline" onClick={() => { setPostType(null); setAskContent(""); setAskImage({ file: null, preview: "" }); }} className="h-14 flex-1 rounded-2xl">
+                      <ArrowRight className="ml-2 w-5 h-5" />
+                      رجوع
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
         )}
@@ -2253,7 +2439,6 @@ const CreateTrip = () => {
         )}
       </main>
 
-      <TripAIChatWidget />
       <Footer />
     </div>
   );

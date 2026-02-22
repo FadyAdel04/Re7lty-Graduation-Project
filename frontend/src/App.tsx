@@ -41,6 +41,7 @@ const UserRoleSelection = lazy(() => import("./pages/onboarding/UserRoleSelectio
 const CompanyRegistrationPage = lazy(() => import("./pages/onboarding/CompanyRegistrationPage"));
 const CompanyDetailsPage = lazy(() => import("./pages/company/CompanyDetailsPage"));
 const Leaderboard = lazy(() => import("./pages/Leaderboard"));
+const BookingVerify = lazy(() => import("./pages/BookingVerify"));
 
 import TripAIChatWidget from "@/components/TripAIChatWidget";
 import ScrollToTop from "@/components/ScrollToTop";
@@ -84,7 +85,7 @@ const AppContent = () => {
       startLoading();
       const timer = setTimeout(() => {
         stopLoading();
-      }, 800); // Reduced from 3600 to 800 for better performance metrics
+      }, 300); // Minimal loader display for snappier UX
       prevPathRef.current = location.pathname;
       return () => clearTimeout(timer);
     }
@@ -181,6 +182,8 @@ const AppContent = () => {
           
           {/* Corporate trip details route - separate from user trips */}
           <Route path="/corporate-trips/:tripSlug" element={<TripDetailsPage />} />
+          <Route path="/verify-booking" element={<BookingVerify />} />
+          <Route path="/verify-booking/:reference" element={<BookingVerify />} />
           
           {/* Admin routes - protected by email check */}
           <Route path="/admin" element={<AdminDashboard />} />
@@ -206,11 +209,9 @@ const AppContent = () => {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
-      {/* Global AI Chat Widget - Hide on admin, onboarding, AI page; hide on mobile for messages/trip-groups (overlaps chat) */}
-      {!isAdminRoute && !isOnboardingRoute && location.pathname !== '/trip-assistant' && (
-        <div className={(location.pathname === '/messages' || location.pathname.startsWith('/trip-groups')) ? 'hidden lg:block' : ''}>
-          <TripAIChatWidget />
-        </div>
+      {/* Global AI Chat Widget - Show only on home, discover, timeline, agency, leaderboard */}
+      {!isAdminRoute && !isOnboardingRoute && ['/', '/discover', '/timeline', '/agency', '/leaderboard'].includes(location.pathname) && (
+        <TripAIChatWidget />
       )}
       {/* Tour Guide for new users */}
       {!isAdminRoute && !isOnboardingRoute}

@@ -22,7 +22,7 @@ import {
 import { getTripPlan, type TripPlan } from "@/lib/travel-advisor-api";
 import { useToast } from "@/hooks/use-toast";
 import { createTrip, listTrips, getAITripQuota, recordAIPlanUsage } from "@/lib/api";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth, SignInButton } from "@clerk/clerk-react";
 import { getCurrentSeason } from "@/lib/season-utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -47,6 +47,7 @@ type ExtractedData = {
 };
 
 const TripAIChat = () => {
+  const { isSignedIn, getToken } = useAuth();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
@@ -77,7 +78,6 @@ const TripAIChat = () => {
   const [availableTrips, setAvailableTrips] = useState<any[]>([]);
   const [aiQuota, setAiQuota] = useState<{ count: number; limit: number; remaining: number } | null>(null);
   const [mobileView, setMobileView] = useState<'chat' | 'plan'>('chat'); // For mobile: which panel to show
-  const { isSignedIn, getToken } = useAuth();
 
   useEffect(() => {
     const fetchTrips = async () => {
@@ -142,6 +142,14 @@ const TripAIChat = () => {
 
   const handleSendMessage = async () => {
     if (!userInput.trim() || isLoading) return;
+    if (!isSignedIn) {
+      toast({
+        title: "تسجيل الدخول مطلوب",
+        description: "يجب تسجيل الدخول لاستخدام المحادثة والذكاء الاصطناعي",
+        variant: "destructive",
+      });
+      return;
+    }
 
     const userMessage = userInput.trim();
     setUserInput('');
@@ -217,7 +225,7 @@ const TripAIChat = () => {
     if (isSignedIn && aiQuota !== null && aiQuota.remaining <= 0) {
       toast({
         title: "تم استنفاد الحد الأسبوعي",
-        description: "لقد استخدمت 5 خطط رحلات بالذكاء الاصطناعي هذا الأسبوع. يرجى المحاولة الأسبوع المقبل.",
+        description: `لقد استخدمت ${aiQuota.limit} خطط رحلات بالذكاء الاصطناعي هذا الأسبوع. يرجى المحاولة الأسبوع المقبل.`,
         variant: "destructive",
       });
       return;
@@ -549,7 +557,7 @@ const TripAIChat = () => {
                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">الخطة المختارة</p>
                         <h4 className="text-sm font-black text-gray-900">{selectedAttractions.size + selectedRestaurants.size + selectedHotels.size} عناصر بانتظار الحفظ</h4>
                         {aiQuota && (
-                          <p className="text-[10px] font-bold text-indigo-500 mt-1">المتبقي هذا الأسبوع: {aiQuota.remaining}/5 رحلات</p>
+                          <p className="text-[10px] font-bold text-indigo-500 mt-1">المتبقي هذا الأسبوع: {aiQuota.remaining}/{aiQuota.limit} رحلات</p>
                         )}
                      </div>
                      <div className="flex gap-4 w-full md:w-auto">
@@ -621,7 +629,7 @@ const TripAIChat = () => {
                          "text-sm font-black",
                          aiQuota.remaining <= 0 ? "text-rose-600" : "text-indigo-600"
                       )}>
-                         {aiQuota.remaining}/5 رحلات متبقية
+                         {aiQuota.remaining}/{aiQuota.limit} رحلات متبقية
                       </span>
                    </div>
                 )}
@@ -704,8 +712,18 @@ const TripAIChat = () => {
                 </div>
              </ScrollArea>
 
-             {/* Message Input */}
+             {/* Message Input - visible to all; guests get toast when trying to send */}
              <div className="p-6 bg-gray-50/50 border-t border-gray-100">
+                {!isSignedIn && (
+                  <div className="flex items-center justify-center gap-2 py-2 px-3 mb-3 rounded-xl bg-amber-50 border border-amber-100 text-amber-800 text-xs font-bold">
+                    سجّل الدخول لاستخدام المحادثة
+                    <SignInButton mode="modal">
+                      <Button variant="outline" size="sm" className="h-7 rounded-lg border-amber-200 text-amber-700 hover:bg-amber-100">
+                        تسجيل الدخول
+                      </Button>
+                    </SignInButton>
+                  </div>
+                )}
                 {/* Suggested Messages */}
                 {!userInput && !isLoading && !isGeneratingPlan && (
                   <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide no-scrollbar">

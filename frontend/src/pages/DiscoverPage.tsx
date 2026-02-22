@@ -191,66 +191,92 @@ const DiscoverPage = () => {
              ) : displayTrips.length > 0 ? (
                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                  {displayTrips.map((trip) => {
+                    const isAsk = trip.postType === 'ask';
+                    const hasImage = trip.image && trip.image !== "";
+
                    const author = displayUsers.find(u => u.clerkId === trip.ownerId || u.id === trip.ownerId);
                    
                    return (
-                     <div 
-                       key={trip._id || trip.id}
-                       className="group bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col h-full cursor-pointer"
-                       onClick={() => navigate(`/trips/${trip._id || trip.id}`)}
-                     >
-                        {/* Image Area */}
-                        <div className="relative h-60 overflow-hidden">
-                           <img 
-                             src={trip.image || "/placeholder.svg"} 
-                             alt={trip.title}
-                             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                           />
-                           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60" />
-                           
-                           <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-bold text-gray-800 flex items-center gap-1.5 shadow-sm">
-                              <MapPin className="w-3.5 h-3.5 text-orange-500" />
-                              {trip.destination || trip.city}
-                           </div>
-
-                             {/* Days Badge */}
-                           <div className="absolute top-4 left-4 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-medium text-white border border-white/20">
-                             {trip.days?.length || 1} أيام
-                           </div>
-                        </div>
-
-                        {/* Content Area */}
-                        <div className="p-5 flex flex-col flex-1">
-                           <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-1 group-hover:text-orange-600 transition-colors">
-                             {trip.title}
-                           </h3>
-                           <p className="text-gray-500 text-sm line-clamp-2 mb-6 flex-1 leading-relaxed">
-                             {trip.description}
-                           </p>
-
-                           {/* Footer: Author & Action */}
-                           <div className="flex items-center justify-between pt-4 border-t border-gray-50">
-                              <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-gray-100 overflow-hidden ring-2 ring-white shadow-sm">
-                                   <img 
-                                     src={author?.imageUrl || `https://ui-avatars.com/api/?name=${trip.author}&background=random`} 
-                                     alt="Author" 
-                                     className="w-full h-full object-cover"
-                                   />
-                                </div>
-                                <span className="text-sm font-medium text-gray-700 truncate max-w-[100px]">
-                                  {trip.author}
-                                </span>
-                              </div>
+                      <div 
+                        key={trip._id || trip.id}
+                        className={cn(
+                          "group bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col",
+                          isAsk ? "h-fit self-start" : "h-full cursor-pointer"
+                        )}
+                        onClick={() => !isAsk && navigate(`/trips/${trip._id || trip.id}`)}
+                      >
+                         {/* Image Area - Hide for Ask posts without image */}
+                         {(!isAsk || (isAsk && hasImage)) ? (
+                           <div className="relative h-60 overflow-hidden">
+                              <img 
+                                src={trip.image || "/placeholder.svg"} 
+                                alt={trip.title}
+                                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60" />
                               
-                              <Button variant="ghost" size="sm" className="text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded-full px-4">
-                                التفاصيل
-                                <ExternalLink className="w-3.5 h-3.5 mr-2" />
-                              </Button>
+                              {!isAsk ? (
+                                <>
+                                  <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-bold text-gray-800 flex items-center gap-1.5 shadow-sm">
+                                     <MapPin className="w-3.5 h-3.5 text-orange-500" />
+                                     {trip.destination || trip.city}
+                                  </div>
+
+                                  <div className="absolute top-4 left-4 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-medium text-white border border-white/20">
+                                    {trip.days?.length || 1} أيام
+                                  </div>
+                                </>
+                              ) : (
+                                <div className="absolute top-4 right-4 bg-emerald-500 text-white px-3 py-1 rounded-full text-[10px] font-black shadow-lg">
+                                  سؤال واستفسار ❓
+                                </div>
+                              )}
                            </div>
-                        </div>
-                     </div>
-                   );
+                         ) : (
+                           <div className="pt-6 px-5">
+                              <div className="inline-flex bg-emerald-500/10 text-emerald-600 px-3 py-1 rounded-full text-[10px] font-black border border-emerald-100">
+                                سؤال واستفسار ❓
+                              </div>
+                           </div>
+                         )}
+
+                         {/* Content Area */}
+                         <div className="p-5 flex flex-col flex-1">
+                            <h3 className={cn(
+                              "text-xl font-bold text-gray-900 mb-2 line-clamp-1 transition-colors",
+                              !isAsk && "group-hover:text-orange-600"
+                            )}>
+                              {trip.title}
+                            </h3>
+                            <p className="text-gray-500 text-sm line-clamp-2 mb-6 flex-1 leading-relaxed">
+                              {trip.description}
+                            </p>
+
+                            {/* Footer: Author & Action */}
+                            <div className="flex items-center justify-between pt-4 border-t border-gray-50">
+                               <div className="flex items-center gap-3">
+                                 <div className="w-8 h-8 rounded-full bg-gray-100 overflow-hidden ring-2 ring-white shadow-sm">
+                                    <img 
+                                      src={author?.imageUrl || `https://ui-avatars.com/api/?name=${trip.author}&background=random`} 
+                                      alt="Author" 
+                                      className="w-full h-full object-cover"
+                                    />
+                                 </div>
+                                 <span className="text-sm font-medium text-gray-700 truncate max-w-[100px]">
+                                   {trip.author}
+                                 </span>
+                               </div>
+                               
+                               {!isAsk && (
+                                 <Button variant="ghost" size="sm" className="text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded-full px-4">
+                                   التفاصيل
+                                   <ExternalLink className="w-3.5 h-3.5 mr-2" />
+                                 </Button>
+                               )}
+                            </div>
+                         </div>
+                      </div>
+                    );
                  })}
                </div>
              ) : (

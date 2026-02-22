@@ -22,7 +22,10 @@ export interface Booking {
     status: 'pending' | 'accepted' | 'rejected' | 'cancelled';
     statusUpdatedAt?: string;
     rejectionReason?: string;
+    cancellationReason?: string;
     totalPrice: number;
+    paymentStatus?: 'pending' | 'paid' | 'partially_paid' | 'refunded';
+    paymentMethod?: 'cash' | 'card' | 'bank_transfer' | 'other';
     bookingReference: string;
     seatNumber?: string;
     selectedSeats?: string[];
@@ -214,6 +217,18 @@ export const bookingService = {
             return response.data;
         } catch (error) {
             console.error('Error updating booking:', error);
+            throw error;
+        }
+    },
+    // Verify booking by reference (public)
+    getBookingByReference: async (reference: string): Promise<{ success: boolean; booking: Booking; trip: any; company: any }> => {
+        try {
+            const response = await axios.get(`${API_URL}/api/bookings/verify/${reference}`, {
+                withCredentials: true
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error verifying booking:', error);
             throw error;
         }
     },

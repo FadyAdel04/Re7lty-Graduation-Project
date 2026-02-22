@@ -79,44 +79,44 @@ const SummaryTab: React.FC<SummaryTabProps> = ({ stats, tripsCount, tripsViews =
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
       {cards.map((card, index) => (
         <motion.div
           key={index}
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: index * 0.1 }}
+          transition={{ delay: index * 0.05 }}
         >
-          <Card className="border-0 shadow-xl shadow-gray-200/50 rounded-[2rem] overflow-hidden group hover:scale-[1.02] transition-all duration-500">
-            <CardContent className="p-6 relative">
-              <div className="flex items-center justify-between mb-4">
+          <Card className="border-0 shadow-md rounded-xl overflow-hidden group hover:scale-[1.01] transition-all">
+            <CardContent className="p-3 relative">
+              <div className="flex items-center justify-between mb-2">
                 <div
                   className={cn(
-                    'w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg transition-transform group-hover:rotate-12',
+                    'w-8 h-8 rounded-lg flex items-center justify-center transition-transform',
                     getColors(card.color)
                   )}
                 >
-                  <card.icon className="w-6 h-6" />
+                  <card.icon className="w-4 h-4" />
                 </div>
-                <div className="h-8 px-2.5 rounded-full bg-gray-50 flex items-center gap-1 text-[10px] font-black text-gray-400">
-                  <ArrowUpRight className="w-3 h-3 text-emerald-500" />
+                <div className="h-6 px-1.5 rounded-full bg-gray-50 flex items-center gap-0.5 text-[9px] font-black text-gray-400">
+                  <ArrowUpRight className="w-2.5 h-2.5 text-emerald-500" />
                   {card.label}
                 </div>
               </div>
 
-              <h4 className="text-gray-400 font-black text-[10px] uppercase tracking-wider mb-1">
+              <h4 className="text-gray-400 font-bold text-[9px] uppercase tracking-wider mb-0.5">
                 {card.title}
               </h4>
-              <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-black text-gray-900 leading-none">
+              <div className="flex items-baseline gap-1">
+                <span className="text-base font-black text-gray-900 leading-none">
                   {card.value.toLocaleString('ar-EG')}
                   {'isCurrency' in card && (
-                    <span className="text-xs mr-1 text-gray-400">ج.م</span>
+                    <span className="text-[10px] mr-0.5 text-gray-400">ج.م</span>
                   )}
                 </span>
                 <span
                   className={cn(
-                    'text-xs font-black',
+                    'text-[10px] font-bold',
                     card.color === 'rose' && !('isCurrency' in card)
                       ? 'text-rose-500'
                       : 'text-emerald-500'

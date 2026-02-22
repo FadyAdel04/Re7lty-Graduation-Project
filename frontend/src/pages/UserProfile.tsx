@@ -12,7 +12,9 @@ import LivePulseMap from "@/components/LivePulseMap";
 import DigitalPassport, { Stamp, PassportBadge } from "@/components/profile/DigitalPassport";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, Calendar, Users, Heart, Settings, Camera, Edit2, Save, X, LogOut, Bookmark, MessageCircle, Award, Crown, Gem, LayoutGrid, Sparkles, Image as ImageIcon, Trash2, Building2, Globe } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import EmojiPicker, { Theme } from "emoji-picker-react";
+import { MapPin, Calendar, Users, Heart, Settings, Camera, Edit2, Save, X, LogOut, Bookmark, MessageCircle, Award, Crown, Gem, LayoutGrid, Sparkles, Image as ImageIcon, Trash2, Building2, Globe, Info, Loader2, Smile } from "lucide-react";
 import { useUser, useAuth, useClerk } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -20,7 +22,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import TripAIChatWidget from "@/components/TripAIChatWidget";
 import { bookingService, Booking } from "@/services/bookingService";
 import { Badge as UI_Badge } from "@/components/ui/badge";
 import {
@@ -31,6 +32,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -40,7 +51,10 @@ import {
   getUserTrips,
   getUserById,
   getUserTripsById,
+  updateTrip,
+  deleteTrip,
   updateUserProfile,
+  getCloudinarySignature,
   toggleFollowUser,
   getUserSavedTrips,
   getUserLovedTrips,
@@ -110,6 +124,9 @@ const UserProfile = () => {
   const [isLoadingAITrips, setIsLoadingAITrips] = useState(false);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoadingBookings, setIsLoadingBookings] = useState(false);
+  const [selectedBookingDetails, setSelectedBookingDetails] = useState<Booking | null>(null);
+  const [cancelConfirmBookingId, setCancelConfirmBookingId] = useState<string | null>(null);
+  const [isCancellingBooking, setIsCancellingBooking] = useState(false);
   const [stamps, setStamps] = useState<Stamp[]>([]);
 
   // URL Tab handling
@@ -117,6 +134,8 @@ const UserProfile = () => {
   const searchParams = new URLSearchParams(routeLocation.search);
   const initialTab = searchParams.get('tab') || 'trips';
   const [activeTab, setActiveTab] = useState(initialTab);
+  // Lazy tab data: only fetch when tab is first opened (speeds up initial load)
+  const [tabsFetched, setTabsFetched] = useState<Record<string, boolean>>({ trips: false, saved: false, liked: false, bookings: false, passport: false, stories: false, ai: false });
 
   // Synchronize activeTab with URL changes
   useEffect(() => {
@@ -158,6 +177,16 @@ const UserProfile = () => {
     selectedSeats: [] as string[],
     firstName: "",
     lastName: ""
+  });
+
+  // Post management (Ask posts / General trips)
+  const [editingPost, setEditingPost] = useState<any>(null);
+  const [isEditPostOpen, setIsEditPostOpen] = useState(false);
+  const [isUpdatingPost, setIsUpdatingPost] = useState(false);
+  const [isDeletingPost, setIsDeletingPost] = useState(false);
+  const [editPostData, setEditPostData] = useState({
+    title: "",
+    description: "",
   });
 
   const handleOpenFollowers = () => {
@@ -247,70 +276,59 @@ const UserProfile = () => {
     fetchUserData();
   }, [id, isOwnProfile, clerkUser, navigate, toast, isSignedIn, getToken]);
 
-  // Fetch user trips
+  // Fetch user trips when trips or passport tab is active (lazy)
   useEffect(() => {
+    const needTrips = activeTab === 'trips' || activeTab === 'passport';
+    if (!id || (!needTrips && tabsFetched.trips)) return;
     const fetchUserTrips = async () => {
-      if (!id) return;
-      
       setIsLoadingTrips(true);
       try {
         let trips: any[] = [];
-        
         if (isOwnProfile && isSignedIn) {
-          // Fetch own trips (requires auth)
           const token = await getToken();
           trips = await getUserTrips(token || undefined);
         } else {
-          // Fetch other user's trips (public) or own trips if not signed in yet
           trips = await getUserTripsById(id);
         }
-        
         setUserTrips(Array.isArray(trips) ? trips : []);
         setStats(prev => ({ ...prev, trips: Array.isArray(trips) ? trips.length : 0 }));
+        setTabsFetched(prev => ({ ...prev, trips: true }));
       } catch (error: any) {
         console.error("Error fetching user trips:", error);
-        if (error.message !== 'Unauthorized') {
-          toast({
-            title: "خطأ",
-            description: "فشل تحميل الرحلات",
-            variant: "destructive",
-          });
-        }
+        if (error.message !== 'Unauthorized') toast({ title: "خطأ", description: "فشل تحميل الرحلات", variant: "destructive" });
         setUserTrips([]);
       } finally {
         setIsLoadingTrips(false);
       }
     };
-
     fetchUserTrips();
-  }, [id, isOwnProfile, isSignedIn, getToken, toast]);
+  }, [id, activeTab, isOwnProfile, isSignedIn, getToken, toast, tabsFetched.trips]);
 
 
   useEffect(() => {
+    if (!id || (activeTab !== 'saved' && activeTab !== 'liked')) return;
+    if (activeTab === 'saved' && tabsFetched.saved) return;
+    if (activeTab === 'liked' && tabsFetched.liked) return;
     const fetchSavedAndLoved = async () => {
-      if (!id) return;
-      setIsLoadingSaved(true);
-      setIsLoadingLoved(true);
+      if (activeTab === 'saved') setIsLoadingSaved(true);
+      if (activeTab === 'liked') setIsLoadingLoved(true);
       try {
         let saved: any[] = [];
         let loved: any[] = [];
         if (isOwnProfile && isSignedIn) {
           const token = await getToken();
-          saved = await getUserSavedTrips(token || undefined);
-          loved = await getUserLovedTrips(token || undefined);
+          if (activeTab === 'saved' || !tabsFetched.saved) saved = await getUserSavedTrips(token || undefined);
+          if (activeTab === 'liked' || !tabsFetched.liked) loved = await getUserLovedTrips(token || undefined);
         } else {
-          saved = await getUserSavedTripsById(id);
-          loved = await getUserLovedTripsById(id);
+          if (activeTab === 'saved' || !tabsFetched.saved) saved = await getUserSavedTripsById(id);
+          if (activeTab === 'liked' || !tabsFetched.liked) loved = await getUserLovedTripsById(id);
         }
         setSavedTrips(Array.isArray(saved) ? saved : []);
         setLovedTrips(Array.isArray(loved) ? loved : []);
+        setTabsFetched(prev => ({ ...prev, saved: true, liked: true }));
       } catch (error: any) {
         console.error("Error fetching saved/loved trips:", error);
-        toast({
-          title: "خطأ",
-          description: error.message || "فشل تحميل الرحلات المحفوظة أو المعجب بها",
-          variant: "destructive",
-        });
+        toast({ title: "خطأ", description: error.message || "فشل تحميل الرحلات المحفوظة أو المعجب بها", variant: "destructive" });
         setSavedTrips([]);
         setLovedTrips([]);
       } finally {
@@ -318,20 +336,19 @@ const UserProfile = () => {
         setIsLoadingLoved(false);
       }
     };
-
     fetchSavedAndLoved();
-  }, [id, isOwnProfile, isSignedIn, getToken, toast]);
+  }, [id, activeTab, isOwnProfile, isSignedIn, getToken, toast, tabsFetched.saved, tabsFetched.liked]);
 
-  // Fetch AI trips
+  // Fetch AI trips only when ai tab is active (lazy)
   useEffect(() => {
+    if (!id || !isOwnProfile || !isSignedIn || activeTab !== 'ai' || tabsFetched.ai) return;
     const fetchAITrips = async () => {
-      if (!isOwnProfile || !isSignedIn) return;
-      
       setIsLoadingAITrips(true);
       try {
         const token = await getToken();
         const trips = await getUserAITrips(token || undefined);
         setAiTrips(Array.isArray(trips) ? trips : []);
+        setTabsFetched(prev => ({ ...prev, ai: true }));
       } catch (error: any) {
         console.error("Error fetching AI trips:", error);
         setAiTrips([]);
@@ -339,20 +356,19 @@ const UserProfile = () => {
         setIsLoadingAITrips(false);
       }
     };
-
     fetchAITrips();
-  }, [id, isOwnProfile, isSignedIn, getToken]);
+  }, [id, activeTab, isOwnProfile, isSignedIn, getToken, tabsFetched.ai]);
 
-  // Fetch bookings
+  // Fetch bookings only when bookings tab is active (lazy)
   useEffect(() => {
+    if (!id || !isOwnProfile || !isSignedIn || activeTab !== 'bookings' || tabsFetched.bookings) return;
     const fetchBookings = async () => {
-      if (!isOwnProfile || !isSignedIn) return;
-      
       setIsLoadingBookings(true);
       try {
         const token = await getToken();
         const data = await bookingService.getMyBookings(token || undefined);
         setBookings(Array.isArray(data) ? data : []);
+        setTabsFetched(prev => ({ ...prev, bookings: true }));
       } catch (error: any) {
         console.error("Error fetching bookings:", error);
         setBookings([]);
@@ -360,16 +376,15 @@ const UserProfile = () => {
         setIsLoadingBookings(false);
       }
     };
-
     fetchBookings();
-  }, [id, isOwnProfile, isSignedIn, getToken]);
+  }, [id, activeTab, isOwnProfile, isSignedIn, getToken, tabsFetched.bookings]);
 
-  // Fetch my stories for management
+  // Fetch my stories only when stories tab is active (lazy)
   useEffect(() => {
-    if (isOwnProfile && isSignedIn) {
-      loadMyStories();
-    }
-  }, [id, isOwnProfile, isSignedIn, getToken]);
+    if (!id || !isOwnProfile || !isSignedIn || activeTab !== 'stories' || tabsFetched.stories) return;
+    setTabsFetched(prev => ({ ...prev, stories: true }));
+    loadMyStories();
+  }, [id, activeTab, isOwnProfile, isSignedIn, getToken, tabsFetched.stories]);
 
   const handleUpdateField = async (fieldName: string, value: string) => {
     if (!clerkUser || !isOwnProfile) return;
@@ -500,50 +515,45 @@ const UserProfile = () => {
     }
   };
 
+  const uploadCoverToCloudinary = async (file: File, token: string): Promise<string> => {
+    const sigData = await getCloudinarySignature(token);
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("api_key", sigData.apiKey);
+    formData.append("timestamp", sigData.timestamp.toString());
+    formData.append("signature", sigData.signature);
+    formData.append("folder", sigData.folder);
+    const res = await fetch(
+      `https://api.cloudinary.com/v1_1/${sigData.cloudName}/image/upload`,
+      { method: "POST", body: formData }
+    );
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error?.message || "فشل الرفع");
+    }
+    const data = await res.json();
+    return data.secure_url;
+  };
+
   const handleCoverImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !clerkUser || !isOwnProfile) return;
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "خطأ", description: "يرجى اختيار صورة صالحة", variant: "destructive" });
+      return;
+    }
 
     try {
-      // Show loading state
-      toast({
-        title: "جاري رفع الصورة...",
-        description: "يرجى الانتظار",
-      });
-
-      // Convert file to base64
-      const reader = new FileReader();
-      const base64Image = await new Promise<string>((resolve, reject) => {
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-
-      // Update local state immediately for preview
-      setCoverImage(base64Image);
-
-      // Save to database
+      toast({ title: "جاري رفع الصورة...", description: "يرجى الانتظار" });
       const token = await getToken();
-      const updatedUser = await updateUserProfile(
-        {
-          coverImage: base64Image,
-        },
-        token || undefined
-      );
-
-      if (updatedUser) {
-        setCoverImage(updatedUser.coverImage || null);
-        // Notify other components with the updated user data
-        window.dispatchEvent(new CustomEvent('userProfileUpdated', { detail: updatedUser }));
-      }
-
-      // Close dialog
+      if (!token) throw new Error("Unauthorized");
+      const url = await uploadCoverToCloudinary(file, token);
+      setCoverImage(url);
+      const updatedUser = await updateUserProfile({ coverImage: url }, token);
+      if (updatedUser?.coverImage) setCoverImage(updatedUser.coverImage);
+      window.dispatchEvent(new CustomEvent("userProfileUpdated", { detail: updatedUser }));
       setIsEditingCover(false);
-
-      toast({
-        title: "تم الحفظ",
-        description: "تم حفظ صورة الغلاف بنجاح",
-      });
+      toast({ title: "تم الحفظ", description: "تم حفظ صورة الغلاف بنجاح" });
     } catch (error: any) {
       console.error("Error uploading cover image:", error);
       toast({
@@ -551,17 +561,45 @@ const UserProfile = () => {
         description: error.message || "فشل رفع صورة الغلاف",
         variant: "destructive",
       });
-      // Revert to previous cover image on error
       if (isOwnProfile && id) {
         try {
-          const userData = await getUserById(id).catch(() => null);
-          if (userData?.coverImage) {
-            setCoverImage(userData.coverImage);
-          }
+          const userData = await getUserById(id, await getToken()).catch(() => null);
+          if (userData?.coverImage) setCoverImage(userData.coverImage);
         } catch (err) {
           console.error("Error reverting cover image:", err);
         }
       }
+    }
+  };
+
+  const handleCancelBooking = async () => {
+    if (!cancelConfirmBookingId) return;
+    setIsCancellingBooking(true);
+    try {
+      const token = await getToken();
+      await bookingService.cancelBookingByUser(cancelConfirmBookingId, token || undefined);
+      setBookings((prev) =>
+        prev.map((b) =>
+          b._id === cancelConfirmBookingId
+            ? { ...b, status: "cancelled" as const, cancellationReason: "تم الإلغاء من قبل المستخدم" }
+            : b
+        )
+      );
+      if (selectedBookingDetails?._id === cancelConfirmBookingId) {
+        setSelectedBookingDetails((prev) =>
+          prev ? { ...prev, status: "cancelled", cancellationReason: "تم الإلغاء من قبل المستخدم" } : null
+        );
+      }
+      setCancelConfirmBookingId(null);
+      toast({ title: "تم الإلغاء", description: "تم إلغاء الحجز وسيتم إبلاغ الشركة." });
+    } catch (error: any) {
+      toast({
+        title: "خطأ",
+        description: error.message || "فشل إلغاء الحجز",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCancellingBooking(false);
     }
   };
 
@@ -714,29 +752,6 @@ const UserProfile = () => {
     }
   };
 
-  const handleCancelBooking = async (bookingId: string) => {
-    if (!window.confirm("هل أنت متأكد من رغبتك في إلغاء هذا الحجز؟")) return;
-    
-    try {
-      const token = await getToken();
-      await bookingService.cancelBookingByUser(bookingId, token || undefined);
-      
-      toast({
-        title: "تم الإلغاء",
-        description: "تم إلغاء الحجز بنجاح",
-      });
-      
-      setBookings(prev => prev.map(b => b._id === bookingId ? { ...b, status: 'cancelled' } : b));
-    } catch (error: any) {
-      console.error("Error cancelling booking:", error);
-      toast({
-        title: "خطأ",
-        description: error.response?.data?.error || "فشل إلغاء الحجز",
-        variant: "destructive",
-      });
-    }
-  };
-
   const handleEditBooking = (booking: Booking) => {
     if (booking.status === 'accepted') {
       toast({
@@ -786,6 +801,73 @@ const UserProfile = () => {
       });
     } finally {
       setIsUpdatingBooking(false);
+    }
+  };
+
+  const handleEditPost = (post: any) => {
+    setEditingPost(post);
+    setEditPostData({
+      title: post.title,
+      description: post.description || "",
+    });
+    setIsEditPostOpen(true);
+  };
+
+  const handleUpdatePost = async () => {
+    if (!editingPost) return;
+    try {
+      setIsUpdatingPost(true);
+      const token = await getToken();
+      await updateTrip(editingPost._id || editingPost.id, {
+        ...editingPost,
+        title: editPostData.title,
+        description: editPostData.description,
+      }, token || undefined);
+
+      toast({ title: "تم التحديث", description: "تم تحديث المنشور بنجاح" });
+      
+      // Update local state
+      const targetId = editingPost._id || editingPost.id;
+      const updateList = (list: any[]) => list.map(p => (p._id === targetId || p.id === targetId) ? { ...p, title: editPostData.title, description: editPostData.description } : p);
+      setUserTrips(updateList(userTrips));
+      setSavedTrips(updateList(savedTrips));
+      setLovedTrips(updateList(lovedTrips));
+      setAiTrips(updateList(aiTrips)); // Also update AI trips if relevant
+      
+      // Notify other components (like Timeline) that a trip was updated
+      window.dispatchEvent(new CustomEvent('tripUpdated', { detail: { id: targetId, ...editPostData } }));
+      
+      setIsEditPostOpen(false);
+      setEditingPost(null);
+    } catch (error: any) {
+      console.error("Error updating post:", error);
+      toast({ title: "خطأ", description: error.message || "فشل تحديث المنشور", variant: "destructive" });
+    } finally {
+      setIsUpdatingPost(false);
+    }
+  };
+
+  const handleDeletePost = async (postId: string) => {
+    if (!window.confirm("هل أنت متأكد من حذف هذا المنشور؟")) return;
+    try {
+      setIsDeletingPost(true);
+      const token = await getToken();
+      await deleteTrip(postId, token || undefined);
+      
+      toast({ title: "تم الحذف", description: "تم حذف المنشور بنجاح" });
+      
+      // Update local state
+      const filterList = (list: any[]) => list.filter(p => (p._id !== postId && p.id !== postId));
+      setUserTrips(filterList(userTrips));
+      setSavedTrips(filterList(savedTrips));
+      setLovedTrips(filterList(lovedTrips));
+      setStats(prev => ({ ...prev, trips: prev.trips - 1 }));
+      
+    } catch (error: any) {
+      console.error("Error deleting post:", error);
+      toast({ title: "خطأ", description: error.message || "فشل حذف المنشور", variant: "destructive" });
+    } finally {
+      setIsDeletingPost(false);
     }
   };
 
@@ -1192,7 +1274,6 @@ const UserProfile = () => {
         </div>
 
         {/* Global Floating Elements */}
-        {isOwnProfile && <TripAIChatWidget />}
 
         {/* Dialogs */}
         <Dialog open={isEditingCover} onOpenChange={setIsEditingCover}>
@@ -1339,6 +1420,236 @@ const UserProfile = () => {
             </DialogContent>
           </Dialog>
         )}
+        <Dialog open={!!selectedBookingDetails} onOpenChange={(open) => !open && setSelectedBookingDetails(null)}>
+          <DialogContent className="max-w-lg font-cairo rounded-[2rem] overflow-hidden p-0 border-0 shadow-2xl" dir="rtl">
+            {selectedBookingDetails && (
+              <>
+                <div className="bg-indigo-600 p-6 text-white">
+                  <h2 className="text-2xl font-black mb-1 flex items-center gap-3">
+                    <Info className="w-7 h-7" />
+                    تفاصيل الحجز
+                  </h2>
+                  <p className="text-indigo-100 text-sm">المرجع: {selectedBookingDetails.bookingReference}</p>
+                </div>
+                <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+                      <p className="text-[10px] font-bold text-gray-400 uppercase mb-0.5">الرحلة</p>
+                      <p className="font-black text-gray-900">{selectedBookingDetails.tripTitle}</p>
+                    </div>
+                    <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+                      <p className="text-[10px] font-bold text-gray-400 uppercase mb-0.5">الوجهة</p>
+                      <p className="font-black text-gray-900">{selectedBookingDetails.tripDestination}</p>
+                    </div>
+                    <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+                      <p className="text-[10px] font-bold text-gray-400 uppercase mb-0.5">الشركة</p>
+                      <p className="font-black text-gray-900">{selectedBookingDetails.companyName}</p>
+                    </div>
+                    <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+                      <p className="text-[10px] font-bold text-gray-400 uppercase mb-0.5">الحالة</p>
+                      <p className={cn(
+                        "font-black",
+                        selectedBookingDetails.status === 'accepted' ? "text-emerald-600" :
+                        selectedBookingDetails.status === 'pending' ? "text-amber-600" :
+                        selectedBookingDetails.status === 'rejected' ? "text-red-600" : "text-gray-600"
+                      )}>
+                        {selectedBookingDetails.status === 'pending' ? 'جاري المراجعة' :
+                         selectedBookingDetails.status === 'accepted' ? 'تم القبول' :
+                         selectedBookingDetails.status === 'rejected' ? 'تم الرفض' : 'ملغي'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+                      <p className="text-[10px] font-bold text-gray-400 uppercase mb-0.5">الاسم</p>
+                      <p className="font-black text-gray-900">{selectedBookingDetails.userName}</p>
+                    </div>
+                    <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+                      <p className="text-[10px] font-bold text-gray-400 uppercase mb-0.5">الهاتف</p>
+                      <p className="font-black text-gray-900" dir="ltr">{selectedBookingDetails.userPhone}</p>
+                    </div>
+                    <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+                      <p className="text-[10px] font-bold text-gray-400 uppercase mb-0.5">البريد</p>
+                      <p className="font-black text-gray-900 text-sm truncate" dir="ltr">{selectedBookingDetails.userEmail}</p>
+                    </div>
+                    <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+                      <p className="text-[10px] font-bold text-gray-400 uppercase mb-0.5">عدد الأفراد</p>
+                      <p className="font-black text-gray-900">{selectedBookingDetails.numberOfPeople}</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    {selectedBookingDetails.status !== "cancelled" && (
+                      <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-100">
+                        <p className="text-[10px] font-bold text-emerald-600 uppercase mb-0.5">المبلغ الإجمالي</p>
+                        <p className="text-xl font-black text-emerald-700">{selectedBookingDetails.totalPrice} ج.م</p>
+                      </div>
+                    )}
+                    <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+                      <p className="text-[10px] font-bold text-gray-400 uppercase mb-0.5">تاريخ الحجز</p>
+                      <p className="font-black text-gray-900">{new Date(selectedBookingDetails.createdAt).toLocaleDateString('ar-EG', { dateStyle: 'long' })}</p>
+                    </div>
+                  </div>
+                  {selectedBookingDetails.status !== "cancelled" && (selectedBookingDetails.selectedSeats?.length || selectedBookingDetails.seatNumber) && (
+                    <div className="p-3 rounded-xl bg-indigo-50 border border-indigo-100">
+                      <p className="text-[10px] font-bold text-indigo-600 uppercase mb-1">المقاعد</p>
+                      <div className="flex flex-wrap gap-1">
+                        {selectedBookingDetails.selectedSeats?.map(s => (
+                          <UI_Badge key={s} className="bg-indigo-600 text-white">{s}</UI_Badge>
+                        ))}
+                        {selectedBookingDetails.seatNumber && !selectedBookingDetails.selectedSeats?.length && (
+                          <UI_Badge className="bg-indigo-600 text-white">{selectedBookingDetails.seatNumber}</UI_Badge>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {selectedBookingDetails.status === "cancelled" && (selectedBookingDetails.cancellationReason || selectedBookingDetails.rejectionReason) && (
+                    <div className="p-3 rounded-xl bg-gray-100 border border-gray-200">
+                      <p className="text-[10px] font-bold text-gray-600 uppercase mb-0.5">سبب الإلغاء</p>
+                      <p className="font-medium text-gray-700">{selectedBookingDetails.cancellationReason || selectedBookingDetails.rejectionReason}</p>
+                    </div>
+                  )}
+                  {selectedBookingDetails.specialRequests && (
+                    <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+                      <p className="text-[10px] font-bold text-gray-400 uppercase mb-0.5">طلبات خاصة</p>
+                      <p className="font-medium text-gray-700">{selectedBookingDetails.specialRequests}</p>
+                    </div>
+                  )}
+                  {selectedBookingDetails.status === 'rejected' && selectedBookingDetails.rejectionReason && (
+                    <div className="p-3 rounded-xl bg-red-50 border border-red-100">
+                      <p className="text-[10px] font-bold text-red-600 uppercase mb-0.5">سبب الرفض</p>
+                      <p className="font-medium text-red-700">{selectedBookingDetails.rejectionReason}</p>
+                    </div>
+                  )}
+                  {selectedBookingDetails.status === "accepted" && (
+                    <div className="p-4 rounded-xl bg-white border-2 border-indigo-100 flex flex-col items-center gap-3">
+                      <p className="text-[10px] font-bold text-indigo-600 uppercase">رمز الرحلة — اعرضه عند الصعود للحافلة</p>
+                      <div className="p-2 bg-white rounded-xl border border-gray-200 shadow-sm">
+                        <img
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(`${window.location.origin}/verify-booking/${selectedBookingDetails.bookingReference}`)}`}
+                          alt="QR للحجز"
+                          className="w-40 h-40 rounded-lg"
+                        />
+                      </div>
+                      <p className="text-xs font-bold text-gray-500">المرجع: {selectedBookingDetails.bookingReference}</p>
+                    </div>
+                  )}
+                </div>
+                <div className="p-6 pt-0 flex gap-3">
+                  {selectedBookingDetails.status !== "cancelled" && (
+                    <Button
+                      variant="destructive"
+                      className="flex-1 h-12 rounded-xl font-black"
+                      onClick={() => setCancelConfirmBookingId(selectedBookingDetails._id)}
+                    >
+                      إلغاء الحجز
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    className={selectedBookingDetails.status !== "cancelled" ? "flex-1" : "w-full"}
+                    style={{ height: "3rem" }}
+                    onClick={() => setSelectedBookingDetails(null)}
+                  >
+                    إغلاق
+                  </Button>
+                </div>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
+        <AlertDialog open={!!cancelConfirmBookingId} onOpenChange={(open) => !open && setCancelConfirmBookingId(null)}>
+          <AlertDialogContent className="font-cairo" dir="rtl">
+            <AlertDialogHeader>
+              <AlertDialogTitle>تأكيد إلغاء الحجز</AlertDialogTitle>
+              <AlertDialogDescription>
+                سيتم إلغاء الحجز وإبلاغ الشركة. هل أنت متأكد؟
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="gap-2 sm:gap-0">
+              <AlertDialogCancel>تراجع</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleCancelBooking}
+                disabled={isCancellingBooking}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {isCancellingBooking ? <Loader2 className="w-4 h-4 animate-spin" /> : "نعم، إلغاء الحجز"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Edit Post Dialog */}
+        <Dialog open={isEditPostOpen} onOpenChange={setIsEditPostOpen}>
+          <DialogContent className="max-w-xl font-cairo rounded-[2rem]">
+            <DialogHeader>
+              <DialogTitle className="text-right">تعديل المنشور</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-6 pt-4 text-right">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>العنوان</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl">
+                        <Smile className="h-5 w-5" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="p-0 border-none shadow-2xl rounded-2xl overflow-hidden mb-2" side="top" align="end">
+                      <EmojiPicker
+                        onEmojiClick={(emojiData) => setEditPostData(prev => ({ ...prev, title: prev.title + emojiData.emoji }))}
+                        theme={Theme.LIGHT}
+                        autoFocusSearch={false}
+                        width={320}
+                        height={400}
+                        searchPlaceholder="بحث عن رمز..."
+                        previewConfig={{ showPreview: false }}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <Input 
+                  value={editPostData.title} 
+                  onChange={e => setEditPostData({...editPostData, title: e.target.value})}
+                  className="rounded-2xl border-gray-100 h-12 font-bold"
+                />
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>الوصف / التفاصيل</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl">
+                        <Smile className="h-5 w-5" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="p-0 border-none shadow-2xl rounded-2xl overflow-hidden mb-2" side="top" align="end">
+                      <EmojiPicker
+                        onEmojiClick={(emojiData) => setEditPostData(prev => ({ ...prev, description: prev.description + emojiData.emoji }))}
+                        theme={Theme.LIGHT}
+                        autoFocusSearch={false}
+                        width={320}
+                        height={400}
+                        searchPlaceholder="بحث عن رمز..."
+                        previewConfig={{ showPreview: false }}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <Textarea 
+                  value={editPostData.description} 
+                  onChange={e => setEditPostData({...editPostData, description: e.target.value})}
+                  className="rounded-2xl border-gray-100 min-h-[150px] font-medium"
+                />
+              </div>
+              <div className="flex gap-3">
+                <Button variant="outline" onClick={() => setIsEditPostOpen(false)} className="flex-1 h-12 rounded-2xl">إلغاء</Button>
+                <Button onClick={handleUpdatePost} disabled={isUpdatingPost} className="flex-1 h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black">
+                  {isUpdatingPost ? <Loader2 className="w-4 h-4 animate-spin" /> : "حفظ التعديلات"}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </main>
 
       <Footer />
@@ -1471,8 +1782,33 @@ const UserProfile = () => {
                           booking.status === 'rejected' ? 'تم الرفض' : 'ملغي'}
                       </div>
 
+                      {/* Accepted: show QR thumbnail */}
+                      {booking.status === 'accepted' && (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedBookingDetails(booking)}
+                          className="flex flex-col items-center gap-0.5 rounded-lg border border-emerald-200 bg-emerald-50/50 p-1.5 hover:bg-emerald-50"
+                          title="عرض رمز الرحلة (QR)"
+                        >
+                          <img
+                            src={`https://api.qrserver.com/v1/create-qr-code/?size=56x56&data=${encodeURIComponent(booking.bookingReference)}`}
+                            alt="QR"
+                            className="w-9 h-9 rounded"
+                          />
+                          <span className="text-[9px] font-bold text-emerald-700">QR</span>
+                        </button>
+                      )}
                       {/* Action Buttons */}
                       <div className="flex gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => setSelectedBookingDetails(booking)}
+                          className="h-8 w-8 rounded-full text-indigo-600 hover:bg-indigo-50"
+                          title="تفاصيل الحجز"
+                        >
+                          <Info className="w-4 h-4" />
+                        </Button>
                         {booking.status === 'pending' && (
                           <Button 
                             variant="ghost" 
@@ -1487,7 +1823,7 @@ const UserProfile = () => {
                           <Button 
                             variant="ghost" 
                             size="icon" 
-                            onClick={() => handleCancelBooking(booking._id)}
+                            onClick={() => setCancelConfirmBookingId(booking._id)}
                             className="h-8 w-8 rounded-full text-red-500 hover:bg-red-50"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -1559,6 +1895,8 @@ const UserProfile = () => {
             {...trip} 
             id={trip._id || trip.id} 
             authorImage={profileImage || trip.authorImage}
+            onEdit={isOwnProfile && trip.postType === 'ask' ? (id) => handleEditPost(trip) : undefined}
+            onDelete={isOwnProfile && trip.postType === 'ask' ? (id) => handleDeletePost(trip._id || trip.id) : undefined}
           />
         ))}
       </div>

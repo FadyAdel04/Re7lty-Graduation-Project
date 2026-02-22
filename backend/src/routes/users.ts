@@ -287,7 +287,7 @@ router.get('/me/ai-trips-quota', requireAuthStrict, async (req, res) => {
       userId,
       createdAt: { $gte: weekAgo },
     });
-    const limit = 5;
+    const limit = 3;
     res.json({ count, limit, remaining: Math.max(0, limit - count) });
   } catch (error: any) {
     console.error('Error fetching AI trip quota:', error);
@@ -308,11 +308,11 @@ router.post('/me/ai-plan-usage', requireAuthStrict, async (req, res) => {
       userId,
       createdAt: { $gte: weekAgo },
     });
-    const limit = 5;
+    const limit = 3;
     if (count >= limit) {
       return res.status(429).json({
         error: 'AI trip quota exceeded',
-        message: 'لقد استخدمت الحد الأسبوعي لخطط الرحلات بالذكاء الاصطناعي (5 خطط). يرجى المحاولة الأسبوع المقبل.',
+        message: 'لقد استخدمت الحد الأسبوعي لخطط الرحلات بالذكاء الاصطناعي (3 خطط). يرجى المحاولة الأسبوع المقبل.',
       });
     }
     await AIPlanUsage.create({ userId });
@@ -643,11 +643,12 @@ router.get('/:clerkId', async (req, res) => {
     }
     // If existingUser has coverImage and Clerk doesn't, keep the DB value (don't update)
 
-    const [followersCount, followingCount, detailedTripsCount, quickTripsCount, likesAgg, viewerFollowsDoc, storiesCount] = await Promise.all([
+    const [followersCount, followingCount, detailedTripsCount, quickTripsCount, askTripsCount, likesAgg, viewerFollowsDoc, storiesCount] = await Promise.all([
       Follow.countDocuments({ followingId: clerkId }),
       Follow.countDocuments({ followerId: clerkId }),
-      Trip.countDocuments({ ownerId: clerkId, postType: { $ne: 'quick' } }), // detailed trips (includes legacy trips without postType)
-      Trip.countDocuments({ ownerId: clerkId, postType: 'quick' }), // quick trips
+      Trip.countDocuments({ ownerId: clerkId, postType: { $nin: ['quick', 'ask'] } }), // detailed (and legacy)
+      Trip.countDocuments({ ownerId: clerkId, postType: 'quick' }),
+      Trip.countDocuments({ ownerId: clerkId, postType: 'ask' }), // ask posts (no points)
       Trip.aggregate([
         { $match: { ownerId: clerkId } },
         { $group: { _id: null, totalLikes: { $sum: { $ifNull: ['$likes', 0] } } } },
@@ -658,7 +659,7 @@ router.get('/:clerkId', async (req, res) => {
       import('../models/Story').then(({ Story }) => Story.countDocuments({ userId: clerkId })),
     ]);
     const totalLikes = likesAgg?.[0]?.totalLikes || 0;
-    const tripsCount = detailedTripsCount + quickTripsCount;
+    const tripsCount = detailedTripsCount + quickTripsCount + askTripsCount;
 
     // Compute activity score and badge level (must stay in sync with frontend logic)
     // Detailed trips earn more points (20) than quick trips (8) to incentivize full trip details

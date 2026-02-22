@@ -132,9 +132,10 @@ const LeftSidebar = ({ filters, onFiltersChange, userStats, upcomingTrip }: Left
                 <SelectValue placeholder="كل الأنواع" />
               </SelectTrigger>
               <SelectContent className="font-cairo">
-                <SelectItem value="all">كل الأنواع</SelectItem>
-                <SelectItem value="detailed">رحلات تفصيلية</SelectItem>
-                <SelectItem value="quick">بوستات سريعة</SelectItem>
+                <SelectItem value="all">كل الأنواع 🌐</SelectItem>
+                <SelectItem value="detailed">رحلات تفصيلية 📑</SelectItem>
+                <SelectItem value="quick">بوستات سريعة ⚡</SelectItem>
+                <SelectItem value="ask">سؤال واستفسار ❓</SelectItem>
               </SelectContent>
             </Select>
           </div>

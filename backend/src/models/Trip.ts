@@ -74,9 +74,9 @@ const TripSchema = new Schema({
   isAIGenerated: { type: Boolean, default: false }, // Flag for AI-generated trips
   postType: {
     type: String,
-    enum: ['detailed', 'quick'],
+    enum: ['detailed', 'quick', 'ask'],
     default: 'detailed',
-  }, // 'detailed' = full trip with itinerary, 'quick' = simple post with photos & description
+  }, // 'detailed' = full trip, 'quick' = simple post, 'ask' = question/post (no points)
 }, { timestamps: true });
 
 TripSchema.index({ postedAt: -1 });
