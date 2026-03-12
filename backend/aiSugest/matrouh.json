@@ -1,0 +1,295 @@
+{
+  "trips": [
+    {
+      "trip_name": "رحلة يوم واحد - مرسى مطروح",
+      "days": 1,
+      "trip_type": "ساحلي + استرخاء",
+      "itinerary": [
+        {
+          "day": 1,
+          "morning": {
+            "activity": "زيارة شاطئ الليدو أو شاطئ الغرام (Cleopatra Beach)",
+            "description": "أجمل شواطئ مطروح بالمياه الصافية والرمال البيضاء",
+            "location": "مرسى مطروح",
+            "coordinates": {"lat": 31.3525, "lng": 27.2350},
+            "cost_estimate": 150
+          },
+          "lunch": {
+            "restaurant": "مطعم مجدي وإخوته",
+            "specialty": "سمك مشوي طازج + سي فود",
+            "location": "وسط البلد، مرسى مطروح",
+            "coordinates": {"lat": 31.355, "lng": 27.240},
+            "cost_estimate": 250
+          },
+          "afternoon": {
+            "activity": "الاسترخاء على شاطئ روميل أو السباحة",
+            "description": "استمتع بالمياه الزمردية والشمس",
+            "location": "مرسى مطروح",
+            "coordinates": {"lat": 31.350, "lng": 27.238},
+            "cost_estimate": 100
+          },
+          "evening": {
+            "activity": "نزهة على الكورنيش + مشروبات",
+            "description": "جلسة هادئة مع إطلالة على البحر",
+            "location": "كورنيش مرسى مطروح",
+            "coordinates": {"lat": 31.354, "lng": 27.242},
+            "cost_estimate": 80
+          }
+        }
+      ],
+      "total_cost_estimate": 580
+    },
+    {
+      "trip_name": "رحلة يومين - مرسى مطروح",
+      "days": 2,
+      "trip_type": "ساحلي + استرخاء + طبيعة",
+      "itinerary": [
+        {
+          "day": 1,
+          "morning": {"activity":"شاطئ الليدو أو الغرام","location":"مرسى مطروح","coordinates":{"lat":31.3525,"lng":27.2350},"cost_estimate":150},
+          "lunch": {"restaurant":"مطعم مجدي وإخوته","location":"وسط البلد","coordinates":{"lat":31.355,"lng":27.240},"cost_estimate":250},
+          "afternoon": {"activity":"شاطئ روميل","location":"مرسى مطروح","coordinates":{"lat":31.350,"lng":27.238},"cost_estimate":100},
+          "evening": {"activity":"كورنيش مطروح","location":"كورنيش مرسى مطروح","coordinates":{"lat":31.354,"lng":27.242},"cost_estimate":80}
+        },
+        {
+          "day": 2,
+          "morning": {"activity":"شاطئ عجيبة (Aghiba Beach)","location":"طريق الإسكندرية مطروح","coordinates":{"lat":31.420,"lng":27.150},"cost_estimate":200},
+          "lunch": {"restaurant":"حمو التمساح","location":"وسط مطروح","coordinates":{"lat":31.356,"lng":27.241},"cost_estimate":300},
+          "afternoon": {"activity":"الرجوع والاسترخاء على شاطئ قريب","location":"مرسى مطروح","coordinates":{"lat":31.352,"lng":27.235},"cost_estimate":50},
+          "evening": {"activity":"عشاء على الكورنيش","location":"كورنيش مطروح","coordinates":{"lat":31.354,"lng":27.242},"cost_estimate":100}
+        }
+      ],
+      "total_cost_estimate": 1230
+    },
+    {
+      "trip_name": "رحلة 3 أيام - مرسى مطروح",
+      "days": 3,
+      "trip_type": "ساحلي + استرخاء + مغامرة خفيفة",
+      "itinerary": [
+        {
+          "day":1,
+          "morning":{"activity":"شاطئ الغرام أو الليدو","coordinates":{"lat":31.3525,"lng":27.2350},"cost_estimate":150},
+          "lunch":{"restaurant":"مطعم كامونا","coordinates":{"lat":31.355,"lng":27.240},"cost_estimate":280},
+          "afternoon":{"activity":"شاطئ روميل","coordinates":{"lat":31.350,"lng":27.238},"cost_estimate":100},
+          "evening":{"activity":"كورنيش مطروح","coordinates":{"lat":31.354,"lng":27.242},"cost_estimate":80}
+        },
+        {
+          "day":2,
+          "morning":{"activity":"شاطئ عجيبة","coordinates":{"lat":31.420,"lng":27.150},"cost_estimate":200},
+          "lunch":{"restaurant":"حمو التمساح","coordinates":{"lat":31.356,"lng":27.241},"cost_estimate":300},
+          "afternoon":{"activity":"زيارة كهف الرمل أو المناطق الطبيعية","coordinates":{"lat":31.410,"lng":27.160},"cost_estimate":80},
+          "evening":{"activity":"عشاء في مطعم حسني","coordinates":{"lat":31.353,"lng":27.239},"cost_estimate":250}
+        },
+        {
+          "day":3,
+          "morning":{"activity":"شاطئ كليوباترا أو السباحة","coordinates":{"lat":31.352,"lng":27.235},"cost_estimate":150},
+          "lunch":{"restaurant":"مطعم الأحرار (مشويات وبدوي)","coordinates":{"lat":31.354,"lng":27.242},"cost_estimate":220},
+          "afternoon":{"activity":"تسوق أو استرخاء حر","coordinates":{"lat":31.355,"lng":27.240},"cost_estimate":50},
+          "evening":{"activity":"عشاء ختامي على الكورنيش","coordinates":{"lat":31.354,"lng":27.242},"cost_estimate":120}
+        }
+      ],
+      "total_cost_estimate": 1980
+    },
+    {
+      "trip_name": "رحلة 4 أيام - مرسى مطروح",
+      "days": 4,
+      "trip_type": "ساحلي + استرخاء + سي فود",
+      "itinerary": [
+        {"day":1,"morning":{"activity":"شاطئ الليدو","coordinates":{"lat":31.3525,"lng":27.2350},"cost_estimate":150},"lunch":{"restaurant":"مجدي وإخوته","coordinates":{"lat":31.355,"lng":27.240},"cost_estimate":250},"afternoon":{"activity":"شاطئ روميل","coordinates":{"lat":31.350,"lng":27.238},"cost_estimate":100},"evening":{"activity":"كورنيش","coordinates":{"lat":31.354,"lng":27.242},"cost_estimate":80}},
+        {"day":2,"morning":{"activity":"شاطئ عجيبة","coordinates":{"lat":31.420,"lng":27.150},"cost_estimate":200},"lunch":{"restaurant":"حمو التمساح","coordinates":{"lat":31.356,"lng":27.241},"cost_estimate":300},"afternoon":{"activity":"استرخاء","coordinates":{"lat":31.352,"lng":27.235},"cost_estimate":50},"evening":{"activity":"مطعم سحر","coordinates":{"lat":31.353,"lng":27.239},"cost_estimate":220}},
+        {"day":3,"morning":{"activity":"شاطئ كليوباترا","coordinates":{"lat":31.352,"lng":27.235},"cost_estimate":150},"lunch":{"restaurant":"كامونا","coordinates":{"lat":31.355,"lng":27.240},"cost_estimate":280},"afternoon":{"activity":"جولة في المدينة","coordinates":{"lat":31.355,"lng":27.240},"cost_estimate":50},"evening":{"activity":"كورنيش","coordinates":{"lat":31.354,"lng":27.242},"cost_estimate":100}},
+        {"day":4,"morning":{"activity":"شاطئ حر أو سباحة","coordinates":{"lat":31.352,"lng":27.235},"cost_estimate":150},"lunch":{"restaurant":"أبو شعفة للأسماك","coordinates":{"lat":31.356,"lng":27.241},"cost_estimate":250},"afternoon":{"activity":"تسوق هدايا","coordinates":{"lat":31.355,"lng":27.240},"cost_estimate":50},"evening":{"activity":"عشاء وداع في حسني","coordinates":{"lat":31.353,"lng":27.239},"cost_estimate":250}}
+      ],
+      "total_cost_estimate": 2780
+    },
+    {
+      "trip_name": "رحلة 5 أيام - مرسى مطروح",
+      "days": 5,
+      "trip_type": "ساحلي + استرخاء + طبيعة + سي فود",
+      "itinerary": [
+        {"day":1,"morning":{"activity":"شاطئ الغرام","coordinates":{"lat":31.3525,"lng":27.2350},"cost_estimate":150},"lunch":{"restaurant":"مجدي وإخوته","coordinates":{"lat":31.355,"lng":27.240},"cost_estimate":250},"afternoon":{"activity":"روميل","coordinates":{"lat":31.350,"lng":27.238},"cost_estimate":100},"evening":{"activity":"كورنيش","coordinates":{"lat":31.354,"lng":27.242},"cost_estimate":80}},
+        {"day":2,"morning":{"activity":"عجيبة","coordinates":{"lat":31.420,"lng":27.150},"cost_estimate":200},"lunch":{"restaurant":"حمو التمساح","coordinates":{"lat":31.356,"lng":27.241},"cost_estimate":300},"afternoon":{"activity":"استرخاء","coordinates":{"lat":31.352,"lng":27.235},"cost_estimate":50},"evening":{"activity":"سحر","coordinates":{"lat":31.353,"lng":27.239},"cost_estimate":220}},
+        {"day":3,"morning":{"activity":"كليوباترا","coordinates":{"lat":31.352,"lng":27.235},"cost_estimate":150},"lunch":{"restaurant":"كامونا","coordinates":{"lat":31.355,"lng":27.240},"cost_estimate":280},"afternoon":{"activity":"جولة","coordinates":{"lat":31.355,"lng":27.240},"cost_estimate":50},"evening":{"activity":"كورنيش","coordinates":{"lat":31.354,"lng":27.242},"cost_estimate":100}},
+        {"day":4,"morning":{"activity":"شاطئ آخر أو رمل","coordinates":{"lat":31.352,"lng":27.235},"cost_estimate":150},"lunch":{"restaurant":"الأحرار","coordinates":{"lat":31.354,"lng":27.242},"cost_estimate":220},"afternoon":{"activity":"تسوق","coordinates":{"lat":31.355,"lng":27.240},"cost_estimate":50},"evening":{"activity":"هوسني سي فود","coordinates":{"lat":31.353,"lng":27.239},"cost_estimate":280}},
+        {"day":5,"morning":{"activity":"صباح حر على الشاطئ","coordinates":{"lat":31.352,"lng":27.235},"cost_estimate":100},"lunch":{"restaurant":"أبو شعفة","coordinates":{"lat":31.356,"lng":27.241},"cost_estimate":250},"afternoon":{"activity":"ممشى أو استرخاء","coordinates":{"lat":31.354,"lng":27.242},"cost_estimate":0},"evening":{"activity":"عشاء ختامي مميز","coordinates":{"lat":31.354,"lng":27.242},"cost_estimate":300}}
+      ],
+      "total_cost_estimate": 3780
+    },
+    {
+      "trip_name": "رحلة 6 أيام - مرسى مطروح",
+      "days": 6,
+      "trip_type": "ساحلي + استرخاء + سي فود + تسوق",
+      "itinerary": [
+        {"day":1,"morning":{"activity":"الليدو","coordinates":{"lat":31.3525,"lng":27.2350},"cost_estimate":150},"lunch":{"restaurant":"مجدي","coordinates":{"lat":31.355,"lng":27.240},"cost_estimate":250},"afternoon":{"activity":"روميل","coordinates":{"lat":31.350,"lng":27.238},"cost_estimate":100},"evening":{"activity":"كورنيش","coordinates":{"lat":31.354,"lng":27.242},"cost_estimate":80}},
+        {"day":2,"morning":{"activity":"عجيبة","coordinates":{"lat":31.420,"lng":27.150},"cost_estimate":200},"lunch":{"restaurant":"حمو التمساح","coordinates":{"lat":31.356,"lng":27.241},"cost_estimate":300},"afternoon":{"activity":"استرخاء","coordinates":{"lat":31.352,"lng":27.235},"cost_estimate":50},"evening":{"activity":"سحر","coordinates":{"lat":31.353,"lng":27.239},"cost_estimate":220}},
+        {"day":3,"morning":{"activity":"كليوباترا","coordinates":{"lat":31.352,"lng":27.235},"cost_estimate":150},"lunch":{"restaurant":"كامونا","coordinates":{"lat":31.355,"lng":27.240},"cost_estimate":280},"afternoon":{"activity":"جولة","coordinates":{"lat":31.355,"lng":27.240},"cost_estimate":50},"evening":{"activity":"كورنيش","coordinates":{"lat":31.354,"lng":27.242},"cost_estimate":100}},
+        {"day":4,"morning":{"activity":"شاطئ طبيعي","coordinates":{"lat":31.352,"lng":27.235},"cost_estimate":150},"lunch":{"restaurant":"الأحرار","coordinates":{"lat":31.354,"lng":27.242},"cost_estimate":220},"afternoon":{"activity":"تسوق","coordinates":{"lat":31.355,"lng":27.240},"cost_estimate":50},"evening":{"activity":"هوسني","coordinates":{"lat":31.353,"lng":27.239},"cost_estimate":280}},
+        {"day":5,"morning":{"activity":"شاطئ حر","coordinates":{"lat":31.352,"lng":27.235},"cost_estimate":150},"lunch":{"restaurant":"أبو شعفة","coordinates":{"lat":31.356,"lng":27.241},"cost_estimate":250},"afternoon":{"activity":"استرخاء","coordinates":{"lat":31.354,"lng":27.242},"cost_estimate":0},"evening":{"activity":"عشاء على الكورنيش","coordinates":{"lat":31.354,"lng":27.242},"cost_estimate":250}},
+        {"day":6,"morning":{"activity":"صباح على الشاطئ","coordinates":{"lat":31.352,"lng":27.235},"cost_estimate":150},"lunch":{"restaurant":"حسني","coordinates":{"lat":31.353,"lng":27.239},"cost_estimate":280},"afternoon":{"activity":"تسوق هدايا","coordinates":{"lat":31.355,"lng":27.240},"cost_estimate":50},"evening":{"activity":"عشاء وداع مميز","coordinates":{"lat":31.354,"lng":27.242},"cost_estimate":300}}
+      ],
+      "total_cost_estimate": 4580
+    },
+    {
+      "trip_name": "رحلة 7 أيام - مرسى مطروح",
+      "days": 7,
+      "trip_type": "ساحلي + استرخاء + سي فود + تسوق + اكتشاف",
+      "itinerary": [
+        {"day":1,"morning":{"activity":"الغرام","coordinates":{"lat":31.3525,"lng":27.2350},"cost_estimate":150},"lunch":{"restaurant":"مجدي","coordinates":{"lat":31.355,"lng":27.240},"cost_estimate":250},"afternoon":{"activity":"روميل","coordinates":{"lat":31.350,"lng":27.238},"cost_estimate":100},"evening":{"activity":"كورنيش","coordinates":{"lat":31.354,"lng":27.242},"cost_estimate":80}},
+        {"day":2,"morning":{"activity":"عجيبة","coordinates":{"lat":31.420,"lng":27.150},"cost_estimate":200},"lunch":{"restaurant":"حمو التمساح","coordinates":{"lat":31.356,"lng":27.241},"cost_estimate":300},"afternoon":{"activity":"طبيعة","coordinates":{"lat":31.352,"lng":27.235},"cost_estimate":50},"evening":{"activity":"سحر","coordinates":{"lat":31.353,"lng":27.239},"cost_estimate":220}},
+        {"day":3,"morning":{"activity":"كليوباترا","coordinates":{"lat":31.352,"lng":27.235},"cost_estimate":150},"lunch":{"restaurant":"كامونا","coordinates":{"lat":31.355,"lng":27.240},"cost_estimate":280},"afternoon":{"activity":"جولة","coordinates":{"lat":31.355,"lng":27.240},"cost_estimate":50},"evening":{"activity":"كورنيش","coordinates":{"lat":31.354,"lng":27.242},"cost_estimate":100}},
+        {"day":4,"morning":{"activity":"شاطئ","coordinates":{"lat":31.352,"lng":27.235},"cost_estimate":150},"lunch":{"restaurant":"الأحرار","coordinates":{"lat":31.354,"lng":27.242},"cost_estimate":220},"afternoon":{"activity":"تسوق","coordinates":{"lat":31.355,"lng":27.240},"cost_estimate":50},"evening":{"activity":"هوسني","coordinates":{"lat":31.353,"lng":27.239},"cost_estimate":280}},
+        {"day":5,"morning":{"activity":"شاطئ","coordinates":{"lat":31.352,"lng":27.235},"cost_estimate":150},"lunch":{"restaurant":"أبو شعفة","coordinates":{"lat":31.356,"lng":27.241},"cost_estimate":250},"afternoon":{"activity":"استرخاء","coordinates":{"lat":31.354,"lng":27.242},"cost_estimate":0},"evening":{"activity":"كورنيش","coordinates":{"lat":31.354,"lng":27.242},"cost_estimate":250}},
+        {"day":6,"morning":{"activity":"شاطئ حر","coordinates":{"lat":31.352,"lng":27.235},"cost_estimate":150},"lunch":{"restaurant":"حسني","coordinates":{"lat":31.353,"lng":27.239},"cost_estimate":280},"afternoon":{"activity":"تسوق","coordinates":{"lat":31.355,"lng":27.240},"cost_estimate":50},"evening":{"activity":"عشاء","coordinates":{"lat":31.354,"lng":27.242},"cost_estimate":250}},
+        {"day":7,"morning":{"activity":"صباح أخير على البحر","coordinates":{"lat":31.352,"lng":27.235},"cost_estimate":150},"lunch":{"restaurant":"مجدي أو كامونا","coordinates":{"lat":31.355,"lng":27.240},"cost_estimate":250},"afternoon":{"activity":"جلسة استرخاء","coordinates":{"lat":31.354,"lng":27.242},"cost_estimate":50},"evening":{"activity":"عشاء ختامي مميز","coordinates":{"lat":31.354,"lng":27.242},"cost_estimate":300}}
+      ],
+      "total_cost_estimate": 5380
+    }
+  ]
+,
+  "trips": [
+    {
+      "trip_name": "رحلة يوم واحد - مرسى مطروح",
+      "days": 1,
+      "trip_type": "استرخاء + شاطئي",
+      "itinerary": [
+        {
+          "day": 1,
+          "morning": {
+            "activity": "زيارة شاطئ عجيبة (Ageeba Beach)",
+            "description": "أجمل شاطئ طبيعي بمياه فيروزية وصخور خلابة، استرخاء وتصوير",
+            "location": "عجيبة، غرب مرسى مطروح",
+            "coordinates": {"lat": 31.3167, "lng": 27.3167},
+            "cost_estimate": 100
+          },
+          "lunch": {
+            "restaurant": "مطعم مجدي وإخوته",
+            "specialty": "مأكولات بحرية طازجة مشوية (سمك، جمبري)",
+            "location": "وسط مرسى مطروح",
+            "coordinates": {"lat": 31.3529, "lng": 27.2453},
+            "cost_estimate": 250
+          },
+          "afternoon": {
+            "activity": "استرخاء على شاطئ الغرام (Gharam Beach)",
+            "description": "شاطئ الحب الشهير، رمل ناعم ومياه هادئة مثالية للراحة",
+            "location": "شاطئ الغرام، مرسى مطروح",
+            "coordinates": {"lat": 31.3500, "lng": 27.2200},
+            "cost_estimate": 80
+          },
+          "evening": {
+            "activity": "نزهة على الكورنيش + عصير أو قهوة",
+            "description": "جلسة استرخاء مع منظر البحر",
+            "location": "كورنيش مرسى مطروح",
+            "coordinates": {"lat": 31.3550, "lng": 27.2400},
+            "cost_estimate": 70
+          }
+        }
+      ],
+      "total_cost_estimate": 500
+    },
+    {
+      "trip_name": "رحلة يومين - مرسى مطروح",
+      "days": 2,
+      "trip_type": "استرخاء + شاطئي",
+      "itinerary": [
+        {
+          "day": 1,
+          "morning": {"activity":"شاطئ عجيبة","description":"استكشاف الصخور والمياه الفيروزية","location":"عجيبة","coordinates":{"lat":31.3167,"lng":27.3167},"cost_estimate":100},
+          "lunch": {"restaurant":"مطعم أبو شعفة للأسماك","location":"وسط البلد","coordinates":{"lat":31.3529,"lng":27.2453},"cost_estimate":200},
+          "afternoon": {"activity":"شاطئ كليوباترا (حمام كليوباترا)","location":"كليوباترا","coordinates":{"lat":31.3500,"lng":27.2300},"cost_estimate":80},
+          "evening": {"activity":"كورنيش النيل + مقهى","location":"الكورنيش","coordinates":{"lat":31.3550,"lng":27.2400},"cost_estimate":70}
+        },
+        {
+          "day": 2,
+          "morning": {"activity":"شاطئ روميل (Rommel Beach)","location":"روميل","coordinates":{"lat":31.3600,"lng":27.2500},"cost_estimate":80},
+          "lunch": {"restaurant":"مطعم حسني للمشويات والبحريات","location":"وسط مرسى مطروح","coordinates":{"lat":31.3520,"lng":27.2450},"cost_estimate":250},
+          "afternoon": {"activity":"استرخاء على شاطئ الفيروز","location":"الفيروز","coordinates":{"lat":31.3450,"lng":27.2350},"cost_estimate":80},
+          "evening": {"activity":"عشاء خفيف على الكورنيش","location":"الكورنيش","coordinates":{"lat":31.3550,"lng":27.2400},"cost_estimate":100}
+        }
+      ],
+      "total_cost_estimate": 960
+    },
+    {
+      "trip_name": "رحلة 3 أيام - مرسى مطروح",
+      "days": 3,
+      "trip_type": "استرخاء + شاطئي + هدوء",
+      "itinerary": [
+        {
+          "day":1,
+          "morning":{"activity":"شاطئ عجيبة","coordinates":{"lat":31.3167,"lng":27.3167},"cost_estimate":100},
+          "lunch":{"restaurant":"مطعم مجدي وإخوته","coordinates":{"lat":31.3529,"lng":27.2453},"cost_estimate":250},
+          "afternoon":{"activity":"شاطئ الغرام","coordinates":{"lat":31.3500,"lng":27.2200},"cost_estimate":80},
+          "evening":{"activity":"كورنيش + مقهى","coordinates":{"lat":31.3550,"lng":27.2400},"cost_estimate":70}
+        },
+        {
+          "day":2,
+          "morning":{"activity":"حمام كليوباترا","coordinates":{"lat":31.3500,"lng":27.2300},"cost_estimate":100},
+          "lunch":{"restaurant":"مطعم سحر","coordinates":{"lat":31.3530,"lng":27.2460},"cost_estimate":200},
+          "afternoon":{"activity":"شاطئ بوسيت (Beau Site)","coordinates":{"lat":31.3480,"lng":27.2280},"cost_estimate":80},
+          "evening":{"activity":"استرخاء على الكورنيش","coordinates":{"lat":31.3550,"lng":27.2400},"cost_estimate":70}
+        },
+        {
+          "day":3,
+          "morning":{"activity":"شاطئ ألماظة باي (Almaza Bay)","coordinates":{"lat":31.3700,"lng":27.2800},"cost_estimate":150},
+          "lunch":{"restaurant":"مطعم أندريا جريل","coordinates":{"lat":31.3650,"lng":27.2700},"cost_estimate":300},
+          "afternoon":{"activity":"استرخاء حر على الشاطئ","coordinates":{"lat":31.3700,"lng":27.2800},"cost_estimate":50},
+          "evening":{"activity":"عشاء على الكورنيش","coordinates":{"lat":31.3550,"lng":27.2400},"cost_estimate":120}
+        }
+      ],
+      "total_cost_estimate": 1670
+    },
+    {
+      "trip_name": "رحلة 4 أيام - مرسى مطروح",
+      "days": 4,
+      "trip_type": "استرخاء + شاطئي كامل",
+      "itinerary": [
+        {"day":1,"morning":{"activity":"شاطئ عجيبة","coordinates":{"lat":31.3167,"lng":27.3167},"cost_estimate":100},"lunch":{"restaurant":"مطعم أبو شعفة","coordinates":{"lat":31.3529,"lng":27.2453},"cost_estimate":200},"afternoon":{"activity":"شاطئ الغرام","coordinates":{"lat":31.3500,"lng":27.2200},"cost_estimate":80},"evening":{"activity":"كورنيش","coordinates":{"lat":31.3550,"lng":27.2400},"cost_estimate":70}},
+        {"day":2,"morning":{"activity":"حمام كليوباترا","coordinates":{"lat":31.3500,"lng":27.2300},"cost_estimate":100},"lunch":{"restaurant":"مطعم حسني","coordinates":{"lat":31.3520,"lng":27.2450},"cost_estimate":250},"afternoon":{"activity":"شاطئ روميل","coordinates":{"lat":31.3600,"lng":27.2500},"cost_estimate":80},"evening":{"activity":"استرخاء","coordinates":{"lat":31.3550,"lng":27.2400},"cost_estimate":70}},
+        {"day":3,"morning":{"activity":"شاطئ الفيروز","coordinates":{"lat":31.3450,"lng":27.2350},"cost_estimate":100},"lunch":{"restaurant":"مطعم التركي","coordinates":{"lat":31.3530,"lng":27.2460},"cost_estimate":220},"afternoon":{"activity":"شاطئ بوسيت","coordinates":{"lat":31.3480,"lng":27.2280},"cost_estimate":80},"evening":{"activity":"كورنيش","coordinates":{"lat":31.3550,"lng":27.2400},"cost_estimate":80}},
+        {"day":4,"morning":{"activity":"شاطئ ألماظة باي","coordinates":{"lat":31.3700,"lng":27.2800},"cost_estimate":150},"lunch":{"restaurant":"مطعم كامونا","coordinates":{"lat":31.3540,"lng":27.2420},"cost_estimate":250},"afternoon":{"activity":"استرخاء حر","coordinates":{"lat":31.3700,"lng":27.2800},"cost_estimate":50},"evening":{"activity":"عشاء وداع على الكورنيش","coordinates":{"lat":31.3550,"lng":27.2400},"cost_estimate":150}}
+      ],
+      "total_cost_estimate": 2300
+    },
+    {
+      "trip_name": "رحلة 5 أيام - مرسى مطروح",
+      "days": 5,
+      "trip_type": "استرخاء + شاطئي + تنوع",
+      "itinerary": [
+        {"day":1,"morning":{"activity":"شاطئ عجيبة","coordinates":{"lat":31.3167,"lng":27.3167},"cost_estimate":100},"lunch":{"restaurant":"مجدي وإخوته","coordinates":{"lat":31.3529,"lng":27.2453},"cost_estimate":250},"afternoon":{"activity":"شاطئ الغرام","coordinates":{"lat":31.3500,"lng":27.2200},"cost_estimate":80},"evening":{"activity":"كورنيش","coordinates":{"lat":31.3550,"lng":27.2400},"cost_estimate":70}},
+        {"day":2,"morning":{"activity":"حمام كليوباترا","coordinates":{"lat":31.3500,"lng":27.2300},"cost_estimate":100},"lunch":{"restaurant":"أبو شعفة","coordinates":{"lat":31.3529,"lng":27.2453},"cost_estimate":200},"afternoon":{"activity":"شاطئ روميل","coordinates":{"lat":31.3600,"lng":27.2500},"cost_estimate":80},"evening":{"activity":"استرخاء","coordinates":{"lat":31.3550,"lng":27.2400},"cost_estimate":70}},
+        {"day":3,"morning":{"activity":"شاطئ ألماظة باي","coordinates":{"lat":31.3700,"lng":27.2800},"cost_estimate":150},"lunch":{"restaurant":"حسني","coordinates":{"lat":31.3520,"lng":27.2450},"cost_estimate":250},"afternoon":{"activity":"شاطئ الفيروز","coordinates":{"lat":31.3450,"lng":27.2350},"cost_estimate":80},"evening":{"activity":"كورنيش","coordinates":{"lat":31.3550,"lng":27.2400},"cost_estimate":80}},
+        {"day":4,"morning":{"activity":"شاطئ بوسيت","coordinates":{"lat":31.3480,"lng":27.2280},"cost_estimate":100},"lunch":{"restaurant":"سحر","coordinates":{"lat":31.3530,"lng":27.2460},"cost_estimate":220},"afternoon":{"activity":"استرخاء حر","coordinates":{"lat":31.3480,"lng":27.2280},"cost_estimate":50},"evening":{"activity":"عشاء بحري","coordinates":{"lat":31.3550,"lng":27.2400},"cost_estimate":150}},
+        {"day":5,"morning":{"activity":"زيارة شاطئ هادئ أو إعادة المفضل","coordinates":{"lat":31.3500,"lng":27.2400},"cost_estimate":80},"lunch":{"restaurant":"أندريا","coordinates":{"lat":31.3650,"lng":27.2700},"cost_estimate":300},"afternoon":{"activity":"تسوق هدايا أو استرخاء","coordinates":{"lat":31.3550,"lng":27.2400},"cost_estimate":50},"evening":{"activity":"عشاء ختامي على الكورنيش","coordinates":{"lat":31.3550,"lng":27.2400},"cost_estimate":200}}
+      ],
+      "total_cost_estimate": 3300
+    },
+    {
+      "trip_name": "رحلة 6 أيام - مرسى مطروح",
+      "days": 6,
+      "trip_type": "استرخاء + شاطئي + تنوع كامل",
+      "itinerary": [
+        {"day":1,"morning":{"activity":"شاطئ عجيبة","coordinates":{"lat":31.3167,"lng":27.3167},"cost_estimate":100},"lunch":{"restaurant":"مجدي","coordinates":{"lat":31.3529,"lng":27.2453},"cost_estimate":250},"afternoon":{"activity":"شاطئ الغرام","coordinates":{"lat":31.3500,"lng":27.2200},"cost_estimate":80},"evening":{"activity":"كورنيش","coordinates":{"lat":31.3550,"lng":27.2400},"cost_estimate":70}},
+        {"day":2,"morning":{"activity":"حمام كليوباترا","coordinates":{"lat":31.3500,"lng":27.2300},"cost_estimate":100},"lunch":{"restaurant":"أبو شعفة","coordinates":{"lat":31.3529,"lng":27.2453},"cost_estimate":200},"afternoon":{"activity":"شاطئ روميل","coordinates":{"lat":31.3600,"lng":27.2500},"cost_estimate":80},"evening":{"activity":"استرخاء","coordinates":{"lat":31.3550,"lng":27.2400},"cost_estimate":70}},
+        {"day":3,"morning":{"activity":"شاطئ ألماظة باي","coordinates":{"lat":31.3700,"lng":27.2800},"cost_estimate":150},"lunch":{"restaurant":"حسني","coordinates":{"lat":31.3520,"lng":27.2450},"cost_estimate":250},"afternoon":{"activity":"شاطئ الفيروز","coordinates":{"lat":31.3450,"lng":27.2350},"cost_estimate":80},"evening":{"activity":"كورنيش","coordinates":{"lat":31.3550,"lng":27.2400},"cost_estimate":80}},
+        {"day":4,"morning":{"activity":"شاطئ بوسيت","coordinates":{"lat":31.3480,"lng":27.2280},"cost_estimate":100},"lunch":{"restaurant":"التركي","coordinates":{"lat":31.3530,"lng":27.2460},"cost_estimate":220},"afternoon":{"activity":"استرخاء","coordinates":{"lat":31.3480,"lng":27.2280},"cost_estimate":50},"evening":{"activity":"عشاء","coordinates":{"lat":31.3550,"lng":27.2400},"cost_estimate":150}},
+        {"day":5,"morning":{"activity":"إعادة شاطئ مفضل أو هادئ","coordinates":{"lat":31.3500,"lng":27.2400},"cost_estimate":100},"lunch":{"restaurant":"كامونا","coordinates":{"lat":31.3540,"lng":27.2420},"cost_estimate":250},"afternoon":{"activity":"استرخاء + تصوير","coordinates":{"lat":31.3500,"lng":27.2400},"cost_estimate":50},"evening":{"activity":"عشاء بحري","coordinates":{"lat":31.3550,"lng":27.2400},"cost_estimate":200}},
+        {"day":6,"morning":{"activity":"شاطئ هادئ أو تسوق","coordinates":{"lat":31.3550,"lng":27.2400},"cost_estimate":100},"lunch":{"restaurant":"أندريا","coordinates":{"lat":31.3650,"lng":27.2700},"cost_estimate":300},"afternoon":{"activity":"استرخاء نهائي","coordinates":{"lat":31.3550,"lng":27.2400},"cost_estimate":50},"evening":{"activity":"عشاء وداع على الكورنيش","coordinates":{"lat":31.3550,"lng":27.2400},"cost_estimate":200}}
+      ],
+      "total_cost_estimate": 4300
+    },
+    {
+      "trip_name": "رحلة 7 أيام - مرسى مطروح",
+      "days": 7,
+      "trip_type": "استرخاء كامل + شاطئي + اكتشاف",
+      "itinerary": [
+        {"day":1,"morning":{"activity":"شاطئ عجيبة","coordinates":{"lat":31.3167,"lng":27.3167},"cost_estimate":100},"lunch":{"restaurant":"مجدي","coordinates":{"lat":31.3529,"lng":27.2453},"cost_estimate":250},"afternoon":{"activity":"شاطئ الغرام","coordinates":{"lat":31.3500,"lng":27.2200},"cost_estimate":80},"evening":{"activity":"كورنيش","coordinates":{"lat":31.3550,"lng":27.2400},"cost_estimate":70}},
+        {"day":2,"morning":{"activity":"حمام كليوباترا","coordinates":{"lat":31.3500,"lng":27.2300},"cost_estimate":100},"lunch":{"restaurant":"أبو شعفة","coordinates":{"lat":31.3529,"lng":27.2453},"cost_estimate":200},"afternoon":{"activity":"شاطئ روميل","coordinates":{"lat":31.3600,"lng":27.2500},"cost_estimate":80},"evening":{"activity":"استرخاء","coordinates":{"lat":31.3550,"lng":27.2400},"cost_estimate":70}},
+        {"day":3,"morning":{"activity":"شاطئ ألماظة باي","coordinates":{"lat":31.3700,"lng":27.2800},"cost_estimate":150},"lunch":{"restaurant":"حسني","coordinates":{"lat":31.3520,"lng":27.2450},"cost_estimate":250},"afternoon":{"activity":"شاطئ الفيروز","coordinates":{"lat":31.3450,"lng":27.2350},"cost_estimate":80},"evening":{"activity":"كورنيش","coordinates":{"lat":31.3550,"lng":27.2400},"cost_estimate":80}},
+        {"day":4,"morning":{"activity":"شاطئ بوسيت","coordinates":{"lat":31.3480,"lng":27.2280},"cost_estimate":100},"lunch":{"restaurant":"سحر","coordinates":{"lat":31.3530,"lng":27.2460},"cost_estimate":220},"afternoon":{"activity":"استرخاء","coordinates":{"lat":31.3480,"lng":27.2280},"cost_estimate":50},"evening":{"activity":"عشاء","coordinates":{"lat":31.3550,"lng":27.2400},"cost_estimate":150}},
+        {"day":5,"morning":{"activity":"شاطئ هادئ أو إعادة","coordinates":{"lat":31.3500,"lng":27.2400},"cost_estimate":100},"lunch":{"restaurant":"التركي","coordinates":{"lat":31.3530,"lng":27.2460},"cost_estimate":220},"afternoon":{"activity":"استرخاء + تصوير","coordinates":{"lat":31.3500,"lng":27.2400},"cost_estimate":50},"evening":{"activity":"عشاء بحري","coordinates":{"lat":31.3550,"lng":27.2400},"cost_estimate":200}},
+        {"day":6,"morning":{"activity":"شاطئ إضافي أو تسوق","coordinates":{"lat":31.3550,"lng":27.2400},"cost_estimate":100},"lunch":{"restaurant":"كامونا","coordinates":{"lat":31.3540,"lng":27.2420},"cost_estimate":250},"afternoon":{"activity":"استرخاء","coordinates":{"lat":31.3550,"lng":27.2400},"cost_estimate":50},"evening":{"activity":"عشاء","coordinates":{"lat":31.3550,"lng":27.2400},"cost_estimate":200}},
+        {"day":7,"morning":{"activity":"صباح هادئ على شاطئ مفضل","coordinates":{"lat":31.3500,"lng":27.2400},"cost_estimate":100},"lunch":{"restaurant":"أندريا","coordinates":{"lat":31.3650,"lng":27.2700},"cost_estimate":300},"afternoon":{"activity":"تسوق هدايا أو استرخاء","coordinates":{"lat":31.3550,"lng":27.2400},"cost_estimate":50},"evening":{"activity":"عشاء ختامي مميز على الكورنيش","coordinates":{"lat":31.3550,"lng":27.2400},"cost_estimate":250}}
+      ],
+      "total_cost_estimate": 5300
+    }
+  ]
+}

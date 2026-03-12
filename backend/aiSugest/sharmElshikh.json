@@ -1,0 +1,515 @@
+{
+  "trips": [
+    {
+      "trip_name": "رحلة يوم واحد - شرم الشيخ (ساحلية)",
+      "days": 1,
+      "trip_type": "ساحلية + استرخاء",
+      "itinerary": [
+        {
+          "day": 1,
+          "morning": {
+            "activity": "الاسترخاء على شاطئ خاص",
+            "location": "خليج نعمة، شرم الشيخ",
+            "coordinates": { "lat": 27.9158, "lng": 34.3299 },
+            "cost_estimate": 200
+          },
+          "lunch": {
+            "restaurant": "مطعم بحري",
+            "location": "خليج نعمة",
+            "coordinates": { "lat": 27.9158, "lng": 34.3299 },
+            "cost_estimate": 200
+          },
+          "afternoon": {
+            "activity": "سباحة ومياه مفتوحة",
+            "location": "شاطئ الفندق",
+            "coordinates": { "lat": 27.9158, "lng": 34.3299 },
+            "cost_estimate": 0
+          },
+          "evening": {
+            "activity": "نزهة مسائية في خليج نعمة",
+            "location": "خليج نعمة",
+            "coordinates": { "lat": 27.9158, "lng": 34.3299 },
+            "cost_estimate": 100
+          }
+        }
+      ],
+      "total_cost_estimate": 500
+    },
+    {
+      "trip_name": "رحلة يومين - شرم الشيخ (ساحلية)",
+      "days": 2,
+      "trip_type": "ساحلية + استرخاء",
+      "itinerary": [
+        {
+          "day": 1,
+          "morning": { "activity": "شاطئ خاص", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 200 },
+          "lunch": { "restaurant": "مطعم بحري", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "سباحة واسترخاء", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 0 },
+          "evening": { "activity": "خليج نعمة", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 100 }
+        },
+        {
+          "day": 2,
+          "morning": { "activity": "شاطئ رأس أم سيد", "coordinates": { "lat": 27.8572, "lng": 34.2970 }, "cost_estimate": 150 },
+          "lunch": { "restaurant": "مطعم مطل على البحر", "coordinates": { "lat": 27.8572, "lng": 34.2970 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "جلسة استرخاء شاطئية", "coordinates": { "lat": 27.8572, "lng": 34.2970 }, "cost_estimate": 0 },
+          "evening": { "activity": "عشاء هادئ", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 150 }
+        }
+      ],
+      "total_cost_estimate": 1100
+    },
+    {
+      "trip_name": "رحلة 3 أيام - شرم الشيخ (ساحلية)",
+      "days": 3,
+      "trip_type": "ساحلية + استجمام",
+      "itinerary": [
+        {
+          "day": 1,
+          "morning": { "activity": "شاطئ الفندق", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 200 },
+          "lunch": { "restaurant": "مطعم بحري", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "سباحة", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 0 },
+          "evening": { "activity": "خليج نعمة", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 100 }
+        },
+        {
+          "day": 2,
+          "morning": { "activity": "شاطئ رأس أم سيد", "coordinates": { "lat": 27.8572, "lng": 34.2970 }, "cost_estimate": 150 },
+          "lunch": { "restaurant": "مطعم بحري", "coordinates": { "lat": 27.8572, "lng": 34.2970 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "استرخاء شاطئي", "coordinates": { "lat": 27.8572, "lng": 34.2970 }, "cost_estimate": 0 },
+          "evening": { "activity": "عشاء هادئ", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 150 }
+        },
+        {
+          "day": 3,
+          "morning": { "activity": "شاطئ القرش", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 150 },
+          "lunch": { "restaurant": "مطعم مطل على البحر", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "جلسة استرخاء", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 0 },
+          "evening": { "activity": "عشاء وداع", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 150 }
+        }
+      ],
+      "total_cost_estimate": 1850
+    },
+    {
+      "trip_name": "رحلة 4 أيام - شرم الشيخ (ساحلية)",
+      "days": 4,
+      "trip_type": "ساحلية + استرخاء فاخر",
+      "itinerary": [
+        {
+          "day": 1,
+          "morning": { "activity": "شاطئ خاص", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 200 },
+          "lunch": { "restaurant": "مطعم بحري", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "سباحة", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 0 },
+          "evening": { "activity": "خليج نعمة", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 100 }
+        },
+        {
+          "day": 2,
+          "morning": { "activity": "شاطئ رأس أم سيد", "coordinates": { "lat": 27.8572, "lng": 34.2970 }, "cost_estimate": 150 },
+          "lunch": { "restaurant": "مطعم مطل على البحر", "coordinates": { "lat": 27.8572, "lng": 34.2970 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "استرخاء", "coordinates": { "lat": 27.8572, "lng": 34.2970 }, "cost_estimate": 0 },
+          "evening": { "activity": "عشاء هادئ", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 150 }
+        },
+        {
+          "day": 3,
+          "morning": { "activity": "شاطئ القرش", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 150 },
+          "lunch": { "restaurant": "مطعم بحري", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "جلسة شاطئية", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 0 },
+          "evening": { "activity": "عشاء فاخر", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 200 }
+        },
+        {
+          "day": 4,
+          "morning": { "activity": "شاطئ الفندق", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 0 },
+          "lunch": { "restaurant": "مطعم مطل على البحر", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "جلسة تصوير بحرية", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 50 },
+          "evening": { "activity": "عشاء ختامي", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 200 }
+        }
+      ],
+      "total_cost_estimate": 2600
+    },
+    {
+      "trip_name": "رحلة 5 أيام - شرم الشيخ (ساحلية)",
+      "days": 5,
+      "trip_type": "ساحلية + استرخاء فاخر",
+      "itinerary": [
+        {
+          "day": 1,
+          "morning": { "activity": "شاطئ الفندق", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 200 },
+          "lunch": { "restaurant": "مطعم بحري", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "سباحة", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 0 },
+          "evening": { "activity": "خليج نعمة", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 100 }
+        },
+        {
+          "day": 2,
+          "morning": { "activity": "شاطئ رأس أم سيد", "coordinates": { "lat": 27.8572, "lng": 34.2970 }, "cost_estimate": 150 },
+          "lunch": { "restaurant": "مطعم بحري", "coordinates": { "lat": 27.8572, "lng": 34.2970 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "استرخاء", "coordinates": { "lat": 27.8572, "lng": 34.2970 }, "cost_estimate": 0 },
+          "evening": { "activity": "عشاء هادئ", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 150 }
+        },
+        {
+          "day": 3,
+          "morning": { "activity": "شاطئ القرش", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 150 },
+          "lunch": { "restaurant": "مطعم مطل على البحر", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "جلسة شاطئية", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 0 },
+          "evening": { "activity": "عشاء فاخر", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 200 }
+        },
+        {
+          "day": 4,
+          "morning": { "activity": "شاطئ الفندق", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 0 },
+          "lunch": { "restaurant": "مطعم بحري", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "استرخاء حر", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 0 },
+          "evening": { "activity": "عشاء هادئ", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 150 }
+        },
+        {
+          "day": 5,
+          "morning": { "activity": "سباحة أخيرة", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 0 },
+          "lunch": { "restaurant": "مطعم مطل على البحر", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "تسوق بسيط", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 50 },
+          "evening": { "activity": "عشاء ختامي", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 200 }
+        }
+      ],
+      "total_cost_estimate": 3300
+    }
+  ]
+,
+  "trips": [
+    {
+      "trip_name": "رحلة 6 أيام - شرم الشيخ (ساحلية)",
+      "days": 6,
+      "trip_type": "ساحلية + استرخاء فاخر",
+      "itinerary": [
+        {
+          "day": 1,
+          "morning": { "activity": "شاطئ الفندق", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 200 },
+          "lunch": { "restaurant": "مطعم بحري", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "سباحة واسترخاء", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 0 },
+          "evening": { "activity": "خليج نعمة", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 100 }
+        },
+        {
+          "day": 2,
+          "morning": { "activity": "شاطئ رأس أم سيد", "coordinates": { "lat": 27.8572, "lng": 34.2970 }, "cost_estimate": 150 },
+          "lunch": { "restaurant": "مطعم مطل على البحر", "coordinates": { "lat": 27.8572, "lng": 34.2970 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "جلسة استرخاء شاطئية", "coordinates": { "lat": 27.8572, "lng": 34.2970 }, "cost_estimate": 0 },
+          "evening": { "activity": "عشاء هادئ", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 150 }
+        },
+        {
+          "day": 3,
+          "morning": { "activity": "شاطئ القرش", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 150 },
+          "lunch": { "restaurant": "مطعم بحري", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "جلسة شاطئية", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 0 },
+          "evening": { "activity": "عشاء فاخر", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 200 }
+        },
+        {
+          "day": 4,
+          "morning": { "activity": "شاطئ الفندق", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 0 },
+          "lunch": { "restaurant": "مطعم بحري", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "جلسة سبا واسترخاء", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 250 },
+          "evening": { "activity": "عشاء رومانسي", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 200 }
+        },
+        {
+          "day": 5,
+          "morning": { "activity": "شاطئ رأس نصراني", "coordinates": { "lat": 27.9794, "lng": 34.4034 }, "cost_estimate": 150 },
+          "lunch": { "restaurant": "مطعم مطل على البحر", "coordinates": { "lat": 27.9794, "lng": 34.4034 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "استرخاء حر", "coordinates": { "lat": 27.9794, "lng": 34.4034 }, "cost_estimate": 0 },
+          "evening": { "activity": "كافيه ساحلي", "coordinates": { "lat": 27.9794, "lng": 34.4034 }, "cost_estimate": 100 }
+        },
+        {
+          "day": 6,
+          "morning": { "activity": "سباحة أخيرة", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 0 },
+          "lunch": { "restaurant": "مطعم بحري", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "تسوق بسيط", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 50 },
+          "evening": { "activity": "عشاء ختامي", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 200 }
+        }
+      ],
+      "total_cost_estimate": 4250
+    },
+    {
+      "trip_name": "رحلة 7 أيام - شرم الشيخ (ساحلية)",
+      "days": 7,
+      "trip_type": "ساحلية + استرخاء فاخر",
+      "itinerary": [
+        {
+          "day": 1,
+          "morning": { "activity": "شاطئ الفندق", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 200 },
+          "lunch": { "restaurant": "مطعم بحري", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "سباحة", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 0 },
+          "evening": { "activity": "خليج نعمة", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 100 }
+        },
+        {
+          "day": 2,
+          "morning": { "activity": "شاطئ رأس أم سيد", "coordinates": { "lat": 27.8572, "lng": 34.2970 }, "cost_estimate": 150 },
+          "lunch": { "restaurant": "مطعم مطل على البحر", "coordinates": { "lat": 27.8572, "lng": 34.2970 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "استرخاء شاطئي", "coordinates": { "lat": 27.8572, "lng": 34.2970 }, "cost_estimate": 0 },
+          "evening": { "activity": "عشاء هادئ", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 150 }
+        },
+        {
+          "day": 3,
+          "morning": { "activity": "شاطئ القرش", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 150 },
+          "lunch": { "restaurant": "مطعم بحري", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "جلسة شاطئية", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 0 },
+          "evening": { "activity": "عشاء فاخر", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 200 }
+        },
+        {
+          "day": 4,
+          "morning": { "activity": "شاطئ الفندق", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 0 },
+          "lunch": { "restaurant": "مطعم بحري", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "سبا واسترخاء", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 250 },
+          "evening": { "activity": "عشاء رومانسي", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 200 }
+        },
+        {
+          "day": 5,
+          "morning": { "activity": "شاطئ رأس نصراني", "coordinates": { "lat": 27.9794, "lng": 34.4034 }, "cost_estimate": 150 },
+          "lunch": { "restaurant": "مطعم مطل على البحر", "coordinates": { "lat": 27.9794, "lng": 34.4034 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "استرخاء حر", "coordinates": { "lat": 27.9794, "lng": 34.4034 }, "cost_estimate": 0 },
+          "evening": { "activity": "كافيه ساحلي", "coordinates": { "lat": 27.9794, "lng": 34.4034 }, "cost_estimate": 100 }
+        },
+        {
+          "day": 6,
+          "morning": { "activity": "شاطئ خاص", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 150 },
+          "lunch": { "restaurant": "مطعم بحري", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "سباحة حرة", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 0 },
+          "evening": { "activity": "عشاء هادئ", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 150 }
+        },
+        {
+          "day": 7,
+          "morning": { "activity": "سباحة وداع", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 0 },
+          "lunch": { "restaurant": "مطعم مطل على البحر", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "تجهيز مغادرة", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 0 },
+          "evening": { "activity": "عشاء ختامي فاخر", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 250 }
+        }
+      ],
+      "total_cost_estimate": 5050
+    }
+  ]
+,
+  "trips": [
+    {
+      "trip_name": "رحلة يوم واحد - شرم الشيخ (مغامرات)",
+      "days": 1,
+      "trip_type": "مغامرات بحرية",
+      "itinerary": [
+        {
+          "day": 1,
+          "morning": { "activity": "سنوركلينج بشعاب مرجانية", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 200 },
+          "lunch": { "restaurant": "مطعم بحري", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "قارب زجاجي", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 150 },
+          "evening": { "activity": "خليج نعمة", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 100 }
+        }
+      ],
+      "total_cost_estimate": 650
+    },
+    {
+      "trip_name": "رحلة يومين - شرم الشيخ (مغامرات)",
+      "days": 2,
+      "trip_type": "مغامرات بحرية",
+      "itinerary": [
+        {
+          "day": 1,
+          "morning": { "activity": "سنوركلينج", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 200 },
+          "lunch": { "restaurant": "مطعم بحري", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "قارب زجاجي", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 150 },
+          "evening": { "activity": "خليج نعمة", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 100 }
+        },
+        {
+          "day": 2,
+          "morning": { "activity": "غوص سكوبا للمبتدئين", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 500 },
+          "lunch": { "restaurant": "مطعم على البحر", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "باراسيلينج", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 300 },
+          "evening": { "activity": "عشاء هادئ", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 150 }
+        }
+      ],
+      "total_cost_estimate": 1800
+    },
+    {
+      "trip_name": "رحلة 3 أيام - شرم الشيخ (مغامرات)",
+      "days": 3,
+      "trip_type": "مغامرات بحر + صحراء",
+      "itinerary": [
+        {
+          "day": 1,
+          "morning": { "activity": "سنوركلينج", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 200 },
+          "lunch": { "restaurant": "مطعم بحري", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "قارب زجاجي", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 150 },
+          "evening": { "activity": "خليج نعمة", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 100 }
+        },
+        {
+          "day": 2,
+          "morning": { "activity": "غوص سكوبا", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 500 },
+          "lunch": { "restaurant": "مطعم بحري", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "جيت سكي", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 300 },
+          "evening": { "activity": "عشاء هادئ", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 150 }
+        },
+        {
+          "day": 3,
+          "morning": { "activity": "رحلة سفاري ATV", "coordinates": { "lat": 27.8736, "lng": 34.3015 }, "cost_estimate": 400 },
+          "lunch": { "restaurant": "وجبة بدوية", "coordinates": { "lat": 27.8736, "lng": 34.3015 }, "cost_estimate": 150 },
+          "afternoon": { "activity": "ركوب الجمال", "coordinates": { "lat": 27.8736, "lng": 34.3015 }, "cost_estimate": 100 },
+          "evening": { "activity": "عرض بدوي", "coordinates": { "lat": 27.8736, "lng": 34.3015 }, "cost_estimate": 150 }
+        }
+      ],
+      "total_cost_estimate": 2550
+    },
+    {
+      "trip_name": "رحلة 4 أيام - شرم الشيخ (مغامرات)",
+      "days": 4,
+      "trip_type": "مغامرات شاملة",
+      "itinerary": [
+        { "day": 1, "morning": { "activity": "سنوركلينج", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 200 }, "lunch": { "restaurant": "مطعم بحري", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 200 }, "afternoon": { "activity": "قارب زجاجي", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 150 }, "evening": { "activity": "خليج نعمة", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 100 } },
+        { "day": 2, "morning": { "activity": "غوص سكوبا", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 500 }, "lunch": { "restaurant": "مطعم بحري", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 200 }, "afternoon": { "activity": "جيت سكي", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 300 }, "evening": { "activity": "عشاء هادئ", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 150 } },
+        { "day": 3, "morning": { "activity": "سفاري ATV", "coordinates": { "lat": 27.8736, "lng": 34.3015 }, "cost_estimate": 400 }, "lunch": { "restaurant": "وجبة بدوية", "coordinates": { "lat": 27.8736, "lng": 34.3015 }, "cost_estimate": 150 }, "afternoon": { "activity": "ركوب الجمال", "coordinates": { "lat": 27.8736, "lng": 34.3015 }, "cost_estimate": 100 }, "evening": { "activity": "عرض بدوي", "coordinates": { "lat": 27.8736, "lng": 34.3015 }, "cost_estimate": 150 } },
+        { "day": 4, "morning": { "activity": "باراسيلينج", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 300 }, "lunch": { "restaurant": "مطعم بحري", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 200 }, "afternoon": { "activity": "سباحة حرة", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 0 }, "evening": { "activity": "عشاء ختامي", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 200 } }
+      ],
+      "total_cost_estimate": 3500
+    },
+    {
+  "trips": [
+    {
+      "trip_name": "رحلة 5 أيام - شرم الشيخ (مغامرات)",
+      "days": 5,
+      "trip_type": "مغامرات بحر + صحراء",
+      "itinerary": [
+        {
+          "day": 1,
+          "morning": { "activity": "سنوركلينج شعاب مرجانية", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 200 },
+          "lunch": { "restaurant": "مطعم بحري", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "قارب زجاجي", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 150 },
+          "evening": { "activity": "خليج نعمة", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 100 }
+        },
+        {
+          "day": 2,
+          "morning": { "activity": "غوص سكوبا", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 500 },
+          "lunch": { "restaurant": "مطعم على البحر", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "جيت سكي", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 300 },
+          "evening": { "activity": "عشاء هادئ", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 150 }
+        },
+        {
+          "day": 3,
+          "morning": { "activity": "رحلة رأس محمد", "coordinates": { "lat": 27.7400, "lng": 34.2500 }, "cost_estimate": 400 },
+          "lunch": { "restaurant": "وجبة على المركب", "coordinates": { "lat": 27.7400, "lng": 34.2500 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "سباحة وسنوركلينج", "coordinates": { "lat": 27.7400, "lng": 34.2500 }, "cost_estimate": 0 },
+          "evening": { "activity": "راحة بالفندق", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 0 }
+        },
+        {
+          "day": 4,
+          "morning": { "activity": "سفاري ATV", "coordinates": { "lat": 27.8736, "lng": 34.3015 }, "cost_estimate": 400 },
+          "lunch": { "restaurant": "وجبة بدوية", "coordinates": { "lat": 27.8736, "lng": 34.3015 }, "cost_estimate": 150 },
+          "afternoon": { "activity": "ركوب الجمال", "coordinates": { "lat": 27.8736, "lng": 34.3015 }, "cost_estimate": 100 },
+          "evening": { "activity": "عرض بدوي", "coordinates": { "lat": 27.8736, "lng": 34.3015 }, "cost_estimate": 150 }
+        },
+        {
+          "day": 5,
+          "morning": { "activity": "باراسيلينج", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 300 },
+          "lunch": { "restaurant": "مطعم بحري", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "سباحة حرة", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 0 },
+          "evening": { "activity": "عشاء ختامي", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 200 }
+        }
+      ],
+      "total_cost_estimate": 4300
+    },
+    {
+      "trip_name": "رحلة 6 أيام - شرم الشيخ (مغامرات)",
+      "days": 6,
+      "trip_type": "مغامرات شاملة",
+      "itinerary": [
+        {
+          "day": 1,
+          "morning": { "activity": "سنوركلينج", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 200 },
+          "lunch": { "restaurant": "مطعم بحري", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "قارب زجاجي", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 150 },
+          "evening": { "activity": "خليج نعمة", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 100 }
+        },
+        {
+          "day": 2,
+          "morning": { "activity": "غوص سكوبا", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 500 },
+          "lunch": { "restaurant": "مطعم على البحر", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "جيت سكي", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 300 },
+          "evening": { "activity": "عشاء هادئ", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 150 }
+        },
+        {
+          "day": 3,
+          "morning": { "activity": "رحلة رأس محمد", "coordinates": { "lat": 27.7400, "lng": 34.2500 }, "cost_estimate": 400 },
+          "lunch": { "restaurant": "وجبة على المركب", "coordinates": { "lat": 27.7400, "lng": 34.2500 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "سنوركلينج", "coordinates": { "lat": 27.7400, "lng": 34.2500 }, "cost_estimate": 0 },
+          "evening": { "activity": "راحة بالفندق", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 0 }
+        },
+        {
+          "day": 4,
+          "morning": { "activity": "سفاري ATV", "coordinates": { "lat": 27.8736, "lng": 34.3015 }, "cost_estimate": 400 },
+          "lunch": { "restaurant": "وجبة بدوية", "coordinates": { "lat": 27.8736, "lng": 34.3015 }, "cost_estimate": 150 },
+          "afternoon": { "activity": "ركوب الجمال", "coordinates": { "lat": 27.8736, "lng": 34.3015 }, "cost_estimate": 100 },
+          "evening": { "activity": "عرض بدوي", "coordinates": { "lat": 27.8736, "lng": 34.3015 }, "cost_estimate": 150 }
+        },
+        {
+          "day": 5,
+          "morning": { "activity": "باراسيلينج", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 300 },
+          "lunch": { "restaurant": "مطعم بحري", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "سباحة حرة", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 0 },
+          "evening": { "activity": "سوق شرم القديم", "coordinates": { "lat": 27.8650, "lng": 34.3020 }, "cost_estimate": 100 }
+        },
+        {
+          "day": 6,
+          "morning": { "activity": "كاياك بحري", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 200 },
+          "lunch": { "restaurant": "مطعم مطل على البحر", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "استرخاء شاطئي", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 0 },
+          "evening": { "activity": "عشاء ختامي", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 200 }
+        }
+      ],
+      "total_cost_estimate": 5000
+    },
+    {
+      "trip_name": "رحلة 7 أيام - شرم الشيخ (مغامرات)",
+      "days": 7,
+      "trip_type": "مغامرات كاملة",
+      "itinerary": [
+        {
+          "day": 1,
+          "morning": { "activity": "سنوركلينج", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 200 },
+          "lunch": { "restaurant": "مطعم بحري", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "قارب زجاجي", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 150 },
+          "evening": { "activity": "خليج نعمة", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 100 }
+        },
+        {
+          "day": 2,
+          "morning": { "activity": "غوص سكوبا متقدم", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 600 },
+          "lunch": { "restaurant": "مطعم على البحر", "coordinates": { "lat": 27.9550, "lng": 34.3690 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "جيت سكي", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 300 },
+          "evening": { "activity": "عشاء هادئ", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 150 }
+        },
+        {
+          "day": 3,
+          "morning": { "activity": "رحلة رأس محمد", "coordinates": { "lat": 27.7400, "lng": 34.2500 }, "cost_estimate": 400 },
+          "lunch": { "restaurant": "وجبة على المركب", "coordinates": { "lat": 27.7400, "lng": 34.2500 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "سنوركلينج", "coordinates": { "lat": 27.7400, "lng": 34.2500 }, "cost_estimate": 0 },
+          "evening": { "activity": "راحة بالفندق", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 0 }
+        },
+        {
+          "day": 4,
+          "morning": { "activity": "سفاري ATV", "coordinates": { "lat": 27.8736, "lng": 34.3015 }, "cost_estimate": 400 },
+          "lunch": { "restaurant": "وجبة بدوية", "coordinates": { "lat": 27.8736, "lng": 34.3015 }, "cost_estimate": 150 },
+          "afternoon": { "activity": "ركوب الجمال", "coordinates": { "lat": 27.8736, "lng": 34.3015 }, "cost_estimate": 100 },
+          "evening": { "activity": "عرض بدوي", "coordinates": { "lat": 27.8736, "lng": 34.3015 }, "cost_estimate": 150 }
+        },
+        {
+          "day": 5,
+          "morning": { "activity": "باراسيلينج", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 300 },
+          "lunch": { "restaurant": "مطعم بحري", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "كاياك بحري", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 200 },
+          "evening": { "activity": "سوق شرم القديم", "coordinates": { "lat": 27.8650, "lng": 34.3020 }, "cost_estimate": 100 }
+        },
+        {
+          "day": 6,
+          "morning": { "activity": "شاطئ خاص", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 150 },
+          "lunch": { "restaurant": "مطعم مطل على البحر", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "سباحة حرة", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 0 },
+          "evening": { "activity": "عشاء هادئ", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 150 }
+        },
+        {
+          "day": 7,
+          "morning": { "activity": "سباحة وداع", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 0 },
+          "lunch": { "restaurant": "مطعم بحري", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "تجهيز مغادرة", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 0 },
+          "evening": { "activity": "عشاء ختامي فاخر", "coordinates": { "lat": 27.9158, "lng": 34.3299 }, "cost_estimate": 250 }
+        }
+      ],
+      "total_cost_estimate": 5700
+    }
+  ]
+}   
+  ]
+}
+

@@ -1,0 +1,366 @@
+{
+  "trips": [
+    {
+      "trip_name": "رحلة يوم واحد - الإسكندرية",
+      "days": 1,
+      "trip_type": "تاريخي + ثقافي",
+      "itinerary": [
+        {
+          "day": 1,
+          "morning": {
+            "activity": "زيارة مكتبة الإسكندرية",
+            "description": "أحد أهم المعالم الثقافية في العالم، يحتوي على معارض ومتاحف",
+            "location": "مكتبة الإسكندرية، ساحة المحطة",
+            "coordinates": {"lat": 31.2089, "lng": 29.9092},
+            "cost_estimate": 100
+          },
+          "lunch": {
+            "restaurant": "مطعم بحري على كورنيش الإسكندرية",
+            "specialty": "أسماك مشوية",
+            "location": "كورنيش الإسكندرية",
+            "coordinates": {"lat": 31.2001, "lng": 29.9187},
+            "cost_estimate": 150
+          },
+          "afternoon": {
+            "activity": "زيارة قلعة قايتباي",
+            "description": "قلعة تاريخية رائعة تطل على البحر الأبيض المتوسط",
+            "location": "المنطقة الشرقية، الإسكندرية",
+            "coordinates": {"lat": 31.2136, "lng": 29.8853},
+            "cost_estimate": 80
+          },
+          "evening": {
+            "activity": "نزهة على الكورنيش",
+            "description": "استرخاء مع مشروب على البحر",
+            "location": "كورنيش الإسكندرية",
+            "coordinates": {"lat": 31.2001, "lng": 29.9187},
+            "cost_estimate": 50
+          }
+        }
+      ],
+      "total_cost_estimate": 380
+    },
+    {
+      "trip_name": "رحلة يومين - الإسكندرية",
+      "days": 2,
+      "trip_type": "تاريخي + ثقافي + شعبي",
+      "itinerary": [
+        {
+          "day": 1,
+          "morning": {"activity":"مكتبة الإسكندرية","location":"ساحة المحطة","coordinates":{"lat":31.2089,"lng":29.9092},"cost_estimate":100},
+          "lunch":{"restaurant":"مطعم بحري على الكورنيش","location":"كورنيش الإسكندرية","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":150},
+          "afternoon":{"activity":"قلعة قايتباي","location":"المنطقة الشرقية","coordinates":{"lat":31.2136,"lng":29.8853},"cost_estimate":80},
+          "evening":{"activity":"نزهة على الكورنيش","location":"كورنيش الإسكندرية","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}
+        },
+        {
+          "day": 2,
+          "morning":{"activity":"زيارة متحف الإسكندرية القومي","location":"وسط المدينة","coordinates":{"lat":31.2006,"lng":29.9181},"cost_estimate":80},
+          "lunch":{"restaurant":"مطعم شعبي في محطة الرمل","location":"محطة الرمل","coordinates":{"lat":31.2015,"lng":29.9100},"cost_estimate":100},
+          "afternoon":{"activity":"المنارة والحدائق المحيطة بها","location":"حدائق المنتزه","coordinates":{"lat":31.2386,"lng":29.9621},"cost_estimate":70},
+          "evening":{"activity":"العودة للفندق أو كورنيش البحر","location":"كورنيش الإسكندرية","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}
+        }
+      ],
+      "total_cost_estimate": 680
+    },
+    {
+      "trip_name": "رحلة 3 أيام - الإسكندرية",
+      "days": 3,
+      "trip_type": "تاريخي + ثقافي + حضري",
+      "itinerary": [
+        {
+          "day":1,
+          "morning":{"activity":"مكتبة الإسكندرية","coordinates":{"lat":31.2089,"lng":29.9092},"cost_estimate":100},
+          "lunch":{"restaurant":"مطعم بحري على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":150},
+          "afternoon":{"activity":"قلعة قايتباي","coordinates":{"lat":31.2136,"lng":29.8853},"cost_estimate":80},
+          "evening":{"activity":"نزهة على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}
+        },
+        {
+          "day":2,
+          "morning":{"activity":"متحف الإسكندرية القومي","coordinates":{"lat":31.2006,"lng":29.9181},"cost_estimate":80},
+          "lunch":{"restaurant":"مطعم شعبي","coordinates":{"lat":31.2015,"lng":29.9100},"cost_estimate":100},
+          "afternoon":{"activity":"المنارة والحدائق المحيطة","coordinates":{"lat":31.2386,"lng":29.9621},"cost_estimate":70},
+          "evening":{"activity":"وسط المدينة وشارع فؤاد","coordinates":{"lat":31.2000,"lng":29.9167},"cost_estimate":50}
+        },
+        {
+          "day":3,
+          "morning":{"activity":"حديقة المنتزه","coordinates":{"lat":31.2386,"lng":29.9621},"cost_estimate":100},
+          "lunch":{"restaurant":"مطعم متوسط","coordinates":{"lat":31.2386,"lng":29.9621},"cost_estimate":150},
+          "afternoon":{"activity":"جولة في شارع كورنيش الإسكندرية","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50},
+          "evening":{"activity":"عشاء على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}
+        }
+      ],
+      "total_cost_estimate": 1080
+    },
+    {
+      "trip_name":"رحلة 4 أيام - الإسكندرية",
+      "days":4,
+      "trip_type":"تاريخي + ثقافي + استرخاء",
+      "itinerary":[
+        {"day":1,"morning":{"activity":"مكتبة الإسكندرية","coordinates":{"lat":31.2089,"lng":29.9092},"cost_estimate":100},"lunch":{"restaurant":"مطعم بحري","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":150},"afternoon":{"activity":"قلعة قايتباي","coordinates":{"lat":31.2136,"lng":29.8853},"cost_estimate":80},"evening":{"activity":"نزهة على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":2,"morning":{"activity":"متحف الإسكندرية القومي","coordinates":{"lat":31.2006,"lng":29.9181},"cost_estimate":80},"lunch":{"restaurant":"مطعم شعبي","coordinates":{"lat":31.2015,"lng":29.9100},"cost_estimate":100},"afternoon":{"activity":"حديقة المنتزه","coordinates":{"lat":31.2386,"lng":29.9621},"cost_estimate":70},"evening":{"activity":"وسط المدينة وكورنيش الإسكندرية","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":3,"morning":{"activity":"زيارة قصر المنتزه","coordinates":{"lat":31.2386,"lng":29.9621},"cost_estimate":100},"lunch":{"restaurant":"مطعم متوسط","coordinates":{"lat":31.2386,"lng":29.9621},"cost_estimate":150},"afternoon":{"activity":"جولة في شارع فؤاد","coordinates":{"lat":31.2000,"lng":29.9167},"cost_estimate":50},"evening":{"activity":"نزهة على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":4,"morning":{"activity":"زيارة متحف الأسكندرية البحري","coordinates":{"lat":31.2076,"lng":29.8935},"cost_estimate":100},"lunch":{"restaurant":"مطعم شعبي","coordinates":{"lat":31.2076,"lng":29.8935},"cost_estimate":100},"afternoon":{"activity":"حديقة الأسكندرية","coordinates":{"lat":31.2150,"lng":29.9310},"cost_estimate":50},"evening":{"activity":"عشاء على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}}
+      ],
+      "total_cost_estimate":1380
+    },
+    {
+      "trip_name":"رحلة 5 أيام - الإسكندرية",
+      "days":5,
+      "trip_type":"تاريخي + ثقافي + استرخاء",
+      "itinerary":[
+        {"day":1,"morning":{"activity":"مكتبة الإسكندرية","coordinates":{"lat":31.2089,"lng":29.9092},"cost_estimate":100},"lunch":{"restaurant":"مطعم بحري","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":150},"afternoon":{"activity":"قلعة قايتباي","coordinates":{"lat":31.2136,"lng":29.8853},"cost_estimate":80},"evening":{"activity":"نزهة على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":2,"morning":{"activity":"متحف الإسكندرية القومي","coordinates":{"lat":31.2006,"lng":29.9181},"cost_estimate":80},"lunch":{"restaurant":"مطعم شعبي","coordinates":{"lat":31.2015,"lng":29.9100},"cost_estimate":100},"afternoon":{"activity":"حديقة المنتزه","coordinates":{"lat":31.2386,"lng":29.9621},"cost_estimate":70},"evening":{"activity":"وسط المدينة وكورنيش الإسكندرية","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":3,"morning":{"activity":"قصر المنتزه","coordinates":{"lat":31.2386,"lng":29.9621},"cost_estimate":100},"lunch":{"restaurant":"مطعم متوسط","coordinates":{"lat":31.2386,"lng":29.9621},"cost_estimate":150},"afternoon":{"activity":"جولة في شارع فؤاد","coordinates":{"lat":31.2000,"lng":29.9167},"cost_estimate":50},"evening":{"activity":"نزهة على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":4,"morning":{"activity":"حديقة الأسكندرية","coordinates":{"lat":31.2150,"lng":29.9310},"cost_estimate":100},"lunch":{"restaurant":"مطعم شعبي","coordinates":{"lat":31.2150,"lng":29.9310},"cost_estimate":100},"afternoon":{"activity":"متحف الأسكندرية البحري","coordinates":{"lat":31.2076,"lng":29.8935},"cost_estimate":50},"evening":{"activity":"عشاء على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":5,"morning":{"activity":"زيارة حصن قايتباي","coordinates":{"lat":31.2136,"lng":29.8853},"cost_estimate":80},"lunch":{"restaurant":"مطعم بحري","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":150},"afternoon":{"activity":"جولة حرة في الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":0},"evening":{"activity":"عشاء ختامي على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":100}}
+      ],
+      "total_cost_estimate":1460
+    },
+    {
+      "trip_name":"رحلة 6 أيام - الإسكندرية",
+      "days":6,
+      "trip_type":"تاريخي + ثقافي + استرخاء + تسوق",
+      "itinerary":[
+        {"day":1,"morning":{"activity":"مكتبة الإسكندرية","coordinates":{"lat":31.2089,"lng":29.9092},"cost_estimate":100},"lunch":{"restaurant":"مطعم بحري","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":150},"afternoon":{"activity":"قلعة قايتباي","coordinates":{"lat":31.2136,"lng":29.8853},"cost_estimate":80},"evening":{"activity":"نزهة على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":2,"morning":{"activity":"متحف الإسكندرية القومي","coordinates":{"lat":31.2006,"lng":29.9181},"cost_estimate":80},"lunch":{"restaurant":"مطعم شعبي","coordinates":{"lat":31.2015,"lng":29.9100},"cost_estimate":100},"afternoon":{"activity":"حديقة المنتزه","coordinates":{"lat":31.2386,"lng":29.9621},"cost_estimate":70},"evening":{"activity":"وسط المدينة وكورنيش الإسكندرية","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":3,"morning":{"activity":"قصر المنتزه","coordinates":{"lat":31.2386,"lng":29.9621},"cost_estimate":100},"lunch":{"restaurant":"مطعم متوسط","coordinates":{"lat":31.2386,"lng":29.9621},"cost_estimate":150},"afternoon":{"activity":"جولة في شارع فؤاد","coordinates":{"lat":31.2000,"lng":29.9167},"cost_estimate":50},"evening":{"activity":"نزهة على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":4,"morning":{"activity":"حديقة الأسكندرية","coordinates":{"lat":31.2150,"lng":29.9310},"cost_estimate":100},"lunch":{"restaurant":"مطعم شعبي","coordinates":{"lat":31.2150,"lng":29.9310},"cost_estimate":100},"afternoon":{"activity":"متحف الأسكندرية البحري","coordinates":{"lat":31.2076,"lng":29.8935},"cost_estimate":50},"evening":{"activity":"عشاء على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":5,"morning":{"activity":"زيارة حصن قايتباي","coordinates":{"lat":31.2136,"lng":29.8853},"cost_estimate":80},"lunch":{"restaurant":"مطعم بحري","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":150},"afternoon":{"activity":"جولة حرة في الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":0},"evening":{"activity":"عشاء على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":100}},
+        {"day":6,"morning":{"activity":"زيارة سوق كوزموبوليتان أو محل صناعات يدوية","coordinates":{"lat":31.2100,"lng":29.9150},"cost_estimate":100},"lunch":{"restaurant":"مطعم عصري","coordinates":{"lat":31.2100,"lng":29.9150},"cost_estimate":150},"afternoon":{"activity":"استراحة أو مقهى","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50},"evening":{"activity":"عشاء وداع على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":150}}
+      ],
+      "total_cost_estimate":1740
+    },
+    {
+      "trip_name":"رحلة 7 أيام - الإسكندرية",
+      "days":7,
+      "trip_type":"تاريخي + ثقافي + استرخاء + تسوق + اكتشاف",
+      "itinerary":[
+        {"day":1,"morning":{"activity":"مكتبة الإسكندرية","coordinates":{"lat":31.2089,"lng":29.9092},"cost_estimate":100},"lunch":{"restaurant":"مطعم بحري","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":150},"afternoon":{"activity":"قلعة قايتباي","coordinates":{"lat":31.2136,"lng":29.8853},"cost_estimate":80},"evening":{"activity":"نزهة على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":2,"morning":{"activity":"متحف الإسكندرية القومي","coordinates":{"lat":31.2006,"lng":29.9181},"cost_estimate":80},"lunch":{"restaurant":"مطعم شعبي","coordinates":{"lat":31.2015,"lng":29.9100},"cost_estimate":100},"afternoon":{"activity":"حديقة المنتزه","coordinates":{"lat":31.2386,"lng":29.9621},"cost_estimate":70},"evening":{"activity":"وسط المدينة وكورنيش الإسكندرية","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":3,"morning":{"activity":"قصر المنتزه","coordinates":{"lat":31.2386,"lng":29.9621},"cost_estimate":100},"lunch":{"restaurant":"مطعم متوسط","coordinates":{"lat":31.2386,"lng":29.9621},"cost_estimate":150},"afternoon":{"activity":"جولة في شارع فؤاد","coordinates":{"lat":31.2000,"lng":29.9167},"cost_estimate":50},"evening":{"activity":"نزهة على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":4,"morning":{"activity":"حديقة الأسكندرية","coordinates":{"lat":31.2150,"lng":29.9310},"cost_estimate":100},"lunch":{"restaurant":"مطعم شعبي","coordinates":{"lat":31.2150,"lng":29.9310},"cost_estimate":100},"afternoon":{"activity":"متحف الأسكندرية البحري","coordinates":{"lat":31.2076,"lng":29.8935},"cost_estimate":50},"evening":{"activity":"عشاء على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":5,"morning":{"activity":"زيارة حصن قايتباي","coordinates":{"lat":31.2136,"lng":29.8853},"cost_estimate":80},"lunch":{"restaurant":"مطعم بحري","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":150},"afternoon":{"activity":"جولة حرة في الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":0},"evening":{"activity":"عشاء على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":100}},
+        {"day":6,"morning":{"activity":"زيارة سوق محلي أو معرض فنون","coordinates":{"lat":31.2100,"lng":29.9150},"cost_estimate":100},"lunch":{"restaurant":"مطعم عصري","coordinates":{"lat":31.2100,"lng":29.9150},"cost_estimate":150},"afternoon":{"activity":"استراحة أو مقهى","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50},"evening":{"activity":"عشاء وداع على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":150}},
+        {"day":7,"morning":{"activity":"جولة في حي أنطونيادس أو سوق شعبي","coordinates":{"lat":31.2090,"lng":29.9150},"cost_estimate":100},"lunch":{"restaurant":"مطعم عصري","coordinates":{"lat":31.2100,"lng":29.9150},"cost_estimate":150},"afternoon":{"activity":"جلسة استرخاء أو مقهى","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50},"evening":{"activity":"عشاء ختامي على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":150}}
+      ],
+      "total_cost_estimate":1900
+    }
+  ]
+,
+  "trips": [
+    {
+      "trip_name": "رحلة ساحلية يوم واحد - الإسكندرية",
+      "days": 1,
+      "trip_type": "شاطئية + استرخاء",
+      "itinerary": [
+        {
+          "day": 1,
+          "morning": {
+            "activity": "زيارة شاطئ المنتزه",
+            "description": "استرخاء على الرمال الذهبية والسباحة في البحر",
+            "location": "حديقة المنتزه، الإسكندرية",
+            "coordinates": {"lat": 31.2386, "lng": 29.9621},
+            "cost_estimate": 50
+          },
+          "lunch": {
+            "restaurant": "مطعم بحري على الكورنيش",
+            "specialty": "أسماك ومأكولات بحرية",
+            "location": "كورنيش الإسكندرية",
+            "coordinates": {"lat": 31.2001, "lng": 29.9187},
+            "cost_estimate": 150
+          },
+          "afternoon": {
+            "activity": "جولة بالقارب حول ميناء الإسكندرية",
+            "description": "استمتاع بالمناظر البحرية والتصوير",
+            "location": "ميناء الإسكندرية",
+            "coordinates": {"lat": 31.2130, "lng": 29.8950},
+            "cost_estimate": 100
+          },
+          "evening": {
+            "activity": "مشروب على الكورنيش ومشاهدة الغروب",
+            "location": "كورنيش الإسكندرية",
+            "coordinates": {"lat": 31.2001, "lng": 29.9187},
+            "cost_estimate": 50
+          }
+        }
+      ],
+      "total_cost_estimate": 350
+    },
+    {
+      "trip_name": "رحلة ساحلية يومين - الإسكندرية",
+      "days": 2,
+      "trip_type": "شاطئية + استرخاء + أنشطة بحرية",
+      "itinerary": [
+        {
+          "day": 1,
+          "morning":{"activity":"شاطئ المنتزه","coordinates":{"lat":31.2386,"lng":29.9621},"cost_estimate":50},
+          "lunch":{"restaurant":"مطعم بحري","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":150},
+          "afternoon":{"activity":"جولة بالقارب حول الميناء","coordinates":{"lat":31.2130,"lng":29.8950},"cost_estimate":100},
+          "evening":{"activity":"مشروب وغروب على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}
+        },
+        {
+          "day": 2,
+          "morning":{"activity":"شاطئ المعمورة","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":50},
+          "lunch":{"restaurant":"مطعم عصري على البحر","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":150},
+          "afternoon":{"activity":"رياضة مائية: جت سكي أو كاياك","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":200},
+          "evening":{"activity":"نزهة على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}
+        }
+      ],
+      "total_cost_estimate": 1000
+    },
+    {
+      "trip_name": "رحلة ساحلية 3 أيام - الإسكندرية",
+      "days": 3,
+      "trip_type": "شاطئية + استرخاء + أنشطة بحرية + مطاعم",
+      "itinerary": [
+        {"day":1,"morning":{"activity":"شاطئ المنتزه","coordinates":{"lat":31.2386,"lng":29.9621},"cost_estimate":50},"lunch":{"restaurant":"مطعم بحري","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":150},"afternoon":{"activity":"جولة بالقارب","coordinates":{"lat":31.2130,"lng":29.8950},"cost_estimate":100},"evening":{"activity":"مشروب على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":2,"morning":{"activity":"شاطئ المعمورة","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":50},"lunch":{"restaurant":"مطعم عصري على البحر","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":150},"afternoon":{"activity":"رياضات مائية","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":200},"evening":{"activity":"نزهة على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":3,"morning":{"activity":"شاطئ الرمل الشمالي","coordinates":{"lat":31.2160,"lng":29.9100},"cost_estimate":50},"lunch":{"restaurant":"مطعم بحري","coordinates":{"lat":31.2160,"lng":29.9100},"cost_estimate":150},"afternoon":{"activity":"جولة بحرية صغيرة أو استرخاء","coordinates":{"lat":31.2160,"lng":29.9100},"cost_estimate":100},"evening":{"activity":"غروب ومشروب على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}}
+      ],
+      "total_cost_estimate": 1300
+    },
+    {
+      "trip_name":"رحلة ساحلية 4 أيام - الإسكندرية",
+      "days":4,
+      "trip_type":"شاطئية + استرخاء + أنشطة بحرية + مطاعم + تسوق",
+      "itinerary":[
+        {"day":1,"morning":{"activity":"شاطئ المنتزه","coordinates":{"lat":31.2386,"lng":29.9621},"cost_estimate":50},"lunch":{"restaurant":"مطعم بحري","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":150},"afternoon":{"activity":"جولة بالقارب","coordinates":{"lat":31.2130,"lng":29.8950},"cost_estimate":100},"evening":{"activity":"مشروب على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":2,"morning":{"activity":"شاطئ المعمورة","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":50},"lunch":{"restaurant":"مطعم عصري","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":150},"afternoon":{"activity":"رياضات مائية","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":200},"evening":{"activity":"نزهة على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":3,"morning":{"activity":"شاطئ الرمل الشمالي","coordinates":{"lat":31.2160,"lng":29.9100},"cost_estimate":50},"lunch":{"restaurant":"مطعم بحري","coordinates":{"lat":31.2160,"lng":29.9100},"cost_estimate":150},"afternoon":{"activity":"جولة بحرية أو استرخاء","coordinates":{"lat":31.2160,"lng":29.9100},"cost_estimate":100},"evening":{"activity":"مشروب على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":4,"morning":{"activity":"شاطئ المعمورة","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":50},"lunch":{"restaurant":"مطعم عصري","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":150},"afternoon":{"activity":"جولة بحرية قصيرة","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":100},"evening":{"activity":"غروب على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}}
+      ],
+      "total_cost_estimate":1750
+    }
+  ]
+,
+  "trips": [
+    {
+      "trip_name":"رحلة ساحلية 5 أيام - الإسكندرية",
+      "days":5,
+      "trip_type":"شاطئية + استرخاء + أنشطة بحرية + مطاعم + تسوق",
+      "itinerary":[
+        {"day":1,"morning":{"activity":"شاطئ المنتزه","coordinates":{"lat":31.2386,"lng":29.9621},"cost_estimate":50},"lunch":{"restaurant":"مطعم بحري","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":150},"afternoon":{"activity":"جولة بالقارب","coordinates":{"lat":31.2130,"lng":29.8950},"cost_estimate":100},"evening":{"activity":"مشروب على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":2,"morning":{"activity":"شاطئ المعمورة","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":50},"lunch":{"restaurant":"مطعم عصري","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":150},"afternoon":{"activity":"رياضات مائية","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":200},"evening":{"activity":"نزهة على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":3,"morning":{"activity":"شاطئ الرمل الشمالي","coordinates":{"lat":31.2160,"lng":29.9100},"cost_estimate":50},"lunch":{"restaurant":"مطعم بحري","coordinates":{"lat":31.2160,"lng":29.9100},"cost_estimate":150},"afternoon":{"activity":"جولة بحرية أو استرخاء","coordinates":{"lat":31.2160,"lng":29.9100},"cost_estimate":100},"evening":{"activity":"مشروب على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":4,"morning":{"activity":"شاطئ المعمورة","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":50},"lunch":{"restaurant":"مطعم عصري","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":150},"afternoon":{"activity":"جولة بحرية قصيرة","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":100},"evening":{"activity":"غروب على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":5,"morning":{"activity":"زيارة ميناء الإسكندرية والمشي على الرصيف البحري","coordinates":{"lat":31.2130,"lng":29.8950},"cost_estimate":50},"lunch":{"restaurant":"مطعم بحري","coordinates":{"lat":31.2130,"lng":29.8950},"cost_estimate":150},"afternoon":{"activity":"استراحة على الشاطئ أو رياضة مائية","coordinates":{"lat":31.2130,"lng":29.8950},"cost_estimate":100},"evening":{"activity":"عشاء وداع على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":150}}
+      ],
+      "total_cost_estimate":1550
+    },
+    {
+      "trip_name":"رحلة ساحلية 6 أيام - الإسكندرية",
+      "days":6,
+      "trip_type":"شاطئية + استرخاء + أنشطة بحرية + مطاعم + تسوق",
+      "itinerary":[
+        {"day":1,"morning":{"activity":"شاطئ المنتزه","coordinates":{"lat":31.2386,"lng":29.9621},"cost_estimate":50},"lunch":{"restaurant":"مطعم بحري","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":150},"afternoon":{"activity":"جولة بالقارب","coordinates":{"lat":31.2130,"lng":29.8950},"cost_estimate":100},"evening":{"activity":"مشروب على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":2,"morning":{"activity":"شاطئ المعمورة","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":50},"lunch":{"restaurant":"مطعم عصري","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":150},"afternoon":{"activity":"رياضات مائية","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":200},"evening":{"activity":"نزهة على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":3,"morning":{"activity":"شاطئ الرمل الشمالي","coordinates":{"lat":31.2160,"lng":29.9100},"cost_estimate":50},"lunch":{"restaurant":"مطعم بحري","coordinates":{"lat":31.2160,"lng":29.9100},"cost_estimate":150},"afternoon":{"activity":"جولة بحرية أو استرخاء","coordinates":{"lat":31.2160,"lng":29.9100},"cost_estimate":100},"evening":{"activity":"مشروب على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":4,"morning":{"activity":"شاطئ المعمورة","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":50},"lunch":{"restaurant":"مطعم عصري","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":150},"afternoon":{"activity":"جولة بحرية قصيرة","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":100},"evening":{"activity":"غروب على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":5,"morning":{"activity":"زيارة ميناء الإسكندرية","coordinates":{"lat":31.2130,"lng":29.8950},"cost_estimate":50},"lunch":{"restaurant":"مطعم بحري","coordinates":{"lat":31.2130,"lng":29.8950},"cost_estimate":150},"afternoon":{"activity":"استراحة على الشاطئ أو رياضة مائية","coordinates":{"lat":31.2130,"lng":29.8950},"cost_estimate":100},"evening":{"activity":"مشروب على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":6,"morning":{"activity":"شاطئ سيدي جابر","coordinates":{"lat":31.1980,"lng":29.9020},"cost_estimate":50},"lunch":{"restaurant":"مطعم عصري","coordinates":{"lat":31.1980,"lng":29.9020},"cost_estimate":150},"afternoon":{"activity":"جلسة استرخاء على الشاطئ أو مقهى بحري","coordinates":{"lat":31.1980,"lng":29.9020},"cost_estimate":50},"evening":{"activity":"عشاء ختامي على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":150}}
+      ],
+      "total_cost_estimate":1800
+    },
+    {
+      "trip_name":"رحلة ساحلية 7 أيام - الإسكندرية",
+      "days":7,
+      "trip_type":"شاطئية + استرخاء + أنشطة بحرية + مطاعم + تسوق + اكتشاف",
+      "itinerary":[
+        {"day":1,"morning":{"activity":"شاطئ المنتزه","coordinates":{"lat":31.2386,"lng":29.9621},"cost_estimate":50},"lunch":{"restaurant":"مطعم بحري","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":150},"afternoon":{"activity":"جولة بالقارب","coordinates":{"lat":31.2130,"lng":29.8950},"cost_estimate":100},"evening":{"activity":"مشروب على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":2,"morning":{"activity":"شاطئ المعمورة","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":50},"lunch":{"restaurant":"مطعم عصري","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":150},"afternoon":{"activity":"رياضات مائية","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":200},"evening":{"activity":"نزهة على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":3,"morning":{"activity":"شاطئ الرمل الشمالي","coordinates":{"lat":31.2160,"lng":29.9100},"cost_estimate":50},"lunch":{"restaurant":"مطعم بحري","coordinates":{"lat":31.2160,"lng":29.9100},"cost_estimate":150},"afternoon":{"activity":"جولة بحرية أو استرخاء","coordinates":{"lat":31.2160,"lng":29.9100},"cost_estimate":100},"evening":{"activity":"مشروب على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":4,"morning":{"activity":"شاطئ المعمورة","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":50},"lunch":{"restaurant":"مطعم عصري","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":150},"afternoon":{"activity":"جولة بحرية قصيرة","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":100},"evening":{"activity":"غروب على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":5,"morning":{"activity":"زيارة ميناء الإسكندرية","coordinates":{"lat":31.2130,"lng":29.8950},"cost_estimate":50},"lunch":{"restaurant":"مطعم بحري","coordinates":{"lat":31.2130,"lng":29.8950},"cost_estimate":150},"afternoon":{"activity":"استراحة على الشاطئ أو رياضة مائية","coordinates":{"lat":31.2130,"lng":29.8950},"cost_estimate":100},"evening":{"activity":"مشروب على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":6,"morning":{"activity":"شاطئ سيدي جابر","coordinates":{"lat":31.1980,"lng":29.9020},"cost_estimate":50},"lunch":{"restaurant":"مطعم عصري","coordinates":{"lat":31.1980,"lng":29.9020},"cost_estimate":150},"afternoon":{"activity":"جلسة استرخاء على الشاطئ أو مقهى بحري","coordinates":{"lat":31.1980,"lng":29.9020},"cost_estimate":50},"evening":{"activity":"عشاء على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":150}},
+        {"day":7,"morning":{"activity":"جولة في حي أنطونيادس أو سوق شعبي","coordinates":{"lat":31.2090,"lng":29.9150},"cost_estimate":50},"lunch":{"restaurant":"مطعم عصري","coordinates":{"lat":31.2100,"lng":29.9150},"cost_estimate":150},"afternoon":{"activity":"جلسة استرخاء على الشاطئ","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50},"evening":{"activity":"عشاء ختامي على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":150}}
+      ],
+      "total_cost_estimate":2000
+    }
+  ]
+,
+  "trips": [
+    {
+      "trip_name":"رحلة استرخاء يوم واحد - الإسكندرية",
+      "days":1,
+      "trip_type":"استرخاء + شاطئ + كورنيش",
+      "itinerary":[
+        {"day":1,"morning":{"activity":"جلسة على شاطئ المنتزه","coordinates":{"lat":31.2386,"lng":29.9621},"cost_estimate":50},"lunch":{"restaurant":"مطعم بحري على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":150},"afternoon":{"activity":"نزهة على الكورنيش والاستمتاع بالمشروب","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50},"evening":{"activity":"غروب على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}}],
+      "total_cost_estimate":300
+    },
+    {
+      "trip_name":"رحلة استرخاء يومين - الإسكندرية",
+      "days":2,
+      "trip_type":"استرخاء + شاطئ + كورنيش + مقاهي",
+      "itinerary":[
+        {"day":1,"morning":{"activity":"جلسة على شاطئ المنتزه","coordinates":{"lat":31.2386,"lng":29.9621},"cost_estimate":50},"lunch":{"restaurant":"مطعم بحري على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":150},"afternoon":{"activity":"نزهة على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50},"evening":{"activity":"مشروب على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":2,"morning":{"activity":"جلسة استرخاء على شاطئ المعمورة","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":50},"lunch":{"restaurant":"مطعم عصري على الشاطئ","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":150},"afternoon":{"activity":"استراحة أو مقهى بحري","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":50},"evening":{"activity":"غروب على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}}
+      ],
+      "total_cost_estimate":600
+    },
+    {
+      "trip_name":"رحلة استرخاء 3 أيام - الإسكندرية",
+      "days":3,
+      "trip_type":"استرخاء + شاطئ + كورنيش + مقاهي + مطاعم",
+      "itinerary":[
+        {"day":1,"morning":{"activity":"شاطئ المنتزه","coordinates":{"lat":31.2386,"lng":29.9621},"cost_estimate":50},"lunch":{"restaurant":"مطعم بحري على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":150},"afternoon":{"activity":"نزهة على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50},"evening":{"activity":"مشروب على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":2,"morning":{"activity":"شاطئ المعمورة","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":50},"lunch":{"restaurant":"مطعم عصري","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":150},"afternoon":{"activity":"جلسة استرخاء على الشاطئ","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":50},"evening":{"activity":"غروب على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":3,"morning":{"activity":"شاطئ الرمل الشمالي","coordinates":{"lat":31.2160,"lng":29.9100},"cost_estimate":50},"lunch":{"restaurant":"مطعم بحري","coordinates":{"lat":31.2160,"lng":29.9100},"cost_estimate":150},"afternoon":{"activity":"استراحة على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50},"evening":{"activity":"عشاء ختامي على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":150}}
+      ],
+      "total_cost_estimate":900
+    },
+    {
+      "trip_name":"رحلة استرخاء 4 أيام - الإسكندرية",
+      "days":4,
+      "trip_type":"استرخاء + شاطئ + كورنيش + مطاعم + مقاهي",
+      "itinerary":[
+        {"day":1,"morning":{"activity":"شاطئ المنتزه","coordinates":{"lat":31.2386,"lng":29.9621},"cost_estimate":50},"lunch":{"restaurant":"مطعم بحري على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":150},"afternoon":{"activity":"نزهة على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50},"evening":{"activity":"مشروب على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":2,"morning":{"activity":"شاطئ المعمورة","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":50},"lunch":{"restaurant":"مطعم عصري","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":150},"afternoon":{"activity":"جلسة استرخاء على الشاطئ","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":50},"evening":{"activity":"غروب على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":3,"morning":{"activity":"شاطئ الرمل الشمالي","coordinates":{"lat":31.2160,"lng":29.9100},"cost_estimate":50},"lunch":{"restaurant":"مطعم بحري","coordinates":{"lat":31.2160,"lng":29.9100},"cost_estimate":150},"afternoon":{"activity":"استراحة على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50},"evening":{"activity":"مشروب على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":4,"morning":{"activity":"شاطئ سيدي جابر","coordinates":{"lat":31.1980,"lng":29.9020},"cost_estimate":50},"lunch":{"restaurant":"مطعم عصري","coordinates":{"lat":31.1980,"lng":29.9020},"cost_estimate":150},"afternoon":{"activity":"جلسة استرخاء على الشاطئ أو مقهى بحري","coordinates":{"lat":31.1980,"lng":29.9020},"cost_estimate":50},"evening":{"activity":"عشاء ختامي على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":150}}
+      ],
+      "total_cost_estimate":1200
+    },
+    {
+      "trip_name":"رحلة استرخاء 5 أيام - الإسكندرية",
+      "days":5,
+      "trip_type":"استرخاء + شاطئ + كورنيش + مطاعم + مقاهي + أنشطة بحرية",
+      "itinerary":[
+        {"day":1,"morning":{"activity":"شاطئ المنتزه","coordinates":{"lat":31.2386,"lng":29.9621},"cost_estimate":50},"lunch":{"restaurant":"مطعم بحري","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":150},"afternoon":{"activity":"نزهة على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50},"evening":{"activity":"مشروب على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":2,"morning":{"activity":"شاطئ المعمورة","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":50},"lunch":{"restaurant":"مطعم عصري","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":150},"afternoon":{"activity":"رياضات مائية","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":100},"evening":{"activity":"غروب على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":3,"morning":{"activity":"شاطئ الرمل الشمالي","coordinates":{"lat":31.2160,"lng":29.9100},"cost_estimate":50},"lunch":{"restaurant":"مطعم بحري","coordinates":{"lat":31.2160,"lng":29.9100},"cost_estimate":150},"afternoon":{"activity":"جلسة استرخاء على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50},"evening":{"activity":"مشروب على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":4,"morning":{"activity":"شاطئ سيدي جابر","coordinates":{"lat":31.1980,"lng":29.9020},"cost_estimate":50},"lunch":{"restaurant":"مطعم عصري","coordinates":{"lat":31.1980,"lng":29.9020},"cost_estimate":150},"afternoon":{"activity":"جلسة استرخاء أو مقهى بحري","coordinates":{"lat":31.1980,"lng":29.9020},"cost_estimate":50},"evening":{"activity":"عشاء على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":150}},
+        {"day":5,"morning":{"activity":"زيارة ميناء الإسكندرية والمشي على الرصيف البحري","coordinates":{"lat":31.2130,"lng":29.8950},"cost_estimate":50},"lunch":{"restaurant":"مطعم بحري","coordinates":{"lat":31.2130,"lng":29.8950},"cost_estimate":150},"afternoon":{"activity":"استراحة على الشاطئ","coordinates":{"lat":31.2130,"lng":29.8950},"cost_estimate":50},"evening":{"activity":"عشاء ختامي على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":150}}
+      ],
+      "total_cost_estimate":1600
+    },
+    {
+      "trip_name":"رحلة استرخاء 6 أيام - الإسكندرية",
+      "days":6,
+      "trip_type":"استرخاء + شاطئ + كورنيش + مطاعم + مقاهي + أنشطة بحرية",
+      "itinerary":[
+        {"day":1,"morning":{"activity":"شاطئ المنتزه","coordinates":{"lat":31.2386,"lng":29.9621},"cost_estimate":50},"lunch":{"restaurant":"مطعم بحري","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":150},"afternoon":{"activity":"نزهة على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50},"evening":{"activity":"مشروب على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":2,"morning":{"activity":"شاطئ المعمورة","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":50},"lunch":{"restaurant":"مطعم عصري","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":150},"afternoon":{"activity":"رياضات مائية","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":100},"evening":{"activity":"غروب على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":3,"morning":{"activity":"شاطئ الرمل الشمالي","coordinates":{"lat":31.2160,"lng":29.9100},"cost_estimate":50},"lunch":{"restaurant":"مطعم بحري","coordinates":{"lat":31.2160,"lng":29.9100},"cost_estimate":150},"afternoon":{"activity":"جلسة استرخاء على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50},"evening":{"activity":"مشروب على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":4,"morning":{"activity":"شاطئ سيدي جابر","coordinates":{"lat":31.1980,"lng":29.9020},"cost_estimate":50},"lunch":{"restaurant":"مطعم عصري","coordinates":{"lat":31.1980,"lng":29.9020},"cost_estimate":150},"afternoon":{"activity":"جلسة استرخاء أو مقهى بحري","coordinates":{"lat":31.1980,"lng":29.9020},"cost_estimate":50},"evening":{"activity":"عشاء على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":150}},
+        {"day":5,"morning":{"activity":"زيارة ميناء الإسكندرية والمشي على الرصيف البحري","coordinates":{"lat":31.2130,"lng":29.8950},"cost_estimate":50},"lunch":{"restaurant":"مطعم بحري","coordinates":{"lat":31.2130,"lng":29.8950},"cost_estimate":150},"afternoon":{"activity":"استراحة على الشاطئ","coordinates":{"lat":31.2130,"lng":29.8950},"cost_estimate":50},"evening":{"activity":"مشروب على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":6,"morning":{"activity":"شاطئ المعمورة","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":50},"lunch":{"restaurant":"مطعم عصري","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":150},"afternoon":{"activity":"جلسة استرخاء على الشاطئ","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":50},"evening":{"activity":"عشاء ختامي على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":150}}
+      ],
+      "total_cost_estimate":1900
+    },
+    {
+      "trip_name":"رحلة استرخاء 7 أيام - الإسكندرية",
+      "days":7,
+      "trip_type":"استرخاء + شاطئ + كورنيش + مطاعم + مقاهي + أنشطة بحرية + اكتشاف",
+      "itinerary":[
+        {"day":1,"morning":{"activity":"شاطئ المنتزه","coordinates":{"lat":31.2386,"lng":29.9621},"cost_estimate":50},"lunch":{"restaurant":"مطعم بحري","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":150},"afternoon":{"activity":"نزهة على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50},"evening":{"activity":"مشروب على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":2,"morning":{"activity":"شاطئ المعمورة","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":50},"lunch":{"restaurant":"مطعم عصري","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":150},"afternoon":{"activity":"رياضات مائية","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":100},"evening":{"activity":"غروب على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":3,"morning":{"activity":"شاطئ الرمل الشمالي","coordinates":{"lat":31.2160,"lng":29.9100},"cost_estimate":50},"lunch":{"restaurant":"مطعم بحري","coordinates":{"lat":31.2160,"lng":29.9100},"cost_estimate":150},"afternoon":{"activity":"جلسة استرخاء على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50},"evening":{"activity":"مشروب على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":4,"morning":{"activity":"شاطئ سيدي جابر","coordinates":{"lat":31.1980,"lng":29.9020},"cost_estimate":50},"lunch":{"restaurant":"مطعم عصري","coordinates":{"lat":31.1980,"lng":29.9020},"cost_estimate":150},"afternoon":{"activity":"جلسة استرخاء أو مقهى بحري","coordinates":{"lat":31.1980,"lng":29.9020},"cost_estimate":50},"evening":{"activity":"عشاء على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":150}},
+        {"day":5,"morning":{"activity":"زيارة ميناء الإسكندرية والمشي على الرصيف البحري","coordinates":{"lat":31.2130,"lng":29.8950},"cost_estimate":50},"lunch":{"restaurant":"مطعم بحري","coordinates":{"lat":31.2130,"lng":29.8950},"cost_estimate":150},"afternoon":{"activity":"استراحة على الشاطئ","coordinates":{"lat":31.2130,"lng":29.8950},"cost_estimate":50},"evening":{"activity":"مشروب على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50}},
+        {"day":6,"morning":{"activity":"شاطئ المعمورة","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":50},"lunch":{"restaurant":"مطعم عصري","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":150},"afternoon":{"activity":"جلسة استرخاء على الشاطئ","coordinates":{"lat":31.2220,"lng":29.9670},"cost_estimate":50},"evening":{"activity":"عشاء على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":150}},
+        {"day":7,"morning":{"activity":"جولة في حي أنطونيادس أو سوق شعبي","coordinates":{"lat":31.2090,"lng":29.9150},"cost_estimate":50},"lunch":{"restaurant":"مطعم عصري","coordinates":{"lat":31.2100,"lng":29.9150},"cost_estimate":150},"afternoon":{"activity":"جلسة استرخاء على الشاطئ","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":50},"evening":{"activity":"عشاء ختامي على الكورنيش","coordinates":{"lat":31.2001,"lng":29.9187},"cost_estimate":150}}
+      ],
+      "total_cost_estimate":2200
+    }
+  ]
+}
+

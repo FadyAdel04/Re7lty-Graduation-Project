@@ -1,0 +1,207 @@
+{
+  "trips": [
+    {
+      "trip_name": "رحلة يوم واحد - الأقصر",
+      "days": 1,
+      "trip_type": "تاريخي",
+      "itinerary": [
+        {
+          "day": 1,
+          "morning": {
+            "activity": "زيارة معابد الكرنك",
+            "description": "أكبر مجمع معابد في مصر القديمة",
+            "location": "الكرنك، الأقصر",
+            "coordinates": { "lat": 25.7188, "lng": 32.6573 },
+            "cost_estimate": 200
+          },
+          "lunch": {
+            "restaurant": "مطعم محلي مطل على النيل",
+            "location": "كورنيش النيل، الأقصر",
+            "coordinates": { "lat": 25.6996, "lng": 32.6396 },
+            "cost_estimate": 120
+          },
+          "afternoon": {
+            "activity": "زيارة معبد الأقصر",
+            "description": "معبد تاريخي في قلب المدينة",
+            "location": "وسط الأقصر",
+            "coordinates": { "lat": 25.6994, "lng": 32.6397 },
+            "cost_estimate": 150
+          },
+          "evening": {
+            "activity": "نزهة على كورنيش النيل",
+            "description": "جلسة استرخاء ومشاهدة الغروب",
+            "location": "كورنيش النيل، الأقصر",
+            "coordinates": { "lat": 25.6996, "lng": 32.6396 },
+            "cost_estimate": 50
+          }
+        }
+      ],
+      "total_cost_estimate": 520
+    },
+    {
+      "trip_name": "رحلة يومين - الأقصر",
+      "days": 2,
+      "trip_type": "تاريخي",
+      "itinerary": [
+        {
+          "day": 1,
+          "morning": { "activity": "معابد الكرنك", "coordinates": { "lat": 25.7188, "lng": 32.6573 }, "cost_estimate": 200 },
+          "lunch": { "restaurant": "مطعم محلي", "coordinates": { "lat": 25.6996, "lng": 32.6396 }, "cost_estimate": 120 },
+          "afternoon": { "activity": "معبد الأقصر", "coordinates": { "lat": 25.6994, "lng": 32.6397 }, "cost_estimate": 150 },
+          "evening": { "activity": "كورنيش النيل", "coordinates": { "lat": 25.6996, "lng": 32.6396 }, "cost_estimate": 50 }
+        },
+        {
+          "day": 2,
+          "morning": { "activity": "وادي الملوك", "coordinates": { "lat": 25.7402, "lng": 32.6014 }, "cost_estimate": 250 },
+          "lunch": { "restaurant": "مطعم غرب الأقصر", "coordinates": { "lat": 25.7340, "lng": 32.6000 }, "cost_estimate": 120 },
+          "afternoon": { "activity": "معبد حتشبسوت", "coordinates": { "lat": 25.7375, "lng": 32.6066 }, "cost_estimate": 150 },
+          "evening": { "activity": "العودة للفندق", "coordinates": { "lat": 25.6996, "lng": 32.6396 }, "cost_estimate": 0 }
+        }
+      ],
+      "total_cost_estimate": 1040
+    },
+    {
+      "trip_name": "رحلة 3 أيام - الأقصر",
+      "days": 3,
+      "trip_type": "تاريخي + ثقافي",
+      "itinerary": [
+        {
+          "day": 1,
+          "morning": { "activity": "معابد الكرنك", "coordinates": { "lat": 25.7188, "lng": 32.6573 }, "cost_estimate": 200 },
+          "lunch": { "restaurant": "مطعم محلي", "coordinates": { "lat": 25.6996, "lng": 32.6396 }, "cost_estimate": 120 },
+          "afternoon": { "activity": "معبد الأقصر", "coordinates": { "lat": 25.6994, "lng": 32.6397 }, "cost_estimate": 150 },
+          "evening": { "activity": "كورنيش النيل", "coordinates": { "lat": 25.6996, "lng": 32.6396 }, "cost_estimate": 50 }
+        },
+        {
+          "day": 2,
+          "morning": { "activity": "وادي الملوك", "coordinates": { "lat": 25.7402, "lng": 32.6014 }, "cost_estimate": 250 },
+          "lunch": { "restaurant": "مطعم غرب الأقصر", "coordinates": { "lat": 25.7340, "lng": 32.6000 }, "cost_estimate": 120 },
+          "afternoon": { "activity": "معبد حتشبسوت", "coordinates": { "lat": 25.7375, "lng": 32.6066 }, "cost_estimate": 150 },
+          "evening": { "activity": "تمثالي ممنون", "coordinates": { "lat": 25.7206, "lng": 32.6107 }, "cost_estimate": 50 }
+        },
+        {
+          "day": 3,
+          "morning": { "activity": "معبد الرامسيوم", "coordinates": { "lat": 25.7284, "lng": 32.6109 }, "cost_estimate": 100 },
+          "lunch": { "restaurant": "مطعم محلي", "coordinates": { "lat": 25.6996, "lng": 32.6396 }, "cost_estimate": 120 },
+          "afternoon": { "activity": "متحف الأقصر", "coordinates": { "lat": 25.7053, "lng": 32.6410 }, "cost_estimate": 150 },
+          "evening": { "activity": "عشاء على النيل", "coordinates": { "lat": 25.6996, "lng": 32.6396 }, "cost_estimate": 100 }
+        }
+      ],
+      "total_cost_estimate": 1560
+    },
+    {
+      "trip_name": "رحلة 4 أيام - الأقصر",
+      "days": 4,
+      "trip_type": "تاريخي + استرخاء",
+      "itinerary": [
+        {
+          "day": 1,
+          "morning": { "activity": "معابد الكرنك", "coordinates": { "lat": 25.7188, "lng": 32.6573 }, "cost_estimate": 200 },
+          "lunch": { "restaurant": "مطعم محلي", "coordinates": { "lat": 25.6996, "lng": 32.6396 }, "cost_estimate": 120 },
+          "afternoon": { "activity": "معبد الأقصر", "coordinates": { "lat": 25.6994, "lng": 32.6397 }, "cost_estimate": 150 },
+          "evening": { "activity": "كورنيش النيل", "coordinates": { "lat": 25.6996, "lng": 32.6396 }, "cost_estimate": 50 }
+        },
+        {
+          "day": 2,
+          "morning": { "activity": "وادي الملوك", "coordinates": { "lat": 25.7402, "lng": 32.6014 }, "cost_estimate": 250 },
+          "lunch": { "restaurant": "مطعم غرب الأقصر", "coordinates": { "lat": 25.7340, "lng": 32.6000 }, "cost_estimate": 120 },
+          "afternoon": { "activity": "معبد حتشبسوت", "coordinates": { "lat": 25.7375, "lng": 32.6066 }, "cost_estimate": 150 },
+          "evening": { "activity": "تمثالي ممنون", "coordinates": { "lat": 25.7206, "lng": 32.6107 }, "cost_estimate": 50 }
+        },
+        {
+          "day": 3,
+          "morning": { "activity": "معبد الرامسيوم", "coordinates": { "lat": 25.7284, "lng": 32.6109 }, "cost_estimate": 100 },
+          "lunch": { "restaurant": "مطعم محلي", "coordinates": { "lat": 25.6996, "lng": 32.6396 }, "cost_estimate": 120 },
+          "afternoon": { "activity": "متحف الأقصر", "coordinates": { "lat": 25.7053, "lng": 32.6410 }, "cost_estimate": 150 },
+          "evening": { "activity": "نزهة نيلية", "coordinates": { "lat": 25.6996, "lng": 32.6396 }, "cost_estimate": 100 }
+        },
+        {
+          "day": 4,
+          "morning": { "activity": "منطاد هوائي", "coordinates": { "lat": 25.7260, "lng": 32.6100 }, "cost_estimate": 400 },
+          "lunch": { "restaurant": "مطعم مطل على النيل", "coordinates": { "lat": 25.6996, "lng": 32.6396 }, "cost_estimate": 150 },
+          "afternoon": { "activity": "استرخاء بالفندق", "coordinates": { "lat": 25.6996, "lng": 32.6396 }, "cost_estimate": 0 },
+          "evening": { "activity": "عشاء ختامي", "coordinates": { "lat": 25.6996, "lng": 32.6396 }, "cost_estimate": 150 }
+        }
+      ],
+      "total_cost_estimate": 2400
+    }
+  ]
+,
+
+  "trips": [
+    {
+      "trip_name": "رحلة 5 أيام - الأقصر",
+      "days": 5,
+      "trip_type": "تاريخي + ثقافي + استرخاء",
+      "itinerary": [
+        {
+          "day": 1,
+          "morning": { "activity": "معابد الكرنك", "coordinates": { "lat": 25.7188, "lng": 32.6573 }, "cost_estimate": 200 },
+          "lunch": { "restaurant": "مطعم محلي", "coordinates": { "lat": 25.6996, "lng": 32.6396 }, "cost_estimate": 120 },
+          "afternoon": { "activity": "معبد الأقصر", "coordinates": { "lat": 25.6994, "lng": 32.6397 }, "cost_estimate": 150 },
+          "evening": { "activity": "كورنيش النيل", "coordinates": { "lat": 25.6996, "lng": 32.6396 }, "cost_estimate": 50 }
+        },
+        {
+          "day": 2,
+          "morning": { "activity": "وادي الملوك", "coordinates": { "lat": 25.7402, "lng": 32.6014 }, "cost_estimate": 250 },
+          "lunch": { "restaurant": "مطعم غرب الأقصر", "coordinates": { "lat": 25.7340, "lng": 32.6000 }, "cost_estimate": 120 },
+          "afternoon": { "activity": "معبد حتشبسوت", "coordinates": { "lat": 25.7375, "lng": 32.6066 }, "cost_estimate": 150 },
+          "evening": { "activity": "تمثالي ممنون", "coordinates": { "lat": 25.7206, "lng": 32.6107 }, "cost_estimate": 50 }
+        },
+        {
+          "day": 3,
+          "morning": { "activity": "معبد الرامسيوم", "coordinates": { "lat": 25.7284, "lng": 32.6109 }, "cost_estimate": 100 },
+          "lunch": { "restaurant": "مطعم محلي", "coordinates": { "lat": 25.6996, "lng": 32.6396 }, "cost_estimate": 120 },
+          "afternoon": { "activity": "متحف الأقصر", "coordinates": { "lat": 25.7053, "lng": 32.6410 }, "cost_estimate": 150 },
+          "evening": { "activity": "نزهة نيلية", "coordinates": { "lat": 25.6996, "lng": 32.6396 }, "cost_estimate": 100 }
+        },
+        {
+          "day": 4,
+          "morning": { "activity": "منطاد هوائي", "coordinates": { "lat": 25.7260, "lng": 32.6100 }, "cost_estimate": 400 },
+          "lunch": { "restaurant": "مطعم مطل على النيل", "coordinates": { "lat": 25.6996, "lng": 32.6396 }, "cost_estimate": 150 },
+          "afternoon": { "activity": "استرخاء بالفندق", "coordinates": { "lat": 25.6996, "lng": 32.6396 }, "cost_estimate": 0 },
+          "evening": { "activity": "عشاء على النيل", "coordinates": { "lat": 25.6996, "lng": 32.6396 }, "cost_estimate": 150 }
+        },
+        {
+          "day": 5,
+          "morning": { "activity": "دير المدينة", "coordinates": { "lat": 25.7273, "lng": 32.6060 }, "cost_estimate": 100 },
+          "lunch": { "restaurant": "مطعم شعبي", "coordinates": { "lat": 25.7340, "lng": 32.6000 }, "cost_estimate": 120 },
+          "afternoon": { "activity": "وادي الملكات", "coordinates": { "lat": 25.7336, "lng": 32.6007 }, "cost_estimate": 150 },
+          "evening": { "activity": "جلسة استرخاء", "coordinates": { "lat": 25.6996, "lng": 32.6396 }, "cost_estimate": 50 }
+        }
+      ],
+      "total_cost_estimate": 3100
+    },
+    {
+      "trip_name": "رحلة 6 أيام - الأقصر",
+      "days": 6,
+      "trip_type": "تاريخي + ثقافي + استرخاء",
+      "itinerary": [
+        {
+          "day": 6,
+          "morning": { "activity": "معبد مدينة هابو", "coordinates": { "lat": 25.7200, "lng": 32.6019 }, "cost_estimate": 150 },
+          "lunch": { "restaurant": "مطعم غرب الأقصر", "coordinates": { "lat": 25.7340, "lng": 32.6000 }, "cost_estimate": 120 },
+          "afternoon": { "activity": "زيارة الأسواق المحلية", "coordinates": { "lat": 25.6996, "lng": 32.6396 }, "cost_estimate": 50 },
+          "evening": { "activity": "عشاء نيلـي", "coordinates": { "lat": 25.6996, "lng": 32.6396 }, "cost_estimate": 150 }
+        }
+      ],
+      "total_cost_estimate": 3600
+    },
+    {
+      "trip_name": "رحلة 7 أيام - الأقصر",
+      "days": 7,
+      "trip_type": "تاريخي + ثقافي + استرخاء + اكتشاف",
+      "itinerary": [
+        {
+          "day": 7,
+          "morning": { "activity": "رحلة نيلية قصيرة", "coordinates": { "lat": 25.6996, "lng": 32.6396 }, "cost_estimate": 200 },
+          "lunch": { "restaurant": "مطعم مطل على النيل", "coordinates": { "lat": 25.6996, "lng": 32.6396 }, "cost_estimate": 150 },
+          "afternoon": { "activity": "زيارة قرية محلية", "coordinates": { "lat": 25.7100, "lng": 32.6300 }, "cost_estimate": 50 },
+          "evening": { "activity": "عشاء وداع", "coordinates": { "lat": 25.6996, "lng": 32.6396 }, "cost_estimate": 150 }
+        }
+      ],
+      "total_cost_estimate": 4200
+    }
+  ]
+}
+

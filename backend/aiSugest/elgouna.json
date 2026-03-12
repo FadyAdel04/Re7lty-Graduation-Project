@@ -1,0 +1,295 @@
+{
+  "trips": [
+    {
+      "trip_name": "رحلة يوم واحد - الغردقة",
+      "days": 1,
+      "trip_type": "ساحلي + استرخاء + بحري",
+      "itinerary": [
+        {
+          "day": 1,
+          "morning": {
+            "activity": "شاطئ خاص أو عام (مثل دريم بيتش أو شاطئ المارينا)",
+            "description": "استمتاع بالشمس والسباحة في مياه البحر الأحمر الصافية",
+            "location": "الغردقة - منطقة الشيراتون أو المارينا",
+            "coordinates": {"lat": 27.2579, "lng": 33.8116},
+            "cost_estimate": 150
+          },
+          "lunch": {
+            "restaurant": "مطعم سمك على الشاطئ أو في المارينا",
+            "specialty": "أسماك طازجة أو مأكولات بحرية",
+            "location": "مارينا الغردقة",
+            "coordinates": {"lat": 27.257, "lng": 33.812},
+            "cost_estimate": 200
+          },
+          "afternoon": {
+            "activity": "رحلة بحرية قصيرة سنوركلينج (Orange Bay أو Giftun Island)",
+            "description": "غطس خفيف ومشاهدة الشعب المرجانية والأسماك الملونة",
+            "location": "جزيرة الجفتون أو أورانج باي",
+            "coordinates": {"lat": 27.400, "lng": 33.900},
+            "cost_estimate": 400
+          },
+          "evening": {
+            "activity": "نزهة في مارينا الغردقة + عشاء خفيف",
+            "description": "تجول، كافيهات، إطلالة على اليخوت",
+            "location": "مارينا الغردقة",
+            "coordinates": {"lat": 27.257, "lng": 33.812},
+            "cost_estimate": 150
+          }
+        }
+      ],
+      "total_cost_estimate": 900
+    },
+    {
+      "trip_name": "رحلة يومين - الغردقة",
+      "days": 2,
+      "trip_type": "ساحلي + غوص + استرخاء",
+      "itinerary": [
+        {
+          "day": 1,
+          "morning": {"activity":"شاطئ وسباحة","description":"استرخاء على شاطئ فندق أو عام","location":"الغردقة - الشيراتون","coordinates":{"lat":27.2579,"lng":33.8116},"cost_estimate":150},
+          "lunch": {"restaurant":"مطعم بحري","location":"مارينا أو شاطئ","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":200},
+          "afternoon": {"activity":"سنوركلينج أو غوص خفيف","location":"منطقة قريبة من الشاطئ","coordinates":{"lat":27.300,"lng":33.850},"cost_estimate":350},
+          "evening": {"activity":"ممشى المارينا + كافيه","location":"مارينا الغردقة","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":150}
+        },
+        {
+          "day": 2,
+          "morning": {"activity":"رحلة بحرية كاملة إلى جزر الجفتون","description":"سنوركل + شاطئ + غداء على المركب","location":"جزيرة الجفتون","coordinates":{"lat":27.400,"lng":33.900},"cost_estimate":600},
+          "lunch": {"restaurant":"غداء على المركب (مشمل)","location":"البحر","coordinates":{"lat":27.400,"lng":33.900},"cost_estimate":0},
+          "afternoon": {"activity":"استرخاء على الجزيرة أو رحلة إضافية","location":"الجزيرة","coordinates":{"lat":27.400,"lng":33.900},"cost_estimate":100},
+          "evening": {"activity":"عشاء على الشاطئ + إطلالة غروب","location":"الغردقة كورنيش","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":200}
+        }
+      ],
+      "total_cost_estimate": 1750
+    },
+    {
+      "trip_name": "رحلة 3 أيام - الغردقة",
+      "days": 3,
+      "trip_type": "ساحلي + مغامرة بحرية + استرخاء",
+      "itinerary": [
+        {
+          "day":1,
+          "morning":{"activity":"شاطئ وسباحة","coordinates":{"lat":27.2579,"lng":33.8116},"cost_estimate":150},
+          "lunch":{"restaurant":"مطعم بحري","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":200},
+          "afternoon":{"activity":"سنوركلينج قريب","coordinates":{"lat":27.300,"lng":33.850},"cost_estimate":350},
+          "evening":{"activity":"مارينا الغردقة","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":150}
+        },
+        {
+          "day":2,
+          "morning":{"activity":"رحلة بحرية إلى جزر الجفتون","coordinates":{"lat":27.400,"lng":33.900},"cost_estimate":600},
+          "lunch":{"restaurant":"على المركب","coordinates":{"lat":27.400,"lng":33.900},"cost_estimate":0},
+          "afternoon":{"activity":"غوص أو استرخاء على الجزيرة","coordinates":{"lat":27.400,"lng":33.900},"cost_estimate":200},
+          "evening":{"activity":"غروب الشمس + عشاء","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":200}
+        },
+        {
+          "day":3,
+          "morning":{"activity":"جراند أكواريوم الغردقة","location":"الغردقة","coordinates":{"lat":27.280,"lng":33.830},"cost_estimate":250},
+          "lunch":{"restaurant":"قرب الأكواريوم","coordinates":{"lat":27.280,"lng":33.830},"cost_estimate":200},
+          "afternoon":{"activity":"استرخاء شاطئ أو تسوق خفيف","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":100},
+          "evening":{"activity":"عشاء على الكورنيش","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":200}
+        }
+      ],
+      "total_cost_estimate": 2800
+    },
+    {
+      "trip_name": "رحلة 4 أيام - الغردقة",
+      "days": 4,
+      "trip_type": "ساحلي + بحري + مغامرة خفيفة",
+      "itinerary": [
+        {"day":1,"morning":{"activity":"شاطئ + سباحة","coordinates":{"lat":27.2579,"lng":33.8116},"cost_estimate":150},"lunch":{"restaurant":"بحري","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":200},"afternoon":{"activity":"سنوركل قريب","coordinates":{"lat":27.300,"lng":33.850},"cost_estimate":350},"evening":{"activity":"مارينا","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":150}},
+        {"day":2,"morning":{"activity":"رحلة الجفتون الكاملة","coordinates":{"lat":27.400,"lng":33.900},"cost_estimate":600},"lunch":{"restaurant":"على المركب","coordinates":{"lat":27.400,"lng":33.900},"cost_estimate":0},"afternoon":{"activity":"استرخاء جزيرة","coordinates":{"lat":27.400,"lng":33.900},"cost_estimate":150},"evening":{"activity":"عشاء شاطئ","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":200}},
+        {"day":3,"morning":{"activity":"غوص تجريبي أو غطستين","coordinates":{"lat":27.300,"lng":33.850},"cost_estimate":800},"lunch":{"restaurant":"شاطئ","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":200},"afternoon":{"activity":"جراند أكواريوم","coordinates":{"lat":27.280,"lng":33.830},"cost_estimate":250},"evening":{"activity":"كافيه مارينا","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":150}},
+        {"day":4,"morning":{"activity":"زيارة سهل حشيش أو شاطئ فاخر","coordinates":{"lat":27.050,"lng":33.900},"cost_estimate":200},"lunch":{"restaurant":"منتجع","coordinates":{"lat":27.050,"lng":33.900},"cost_estimate":250},"afternoon":{"activity":"استرخاء + تسوق","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":100},"evening":{"activity":"عشاء وداع على البحر","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":250}}
+      ],
+      "total_cost_estimate": 4200
+    },
+    {
+      "trip_name": "رحلة 5 أيام - الغردقة",
+      "days": 5,
+      "trip_type": "ساحلي + غوص + استرخاء + بحري",
+      "itinerary": [
+        {"day":1,"morning":{"activity":"وصول + شاطئ","coordinates":{"lat":27.2579,"lng":33.8116},"cost_estimate":150},"lunch":{"restaurant":"بحري","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":200},"afternoon":{"activity":"سنوركل قريب","coordinates":{"lat":27.300,"lng":33.850},"cost_estimate":350},"evening":{"activity":"مارينا","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":150}},
+        {"day":2,"morning":{"activity":"رحلة جزر الجفتون","coordinates":{"lat":27.400,"lng":33.900},"cost_estimate":600},"lunch":{"restaurant":"مركب","coordinates":{"lat":27.400,"lng":33.900},"cost_estimate":0},"afternoon":{"activity":"جزيرة + استرخاء","coordinates":{"lat":27.400,"lng":33.900},"cost_estimate":150},"evening":{"activity":"غروب + عشاء","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":200}},
+        {"day":3,"morning":{"activity":"غوص كامل (غطستين)","coordinates":{"lat":27.300,"lng":33.850},"cost_estimate":900},"lunch":{"restaurant":"شاطئ","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":200},"afternoon":{"activity":"استرخاء شاطئ","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":100},"evening":{"activity":"كافيه","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":150}},
+        {"day":4,"morning":{"activity":"جراند أكواريوم + محمية","coordinates":{"lat":27.280,"lng":33.830},"cost_estimate":300},"lunch":{"restaurant":"قريب","coordinates":{"lat":27.280,"lng":33.830},"cost_estimate":200},"afternoon":{"activity":"سهل حشيش أو شاطئ فاخر","coordinates":{"lat":27.050,"lng":33.900},"cost_estimate":250},"evening":{"activity":"عشاء بحري","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":250}},
+        {"day":5,"morning":{"activity":"رحلة دولفين أو سنوركل إضافي","coordinates":{"lat":27.350,"lng":33.880},"cost_estimate":500},"lunch":{"restaurant":"شاطئ","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":200},"afternoon":{"activity":"تسوق + استرخاء","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":100},"evening":{"activity":"عشاء ختامي","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":300}}
+      ],
+      "total_cost_estimate": 5700
+    },
+    {
+      "trip_name": "رحلة 6 أيام - الغردقة",
+      "days": 6,
+      "trip_type": "ساحلي + بحري + غوص + مغامرة + استرخاء",
+      "itinerary": [
+        {"day":1,"morning":{"activity":"شاطئ","coordinates":{"lat":27.2579,"lng":33.8116},"cost_estimate":150},"lunch":{"restaurant":"بحري","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":200},"afternoon":{"activity":"سنوركل","coordinates":{"lat":27.300,"lng":33.850},"cost_estimate":350},"evening":{"activity":"مارينا","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":150}},
+        {"day":2,"morning":{"activity":"رحلة جفتون","coordinates":{"lat":27.400,"lng":33.900},"cost_estimate":600},"lunch":{"restaurant":"مركب","coordinates":{"lat":27.400,"lng":33.900},"cost_estimate":0},"afternoon":{"activity":"جزيرة","coordinates":{"lat":27.400,"lng":33.900},"cost_estimate":150},"evening":{"activity":"عشاء","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":200}},
+        {"day":3,"morning":{"activity":"غوص","coordinates":{"lat":27.300,"lng":33.850},"cost_estimate":900},"lunch":{"restaurant":"شاطئ","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":200},"afternoon":{"activity":"استرخاء","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":100},"evening":{"activity":"كافيه","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":150}},
+        {"day":4,"morning":{"activity":"أكواريوم + سهل حشيش","coordinates":{"lat":27.050,"lng":33.900},"cost_estimate":400},"lunch":{"restaurant":"منتجع","coordinates":{"lat":27.050,"lng":33.900},"cost_estimate":250},"afternoon":{"activity":"شاطئ فاخر","coordinates":{"lat":27.050,"lng":33.900},"cost_estimate":150},"evening":{"activity":"عشاء","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":250}},
+        {"day":5,"morning":{"activity":"رحلة دولفين أو جزيرة إضافية","coordinates":{"lat":27.350,"lng":33.880},"cost_estimate":600},"lunch":{"restaurant":"مركب","coordinates":{"lat":27.350,"lng":33.880},"cost_estimate":0},"afternoon":{"activity":"استرخاء","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":100},"evening":{"activity":"عشاء","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":250}},
+        {"day":6,"morning":{"activity":"تسوق + شاطئ أخير","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":200},"lunch":{"restaurant":"بحري","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":250},"afternoon":{"activity":"استجمام","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":100},"evening":{"activity":"عشاء وداع","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":300}}
+      ],
+      "total_cost_estimate": 7200
+    },
+    {
+      "trip_name": "رحلة 7 أيام - الغردقة",
+      "days": 7,
+      "trip_type": "ساحلي كامل + غوص + رحلات بحرية + استرخاء + تسوق",
+      "itinerary": [
+        {"day":1,"morning":{"activity":"شاطئ","coordinates":{"lat":27.2579,"lng":33.8116},"cost_estimate":150},"lunch":{"restaurant":"بحري","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":200},"afternoon":{"activity":"سنوركل","coordinates":{"lat":27.300,"lng":33.850},"cost_estimate":350},"evening":{"activity":"مارينا","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":150}},
+        {"day":2,"morning":{"activity":"جزر الجفتون","coordinates":{"lat":27.400,"lng":33.900},"cost_estimate":600},"lunch":{"restaurant":"مركب","coordinates":{"lat":27.400,"lng":33.900},"cost_estimate":0},"afternoon":{"activity":"جزيرة","coordinates":{"lat":27.400,"lng":33.900},"cost_estimate":150},"evening":{"activity":"عشاء","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":200}},
+        {"day":3,"morning":{"activity":"غوص كامل","coordinates":{"lat":27.300,"lng":33.850},"cost_estimate":900},"lunch":{"restaurant":"شاطئ","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":200},"afternoon":{"activity":"استرخاء","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":100},"evening":{"activity":"كافيه","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":150}},
+        {"day":4,"morning":{"activity":"أكواريوم + سهل حشيش","coordinates":{"lat":27.050,"lng":33.900},"cost_estimate":400},"lunch":{"restaurant":"منتجع","coordinates":{"lat":27.050,"lng":33.900},"cost_estimate":250},"afternoon":{"activity":"شاطئ","coordinates":{"lat":27.050,"lng":33.900},"cost_estimate":150},"evening":{"activity":"عشاء","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":250}},
+        {"day":5,"morning":{"activity":"رحلة دولفين","coordinates":{"lat":27.350,"lng":33.880},"cost_estimate":600},"lunch":{"restaurant":"مركب","coordinates":{"lat":27.350,"lng":33.880},"cost_estimate":0},"afternoon":{"activity":"استرخاء","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":100},"evening":{"activity":"عشاء","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":250}},
+        {"day":6,"morning":{"activity":"سفاري صحراوي خفيف أو كايت سيرفينج","coordinates":{"lat":27.200,"lng":33.850},"cost_estimate":500},"lunch":{"restaurant":"صحراوي/شاطئ","coordinates":{"lat":27.200,"lng":33.850},"cost_estimate":250},"afternoon":{"activity":"عودة + تسوق","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":150},"evening":{"activity":"عشاء","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":250}},
+        {"day":7,"morning":{"activity":"شاطئ أخير + استجمام","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":150},"lunch":{"restaurant":"بحري","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":250},"afternoon":{"activity":"تسوق هدايا","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":150},"evening":{"activity":"عشاء ختامي فاخر","coordinates":{"lat":27.257,"lng":33.812},"cost_estimate":400}}
+      ],
+      "total_cost_estimate": 9000
+    }
+  ]
+,
+  "trips": [
+    {
+      "trip_name": "رحلة يوم واحد - الجونة",
+      "days": 1,
+      "trip_type": "استرخاء + شاطئ",
+      "itinerary": [
+        {
+          "day": 1,
+          "morning": {
+            "activity": "الوصول والاسترخاء على شاطئ زيتونة أو أبو تيج",
+            "description": "شاطئ رملي هادئ، استمتع بالشمس والمياه الفيروزية",
+            "location": "زيتونة بيتش، الجونة",
+            "coordinates": {"lat": 27.394, "lng": 33.678},
+            "cost_estimate": 250
+          },
+          "lunch": {
+            "restaurant": "مطعم على الشاطئ أو المارينا",
+            "specialty": "مأكولات بحرية طازجة أو سلطات خفيفة",
+            "location": "أبو تيج مارينا",
+            "coordinates": {"lat": 27.395, "lng": 33.680},
+            "cost_estimate": 200
+          },
+          "afternoon": {
+            "activity": "جلسة سبا أو مساج على الشاطئ",
+            "description": "استرخاء كامل في سبا فندق 5 نجوم",
+            "location": "منتجع مثل شي أو موفنبيك",
+            "coordinates": {"lat": 27.396, "lng": 33.682},
+            "cost_estimate": 400
+          },
+          "evening": {
+            "activity": "نزهة هادئة في مارينا أبو تيج + عشاء خفيف",
+            "description": "مشاهدة الغروب وتناول مشروب على البحيرة",
+            "location": "أبو تيج مارينا، الجونة",
+            "coordinates": {"lat": 27.395, "lng": 33.680},
+            "cost_estimate": 150
+          }
+        }
+      ],
+      "total_cost_estimate": 1000
+    },
+    {
+      "trip_name": "رحلة يومين - الجونة",
+      "days": 2,
+      "trip_type": "استرخاء + شاطئ + بحيرة",
+      "itinerary": [
+        {
+          "day": 1,
+          "morning": {"activity":"استرخاء على شاطئ خاص","location":"زيتونة أو مانجروفي","coordinates":{"lat":27.394,"lng":33.678},"cost_estimate":300},
+          "lunch":{"restaurant":"مطعم شاطئي","location":"الشاطئ","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":200},
+          "afternoon":{"activity":"جولة بالقارب في البحيرات الهادئة","location":"لاجون الجونة","coordinates":{"lat":27.400,"lng":33.675},"cost_estimate":250},
+          "evening":{"activity":"عشاء رومانسي على البحيرة","location":"مارينا","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":250}
+        },
+        {
+          "day": 2,
+          "morning": {"activity":"جولف خفيف أو تمارين يوغا","location":"ملعب الجونة جولف","coordinates":{"lat":27.390,"lng":33.670},"cost_estimate":400},
+          "lunch":{"restaurant":"مطعم في المنتجع","location":"ستيجنبرجر أو موفنبيك","coordinates":{"lat":27.392,"lng":33.672},"cost_estimate":200},
+          "afternoon":{"activity":"استرخاء في السبا أو الشاطئ","location":"المنتجع","coordinates":{"lat":27.392,"lng":33.672},"cost_estimate":300},
+          "evening":{"activity":"غروب الشمس + مشروب","location":"شاطئ أو مارينا","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":150}
+        }
+      ],
+      "total_cost_estimate": 2250
+    },
+    {
+      "trip_name": "رحلة 3 أيام - الجونة",
+      "days": 3,
+      "trip_type": "استرخاء + شاطئ + سبا + جولف",
+      "itinerary": [
+        {
+          "day":1,
+          "morning":{"activity":"شاطئ زيتونة","coordinates":{"lat":27.394,"lng":33.678},"cost_estimate":300},
+          "lunch":{"restaurant":"شاطئي","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":200},
+          "afternoon":{"activity":"جولة لاجون بالقارب","coordinates":{"lat":27.400,"lng":33.675},"cost_estimate":250},
+          "evening":{"activity":"عشاء مارينا","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":250}
+        },
+        {
+          "day":2,
+          "morning":{"activity":"جولف أو يوغا","coordinates":{"lat":27.390,"lng":33.670},"cost_estimate":400},
+          "lunch":{"restaurant":"الجولف كلوب","coordinates":{"lat":27.390,"lng":33.670},"cost_estimate":250},
+          "afternoon":{"activity":"سبا ومساج","coordinates":{"lat":27.392,"lng":33.672},"cost_estimate":400},
+          "evening":{"activity":"استرخاء شاطئ","coordinates":{"lat":27.394,"lng":33.678},"cost_estimate":150}
+        },
+        {
+          "day":3,
+          "morning":{"activity":"شاطئ هادئ + سباحة","coordinates":{"lat":27.394,"lng":33.678},"cost_estimate":250},
+          "lunch":{"restaurant":"منتجع","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":200},
+          "afternoon":{"activity":"تسوق خفيف أو كافيه","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":150},
+          "evening":{"activity":"عشاء ختامي رومانسي","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":300}
+        }
+      ],
+      "total_cost_estimate": 3800
+    },
+    {
+      "trip_name": "رحلة 4 أيام - الجونة",
+      "days": 4,
+      "trip_type": "استرخاء كامل + شاطئ + سبا + بحيرة",
+      "itinerary": [
+        {"day":1,"morning":{"activity":"وصول + شاطئ","coordinates":{"lat":27.394,"lng":33.678},"cost_estimate":300},"lunch":{"restaurant":"شاطئي","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":200},"afternoon":{"activity":"لاجون تريب","coordinates":{"lat":27.400,"lng":33.675},"cost_estimate":250},"evening":{"activity":"عشاء","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":250}},
+        {"day":2,"morning":{"activity":"جولف","coordinates":{"lat":27.390,"lng":33.670},"cost_estimate":400},"lunch":{"restaurant":"جولف","coordinates":{"lat":27.390,"lng":33.670},"cost_estimate":250},"afternoon":{"activity":"سبا","coordinates":{"lat":27.392,"lng":33.672},"cost_estimate":400},"evening":{"activity":"غروب","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":150}},
+        {"day":3,"morning":{"activity":"شاطئ + يوغا","coordinates":{"lat":27.394,"lng":33.678},"cost_estimate":300},"lunch":{"restaurant":"شاطئ","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":200},"afternoon":{"activity":"استرخاء حر","coordinates":{"lat":27.394,"lng":33.678},"cost_estimate":100},"evening":{"activity":"عشاء بحري","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":300}},
+        {"day":4,"morning":{"activity":"شاطئ أخير","coordinates":{"lat":27.394,"lng":33.678},"cost_estimate":250},"lunch":{"restaurant":"مارينا","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":200},"afternoon":{"activity":"تسوق تذكارات","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":150},"evening":{"activity":"مغادرة مريحة","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":100}}
+      ],
+      "total_cost_estimate": 5200
+    },
+    {
+      "trip_name": "رحلة 5 أيام - الجونة",
+      "days": 5,
+      "trip_type": "استرخاء فاخر + شاطئ + سبا + جولف",
+      "itinerary": [
+        {"day":1,"morning":{"activity":"شاطئ","coordinates":{"lat":27.394,"lng":33.678},"cost_estimate":300},"lunch":{"restaurant":"شاطئ","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":200},"afternoon":{"activity":"لاجون","coordinates":{"lat":27.400,"lng":33.675},"cost_estimate":250},"evening":{"activity":"عشاء","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":250}},
+        {"day":2,"morning":{"activity":"جولف","coordinates":{"lat":27.390,"lng":33.670},"cost_estimate":400},"lunch":{"restaurant":"جولف","coordinates":{"lat":27.390,"lng":33.670},"cost_estimate":250},"afternoon":{"activity":"سبا","coordinates":{"lat":27.392,"lng":33.672},"cost_estimate":400},"evening":{"activity":"استرخاء","coordinates":{"lat":27.394,"lng":33.678},"cost_estimate":150}},
+        {"day":3,"morning":{"activity":"شاطئ + سباحة","coordinates":{"lat":27.394,"lng":33.678},"cost_estimate":300},"lunch":{"restaurant":"منتجع","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":200},"afternoon":{"activity":"يوغا أو رياضة مائية خفيفة","coordinates":{"lat":27.394,"lng":33.678},"cost_estimate":200},"evening":{"activity":"عشاء","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":300}},
+        {"day":4,"morning":{"activity":"شاطئ هادئ","coordinates":{"lat":27.394,"lng":33.678},"cost_estimate":300},"lunch":{"restaurant":"شاطئ","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":200},"afternoon":{"activity":"سبا ثاني","coordinates":{"lat":27.392,"lng":33.672},"cost_estimate":400},"evening":{"activity":"غروب","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":200}},
+        {"day":5,"morning":{"activity":"استرخاء نهائي","coordinates":{"lat":27.394,"lng":33.678},"cost_estimate":250},"lunch":{"restaurant":"مارينا","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":200},"afternoon":{"activity":"تسوق أو كافيه","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":150},"evening":{"activity":"عشاء ختامي","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":350}}
+      ],
+      "total_cost_estimate": 6800
+    },
+    {
+      "trip_name": "رحلة 6 أيام - الجونة",
+      "days": 6,
+      "trip_type": "استرخاء فاخر + تنوع شاطئ وسبا",
+      "itinerary": [
+        {"day":1,"morning":{"activity":"شاطئ","coordinates":{"lat":27.394,"lng":33.678},"cost_estimate":300},"lunch":{"restaurant":"شاطئ","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":200},"afternoon":{"activity":"لاجون","coordinates":{"lat":27.400,"lng":33.675},"cost_estimate":250},"evening":{"activity":"عشاء","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":250}},
+        {"day":2,"morning":{"activity":"جولف","coordinates":{"lat":27.390,"lng":33.670},"cost_estimate":400},"lunch":{"restaurant":"جولف","coordinates":{"lat":27.390,"lng":33.670},"cost_estimate":250},"afternoon":{"activity":"سبا","coordinates":{"lat":27.392,"lng":33.672},"cost_estimate":400},"evening":{"activity":"استرخاء","coordinates":{"lat":27.394,"lng":33.678},"cost_estimate":150}},
+        {"day":3,"morning":{"activity":"شاطئ","coordinates":{"lat":27.394,"lng":33.678},"cost_estimate":300},"lunch":{"restaurant":"منتجع","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":200},"afternoon":{"activity":"يوغا","coordinates":{"lat":27.394,"lng":33.678},"cost_estimate":200},"evening":{"activity":"عشاء","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":300}},
+        {"day":4,"morning":{"activity":"شاطئ آخر","coordinates":{"lat":27.394,"lng":33.678},"cost_estimate":300},"lunch":{"restaurant":"شاطئ","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":200},"afternoon":{"activity":"سبا","coordinates":{"lat":27.392,"lng":33.672},"cost_estimate":400},"evening":{"activity":"غروب","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":200}},
+        {"day":5,"morning":{"activity":"جولف أو رياضة خفيفة","coordinates":{"lat":27.390,"lng":33.670},"cost_estimate":400},"lunch":{"restaurant":"جولف","coordinates":{"lat":27.390,"lng":33.670},"cost_estimate":250},"afternoon":{"activity":"استرخاء حر","coordinates":{"lat":27.394,"lng":33.678},"cost_estimate":150},"evening":{"activity":"عشاء","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":300}},
+        {"day":6,"morning":{"activity":"شاطئ نهائي","coordinates":{"lat":27.394,"lng":33.678},"cost_estimate":300},"lunch":{"restaurant":"مارينا","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":200},"afternoon":{"activity":"تسوق","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":150},"evening":{"activity":"عشاء وداع","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":350}}
+      ],
+      "total_cost_estimate": 8200
+    },
+    {
+      "trip_name": "رحلة 7 أيام - الجونة",
+      "days": 7,
+      "trip_type": "استرخاء كامل + شاطئ + سبا + جولف + بحيرة",
+      "itinerary": [
+        {"day":1,"morning":{"activity":"شاطئ","coordinates":{"lat":27.394,"lng":33.678},"cost_estimate":300},"lunch":{"restaurant":"شاطئ","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":200},"afternoon":{"activity":"لاجون","coordinates":{"lat":27.400,"lng":33.675},"cost_estimate":250},"evening":{"activity":"عشاء","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":250}},
+        {"day":2,"morning":{"activity":"جولف","coordinates":{"lat":27.390,"lng":33.670},"cost_estimate":400},"lunch":{"restaurant":"جولف","coordinates":{"lat":27.390,"lng":33.670},"cost_estimate":250},"afternoon":{"activity":"سبا","coordinates":{"lat":27.392,"lng":33.672},"cost_estimate":400},"evening":{"activity":"استرخاء","coordinates":{"lat":27.394,"lng":33.678},"cost_estimate":150}},
+        {"day":3,"morning":{"activity":"شاطئ + يوغا","coordinates":{"lat":27.394,"lng":33.678},"cost_estimate":300},"lunch":{"restaurant":"منتجع","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":200},"afternoon":{"activity":"استرخاء","coordinates":{"lat":27.394,"lng":33.678},"cost_estimate":150},"evening":{"activity":"عشاء","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":300}},
+        {"day":4,"morning":{"activity":"شاطئ","coordinates":{"lat":27.394,"lng":33.678},"cost_estimate":300},"lunch":{"restaurant":"شاطئ","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":200},"afternoon":{"activity":"سبا","coordinates":{"lat":27.392,"lng":33.672},"cost_estimate":400},"evening":{"activity":"غروب","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":200}},
+        {"day":5,"morning":{"activity":"جولف","coordinates":{"lat":27.390,"lng":33.670},"cost_estimate":400},"lunch":{"restaurant":"جولف","coordinates":{"lat":27.390,"lng":33.670},"cost_estimate":250},"afternoon":{"activity":"لاجون","coordinates":{"lat":27.400,"lng":33.675},"cost_estimate":250},"evening":{"activity":"عشاء","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":300}},
+        {"day":6,"morning":{"activity":"شاطئ هادئ","coordinates":{"lat":27.394,"lng":33.678},"cost_estimate":300},"lunch":{"restaurant":"مارينا","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":200},"afternoon":{"activity":"استرخاء حر","coordinates":{"lat":27.394,"lng":33.678},"cost_estimate":150},"evening":{"activity":"عشاء","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":300}},
+        {"day":7,"morning":{"activity":"شاطئ أخير","coordinates":{"lat":27.394,"lng":33.678},"cost_estimate":300},"lunch":{"restaurant":"شاطئ","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":200},"afternoon":{"activity":"تسوق أو كافيه","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":150},"evening":{"activity":"عشاء ختامي فاخر","coordinates":{"lat":27.395,"lng":33.680},"cost_estimate":400}}
+      ],
+      "total_cost_estimate": 9500
+    }
+  ]
+}

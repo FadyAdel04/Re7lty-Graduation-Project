@@ -1,0 +1,705 @@
+{
+  "trips": [
+    {
+      "trip_name": "رحلة يوم واحد - القاهرة",
+      "days": 1,
+      "trip_type": "تاريخي + ثقافي",
+      "itinerary": [
+        {
+          "day": 1,
+          "morning": {
+            "activity": "زيارة أهرامات الجيزة وأبو الهول",
+            "description": "أشهر معلم في مصر والعالم، تجربة ركوب جمل اختيارية",
+            "location": "الهرم، الجيزة",
+            "coordinates": {"lat": 29.976480, "lng": 31.131302},
+            "cost_estimate": 200
+          },
+          "lunch": {
+            "restaurant": "مطعم مصري بسيط في منطقة الهرم",
+            "specialty": "كشري أو مشويات",
+            "location": "الهرم، الجيزة",
+            "coordinates": {"lat": 29.980, "lng": 31.132},
+            "cost_estimate": 100
+          },
+          "afternoon": {
+            "activity": "زيارة المتحف المصري",
+            "description": "آلاف القطع الأثرية من التاريخ الفرعوني",
+            "location": "ميدان التحرير، وسط القاهرة",
+            "coordinates": {"lat": 30.0443, "lng": 31.2357},
+            "cost_estimate": 150
+          },
+          "evening": {
+            "activity": "نزهة على كورنيش النيل",
+            "description": "جلسة استرخاء مع عصير أو قهوة",
+            "location": "كورنيش النيل، القاهرة",
+            "coordinates": {"lat": 30.0444, "lng": 31.2357},
+            "cost_estimate": 50
+          }
+        }
+      ],
+      "total_cost_estimate": 500
+    },
+    {
+      "trip_name": "رحلة يومين - القاهرة",
+      "days": 2,
+      "trip_type": "تاريخي + ثقافي + شعبية",
+      "itinerary": [
+        {
+          "day": 1,
+          "morning": {"activity":"زيارة أهرامات الجيزة وأبو الهول","location":"الهرم، الجيزة","coordinates":{"lat":29.976480,"lng":31.131302},"cost_estimate":200},
+          "lunch": {"restaurant":"مطعم مصري بسيط","location":"الهرم، الجيزة","coordinates":{"lat":29.980,"lng":31.132},"cost_estimate":100},
+          "afternoon": {"activity":"زيارة المتحف المصري","location":"ميدان التحرير، وسط القاهرة","coordinates":{"lat":30.0443,"lng":31.2357},"cost_estimate":150},
+          "evening": {"activity":"كورنيش النيل","location":"كورنيش النيل، القاهرة","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50}
+        },
+        {
+          "day": 2,
+          "morning": {"activity":"زيارة خان الخليلي ومقهى الفيشاوي","location":"خان الخليلي، القاهرة التاريخية","coordinates":{"lat":30.0470,"lng":31.2620},"cost_estimate":100},
+          "lunch": {"restaurant":"مطعم عربي في خان الخليلي","location":"خان الخليلي، القاهرة","coordinates":{"lat":30.0470,"lng":31.2620},"cost_estimate":150},
+          "afternoon": {"activity":"مسجد الإمام الحسين وشارع المعز","location":"الحسين، القاهرة","coordinates":{"lat":30.0485,"lng":31.2625},"cost_estimate":50},
+          "evening": {"activity":"العودة للفندق أو كورنيش النيل","location":"كورنيش النيل، القاهرة","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50}
+        }
+      ],
+      "total_cost_estimate": 1000
+    },
+    {
+      "trip_name": "رحلة 3 أيام - القاهرة",
+      "days": 3,
+      "trip_type": "تاريخي + ثقافي + حضري",
+      "itinerary": [
+        {
+          "day":1,
+          "morning":{"activity":"أهرامات الجيزة وأبو الهول","coordinates":{"lat":29.976480,"lng":31.131302},"cost_estimate":200},
+          "lunch":{"restaurant":"مطعم الهرم","coordinates":{"lat":29.980,"lng":31.132},"cost_estimate":100},
+          "afternoon":{"activity":"المتحف المصري","coordinates":{"lat":30.0443,"lng":31.2357},"cost_estimate":150},
+          "evening":{"activity":"كورنيش النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50}
+        },
+        {
+          "day":2,
+          "morning":{"activity":"خان الخليلي ومقهى الفيشاوي","coordinates":{"lat":30.0470,"lng":31.2620},"cost_estimate":100},
+          "lunch":{"restaurant":"مطعم عربي","coordinates":{"lat":30.0470,"lng":31.2620},"cost_estimate":150},
+          "afternoon":{"activity":"مسجد الإمام الحسين وشارع المعز","coordinates":{"lat":30.0485,"lng":31.2625},"cost_estimate":50},
+          "evening":{"activity":"وسط البلد وشارع قصر النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50}
+        },
+        {
+          "day":3,
+          "morning":{"activity":"برج القاهرة","location":"الزمالك، القاهرة","coordinates":{"lat":30.045916,"lng":31.224291},"cost_estimate":100},
+          "lunch":{"restaurant":"مطعم متوسط","coordinates":{"lat":30.0459,"lng":31.2243},"cost_estimate":150},
+          "afternoon":{"activity":"جولة في وسط البلد وشارع قصر النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50},
+          "evening":{"activity":"استراحة على النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50}
+        }
+      ],
+      "total_cost_estimate":1800
+    },
+    {
+      "trip_name":"رحلة 4 أيام - القاهرة",
+      "days":4,
+      "trip_type":"تاريخي + ثقافي + استرخاء",
+      "itinerary":[
+        {"day":1,"morning":{"activity":"أهرامات الجيزة وأبو الهول","coordinates":{"lat":29.976480,"lng":31.131302},"cost_estimate":200},"lunch":{"restaurant":"مطعم الهرم","coordinates":{"lat":29.980,"lng":31.132},"cost_estimate":100},"afternoon":{"activity":"المتحف المصري","coordinates":{"lat":30.0443,"lng":31.2357},"cost_estimate":150},"evening":{"activity":"كورنيش النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50}},
+        {"day":2,"morning":{"activity":"خان الخليلي ومقهى الفيشاوي","coordinates":{"lat":30.0470,"lng":31.2620},"cost_estimate":100},"lunch":{"restaurant":"مطعم عربي","coordinates":{"lat":30.0470,"lng":31.2620},"cost_estimate":150},"afternoon":{"activity":"مسجد الإمام الحسين وشارع المعز","coordinates":{"lat":30.0485,"lng":31.2625},"cost_estimate":50},"evening":{"activity":"وسط البلد وشارع قصر النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50}},
+        {"day":3,"morning":{"activity":"برج القاهرة","coordinates":{"lat":30.045916,"lng":31.224291},"cost_estimate":100},"lunch":{"restaurant":"مطعم متوسط","coordinates":{"lat":30.0459,"lng":31.2243},"cost_estimate":150},"afternoon":{"activity":"جولة في وسط البلد وشارع قصر النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50},"evening":{"activity":"نزهة على النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50}},
+        {"day":4,"morning":{"activity":"القرية الفرعونية","coordinates":{"lat":29.9805,"lng":31.1285},"cost_estimate":150},"lunch":{"restaurant":"مطعم شعبي","coordinates":{"lat":29.9805,"lng":31.1285},"cost_estimate":100},"afternoon":{"activity":"حديقة الأزهر","coordinates":{"lat":30.040511,"lng":31.264630},"cost_estimate":50},"evening":{"activity":"عشاء على كورنيش النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":100}}
+      ],
+      "total_cost_estimate":2500
+    },
+    {
+      "trip_name":"رحلة 5 أيام - القاهرة",
+      "days":5,
+      "trip_type":"تاريخي + ثقافي + استرخاء",
+      "itinerary":[
+        {"day":1,"morning":{"activity":"أهرامات الجيزة","coordinates":{"lat":29.976480,"lng":31.131302},"cost_estimate":200},"lunch":{"restaurant":"مطعم الهرم","coordinates":{"lat":29.980,"lng":31.132},"cost_estimate":100},"afternoon":{"activity":"المتحف المصري","coordinates":{"lat":30.0443,"lng":31.2357},"cost_estimate":150},"evening":{"activity":"كورنيش النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50}},
+        {"day":2,"morning":{"activity":"خان الخليلي ومقهى الفيشاوي","coordinates":{"lat":30.0470,"lng":31.2620},"cost_estimate":100},"lunch":{"restaurant":"مطعم عربي","coordinates":{"lat":30.0470,"lng":31.2620},"cost_estimate":150},"afternoon":{"activity":"مسجد الإمام الحسين وشارع المعز","coordinates":{"lat":30.0485,"lng":31.2625},"cost_estimate":50},"evening":{"activity":"وسط البلد","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50}},
+        {"day":3,"morning":{"activity":"برج القاهرة","coordinates":{"lat":30.045916,"lng":31.224291},"cost_estimate":100},"lunch":{"restaurant":"مطعم متوسط","coordinates":{"lat":30.0459,"lng":31.2243},"cost_estimate":150},"afternoon":{"activity":"جولة في وسط البلد وشارع قصر النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50},"evening":{"activity":"استراحة على النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50}},
+        {"day":4,"morning":{"activity":"القرية الفرعونية","coordinates":{"lat":29.9805,"lng":31.1285},"cost_estimate":150},"lunch":{"restaurant":"مطعم شعبي","coordinates":{"lat":29.9805,"lng":31.1285},"cost_estimate":100},"afternoon":{"activity":"حديقة الأزهر","coordinates":{"lat":30.040511,"lng":31.264630},"cost_estimate":50},"evening":{"activity":"عشاء على كورنيش النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":100}},
+        {"day":5,"morning":{"activity":"متحف البريد أو الفن الإسلامي","coordinates":{"lat":30.0443,"lng":31.2357},"cost_estimate":100},"lunch":{"restaurant":"مطعم وسط البلد","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":150},"afternoon":{"activity":"ممشى أهل مصر","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":0},"evening":{"activity":"عشاء ختامي على النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":150}}
+      ],
+      "total_cost_estimate":3500
+    }
+  ],
+
+  "trips": [
+    {
+      "trip_name": "رحلة 6 أيام - القاهرة",
+      "days": 6,
+      "trip_type": "تاريخي + ثقافي + استرخاء + تسوق",
+      "itinerary": [
+        {
+          "day":1,
+          "morning":{"activity":"أهرامات الجيزة","coordinates":{"lat":29.976480,"lng":31.131302},"cost_estimate":200},
+          "lunch":{"restaurant":"مطعم الهرم","coordinates":{"lat":29.980,"lng":31.132},"cost_estimate":100},
+          "afternoon":{"activity":"المتحف المصري","coordinates":{"lat":30.0443,"lng":31.2357},"cost_estimate":150},
+          "evening":{"activity":"كورنيش النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50}
+        },
+        {
+          "day":2,
+          "morning":{"activity":"خان الخليلي ومقهى الفيشاوي","coordinates":{"lat":30.0470,"lng":31.2620},"cost_estimate":100},
+          "lunch":{"restaurant":"مطعم عربي","coordinates":{"lat":30.0470,"lng":31.2620},"cost_estimate":150},
+          "afternoon":{"activity":"مسجد الإمام الحسين وشارع المعز","coordinates":{"lat":30.0485,"lng":31.2625},"cost_estimate":50},
+          "evening":{"activity":"وسط البلد","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50}
+        },
+        {
+          "day":3,
+          "morning":{"activity":"برج القاهرة","coordinates":{"lat":30.045916,"lng":31.224291},"cost_estimate":100},
+          "lunch":{"restaurant":"مطعم متوسط","coordinates":{"lat":30.0459,"lng":31.2243},"cost_estimate":150},
+          "afternoon":{"activity":"جولة في وسط البلد وشارع قصر النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50},
+          "evening":{"activity":"استراحة على النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50}
+        },
+        {
+          "day":4,
+          "morning":{"activity":"القرية الفرعونية","coordinates":{"lat":29.9805,"lng":31.1285},"cost_estimate":150},
+          "lunch":{"restaurant":"مطعم شعبي","coordinates":{"lat":29.9805,"lng":31.1285},"cost_estimate":100},
+          "afternoon":{"activity":"حديقة الأزهر","coordinates":{"lat":30.040511,"lng":31.264630},"cost_estimate":50},
+          "evening":{"activity":"عشاء على كورنيش النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":100}
+        },
+        {
+          "day":5,
+          "morning":{"activity":"متحف البريد أو الفن الإسلامي","coordinates":{"lat":30.0443,"lng":31.2357},"cost_estimate":100},
+          "lunch":{"restaurant":"مطعم وسط البلد","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":150},
+          "afternoon":{"activity":"ممشى أهل مصر أو حديقة الأندلس","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":0},
+          "evening":{"activity":"عشاء على كورنيش النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":150}
+        },
+        {
+          "day":6,
+          "morning":{"activity":"زيارة سوق أو معرض فنون محلية","coordinates":{"lat":30.0470,"lng":31.2620},"cost_estimate":100},
+          "lunch":{"restaurant":"مطعم عصري","coordinates":{"lat":30.0459,"lng":31.2243},"cost_estimate":150},
+          "afternoon":{"activity":"استراحة أو مقهى","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50},
+          "evening":{"activity":"عشاء وداع على كورنيش النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":150}
+        }
+      ],
+      "total_cost_estimate":4500
+    },
+    {
+      "trip_name": "رحلة 7 أيام - القاهرة",
+      "days": 7,
+      "trip_type": "تاريخي + ثقافي + استرخاء + تسوق + اكتشاف",
+      "itinerary": [
+        {
+          "day":1,
+          "morning":{"activity":"أهرامات الجيزة","coordinates":{"lat":29.976480,"lng":31.131302},"cost_estimate":200},
+          "lunch":{"restaurant":"مطعم الهرم","coordinates":{"lat":29.980,"lng":31.132},"cost_estimate":100},
+          "afternoon":{"activity":"المتحف المصري","coordinates":{"lat":30.0443,"lng":31.2357},"cost_estimate":150},
+          "evening":{"activity":"كورنيش النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50}
+        },
+        {
+          "day":2,
+          "morning":{"activity":"خان الخليلي ومقهى الفيشاوي","coordinates":{"lat":30.0470,"lng":31.2620},"cost_estimate":100},
+          "lunch":{"restaurant":"مطعم عربي","coordinates":{"lat":30.0470,"lng":31.2620},"cost_estimate":150},
+          "afternoon":{"activity":"مسجد الإمام الحسين وشارع المعز","coordinates":{"lat":30.0485,"lng":31.2625},"cost_estimate":50},
+          "evening":{"activity":"وسط البلد","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50}
+        },
+        {
+          "day":3,
+          "morning":{"activity":"برج القاهرة","coordinates":{"lat":30.045916,"lng":31.224291},"cost_estimate":100},
+          "lunch":{"restaurant":"مطعم متوسط","coordinates":{"lat":30.0459,"lng":31.2243},"cost_estimate":150},
+          "afternoon":{"activity":"جولة في وسط البلد وشارع قصر النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50},
+          "evening":{"activity":"استراحة على النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50}
+        },
+        {
+          "day":4,
+          "morning":{"activity":"القرية الفرعونية","coordinates":{"lat":29.9805,"lng":31.1285},"cost_estimate":150},
+          "lunch":{"restaurant":"مطعم شعبي","coordinates":{"lat":29.9805,"lng":31.1285},"cost_estimate":100},
+          "afternoon":{"activity":"حديقة الأزهر","coordinates":{"lat":30.040511,"lng":31.264630},"cost_estimate":50},
+          "evening":{"activity":"عشاء على كورنيش النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":100}
+        },
+        {
+          "day":5,
+          "morning":{"activity":"متحف البريد أو الفن الإسلامي","coordinates":{"lat":30.0443,"lng":31.2357},"cost_estimate":100},
+          "lunch":{"restaurant":"مطعم وسط البلد","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":150},
+          "afternoon":{"activity":"ممشى أهل مصر أو حديقة الأندلس","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":0},
+          "evening":{"activity":"عشاء على كورنيش النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":150}
+        },
+        {
+          "day":6,
+          "morning":{"activity":"زيارة سوق أو معرض فنون محلية","coordinates":{"lat":30.0470,"lng":31.2620},"cost_estimate":100},
+          "lunch":{"restaurant":"مطعم عصري","coordinates":{"lat":30.0459,"lng":31.2243},"cost_estimate":150},
+          "afternoon":{"activity":"استراحة أو مقهى","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50},
+          "evening":{"activity":"عشاء وداع على كورنيش النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":150}
+        },
+        {
+          "day":7,
+          "morning":{"activity":"رحلة إلى حي تراثي أو سوق محلي","coordinates":{"lat":30.0470,"lng":31.2620},"cost_estimate":100},
+          "lunch":{"restaurant":"مطعم عصري","coordinates":{"lat":30.0459,"lng":31.2243},"cost_estimate":150},
+          "afternoon":{"activity":"جلسة استرخاء أو مقهى","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50},
+          "evening":{"activity":"عشاء ختامي على كورنيش النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":150}
+        }
+      ],
+      "total_cost_estimate":5000
+    }
+  ]
+,
+  "trips": [
+    {
+      "trip_name": "رحلة يوم واحد رومانسية - القاهرة",
+      "days": 1,
+      "trip_type": "رومانسي + استرخاء",
+      "itinerary": [
+        {
+          "day": 1,
+          "morning": {"activity":"نزهة على جسر قصر النيل والتقاط صور رومانسية","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50},
+          "lunch": {"restaurant":"مطعم رومانسي على الكورنيش","coordinates":{"lat":30.0445,"lng":31.236},"cost_estimate":200},
+          "afternoon": {"activity":"جولة في حديقة الأزهر","coordinates":{"lat":30.0405,"lng":31.2646},"cost_estimate":30},
+          "evening": {"activity":"عشاء رومانس على مركب في النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":300}
+        }
+      ],
+      "total_cost_estimate": 580
+    },
+    {
+      "trip_name": "رحلة يومين رومانسية - القاهرة",
+      "days": 2,
+      "trip_type": "رومانسي + استرخاء + ثقافي",
+      "itinerary": [
+        {
+          "day": 1,
+          "morning":{"activity":"نزهة على كورنيش النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50},
+          "lunch":{"restaurant":"مطعم رومانسي","coordinates":{"lat":30.0445,"lng":31.236},"cost_estimate":200},
+          "afternoon":{"activity":"حديقة الأزهر","coordinates":{"lat":30.0405,"lng":31.2646},"cost_estimate":30},
+          "evening":{"activity":"عشاء على مركب في النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":300}
+        },
+        {
+          "day": 2,
+          "morning":{"activity":"زيارة برج القاهرة","coordinates":{"lat":30.045916,"lng":31.224291},"cost_estimate":100},
+          "lunch":{"restaurant":"مطعم عصري وسط المدينة","coordinates":{"lat":30.0459,"lng":31.2243},"cost_estimate":150},
+          "afternoon":{"activity":"مقهى هادئ في الزمالك","coordinates":{"lat":30.0440,"lng":31.2245},"cost_estimate":50},
+          "evening":{"activity":"نزهة على كورنيش المعادي","coordinates":{"lat":30.0145,"lng":31.2400},"cost_estimate":50}
+        }
+      ],
+      "total_cost_estimate": 980
+    },
+    {
+      "trip_name": "رحلة 3 أيام رومانسية - القاهرة",
+      "days": 3,
+      "trip_type": "رومانسي + ثقافي + استرخاء",
+      "itinerary": [
+        {
+          "day":1,
+          "morning":{"activity":"نزهة على كورنيش النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50},
+          "lunch":{"restaurant":"مطعم رومانسي","coordinates":{"lat":30.0445,"lng":31.236},"cost_estimate":200},
+          "afternoon":{"activity":"حديقة الأزهر","coordinates":{"lat":30.0405,"lng":31.2646},"cost_estimate":30},
+          "evening":{"activity":"عشاء على مركب في النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":300}
+        },
+        {
+          "day":2,
+          "morning":{"activity":"زيارة برج القاهرة","coordinates":{"lat":30.045916,"lng":31.224291},"cost_estimate":100},
+          "lunch":{"restaurant":"مطعم عصري","coordinates":{"lat":30.0459,"lng":31.2243},"cost_estimate":150},
+          "afternoon":{"activity":"مقهى هادئ في الزمالك","coordinates":{"lat":30.0440,"lng":31.2245},"cost_estimate":50},
+          "evening":{"activity":"نزهة على كورنيش المعادي","coordinates":{"lat":30.0145,"lng":31.2400},"cost_estimate":50}
+        },
+        {
+          "day":3,
+          "morning":{"activity":"زيارة القرية الفرعونية","coordinates":{"lat":29.9805,"lng":31.1285},"cost_estimate":150},
+          "lunch":{"restaurant":"مطعم شعبي رومانسي","coordinates":{"lat":29.9805,"lng":31.1285},"cost_estimate":100},
+          "afternoon":{"activity":"جولة على ضفاف النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50},
+          "evening":{"activity":"عشاء ختامي رومانسي","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":300}
+        }
+      ],
+      "total_cost_estimate": 1580
+    },
+    {
+      "trip_name": "رحلة 4 أيام رومانسية - القاهرة",
+      "days": 4,
+      "trip_type": "رومانسي + ثقافي + استرخاء",
+      "itinerary": [
+        {
+          "day":1,
+          "morning":{"activity":"نزهة على كورنيش النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50},
+          "lunch":{"restaurant":"مطعم رومانسي","coordinates":{"lat":30.0445,"lng":31.236},"cost_estimate":200},
+          "afternoon":{"activity":"حديقة الأزهر","coordinates":{"lat":30.0405,"lng":31.2646},"cost_estimate":30},
+          "evening":{"activity":"عشاء على مركب في النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":300}
+        },
+        {
+          "day":2,
+          "morning":{"activity":"زيارة برج القاهرة","coordinates":{"lat":30.045916,"lng":31.224291},"cost_estimate":100},
+          "lunch":{"restaurant":"مطعم عصري","coordinates":{"lat":30.0459,"lng":31.2243},"cost_estimate":150},
+          "afternoon":{"activity":"مقهى هادئ في الزمالك","coordinates":{"lat":30.0440,"lng":31.2245},"cost_estimate":50},
+          "evening":{"activity":"نزهة على كورنيش المعادي","coordinates":{"lat":30.0145,"lng":31.2400},"cost_estimate":50}
+        },
+        {
+          "day":3,
+          "morning":{"activity":"القرية الفرعونية","coordinates":{"lat":29.9805,"lng":31.1285},"cost_estimate":150},
+          "lunch":{"restaurant":"مطعم شعبي رومانسي","coordinates":{"lat":29.9805,"lng":31.1285},"cost_estimate":100},
+          "afternoon":{"activity":"جولة على ضفاف النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50},
+          "evening":{"activity":"عشاء رومانس على كورنيش النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":300}
+        },
+        {
+          "day":4,
+          "morning":{"activity":"زيارة حي الزمالك للتجول والفنادق الرومانسية","coordinates":{"lat":30.0440,"lng":31.2245},"cost_estimate":50},
+          "lunch":{"restaurant":"مطعم عصري رومانسي","coordinates":{"lat":30.0459,"lng":31.2243},"cost_estimate":150},
+          "afternoon":{"activity":"مقهى على ضفاف النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50},
+          "evening":{"activity":"عشاء ختامي رومانسي","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":300}
+        }
+      ],
+      "total_cost_estimate": 1780
+    },
+    {
+      "trip_name": "رحلة 5 أيام رومانسية - القاهرة",
+      "days": 5,
+      "trip_type": "رومانسي + ثقافي + استرخاء + تجربة الطعام",
+      "itinerary": [
+        {
+          "day":1,"morning":{"activity":"نزهة على كورنيش النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50},
+          "lunch":{"restaurant":"مطعم رومانسي","coordinates":{"lat":30.0445,"lng":31.236},"cost_estimate":200},
+          "afternoon":{"activity":"حديقة الأزهر","coordinates":{"lat":30.0405,"lng":31.2646},"cost_estimate":30},
+          "evening":{"activity":"عشاء على مركب في النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":300}
+        },
+        {
+          "day":2,"morning":{"activity":"زيارة برج القاهرة","coordinates":{"lat":30.045916,"lng":31.224291},"cost_estimate":100},
+          "lunch":{"restaurant":"مطعم عصري","coordinates":{"lat":30.0459,"lng":31.2243},"cost_estimate":150},
+          "afternoon":{"activity":"مقهى هادئ في الزمالك","coordinates":{"lat":30.0440,"lng":31.2245},"cost_estimate":50},
+          "evening":{"activity":"نزهة على كورنيش المعادي","coordinates":{"lat":30.0145,"lng":31.2400},"cost_estimate":50}
+        },
+        {
+          "day":3,"morning":{"activity":"القرية الفرعونية","coordinates":{"lat":29.9805,"lng":31.1285},"cost_estimate":150},
+          "lunch":{"restaurant":"مطعم شعبي رومانسي","coordinates":{"lat":29.9805,"lng":31.1285},"cost_estimate":100},
+          "afternoon":{"activity":"جولة على ضفاف النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50},
+          "evening":{"activity":"عشاء رومانس على كورنيش النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":300}
+        },
+        {
+          "day":4,"morning":{"activity":"زيارة المقاهي الرومانسية في وسط البلد","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50},
+          "lunch":{"restaurant":"مطعم عصري","coordinates":{"lat":30.0459,"lng":31.2243},"cost_estimate":150},
+          "afternoon":{"activity":"نزهة على كورنيش المعادي","coordinates":{"lat":30.0145,"lng":31.2400},"cost_estimate":50},
+          "evening":{"activity":"عشاء على مركب في النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":300}
+        },
+        {
+          "day":5,"morning":{"activity":"جولة في سوق خان الخليلي","coordinates":{"lat":30.0470,"lng":31.2620},"cost_estimate":100},
+          "lunch":{"restaurant":"مطعم شعبي رومانسي","coordinates":{"lat":30.0470,"lng":31.2620},"cost_estimate":150},
+          "afternoon":{"activity":"مقهى هادئ","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50},
+          "evening":{"activity":"عشاء ختامي رومانسي","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":300}
+        }
+      ],
+      "total_cost_estimate": 2130
+    },
+    {
+      "trip_name": "رحلة 6 أيام رومانسية - القاهرة",
+      "days": 6,
+      "trip_type": "رومانسي + ثقافي + استرخاء + تجربة الطعام + نزهات",
+      "itinerary": [
+        {
+          "day":1,"morning":{"activity":"نزهة على كورنيش النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50},
+          "lunch":{"restaurant":"مطعم رومانسي","coordinates":{"lat":30.0445,"lng":31.236},"cost_estimate":200},
+          "afternoon":{"activity":"حديقة الأزهر","coordinates":{"lat":30.0405,"lng":31.2646},"cost_estimate":30},
+          "evening":{"activity":"عشاء على مركب في النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":300}
+        },
+        {
+          "day":2,"morning":{"activity":"زيارة برج القاهرة","coordinates":{"lat":30.045916,"lng":31.224291},"cost_estimate":100},
+          "lunch":{"restaurant":"مطعم عصري","coordinates":{"lat":30.0459,"lng":31.2243},"cost_estimate":150},
+          "afternoon":{"activity":"مقهى هادئ في الزمالك","coordinates":{"lat":30.0440,"lng":31.2245},"cost_estimate":50},
+          "evening":{"activity":"نزهة على كورنيش المعادي","coordinates":{"lat":30.0145,"lng":31.2400},"cost_estimate":50}
+        },
+        {
+          "day":3,"morning":{"activity":"القرية الفرعونية","coordinates":{"lat":29.9805,"lng":31.1285},"cost_estimate":150},
+          "lunch":{"restaurant":"مطعم شعبي رومانسي","coordinates":{"lat":29.9805,"lng":31.1285},"cost_estimate":100},
+          "afternoon":{"activity":"جولة على ضفاف النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50},
+          "evening":{"activity":"عشاء على مركب في النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":300}
+        },
+        {
+          "day":4,"morning":{"activity":"جولة في سوق خان الخليلي","coordinates":{"lat":30.0470,"lng":31.2620},"cost_estimate":100},
+          "lunch":{"restaurant":"مطعم شعبي رومانسي","coordinates":{"lat":30.0470,"lng":31.2620},"cost_estimate":150},
+          "afternoon":{"activity":"مقهى هادئ وسط المدينة","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50},
+          "evening":{"activity":"عشاء رومانسي على كورنيش النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":300}
+        },
+        {
+          "day":5,"morning":{"activity":"نزهة على كورنيش المعادي","coordinates":{"lat":30.0145,"lng":31.2400},"cost_estimate":50},
+          "lunch":{"restaurant":"مطعم عصري","coordinates":{"lat":30.0459,"lng":31.2243},"cost_estimate":150},
+          "afternoon":{"activity":"زيارة مقهى هادئ","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50},
+          "evening":{"activity":"عشاء على مركب في النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":300}
+        },
+        {
+          "day":6,"morning":{"activity":"جولة في الحدائق الرومانسية","coordinates":{"lat":30.0405,"lng":31.2646},"cost_estimate":50},
+          "lunch":{"restaurant":"مطعم رومانسي عصري","coordinates":{"lat":30.0459,"lng":31.2243},"cost_estimate":150},
+          "afternoon":{"activity":"مقهى هادئ","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50},
+          "evening":{"activity":"عشاء ختامي رومانسي","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":300}
+        }
+      ],
+      "total_cost_estimate": 3830
+    },
+    {
+      "trip_name": "رحلة 7 أيام رومانسية - القاهرة",
+      "days": 7,
+      "trip_type": "رومانسي + ثقافي + استرخاء + تجربة الطعام + اكتشاف",
+      "itinerary": [
+        {
+          "day":1,"morning":{"activity":"نزهة على كورنيش النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50},
+          "lunch":{"restaurant":"مطعم رومانسي","coordinates":{"lat":30.0445,"lng":31.236},"cost_estimate":200},
+          "afternoon":{"activity":"حديقة الأزهر","coordinates":{"lat":30.0405,"lng":31.2646},"cost_estimate":30},
+          "evening":{"activity":"عشاء على مركب في النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":300}
+        },
+        {
+          "day":2,"morning":{"activity":"زيارة برج القاهرة","coordinates":{"lat":30.045916,"lng":31.224291},"cost_estimate":100},
+          "lunch":{"restaurant":"مطعم عصري","coordinates":{"lat":30.0459,"lng":31.2243},"cost_estimate":150},
+          "afternoon":{"activity":"مقهى هادئ في الزمالك","coordinates":{"lat":30.0440,"lng":31.2245},"cost_estimate":50},
+          "evening":{"activity":"نزهة على كورنيش المعادي","coordinates":{"lat":30.0145,"lng":31.2400},"cost_estimate":50}
+        },
+        {
+          "day":3,"morning":{"activity":"القرية الفرعونية","coordinates":{"lat":29.9805,"lng":31.1285},"cost_estimate":150},
+          "lunch":{"restaurant":"مطعم شعبي رومانسي","coordinates":{"lat":29.9805,"lng":31.1285},"cost_estimate":100},
+          "afternoon":{"activity":"جولة على ضفاف النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50},
+          "evening":{"activity":"عشاء على مركب في النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":300}
+        },
+        {
+          "day":4,"morning":{"activity":"جولة في سوق خان الخليلي","coordinates":{"lat":30.0470,"lng":31.2620},"cost_estimate":100},
+          "lunch":{"restaurant":"مطعم شعبي رومانسي","coordinates":{"lat":30.0470,"lng":31.2620},"cost_estimate":150},
+          "afternoon":{"activity":"مقهى هادئ وسط المدينة","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50},
+          "evening":{"activity":"عشاء رومانسي على كورنيش النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":300}
+        },
+        {
+          "day":5,"morning":{"activity":"نزهة على كورنيش المعادي","coordinates":{"lat":30.0145,"lng":31.2400},"cost_estimate":50},
+          "lunch":{"restaurant":"مطعم عصري","coordinates":{"lat":30.0459,"lng":31.2243},"cost_estimate":150},
+          "afternoon":{"activity":"زيارة مقهى هادئ","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50},
+          "evening":{"activity":"عشاء على مركب في النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":300}
+        },
+        {
+          "day":6,"morning":{"activity":"جولة في الحدائق الرومانسية","coordinates":{"lat":30.0405,"lng":31.2646},"cost_estimate":50},
+          "lunch":{"restaurant":"مطعم رومانسي عصري","coordinates":{"lat":30.0459,"lng":31.2243},"cost_estimate":150},
+          "afternoon":{"activity":"مقهى هادئ","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50},
+          "evening":{"activity":"عشاء ختامي رومانسي","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":300}
+        },
+        {
+          "day":7,"morning":{"activity":"جولة نهائية على ضفاف النيل والتسوق","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50},
+          "lunch":{"restaurant":"مطعم رومانسي فاخر","coordinates":{"lat":30.0459,"lng":31.2243},"cost_estimate":200},
+          "afternoon":{"activity":"مقهى نهائي للتوديع","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":50},
+          "evening":{"activity":"عشاء ختامي رومانسي فاخر","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":400}
+        }
+      ],
+      "total_cost_estimate": 4300
+    }
+  ]
+,
+  "trips": [
+    {
+      "trip_name": "رحلة يوم واحد مغامرات - القاهرة",
+      "days": 1,
+      "trip_type": "مغامرات + أكشن",
+      "itinerary": [
+        {
+          "day": 1,
+          "morning":{"activity":"ركوب قوارب سريعة على النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":150},
+          "lunch":{"restaurant":"مطعم سريع وعملي","coordinates":{"lat":30.0445,"lng":31.236},"cost_estimate":100},
+          "afternoon":{"activity":"تجربة تسلق صخور صناعية في القاهرة","coordinates":{"lat":30.0500,"lng":31.2320},"cost_estimate":120},
+          "evening":{"activity":"جولة مغامرات على دراجات نارية صغيرة","coordinates":{"lat":30.0460,"lng":31.2300},"cost_estimate":100}
+        }
+      ],
+      "total_cost_estimate": 470
+    },
+    {
+      "trip_name": "رحلة يومين مغامرات - القاهرة",
+      "days": 2,
+      "trip_type": "مغامرات + أكشن + اكتشاف",
+      "itinerary": [
+        {
+          "day":1,
+          "morning":{"activity":"ركوب قوارب سريعة على النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":150},
+          "lunch":{"restaurant":"مطعم سريع وعملي","coordinates":{"lat":30.0445,"lng":31.236},"cost_estimate":100},
+          "afternoon":{"activity":"تسلق صخور صناعية","coordinates":{"lat":30.0500,"lng":31.2320},"cost_estimate":120},
+          "evening":{"activity":"جولة دراجات نارية صغيرة","coordinates":{"lat":30.0460,"lng":31.2300},"cost_estimate":100}
+        },
+        {
+          "day":2,
+          "morning":{"activity":"جولة في الأهرامات بالخيول والجمال","coordinates":{"lat":29.9792,"lng":31.1342},"cost_estimate":200},
+          "lunch":{"restaurant":"مطعم شعبي قريب من الأهرامات","coordinates":{"lat":29.9792,"lng":31.1342},"cost_estimate":100},
+          "afternoon":{"activity":"ركوب Zipline فوق النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":250},
+          "evening":{"activity":"جولة كارتنج في مكان مغامرات","coordinates":{"lat":30.0500,"lng":31.2200},"cost_estimate":120}
+        }
+      ],
+      "total_cost_estimate": 1440
+    },
+    {
+      "trip_name": "رحلة 3 أيام مغامرات - القاهرة",
+      "days": 3,
+      "trip_type": "مغامرات + أكشن + اكتشاف + تحديات",
+      "itinerary": [
+        {
+          "day":1,
+          "morning":{"activity":"ركوب قوارب سريعة على النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":150},
+          "lunch":{"restaurant":"مطعم سريع وعملي","coordinates":{"lat":30.0445,"lng":31.236},"cost_estimate":100},
+          "afternoon":{"activity":"تسلق صخور صناعية","coordinates":{"lat":30.0500,"lng":31.2320},"cost_estimate":120},
+          "evening":{"activity":"جولة دراجات نارية صغيرة","coordinates":{"lat":30.0460,"lng":31.2300},"cost_estimate":100}
+        },
+        {
+          "day":2,
+          "morning":{"activity":"جولة الأهرامات بالخيول والجمال","coordinates":{"lat":29.9792,"lng":31.1342},"cost_estimate":200},
+          "lunch":{"restaurant":"مطعم شعبي","coordinates":{"lat":29.9792,"lng":31.1342},"cost_estimate":100},
+          "afternoon":{"activity":"ركوب Zipline فوق النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":250},
+          "evening":{"activity":"كارتنج ومغامرات صغيرة","coordinates":{"lat":30.0500,"lng":31.2200},"cost_estimate":120}
+        },
+        {
+          "day":3,
+          "morning":{"activity":"جولة صحراوية بسيارات الدفع الرباعي","coordinates":{"lat":29.9800,"lng":31.1200},"cost_estimate":300},
+          "lunch":{"restaurant":"مطعم صحراوي","coordinates":{"lat":29.9800,"lng":31.1200},"cost_estimate":150},
+          "afternoon":{"activity":"تجربة ركوب منطاد فوق القاهرة","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":400},
+          "evening":{"activity":"مغامرات ليلية في نادي مغامرات","coordinates":{"lat":30.0460,"lng":31.2200},"cost_estimate":150}
+        }
+      ],
+      "total_cost_estimate": 2410
+    },
+    {
+      "trip_name": "رحلة 4 أيام مغامرات - القاهرة",
+      "days": 4,
+      "trip_type": "مغامرات + أكشن + تحديات",
+      "itinerary": [
+        {
+          "day":1,"morning":{"activity":"ركوب قوارب سريعة","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":150},
+          "lunch":{"restaurant":"مطعم سريع","coordinates":{"lat":30.0445,"lng":31.236},"cost_estimate":100},
+          "afternoon":{"activity":"تسلق صخور صناعية","coordinates":{"lat":30.0500,"lng":31.2320},"cost_estimate":120},
+          "evening":{"activity":"جولة دراجات نارية","coordinates":{"lat":30.0460,"lng":31.2300},"cost_estimate":100}
+        },
+        {
+          "day":2,"morning":{"activity":"جولة الأهرامات بالخيول والجمال","coordinates":{"lat":29.9792,"lng":31.1342},"cost_estimate":200},
+          "lunch":{"restaurant":"مطعم شعبي","coordinates":{"lat":29.9792,"lng":31.1342},"cost_estimate":100},
+          "afternoon":{"activity":"ركوب Zipline","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":250},
+          "evening":{"activity":"كارتنج","coordinates":{"lat":30.0500,"lng":31.2200},"cost_estimate":120}
+        },
+        {
+          "day":3,"morning":{"activity":"جولة صحراوية بسيارات دفع رباعي","coordinates":{"lat":29.9800,"lng":31.1200},"cost_estimate":300},
+          "lunch":{"restaurant":"مطعم صحراوي","coordinates":{"lat":29.9800,"lng":31.1200},"cost_estimate":150},
+          "afternoon":{"activity":"ركوب منطاد","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":400},
+          "evening":{"activity":"مغامرات ليلية","coordinates":{"lat":30.0460,"lng":31.2200},"cost_estimate":150}
+        },
+        {
+          "day":4,"morning":{"activity":"تسلق جبال صناعية","coordinates":{"lat":30.0500,"lng":31.2320},"cost_estimate":150},
+          "lunch":{"restaurant":"مطعم عصري","coordinates":{"lat":30.0450,"lng":31.2250},"cost_estimate":150},
+          "afternoon":{"activity":"جولة دراجات جبلية","coordinates":{"lat":30.0460,"lng":31.2300},"cost_estimate":150},
+          "evening":{"activity":"عشاء مغامرات في مطعم مغامر","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":200}
+        }
+      ],
+      "total_cost_estimate": 3140
+    }
+  ]
+,
+
+  "trips": [
+    {
+      "trip_name": "رحلة 5 أيام مغامرات - القاهرة",
+      "days": 5,
+      "trip_type": "مغامرات + أكشن + تحديات",
+      "itinerary": [
+        {
+          "day":1,"morning":{"activity":"ركوب قوارب سريعة على النيل","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":150},
+          "lunch":{"restaurant":"مطعم سريع","coordinates":{"lat":30.0445,"lng":31.236},"cost_estimate":100},
+          "afternoon":{"activity":"تسلق صخور صناعية","coordinates":{"lat":30.0500,"lng":31.2320},"cost_estimate":120},
+          "evening":{"activity":"جولة دراجات نارية صغيرة","coordinates":{"lat":30.0460,"lng":31.2300},"cost_estimate":100}
+        },
+        {
+          "day":2,"morning":{"activity":"جولة الأهرامات بالخيول والجمال","coordinates":{"lat":29.9792,"lng":31.1342},"cost_estimate":200},
+          "lunch":{"restaurant":"مطعم شعبي","coordinates":{"lat":29.9792,"lng":31.1342},"cost_estimate":100},
+          "afternoon":{"activity":"ركوب Zipline","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":250},
+          "evening":{"activity":"كارتنج","coordinates":{"lat":30.0500,"lng":31.2200},"cost_estimate":120}
+        },
+        {
+          "day":3,"morning":{"activity":"جولة صحراوية بسيارات دفع رباعي","coordinates":{"lat":29.9800,"lng":31.1200},"cost_estimate":300},
+          "lunch":{"restaurant":"مطعم صحراوي","coordinates":{"lat":29.9800,"lng":31.1200},"cost_estimate":150},
+          "afternoon":{"activity":"ركوب منطاد","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":400},
+          "evening":{"activity":"مغامرات ليلية","coordinates":{"lat":30.0460,"lng":31.2200},"cost_estimate":150}
+        },
+        {
+          "day":4,"morning":{"activity":"تسلق جبال صناعية","coordinates":{"lat":30.0500,"lng":31.2320},"cost_estimate":150},
+          "lunch":{"restaurant":"مطعم عصري","coordinates":{"lat":30.0450,"lng":31.2250},"cost_estimate":150},
+          "afternoon":{"activity":"جولة دراجات جبلية","coordinates":{"lat":30.0460,"lng":31.2300},"cost_estimate":150},
+          "evening":{"activity":"عشاء مغامرات","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":200}
+        },
+        {
+          "day":5,"morning":{"activity":"جولة في حديقة المغامرات الكبيرة","coordinates":{"lat":30.0400,"lng":31.2600},"cost_estimate":200},
+          "lunch":{"restaurant":"مطعم سريع في الحديقة","coordinates":{"lat":30.0400,"lng":31.2600},"cost_estimate":100},
+          "afternoon":{"activity":"تجربة الألعاب المثيرة والترامبولين","coordinates":{"lat":30.0400,"lng":31.2600},"cost_estimate":150},
+          "evening":{"activity":"جولة ليلية بالقوارب الصغيرة","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":150}
+        }
+      ],
+      "total_cost_estimate": 3990
+    }
+,
+    {
+      "trip_name": "رحلة 6 أيام مغامرات - القاهرة",
+      "days": 6,
+      "trip_type": "مغامرات + أكشن + اكتشاف",
+      "itinerary": [
+        {
+          "day":1,"morning":{"activity":"ركوب قوارب سريعة","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":150},
+          "lunch":{"restaurant":"مطعم سريع","coordinates":{"lat":30.0445,"lng":31.236},"cost_estimate":100},
+          "afternoon":{"activity":"تسلق صخور صناعية","coordinates":{"lat":30.0500,"lng":31.2320},"cost_estimate":120},
+          "evening":{"activity":"جولة دراجات نارية","coordinates":{"lat":30.0460,"lng":31.2300},"cost_estimate":100}
+        },
+        {
+          "day":2,"morning":{"activity":"جولة الأهرامات بالخيول والجمال","coordinates":{"lat":29.9792,"lng":31.1342},"cost_estimate":200},
+          "lunch":{"restaurant":"مطعم شعبي","coordinates":{"lat":29.9792,"lng":31.1342},"cost_estimate":100},
+          "afternoon":{"activity":"ركوب Zipline","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":250},
+          "evening":{"activity":"كارتنج","coordinates":{"lat":30.0500,"lng":31.2200},"cost_estimate":120}
+        },
+        {
+          "day":3,"morning":{"activity":"جولة صحراوية بسيارات دفع رباعي","coordinates":{"lat":29.9800,"lng":31.1200},"cost_estimate":300},
+          "lunch":{"restaurant":"مطعم صحراوي","coordinates":{"lat":29.9800,"lng":31.1200},"cost_estimate":150},
+          "afternoon":{"activity":"ركوب منطاد","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":400},
+          "evening":{"activity":"مغامرات ليلية","coordinates":{"lat":30.0460,"lng":31.2200},"cost_estimate":150}
+        },
+        {
+          "day":4,"morning":{"activity":"تسلق جبال صناعية","coordinates":{"lat":30.0500,"lng":31.2320},"cost_estimate":150},
+          "lunch":{"restaurant":"مطعم عصري","coordinates":{"lat":30.0450,"lng":31.2250},"cost_estimate":150},
+          "afternoon":{"activity":"جولة دراجات جبلية","coordinates":{"lat":30.0460,"lng":31.2300},"cost_estimate":150},
+          "evening":{"activity":"عشاء مغامرات","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":200}
+        },
+        {
+          "day":5,"morning":{"activity":"جولة حديقة المغامرات","coordinates":{"lat":30.0400,"lng":31.2600},"cost_estimate":200},
+          "lunch":{"restaurant":"مطعم سريع","coordinates":{"lat":30.0400,"lng":31.2600},"cost_estimate":100},
+          "afternoon":{"activity":"ألعاب مثيرة وترامبولين","coordinates":{"lat":30.0400,"lng":31.2600},"cost_estimate":150},
+          "evening":{"activity":"جولة بالقوارب الصغيرة","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":150}
+        },
+        {
+          "day":6,"morning":{"activity":"زيارة سوق مغامرات محلي وتجربة تحديات","coordinates":{"lat":30.0470,"lng":31.2620},"cost_estimate":100},
+          "lunch":{"restaurant":"مطعم عصري","coordinates":{"lat":30.0459,"lng":31.2243},"cost_estimate":150},
+          "afternoon":{"activity":"جولة بالقوارب السريعة","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":150},
+          "evening":{"activity":"عشاء ختامي مغامرات","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":200}
+        }
+      ],
+      "total_cost_estimate": 4520
+    },
+    {
+      "trip_name": "رحلة 7 أيام مغامرات - القاهرة",
+      "days": 7,
+      "trip_type": "مغامرات + أكشن + اكتشاف + تحديات",
+      "itinerary": [
+        {
+          "day":1,"morning":{"activity":"ركوب قوارب سريعة","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":150},
+          "lunch":{"restaurant":"مطعم سريع","coordinates":{"lat":30.0445,"lng":31.236},"cost_estimate":100},
+          "afternoon":{"activity":"تسلق صخور صناعية","coordinates":{"lat":30.0500,"lng":31.2320},"cost_estimate":120},
+          "evening":{"activity":"جولة دراجات نارية","coordinates":{"lat":30.0460,"lng":31.2300},"cost_estimate":100}
+        },
+        {
+          "day":2,"morning":{"activity":"جولة الأهرامات بالخيول والجمال","coordinates":{"lat":29.9792,"lng":31.1342},"cost_estimate":200},
+          "lunch":{"restaurant":"مطعم شعبي","coordinates":{"lat":29.9792,"lng":31.1342},"cost_estimate":100},
+          "afternoon":{"activity":"ركوب Zipline","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":250},
+          "evening":{"activity":"كارتنج","coordinates":{"lat":30.0500,"lng":31.2200},"cost_estimate":120}
+        },
+        {
+          "day":3,"morning":{"activity":"جولة صحراوية بسيارات دفع رباعي","coordinates":{"lat":29.9800,"lng":31.1200},"cost_estimate":300},
+          "lunch":{"restaurant":"مطعم صحراوي","coordinates":{"lat":29.9800,"lng":31.1200},"cost_estimate":150},
+          "afternoon":{"activity":"ركوب منطاد","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":400},
+          "evening":{"activity":"مغامرات ليلية","coordinates":{"lat":30.0460,"lng":31.2200},"cost_estimate":150}
+        },
+        {
+          "day":4,"morning":{"activity":"تسلق جبال صناعية","coordinates":{"lat":30.0500,"lng":31.2320},"cost_estimate":150},
+          "lunch":{"restaurant":"مطعم عصري","coordinates":{"lat":30.0450,"lng":31.2250},"cost_estimate":150},
+          "afternoon":{"activity":"جولة دراجات جبلية","coordinates":{"lat":30.0460,"lng":31.2300},"cost_estimate":150},
+          "evening":{"activity":"عشاء مغامرات","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":200}
+        },
+        {
+          "day":5,"morning":{"activity":"جولة حديقة المغامرات","coordinates":{"lat":30.0400,"lng":31.2600},"cost_estimate":200},
+          "lunch":{"restaurant":"مطعم سريع","coordinates":{"lat":30.0400,"lng":31.2600},"cost_estimate":100},
+          "afternoon":{"activity":"ألعاب مثيرة وترامبولين","coordinates":{"lat":30.0400,"lng":31.2600},"cost_estimate":150},
+          "evening":{"activity":"جولة بالقوارب الصغيرة","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":150}
+        },
+        {
+          "day":6,"morning":{"activity":"زيارة سوق مغامرات محلي وتجربة تحديات","coordinates":{"lat":30.0470,"lng":31.2620},"cost_estimate":100},
+          "lunch":{"restaurant":"مطعم عصري","coordinates":{"lat":30.0459,"lng":31.2243},"cost_estimate":150},
+          "afternoon":{"activity":"جولة بالقوارب السريعة","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":150},
+          "evening":{"activity":"عشاء مغامرات","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":200}
+        },
+        {
+          "day":7,"morning":{"activity":"رحلة نهائية على ضفاف النيل وتجارب مغامرات","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":100},
+          "lunch":{"restaurant":"مطعم فاخر","coordinates":{"lat":30.0459,"lng":31.2243},"cost_estimate":200},
+          "afternoon":{"activity":"مغامرة صغيرة في نادي مغامرات","coordinates":{"lat":30.0460,"lng":31.2200},"cost_estimate":150},
+          "evening":{"activity":"عشاء ختامي مغامرات","coordinates":{"lat":30.0444,"lng":31.2357},"cost_estimate":300}
+        }
+      ],
+      "total_cost_estimate": 5780
+    }
+  ]
+}
+

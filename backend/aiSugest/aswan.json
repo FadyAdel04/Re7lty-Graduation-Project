@@ -1,0 +1,446 @@
+{
+  "trips": [
+    {
+      "trip_name": "رحلة يوم واحد - أسوان",
+      "days": 1,
+      "trip_type": "تاريخي",
+      "itinerary": [
+        {
+          "day": 1,
+          "morning": {
+            "activity": "زيارة السد العالي",
+            "location": "السد العالي، أسوان",
+            "coordinates": { "lat": 23.9700, "lng": 32.8770 },
+            "cost_estimate": 100
+          },
+          "lunch": {
+            "restaurant": "مطعم محلي",
+            "location": "كورنيش النيل، أسوان",
+            "coordinates": { "lat": 24.0889, "lng": 32.8998 },
+            "cost_estimate": 120
+          },
+          "afternoon": {
+            "activity": "معبد فيلة",
+            "location": "جزيرة أجيليكا",
+            "coordinates": { "lat": 24.0257, "lng": 32.8842 },
+            "cost_estimate": 150
+          },
+          "evening": {
+            "activity": "نزهة على كورنيش النيل",
+            "location": "كورنيش النيل، أسوان",
+            "coordinates": { "lat": 24.0889, "lng": 32.8998 },
+            "cost_estimate": 50
+          }
+        }
+      ],
+      "total_cost_estimate": 420
+    },
+    {
+      "trip_name": "رحلة يومين - أسوان",
+      "days": 2,
+      "trip_type": "تاريخي + ثقافي",
+      "itinerary": [
+        {
+          "day": 1,
+          "morning": { "activity": "السد العالي", "coordinates": { "lat": 23.9700, "lng": 32.8770 }, "cost_estimate": 100 },
+          "lunch": { "restaurant": "مطعم محلي", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 120 },
+          "afternoon": { "activity": "معبد فيلة", "coordinates": { "lat": 24.0257, "lng": 32.8842 }, "cost_estimate": 150 },
+          "evening": { "activity": "كورنيش النيل", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 50 }
+        },
+        {
+          "day": 2,
+          "morning": { "activity": "المسلة الناقصة", "coordinates": { "lat": 24.0936, "lng": 32.8993 }, "cost_estimate": 100 },
+          "lunch": { "restaurant": "مطعم نوبي", "coordinates": { "lat": 24.0910, "lng": 32.8980 }, "cost_estimate": 150 },
+          "afternoon": { "activity": "متحف النوبة", "coordinates": { "lat": 24.0880, "lng": 32.8826 }, "cost_estimate": 150 },
+          "evening": { "activity": "جلسة استرخاء نيلية", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 50 }
+        }
+      ],
+      "total_cost_estimate": 820
+    },
+    {
+      "trip_name": "رحلة 3 أيام - أسوان",
+      "days": 3,
+      "trip_type": "تاريخي + ثقافي",
+      "itinerary": [
+        {
+          "day": 1,
+          "morning": { "activity": "السد العالي", "coordinates": { "lat": 23.9700, "lng": 32.8770 }, "cost_estimate": 100 },
+          "lunch": { "restaurant": "مطعم محلي", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 120 },
+          "afternoon": { "activity": "معبد فيلة", "coordinates": { "lat": 24.0257, "lng": 32.8842 }, "cost_estimate": 150 },
+          "evening": { "activity": "كورنيش النيل", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 50 }
+        },
+        {
+          "day": 2,
+          "morning": { "activity": "المسلة الناقصة", "coordinates": { "lat": 24.0936, "lng": 32.8993 }, "cost_estimate": 100 },
+          "lunch": { "restaurant": "مطعم نوبي", "coordinates": { "lat": 24.0910, "lng": 32.8980 }, "cost_estimate": 150 },
+          "afternoon": { "activity": "متحف النوبة", "coordinates": { "lat": 24.0880, "lng": 32.8826 }, "cost_estimate": 150 },
+          "evening": { "activity": "نزهة نيلية", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 100 }
+        },
+        {
+          "day": 3,
+          "morning": { "activity": "قرية نوبية", "coordinates": { "lat": 24.0925, "lng": 32.8875 }, "cost_estimate": 150 },
+          "lunch": { "restaurant": "مطعم نوبي", "coordinates": { "lat": 24.0925, "lng": 32.8875 }, "cost_estimate": 150 },
+          "afternoon": { "activity": "جزيرة النباتات", "coordinates": { "lat": 24.0917, "lng": 32.8900 }, "cost_estimate": 100 },
+          "evening": { "activity": "عشاء على النيل", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 }
+        }
+      ],
+      "total_cost_estimate": 1320
+    },
+    {
+      "trip_name": "رحلة 4 أيام - أسوان",
+      "days": 4,
+      "trip_type": "تاريخي + ثقافي + استرخاء",
+      "itinerary": [
+        {
+          "day": 1,
+          "morning": { "activity": "السد العالي", "coordinates": { "lat": 23.9700, "lng": 32.8770 }, "cost_estimate": 100 },
+          "lunch": { "restaurant": "مطعم محلي", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 120 },
+          "afternoon": { "activity": "معبد فيلة", "coordinates": { "lat": 24.0257, "lng": 32.8842 }, "cost_estimate": 150 },
+          "evening": { "activity": "كورنيش النيل", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 50 }
+        },
+        {
+          "day": 2,
+          "morning": { "activity": "المسلة الناقصة", "coordinates": { "lat": 24.0936, "lng": 32.8993 }, "cost_estimate": 100 },
+          "lunch": { "restaurant": "مطعم نوبي", "coordinates": { "lat": 24.0910, "lng": 32.8980 }, "cost_estimate": 150 },
+          "afternoon": { "activity": "متحف النوبة", "coordinates": { "lat": 24.0880, "lng": 32.8826 }, "cost_estimate": 150 },
+          "evening": { "activity": "نزهة نيلية", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 100 }
+        },
+        {
+          "day": 3,
+          "morning": { "activity": "قرية نوبية", "coordinates": { "lat": 24.0925, "lng": 32.8875 }, "cost_estimate": 150 },
+          "lunch": { "restaurant": "مطعم نوبي", "coordinates": { "lat": 24.0925, "lng": 32.8875 }, "cost_estimate": 150 },
+          "afternoon": { "activity": "جزيرة النباتات", "coordinates": { "lat": 24.0917, "lng": 32.8900 }, "cost_estimate": 100 },
+          "evening": { "activity": "عشاء على النيل", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 }
+        },
+        {
+          "day": 4,
+          "morning": { "activity": "معبد أبو سمبل", "coordinates": { "lat": 22.3372, "lng": 31.6258 }, "cost_estimate": 500 },
+          "lunch": { "restaurant": "مطعم محلي", "coordinates": { "lat": 22.3372, "lng": 31.6258 }, "cost_estimate": 150 },
+          "afternoon": { "activity": "عودة واستراحة", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 0 },
+          "evening": { "activity": "عشاء ختامي", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 }
+        }
+      ],
+      "total_cost_estimate": 2300
+    },
+    {
+      "trip_name": "رحلة 5 أيام - أسوان",
+      "days": 5,
+      "trip_type": "تاريخي + ثقافي + استرخاء",
+      "itinerary": [
+        {
+          "day": 5,
+          "morning": { "activity": "رحلة نيلية", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 200 },
+          "lunch": { "restaurant": "مطعم نوبي", "coordinates": { "lat": 24.0910, "lng": 32.8980 }, "cost_estimate": 150 },
+          "afternoon": { "activity": "زيارة الأسواق المحلية", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 50 },
+          "evening": { "activity": "عشاء نيلي", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 }
+        }
+      ],
+      "total_cost_estimate": 2600
+    },
+    {
+      "trip_name": "رحلة 6 أيام - أسوان",
+      "days": 6,
+      "trip_type": "تاريخي + ثقافي + استرخاء",
+      "itinerary": [
+        {
+          "day": 6,
+          "morning": { "activity": "استراحة حرة", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 0 },
+          "lunch": { "restaurant": "مطعم محلي", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 120 },
+          "afternoon": { "activity": "جلسة تصوير تاريخية", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 50 },
+          "evening": { "activity": "عشاء وداع", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 }
+        }
+      ],
+      "total_cost_estimate": 2900
+    },
+    {
+      "trip_name": "رحلة 7 أيام - أسوان",
+      "days": 7,
+      "trip_type": "تاريخي + ثقافي + استرخاء + اكتشاف",
+      "itinerary": [
+        {
+          "day": 7,
+          "morning": { "activity": "رحلة فلوكة صباحية", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 },
+          "lunch": { "restaurant": "مطعم مطل على النيل", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 },
+          "afternoon": { "activity": "زيارة ثقافية حرة", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 50 },
+          "evening": { "activity": "عشاء ختامي على النيل", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 }
+        }
+      ],
+      "total_cost_estimate": 3300
+    }
+  ]
+,
+  "trips": [
+    {
+      "trip_name": "رحلة يوم واحد - أسوان (استرخاء)",
+      "days": 1,
+      "trip_type": "استرخاء",
+      "itinerary": [
+        {
+          "day": 1,
+          "morning": {
+            "activity": "جلسة فلوكة هادئة على النيل",
+            "location": "نيل أسوان",
+            "coordinates": { "lat": 24.0889, "lng": 32.8998 },
+            "cost_estimate": 150
+          },
+          "lunch": {
+            "restaurant": "مطعم مطل على النيل",
+            "location": "كورنيش النيل، أسوان",
+            "coordinates": { "lat": 24.0889, "lng": 32.8998 },
+            "cost_estimate": 150
+          },
+          "afternoon": {
+            "activity": "زيارة جزيرة النباتات",
+            "location": "جزيرة النباتات، أسوان",
+            "coordinates": { "lat": 24.0917, "lng": 32.8900 },
+            "cost_estimate": 100
+          },
+          "evening": {
+            "activity": "نزهة مسائية على كورنيش النيل",
+            "location": "كورنيش النيل، أسوان",
+            "coordinates": { "lat": 24.0889, "lng": 32.8998 },
+            "cost_estimate": 50
+          }
+        }
+      ],
+      "total_cost_estimate": 450
+    },
+    {
+      "trip_name": "رحلة يومين - أسوان (استرخاء)",
+      "days": 2,
+      "trip_type": "استرخاء",
+      "itinerary": [
+        {
+          "day": 1,
+          "morning": { "activity": "فلوكة نيلية", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 },
+          "lunch": { "restaurant": "مطعم نيلي", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 },
+          "afternoon": { "activity": "جزيرة النباتات", "coordinates": { "lat": 24.0917, "lng": 32.8900 }, "cost_estimate": 100 },
+          "evening": { "activity": "كورنيش النيل", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 50 }
+        },
+        {
+          "day": 2,
+          "morning": { "activity": "استرخاء بالفندق أو السبا", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 200 },
+          "lunch": { "restaurant": "مطعم صحي", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 },
+          "afternoon": { "activity": "جلسة تصوير على النيل", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 50 },
+          "evening": { "activity": "عشاء هادئ", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 }
+        }
+      ],
+      "total_cost_estimate": 950
+    },
+    {
+      "trip_name": "رحلة 3 أيام - أسوان (استرخاء)",
+      "days": 3,
+      "trip_type": "استرخاء",
+      "itinerary": [
+        {
+          "day": 1,
+          "morning": { "activity": "فلوكة صباحية", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 },
+          "lunch": { "restaurant": "مطعم مطل على النيل", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 },
+          "afternoon": { "activity": "جزيرة النباتات", "coordinates": { "lat": 24.0917, "lng": 32.8900 }, "cost_estimate": 100 },
+          "evening": { "activity": "كورنيش النيل", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 50 }
+        },
+        {
+          "day": 2,
+          "morning": { "activity": "جلسة سبا أو مساج", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 250 },
+          "lunch": { "restaurant": "مطعم صحي", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 },
+          "afternoon": { "activity": "استرخاء حر", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 0 },
+          "evening": { "activity": "عشاء نيلي", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 }
+        },
+        {
+          "day": 3,
+          "morning": { "activity": "زيارة قرية نوبية هادئة", "coordinates": { "lat": 24.0925, "lng": 32.8875 }, "cost_estimate": 150 },
+          "lunch": { "restaurant": "مطعم نوبي", "coordinates": { "lat": 24.0925, "lng": 32.8875 }, "cost_estimate": 150 },
+          "afternoon": { "activity": "فلوكة قصيرة", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 100 },
+          "evening": { "activity": "عشاء وداع", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 }
+        }
+      ],
+      "total_cost_estimate": 1650
+    },
+    {
+      "trip_name": "رحلة 4 أيام - أسوان (استرخاء)",
+      "days": 4,
+      "trip_type": "استرخاء + طبيعة",
+      "itinerary": [
+        {
+          "day": 1,
+          "morning": { "activity": "فلوكة نيلية", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 },
+          "lunch": { "restaurant": "مطعم نيلي", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 },
+          "afternoon": { "activity": "جزيرة النباتات", "coordinates": { "lat": 24.0917, "lng": 32.8900 }, "cost_estimate": 100 },
+          "evening": { "activity": "كورنيش النيل", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 50 }
+        },
+        {
+          "day": 2,
+          "morning": { "activity": "جلسة سبا كاملة", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 300 },
+          "lunch": { "restaurant": "مطعم صحي", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 },
+          "afternoon": { "activity": "استرخاء بالفندق", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 0 },
+          "evening": { "activity": "عشاء هادئ", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 }
+        },
+        {
+          "day": 3,
+          "morning": { "activity": "زيارة قرية نوبية", "coordinates": { "lat": 24.0925, "lng": 32.8875 }, "cost_estimate": 150 },
+          "lunch": { "restaurant": "مطعم نوبي", "coordinates": { "lat": 24.0925, "lng": 32.8875 }, "cost_estimate": 150 },
+          "afternoon": { "activity": "فلوكة قصيرة", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 100 },
+          "evening": { "activity": "جلسة غروب", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 50 }
+        },
+        {
+          "day": 4,
+          "morning": { "activity": "وقت حر", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 0 },
+          "lunch": { "restaurant": "مطعم مطل على النيل", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 },
+          "afternoon": { "activity": "جلسة تصوير", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 50 },
+          "evening": { "activity": "عشاء ختامي", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 }
+        }
+      ],
+      "total_cost_estimate": 2150
+    },
+    {
+      "trip_name": "رحلة 5 أيام - أسوان (استرخاء)",
+      "days": 5,
+      "trip_type": "استرخاء فاخر",
+      "itinerary": [
+        {
+          "day": 1,
+          "morning": { "activity": "فلوكة نيلية", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 },
+          "lunch": { "restaurant": "مطعم فاخر", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 200 },
+          "afternoon": { "activity": "جزيرة النباتات", "coordinates": { "lat": 24.0917, "lng": 32.8900 }, "cost_estimate": 100 },
+          "evening": { "activity": "كورنيش النيل", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 50 }
+        },
+        {
+          "day": 2,
+          "morning": { "activity": "سبا ومساج", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 300 },
+          "lunch": { "restaurant": "مطعم صحي", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 },
+          "afternoon": { "activity": "استرخاء حر", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 0 },
+          "evening": { "activity": "عشاء فاخر", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 200 }
+        },
+        {
+          "day": 3,
+          "morning": { "activity": "قرية نوبية", "coordinates": { "lat": 24.0925, "lng": 32.8875 }, "cost_estimate": 150 },
+          "lunch": { "restaurant": "مطعم نوبي", "coordinates": { "lat": 24.0925, "lng": 32.8875 }, "cost_estimate": 150 },
+          "afternoon": { "activity": "فلوكة قصيرة", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 100 },
+          "evening": { "activity": "جلسة غروب", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 50 }
+        },
+        {
+          "day": 4,
+          "morning": { "activity": "سباحة بالفندق", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 0 },
+          "lunch": { "restaurant": "مطعم مطل على النيل", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 },
+          "afternoon": { "activity": "جلسة استرخاء", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 0 },
+          "evening": { "activity": "عشاء هادئ", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 }
+        },
+        {
+          "day": 5,
+          "morning": { "activity": "فلوكة وداع", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 },
+          "lunch": { "restaurant": "مطعم نيلي", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 },
+          "afternoon": { "activity": "تسوق هادئ", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 50 },
+          "evening": { "activity": "عشاء ختامي", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 }
+        }
+      ],
+      "total_cost_estimate": 2850
+    }
+  ]
+,
+  "trip_name": "رحلة 6 أيام - أسوان (استرخاء)",
+  "days": 6,
+  "trip_type": "استرخاء فاخر + طبيعة",
+  "itinerary": [
+    {
+      "day": 1,
+      "morning": { "activity": "فلوكة نيلية هادئة", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 },
+      "lunch": { "restaurant": "مطعم مطل على النيل", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 },
+      "afternoon": { "activity": "جزيرة النباتات", "coordinates": { "lat": 24.0917, "lng": 32.8900 }, "cost_estimate": 100 },
+      "evening": { "activity": "نزهة على الكورنيش", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 50 }
+    },
+    {
+      "day": 2,
+      "morning": { "activity": "سبا ومساج كامل", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 300 },
+      "lunch": { "restaurant": "مطعم صحي", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 },
+      "afternoon": { "activity": "استرخاء بالفندق", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 0 },
+      "evening": { "activity": "عشاء هادئ", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 }
+    },
+    {
+      "day": 3,
+      "morning": { "activity": "زيارة قرية نوبية", "coordinates": { "lat": 24.0925, "lng": 32.8875 }, "cost_estimate": 150 },
+      "lunch": { "restaurant": "مطعم نوبي", "coordinates": { "lat": 24.0925, "lng": 32.8875 }, "cost_estimate": 150 },
+      "afternoon": { "activity": "فلوكة قصيرة", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 100 },
+      "evening": { "activity": "جلسة غروب", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 50 }
+    },
+    {
+      "day": 4,
+      "morning": { "activity": "سباحة بالفندق", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 0 },
+      "lunch": { "restaurant": "مطعم نيلي", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 },
+      "afternoon": { "activity": "جلسة استرخاء", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 0 },
+      "evening": { "activity": "عشاء هادئ", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 }
+    },
+    {
+      "day": 5,
+      "morning": { "activity": "رحلة فلوكة طويلة", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 200 },
+      "lunch": { "restaurant": "مطعم مطل على النيل", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 },
+      "afternoon": { "activity": "تسوق هادئ", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 50 },
+      "evening": { "activity": "عشاء فاخر", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 200 }
+    },
+    {
+      "day": 6,
+      "morning": { "activity": "جلسة يوغا صباحية", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 100 },
+      "lunch": { "restaurant": "مطعم صحي", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 },
+      "afternoon": { "activity": "جلسة تصوير نيلية", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 50 },
+      "evening": { "activity": "عشاء وداع", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 }
+    }
+  ],
+  "total_cost_estimate": 3550
+
+,
+
+  "trip_name": "رحلة 7 أيام - أسوان (استرخاء)",
+  "days": 7,
+  "trip_type": "استرخاء فاخر + طبيعة + ثقافة",
+  "itinerary": [
+    {
+      "day": 1,
+      "morning": { "activity": "فلوكة نيلية", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 },
+      "lunch": { "restaurant": "مطعم نيلي", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 },
+      "afternoon": { "activity": "جزيرة النباتات", "coordinates": { "lat": 24.0917, "lng": 32.8900 }, "cost_estimate": 100 },
+      "evening": { "activity": "كورنيش النيل", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 50 }
+    },
+    {
+      "day": 2,
+      "morning": { "activity": "سبا ومساج", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 300 },
+      "lunch": { "restaurant": "مطعم صحي", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 },
+      "afternoon": { "activity": "استرخاء حر", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 0 },
+      "evening": { "activity": "عشاء هادئ", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 }
+    },
+    {
+      "day": 3,
+      "morning": { "activity": "قرية نوبية", "coordinates": { "lat": 24.0925, "lng": 32.8875 }, "cost_estimate": 150 },
+      "lunch": { "restaurant": "مطعم نوبي", "coordinates": { "lat": 24.0925, "lng": 32.8875 }, "cost_estimate": 150 },
+      "afternoon": { "activity": "فلوكة قصيرة", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 100 },
+      "evening": { "activity": "جلسة غروب", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 50 }
+    },
+    {
+      "day": 4,
+      "morning": { "activity": "زيارة السد العالي", "coordinates": { "lat": 23.9700, "lng": 32.8770 }, "cost_estimate": 100 },
+      "lunch": { "restaurant": "مطعم محلي", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 },
+      "afternoon": { "activity": "استرخاء بالفندق", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 0 },
+      "evening": { "activity": "عشاء هادئ", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 }
+    },
+    {
+      "day": 5,
+      "morning": { "activity": "فلوكة طويلة", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 200 },
+      "lunch": { "restaurant": "مطعم مطل على النيل", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 },
+      "afternoon": { "activity": "جلسة استرخاء", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 0 },
+      "evening": { "activity": "عشاء فاخر", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 200 }
+    },
+    {
+      "day": 6,
+      "morning": { "activity": "يوغا صباحية", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 100 },
+      "lunch": { "restaurant": "مطعم صحي", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 },
+      "afternoon": { "activity": "تسوق هادئ", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 50 },
+      "evening": { "activity": "عشاء هادئ", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 }
+    },
+    {
+      "day": 7,
+      "morning": { "activity": "فلوكة وداع", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 },
+      "lunch": { "restaurant": "مطعم نيلي", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 },
+      "afternoon": { "activity": "جلسة تصوير أخيرة", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 50 },
+      "evening": { "activity": "عشاء ختامي", "coordinates": { "lat": 24.0889, "lng": 32.8998 }, "cost_estimate": 150 }
+    }
+  ],
+  "total_cost_estimate": 4300
+}
