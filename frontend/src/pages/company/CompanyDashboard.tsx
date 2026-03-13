@@ -641,7 +641,7 @@ const CompanyDashboard = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 font-cairo" dir="rtl">
+        <div id="company-dashboard" className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 font-cairo" dir="rtl">
             <Header />
             
             <CompanyTripFormDialog 

@@ -1,0 +1,60 @@
+/* Seasonal Themes Global Configuration */
+
+/* Winter Theme */
+.winter-theme {
+  --seasonal-primary: #3b82f6; /* Blue-500 */
+  --seasonal-accent: #93c5fd; /* Blue-300 */
+  --seasonal-bg: #f0f9ff; /* sky-50 */
+  --seasonal-text: #1e3a8a; /* navy-900 */
+}
+
+/* Spring Theme */
+.spring-theme {
+  --seasonal-primary: #10b981; /* Emerald-500 */
+  --seasonal-accent: #6ee7b7; /* Emerald-300 */
+  --seasonal-bg: #ecfdf5; /* emerald-50 */
+  --seasonal-text: #064e3b; /* emerald-900 */
+}
+
+/* Summer Theme */
+.summer-theme {
+  --seasonal-primary: #f59e0b; /* Amber-500 */
+  --seasonal-accent: #fcd34d; /* Amber-300 */
+  --seasonal-bg: #fffbeb; /* amber-50 */
+  --seasonal-text: #78350f; /* amber-900 */
+}
+
+/* Autumn Theme */
+.autumn-theme {
+  --seasonal-primary: #ea580c; /* Orange-600 */
+  --seasonal-accent: #fb923c; /* Orange-400 */
+  --seasonal-bg: #fff7ed; /* orange-50 */
+  --seasonal-text: #7c2d12; /* orange-900 */
+}
+
+/* Ramadan (Legacy variables if needed) */
+.ramadan-theme {
+  --ramadan-gold: #D4AF37;
+  --ramadan-navy: #0B1C2D;
+  --ramadan-navy-deep: #050E17;
+  --seasonal-primary: var(--ramadan-gold);
+  --seasonal-accent: var(--ramadan-navy);
+}
+
+/* Generic Decorations Layer for all seasons */
+.seasonal-decoration-layer {
+  position: relative;
+  min-height: 100vh;
+  transition: background-color 0.5s ease;
+}
+
+/* Add custom animations for snowflakes, leaves, etc. here if required */
+@keyframes fall {
+  0% { transform: translateY(-10vh) rotate(0deg); }
+  100% { transform: translateY(110vh) rotate(360deg); }
+}
+
+.particle-winter { content: '❄'; }
+.particle-spring { content: '🌸'; }
+.particle-summer { content: '☀️'; }
+.particle-autumn { content: '🍂'; }

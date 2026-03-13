@@ -298,7 +298,7 @@ const TripGroupMessages = () => {
          <div className="bg-white backdrop-blur-xl border-y sm:border border-gray-100 rounded-none sm:rounded-2xl md:rounded-[2.5rem] shadow-xl sm:shadow-2xl h-full overflow-hidden flex flex-col md:flex-row min-h-0">
             
             {/* Sidebar */}
-            <div className={cn(
+            <div id="group-chat-announcements" className={cn(
               "w-full md:w-[340px] lg:w-[380px] border-r border-gray-200 bg-white flex flex-col transition-all duration-300 min-h-0 shrink-0",
               activeGroup ? "hidden md:flex" : "flex"
             )}>

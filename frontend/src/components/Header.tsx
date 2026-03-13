@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Search, MapPin, Menu, Trophy, Compass, Briefcase, Home, Plus, X, Sparkles, Globe, Shield, Bell, User, MessageSquare } from "lucide-react";
+import { Search, MapPin, Menu, Trophy, Compass, Briefcase, Home, Plus, X, Sparkles, Globe, Shield, Bell, User, MessageSquare, Bot, LogOut, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link, useNavigate, useLocation } from "react-router-dom";
@@ -12,12 +12,23 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { SignedIn, SignedOut, SignInButton, useUser, SignOutButton } from "@clerk/clerk-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useClerk, SignedIn, SignedOut, SignInButton, useUser, SignOutButton } from "@clerk/clerk-react";
 import NotificationBell from "@/components/NotificationBell";
 import { cn } from "@/lib/utils";
 import { seasonalConfig } from "@/config/seasonalConfig";
-import { Moon, Star } from "lucide-react";
+import { Moon, Star, Sun, Layout, Sparkles as SparklesIcon } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { useSeasonalTheme } from "@/contexts/SeasonalThemeContext";
+import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const logo = "/assets/logo.png";
 
@@ -40,6 +51,8 @@ const Header = ({ onSearch }: HeaderProps) => {
   const navigate = useNavigate();
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const location = useLocation();
+  const { isSeasonalActive, toggleSeasonalTheme, themeConfig } = useSeasonalTheme();
+  const { signOut } = useClerk();
 
   const fetchDbUser = async () => {
     if (user?.id) {
@@ -223,13 +236,16 @@ const Header = ({ onSearch }: HeaderProps) => {
                 scrolled ? "h-14 sm:h-16 md:h-20" : "h-16 sm:h-20 md:h-24"
               )}
             />
-            {seasonalConfig.isRamadanTheme && (
+            {isSeasonalActive && (
               <motion.div 
-                className="absolute -top-1 -right-4 text-gold opacity-80"
+                className="absolute -top-1 -right-4 opacity-80"
+                style={{ color: themeConfig.primaryColor }}
                 animate={{ rotate: [-20, 20, -20], scale: [1, 1.1, 1] }}
                 transition={{ duration: 4, repeat: Infinity }}
               >
-                <Moon size={18} fill="#D4AF37" />
+                {themeConfig.icon === 'Moon' ? <Moon size={18} fill={themeConfig.primaryColor} /> : 
+                 themeConfig.icon === 'Sun' ? <Sun size={18} fill={themeConfig.primaryColor} /> : 
+                 <Sparkles size={18} fill={themeConfig.primaryColor} />}
               </motion.div>
             )}
           </Link>
@@ -244,13 +260,14 @@ const Header = ({ onSearch }: HeaderProps) => {
               <NavItem to="/timeline" icon={Compass} label="الرحلات" id="nav-timeline" />
               <NavItem to="/agency" icon={Briefcase} label="الشركات" id="nav-templates" />
               <NavItem to="/leaderboard" icon={Trophy} label="المتصدرين" id="nav-leaderboard" />
-              {seasonalConfig.isRamadanTheme && (
+              {isSeasonalActive && (
                 <motion.div 
                   className="px-2"
                   animate={{ opacity: [0.4, 1, 0.4] }}
                   transition={{ duration: 2, repeat: Infinity }}
+                  style={{ color: themeConfig.primaryColor }}
                 >
-                  <Star size={14} fill="#D4AF37" color="#D4AF37" />
+                  <Star size={14} fill={themeConfig.primaryColor} color={themeConfig.primaryColor} />
                 </motion.div>
               )}
             </nav>
@@ -345,55 +362,168 @@ const Header = ({ onSearch }: HeaderProps) => {
               <Button variant="ghost" size="icon" className="rounded-2xl hover:bg-indigo-50 text-gray-500 hover:text-indigo-600 transition-colors" onClick={() => setMobileSearchOpen(true)}>
                 <Search className="h-5 w-5" />
               </Button>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className={cn(
+                  "rounded-2xl transition-all duration-300",
+                  isSeasonalActive ? "bg-accent/10" : "text-gray-500 hover:bg-gray-100"
+                )} 
+                style={isSeasonalActive ? { color: themeConfig.primaryColor } : {}}
+                onClick={toggleSeasonalTheme}
+              >
+                {isSeasonalActive ? (
+                  themeConfig.icon === 'Moon' ? <Moon className="h-5 w-5" /> : 
+                  themeConfig.icon === 'Sun' ? <Sun className="h-5 w-5" /> : 
+                  themeConfig.icon === 'Snowflake' ? <SparklesIcon className="h-5 w-5" /> : 
+                  <Layout className="h-5 w-5" />
+                ) : <Layout className="h-5 w-5" />}
+              </Button>
             </div>
 
-            <SignedIn>
-              <Link to="/messages" className="hidden sm:block" id="nav-messages">
-                <Button variant="ghost" size="icon" className="rounded-2xl hover:bg-indigo-50 text-gray-500 hover:text-indigo-600 transition-colors relative">
-                   <MessageSquare className="h-5 w-5" />
-                   {/* We can add unread badge logic here later if we want */}
-                </Button>
-              </Link>
-              <NotificationBell />
-              
-              {isAdmin ? (
-                <Link to="/admin/dashboard" className="hidden sm:block" id="nav-admin-dashboard">
-                  <Button className="h-10 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs gap-1.5 shadow-lg">
-                    <Shield className="h-4 w-4 shrink-0" />
-                    <span>لوحة الإدارة</span>
-                  </Button>
-                </Link>
-              ) : user?.publicMetadata?.role === 'company_owner' ? (
-                <Link to="/company/dashboard" className="hidden sm:block" id="nav-company-dashboard">
-                  <Button className="h-10 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs gap-1.5 shadow-lg">
-                    <Shield className="h-4 w-4 shrink-0" />
-                    <span>لوحة الشركة</span>
-                  </Button>
-                </Link>
-              ) : (
-                <Link to="/trips/new" className="hidden sm:block" id="nav-create-trip">
-                  <Button className="h-10 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs gap-1.5 shadow-lg">
-                    <Plus className="h-4 w-4 shrink-0" />
-                    <span className="hidden lg:inline">أنشئ رحلة</span>
-                  </Button>
-                </Link>
-              )}
-              
-              {user && user.publicMetadata?.role !== 'company_owner' && !isAdmin && (
-                <Link to={`/user/${user.id}`} className="hidden md:flex items-center gap-3 pl-1 pr-4 py-1 rounded-2xl bg-gray-50/50 border border-gray-100/50 hover:bg-indigo-50 transition-all group">
-                  <div className="text-right hidden xl:block">
-                    <p className="text-[10px] font-black text-indigo-500 leading-none mb-1">مرحباً بك</p>
-                    <p className="text-xs font-black text-gray-700 leading-none truncate max-w-[100px]">{user.fullName || user.username}</p>
-                  </div>
-                  <Avatar className="h-9 w-9 border-2 border-white shadow-sm transition-transform group-hover:scale-105">
-                    <AvatarImage src={dbUser?.imageUrl || user.imageUrl} />
-                    <AvatarFallback className="bg-indigo-100 text-indigo-600 font-bold text-xs">
-                      {user.firstName?.charAt(0) || user.username?.charAt(0) || "?"}
-                    </AvatarFallback>
-                  </Avatar>
-                </Link>
-              )}
-            </SignedIn>
+
+             <SignedIn>
+                <NotificationBell />
+                
+                {isAdmin ? (
+                  <Link to="/admin/dashboard" className="hidden sm:block" id="nav-admin-dashboard">
+                    <Button className="h-10 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs gap-1.5 shadow-lg">
+                      <Shield className="h-4 w-4 shrink-0" />
+                      <span>لوحة الإدارة</span>
+                    </Button>
+                  </Link>
+                ) : user?.publicMetadata?.role === 'company_owner' ? (
+                  <Link to="/company/dashboard" className="hidden sm:block" id="nav-company-dashboard">
+                    <Button className="h-10 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs gap-1.5 shadow-lg">
+                      <Shield className="h-4 w-4 shrink-0" />
+                      <span>لوحة الشركة</span>
+                    </Button>
+                  </Link>
+                ) : (
+                  <Link to="/trips/new" className="hidden sm:block" id="nav-create-trip">
+                    <Button className="h-10 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs gap-1.5 shadow-lg">
+                      <Plus className="h-4 w-4 shrink-0" />
+                      <span className="hidden lg:inline">أنشئ رحلة</span>
+                    </Button>
+                  </Link>
+                )}
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button id="nav-profile" className="flex items-center gap-2 sm:gap-3 pl-1 pr-1 sm:pr-4 py-1 rounded-2xl bg-gray-50/50 border border-gray-100/50 hover:bg-indigo-50 transition-all group outline-none">
+                      <div className="text-right hidden xl:block">
+                        <p className="text-[10px] font-black text-indigo-500 leading-none mb-1">مرحباً بك</p>
+                        <p className="text-xs font-black text-gray-700 leading-none truncate max-w-[100px]">{user?.fullName || user?.username}</p>
+                      </div>
+                      <Avatar className="h-9 w-9 border-2 border-white shadow-sm transition-transform group-hover:scale-105">
+                        <AvatarImage src={dbUser?.imageUrl || user?.imageUrl} />
+                        <AvatarFallback className="bg-indigo-100 text-indigo-600 font-bold text-xs">
+                          {user?.firstName?.charAt(0) || user?.username?.charAt(0) || "?"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <ChevronDown className="h-3.5 w-3.5 text-gray-400 group-hover:text-indigo-600 transition-colors" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-64 mt-2 p-2 rounded-[1.5rem] border-gray-100 shadow-2xl font-cairo">
+                    <DropdownMenuLabel className="px-4 py-3">
+                      <div className="flex flex-col">
+                        <p className="text-sm font-black text-gray-900">{user?.fullName || user?.username}</p>
+                        <p className="text-[10px] font-bold text-gray-400">{user?.primaryEmailAddress?.emailAddress}</p>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator className="bg-gray-50" />
+                    
+                    <DropdownMenuItem 
+                      onClick={() => navigate(`/user/${user?.id}`)}
+                      className="p-3 rounded-xl cursor-pointer hover:bg-indigo-50 text-gray-700 hover:text-indigo-600 transition-colors gap-3"
+                    >
+                      <User className="h-4 w-4" />
+                      <span className="font-bold text-sm">الملف الشخصي</span>
+                    </DropdownMenuItem>
+
+                    <DropdownMenuItem 
+                      onClick={() => navigate('/messages')}
+                      className="p-3 rounded-xl cursor-pointer hover:bg-indigo-50 text-gray-700 hover:text-indigo-600 transition-colors gap-3"
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                      <span className="font-bold text-sm">الرسائل</span>
+                    </DropdownMenuItem>
+
+                    <DropdownMenuSeparator className="bg-gray-50" />
+                    
+{/* Theme Toggle in Dropdown */}
+<div className="p-1">
+  <div 
+    className={cn(
+      "flex items-center justify-between p-3 rounded-xl transition-all duration-300 cursor-pointer hover:bg-gray-50",
+      isSeasonalActive ? "bg-accent/5" : ""
+    )}
+    onClick={(e) => {
+      e.preventDefault();
+      toggleSeasonalTheme();
+    }}
+  >
+    <div className="flex items-center gap-3">
+      <div className={cn(
+        "p-1.5 rounded-lg",
+        isSeasonalActive ? "" : "bg-gray-100 text-gray-500"
+      )} style={isSeasonalActive ? { color: themeConfig.primaryColor, backgroundColor: `${themeConfig.primaryColor}20` } : {}}>
+        {isSeasonalActive ? (
+          themeConfig.icon === 'Moon' ? <Moon className="h-4 w-4" /> : 
+          themeConfig.icon === 'Sun' ? <Sun className="h-4 w-4" /> : 
+          <SparklesIcon className="h-4 w-4" />
+        ) : <Layout className="h-4 w-4" />}
+      </div>
+      <span className="text-sm font-bold text-gray-700">المظهر: {isSeasonalActive ? themeConfig.name : "عادي"}</span>
+    </div>
+    
+    {/* Custom toggle for better RTL support */}
+    <div 
+      className={cn(
+        "relative w-11 h-6 rounded-full transition-colors duration-200 ease-in-out",
+        isSeasonalActive ? "bg-indigo-600" : "bg-gray-200"
+      )}
+      style={isSeasonalActive ? { backgroundColor: themeConfig.primaryColor } : {}}
+    >
+      <div 
+        className={cn(
+          "absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-200 ease-in-out",
+          isSeasonalActive 
+            ? "rtl:right-[2px] rtl:left-auto left-[2px]" 
+            : "rtl:left-[2px] rtl:right-auto right-[2px]"
+        )}
+        style={{
+          transform: isSeasonalActive 
+            ? 'translateX(0)' 
+            : 'translateX(0)'
+        }}
+      />
+    </div>
+  </div>
+</div>
+
+                    <DropdownMenuSeparator className="bg-gray-50" />
+
+                    <DropdownMenuItem 
+                      onClick={() => window.dispatchEvent(new CustomEvent('open-ai-tour'))}
+                      className="p-3 rounded-xl cursor-pointer hover:bg-indigo-50 text-indigo-600 transition-colors gap-3"
+                    >
+                      <Bot className="h-4 w-4" />
+                      <span className="font-black text-sm">جولة تعريفية بالمنصة</span>
+                    </DropdownMenuItem>
+
+                    <DropdownMenuSeparator className="bg-gray-50" />
+                    
+                    <DropdownMenuItem 
+                      onClick={() => signOut()}
+                      className="p-3 rounded-xl cursor-pointer hover:bg-rose-50 text-rose-500 transition-colors gap-3"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      <span className="font-bold text-sm">تسجيل الخروج</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </SignedIn>
 
             <SignedOut>
               <SignInButton mode="modal">
@@ -450,7 +580,43 @@ const Header = ({ onSearch }: HeaderProps) => {
                     )}
                   </nav>
                   
-                  <div className="p-4 border-t border-gray-100 shrink-0 bg-white">
+                  <div className="p-4 border-t border-gray-100 shrink-0 bg-white space-y-4">
+                    <div className="px-2">
+                      <div 
+                        className={cn(
+                          "flex items-center justify-between p-4 rounded-2xl transition-all duration-300",
+                          isSeasonalActive ? "border" : "bg-gray-50 border border-gray-100"
+                        )}
+                        style={isSeasonalActive ? { backgroundColor: `${themeConfig.primaryColor}10`, borderColor: `${themeConfig.primaryColor}30` } : {}}
+                        onClick={toggleSeasonalTheme}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={cn(
+                            "p-2 rounded-xl transition-colors",
+                            isSeasonalActive ? "" : "bg-gray-200 text-gray-500"
+                          )} style={isSeasonalActive ? { backgroundColor: `${themeConfig.primaryColor}30`, color: themeConfig.primaryColor } : {}}>
+                            {isSeasonalActive ? (
+                              themeConfig.icon === 'Moon' ? <Moon className="h-5 w-5" /> : 
+                              themeConfig.icon === 'Sun' ? <Sun className="h-5 w-5" /> : 
+                              <SparklesIcon className="h-5 w-5" />
+                            ) : <Layout className="h-5 w-5" />}
+                          </div>
+                          <div>
+                            <p className={cn("font-black text-sm")} style={isSeasonalActive ? { color: themeConfig.primaryColor } : { color: '#374151' }}>
+                              {isSeasonalActive ? `مظهر ${themeConfig.name}` : "المظهر العادي"}
+                            </p>
+                            <p className="text-[10px] font-bold text-gray-400">
+                              {isSeasonalActive ? "نشط حالياً" : "اضغط للتبديل"}
+                            </p>
+                          </div>
+                        </div>
+                        <Switch 
+                          checked={isSeasonalActive} 
+                          onCheckedChange={toggleSeasonalTheme}
+                          style={isSeasonalActive ? { backgroundColor: themeConfig.primaryColor } : {}}
+                        />
+                      </div>
+                    </div>
                     <SignedIn>
                        <div className="px-2 py-2 mb-2 border-b border-gray-50">
                           {user && user.publicMetadata?.role !== 'company_owner' && !isAdmin && (

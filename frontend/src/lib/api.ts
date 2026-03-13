@@ -731,3 +731,11 @@ export async function toggleMessageReaction(messageId: string, emoji: string, to
   if (!res.ok) throw new Error('Failed to toggle reaction');
   return res.json();
 }
+export async function getAISuggestions(city: string) {
+  const res = await fetch(`${BASE}/api/ai/suggestions?city=${encodeURIComponent(city)}`);
+  if (!res.ok) {
+    if (res.status === 404) return null;
+    throw new Error('Failed to fetch AI suggestions');
+  }
+  return res.json();
+}

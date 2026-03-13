@@ -1,17 +1,33 @@
 import { Link } from "react-router-dom";
 import { Facebook, Twitter, Instagram, Mail, Globe, Sparkles, MapPin, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { seasonalConfig } from "@/config/seasonalConfig";
+import { useSeasonalTheme } from "@/contexts/SeasonalThemeContext";
 
 const logo = "/assets/logo.png";
 
 const Footer = () => {
+  const { isSeasonalActive, currentSeason, themeConfig } = useSeasonalTheme();
+  const isRamadan = isSeasonalActive && currentSeason === 'ramadan';
+
   return (
-    <footer className={cn("relative border-t border-gray-100 overflow-hidden font-cairo", seasonalConfig.isRamadanTheme ? "bg-[#050E17] border-gold/20" : "bg-white")} dir="rtl">
+    <footer 
+      className={cn(
+        "relative border-t border-gray-100 overflow-hidden font-cairo transition-colors duration-500", 
+        isRamadan ? "bg-[#050E17] border-gold/20" : isSeasonalActive ? "border-gray-200" : "bg-white"
+      )} 
+      style={isSeasonalActive && !isRamadan ? { backgroundColor: `${themeConfig.primaryColor}05` } : {}}
+      dir="rtl"
+    >
       {/* Decorative Background Elements */}
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-40">
-        <div className={cn("absolute top-[-10%] right-[-5%] w-96 h-96 rounded-full blur-[100px]", seasonalConfig.isRamadanTheme ? "bg-gold/10" : "bg-indigo-50")} />
-        <div className={cn("absolute bottom-[-10%] left-[-5%] w-64 h-64 rounded-full blur-[80px]", seasonalConfig.isRamadanTheme ? "bg-gold/5" : "bg-orange-50")} />
+        <div 
+          className={cn("absolute top-[-10%] right-[-5%] w-96 h-96 rounded-full blur-[100px] transition-all duration-700")} 
+          style={isSeasonalActive ? { backgroundColor: `${themeConfig.primaryColor}20` } : { backgroundColor: 'rgb(238 242 255)' }}
+        />
+        <div 
+          className={cn("absolute bottom-[-10%] left-[-5%] w-64 h-64 rounded-full blur-[80px] transition-all duration-700")} 
+          style={isSeasonalActive ? { backgroundColor: `${themeConfig.primaryColor}10` } : { backgroundColor: 'rgb(255 247 237)' }}
+        />
       </div>
 
       <div className="container mx-auto px-6 relative z-10">
@@ -23,7 +39,7 @@ const Footer = () => {
             <Link to="/" className="inline-block group">
               <img src={logo} alt="رحلتي" className="h-20 w-20 drop-shadow-sm group-hover:scale-105 transition-transform duration-500" />
             </Link>
-            <p className={cn("text-lg font-bold leading-relaxed max-w-md", seasonalConfig.isRamadanTheme ? "text-white/80" : "text-gray-500")}>
+            <p className={cn("text-lg font-bold leading-relaxed max-w-md transition-colors", isRamadan ? "text-white/80" : isSeasonalActive ? "text-gray-900" : "text-gray-500")}>
               اكتشف العالم بعيون المسافرين. رحلتي هي بوصلتك لتخطيط مغامرتك القادمة، ومشاركة تجاربك الملهمة مع مجتمع يعشق الاستكشاف.
             </p>
             

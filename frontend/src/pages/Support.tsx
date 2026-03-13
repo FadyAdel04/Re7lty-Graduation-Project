@@ -18,9 +18,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { seasonalConfig } from "@/config/seasonalConfig";
+import { useSeasonalTheme } from "@/contexts/SeasonalThemeContext";
 
 const Support = () => {
+  const { isSeasonalActive, currentSeason, themeConfig } = useSeasonalTheme();
+  const showSeasonal = isSeasonalActive;
   const categories = [
     {
       title: "مركز المساعدة",
@@ -60,7 +62,7 @@ const Support = () => {
     <div className="min-h-screen bg-[#F8FAFC] font-cairo text-right flex flex-col" dir="rtl">
       <Header />
       
-      <main className={cn("flex-1", seasonalConfig.isRamadanTheme && "ramadan-golden-frame m-4 md:m-8")}>
+      <main className={cn("flex-1 transition-all duration-500", isSeasonalActive && `${currentSeason}-golden-frame m-4 md:m-8`)}>
         {/* 1. Cinematic Hero Header */}
         <section className="relative h-[400px] w-full overflow-hidden bg-indigo-900">
            <div className="absolute inset-0 z-0">

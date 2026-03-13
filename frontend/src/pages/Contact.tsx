@@ -13,9 +13,12 @@ import { complaintsService } from "@/services/complaintsService";
 import { useAuth } from "@clerk/clerk-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { seasonalConfig } from "@/config/seasonalConfig";
+import { useSeasonalTheme } from "@/contexts/SeasonalThemeContext";
 
 const Contact = () => {
+  const { isSeasonalActive, currentSeason, themeConfig } = useSeasonalTheme();
+  const showSeasonal = isSeasonalActive;
+  const isRamadan = isSeasonalActive && currentSeason === 'ramadan';
   const { toast } = useToast();
   const { getToken, isSignedIn } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -70,7 +73,14 @@ const Contact = () => {
   };
 
   return (
-    <div className={cn("min-h-screen font-cairo text-right flex flex-col", seasonalConfig.isRamadanTheme ? "bg-navy-deep ramadan-theme-layer" : "bg-[#F8FAFC]")} dir="rtl">
+    <div 
+      className={cn(
+        "min-h-screen font-cairo text-right flex flex-col transition-colors duration-700", 
+        isRamadan ? "bg-navy-deep ramadan-theme-layer" : showSeasonal ? "bg-white overflow-hidden" : "bg-[#F8FAFC]"
+      )} 
+      style={showSeasonal && !isRamadan ? { backgroundColor: `${themeConfig.primaryColor}05` } : {}}
+      dir="rtl"
+    >
       <Header />
       
       <main className="flex-1 py-20 px-4">

@@ -1172,7 +1172,7 @@ const UserProfile = () => {
                        <div className="w-full space-y-3">
                           {isOwnProfile ? (
                              <div className="grid grid-cols-1 gap-3 w-full">
-                                <Button onClick={() => setIsStoryDialogOpen(true)} className="h-12 rounded-2xl bg-orange-600 hover:bg-orange-700 text-white font-bold gap-2 shadow-lg shadow-orange-200">
+                                <Button id="create-memories-btn" onClick={() => setIsStoryDialogOpen(true)} className="h-12 rounded-2xl bg-orange-600 hover:bg-orange-700 text-white font-bold gap-2 shadow-lg shadow-orange-200">
                                    <Sparkles className="w-5 h-5" />
                                    نشر قصة (Story)
                                 </Button>
@@ -1209,7 +1209,7 @@ const UserProfile = () => {
                  </Card>
 
                  {/* Premium Stats Grid */}
-                 <div className="grid grid-cols-2 gap-4">
+                 <div id="user-stats" className="grid grid-cols-2 gap-4">
                     {[
                        { label: "رحـلـة", val: stats.trips, icon: <MapPin />, color: "text-orange-600", bg: "bg-orange-50", click: null },
                        { label: "مـتـابـع", val: stats.followers, icon: <Users />, color: "text-indigo-600", bg: "bg-indigo-50", click: handleOpenFollowers },

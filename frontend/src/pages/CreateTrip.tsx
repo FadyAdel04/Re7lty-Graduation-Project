@@ -861,7 +861,7 @@ const CreateTrip = () => {
       )}
       <Header />
       
-      <main className="pb-24">
+      <main id="create-trip-form" className="pb-24">
         {/* 1. Cinematic Hero Header */}
         <section className="relative h-[350px] w-full overflow-hidden bg-indigo-900">
            <div className="absolute inset-0 z-0">
@@ -2297,7 +2297,7 @@ const CreateTrip = () => {
                       <CardContent className="p-8 lg:p-12 space-y-12">
                         {/* Description & Stats */}
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                             <div className="lg:col-span-2 space-y-4">
+                             <div id="trip-itinerary" className="lg:col-span-2 space-y-4">
                                 <h3 className="text-2xl font-black text-gray-900 flex items-center gap-2">
                                    <div className="w-2 h-8 bg-orange-500 rounded-full" />
                                    عن الرحلة

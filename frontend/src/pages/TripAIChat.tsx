@@ -367,7 +367,7 @@ const TripAIChat = () => {
         <div className="max-w-7xl mx-auto h-[calc(100vh-5.5rem)] sm:h-[calc(100vh-6rem)] min-h-[480px] flex flex-col lg:flex-row gap-4 lg:gap-8">
           
           {/* Result Panel (Left) - Trip plan to confirm & choose favourites */}
-          <div className={cn(
+          <div id="ai-trip-plan-preview" className={cn(
             "flex-1 bg-white/70 backdrop-blur-2xl rounded-2xl lg:rounded-[2.5rem] border border-gray-100/50 shadow-xl lg:shadow-2xl shadow-indigo-500/5 flex flex-col overflow-hidden min-h-0",
             tripPlan && "animate-in fade-in slide-in-from-left-4 duration-500",
             "lg:flex",
@@ -713,7 +713,7 @@ const TripAIChat = () => {
              </ScrollArea>
 
              {/* Message Input - visible to all; guests get toast when trying to send */}
-             <div className="p-6 bg-gray-50/50 border-t border-gray-100">
+             <div id="ai-chat-input" className="p-6 bg-gray-50/50 border-t border-gray-100">
                 {!isSignedIn && (
                   <div className="flex items-center justify-center gap-2 py-2 px-3 mb-3 rounded-xl bg-amber-50 border border-amber-100 text-amber-800 text-xs font-bold">
                     سجّل الدخول لاستخدام المحادثة

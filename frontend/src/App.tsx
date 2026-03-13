@@ -44,6 +44,7 @@ const Leaderboard = lazy(() => import("./pages/Leaderboard"));
 const BookingVerify = lazy(() => import("./pages/BookingVerify"));
 
 import TripAIChatWidget from "@/components/TripAIChatWidget";
+import AITourGuide from "@/components/AITourGuide";
 import ScrollToTop from "@/components/ScrollToTop";
 import { Analytics } from "@vercel/analytics/react";
 import { SignedIn, SignedOut, RedirectToSignIn, useUser } from "@clerk/clerk-react";
@@ -54,7 +55,7 @@ import { TermsAcceptanceModal } from "@/components/TermsAcceptanceModal";
 import { LoadingProvider, useLoading } from "./contexts/LoadingContext";
 import PremiumLoader from "./components/PremiumLoader";
 import RamadanTheme from "./components/seasonal/RamadanTheme";
-
+import { SeasonalThemeProvider } from "./contexts/SeasonalThemeContext";
 
 const queryClient = new QueryClient();
 
@@ -71,27 +72,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => (
 const AppContent = () => {
   const location = useLocation();
   const { user, isLoaded, isSignedIn } = useUser();
-  const { isLoading, startLoading, stopLoading } = useLoading();
-
-  const prevPathRef = useRef(location.pathname);
-
-  useEffect(() => {
-    const isMessagingRoute = (path: string) => path === '/messages' || path === '/trip-groups';
-    
-    // Don't show loader when navigating BETWEEN /messages and /trip-groups
-    const isTransitioningBetweenMessaging = isMessagingRoute(prevPathRef.current) && isMessagingRoute(location.pathname);
-
-    if (!isTransitioningBetweenMessaging) {
-      startLoading();
-      const timer = setTimeout(() => {
-        stopLoading();
-      }, 300); // Minimal loader display for snappier UX
-      prevPathRef.current = location.pathname;
-      return () => clearTimeout(timer);
-    }
-    
-    prevPathRef.current = location.pathname;
-  }, [location.pathname]);
 
   const isAdminRoute = location.pathname.startsWith('/admin');
   const isOnboardingRoute = location.pathname.startsWith('/onboarding');
@@ -128,9 +108,6 @@ const AppContent = () => {
 
   return (
     <>
-      <AnimatePresence>
-        {isLoading && <PremiumLoader />}
-      </AnimatePresence>
       <ScrollToTop />
       <Suspense fallback={<PremiumLoader />}>
         <Routes>
@@ -213,10 +190,9 @@ const AppContent = () => {
       {!isAdminRoute && !isOnboardingRoute && ['/', '/discover', '/timeline', '/agency', '/leaderboard'].includes(location.pathname) && (
         <TripAIChatWidget />
       )}
-      {/* Tour Guide for new users */}
-      {!isAdminRoute && !isOnboardingRoute}
       {/* Global Upload Progress Bar */}
       <UploadProgressBar />
+      <AITourGuide />
     </>
   );
 };
@@ -225,19 +201,21 @@ const App = () => (
   <LoadingProvider>
     <UploadProgressProvider>
       <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <Analytics />
-        <BrowserRouter>
-          <NotificationProvider>
-            <RamadanTheme>
-              <AppContent />
-            </RamadanTheme>
-          </NotificationProvider>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <Analytics />
+          <BrowserRouter>
+            <NotificationProvider>
+              <SeasonalThemeProvider>
+                <RamadanTheme>
+                  <AppContent />
+                </RamadanTheme>
+              </SeasonalThemeProvider>
+            </NotificationProvider>
+          </BrowserRouter>
+        </TooltipProvider>
+      </QueryClientProvider>
     </UploadProgressProvider>
   </LoadingProvider>
 );

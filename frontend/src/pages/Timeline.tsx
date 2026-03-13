@@ -435,7 +435,7 @@ const Timeline = () => {
                    <div className="h-96 bg-gray-100 rounded-[2.5rem] animate-pulse" />
                 </div>
               ) : (
-                <div className="space-y-8">
+                <div id="timeline-posts" className="space-y-8">
                   {filteredTrips.map((trip) => {
                     const id = getTripIdentifier(trip);
                     const isLiked = loveState[id]?.liked;

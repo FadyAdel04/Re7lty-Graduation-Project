@@ -524,7 +524,7 @@ useEffect(() => {
             <div className="lg:col-span-8 space-y-8">
                
                {/* About Trip */}
-               <Card className="border-0 shadow-xl rounded-[2.5rem] bg-white overflow-hidden">
+               <Card id="trip-itinerary" className="border-0 shadow-xl rounded-[2.5rem] bg-white overflow-hidden">
                   <div className="p-10 space-y-6">
                      <h2 className="text-2xl font-black text-gray-900 flex items-center gap-3">
                         <div className="w-2 h-8 bg-indigo-600 rounded-full" />
@@ -606,7 +606,7 @@ useEffect(() => {
                {!isQuickTrip && (
                  <>
                    {/* Timeline Activities */}
-                   <div className="space-y-6">
+                   <div id="trip-itinerary" className="space-y-6">
                       <h2 className="text-2xl font-black text-gray-900 px-4">خط السير <span className="text-indigo-600">التفصيلي</span></h2>
                       <div className="space-y-4">
                          {trip.days.map((day: any, idx: number) => (

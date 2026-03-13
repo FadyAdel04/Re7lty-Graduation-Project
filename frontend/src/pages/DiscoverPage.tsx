@@ -126,7 +126,9 @@ const DiscoverPage = () => {
         {!isSearchMode && (
           <div className="space-y-12 mb-16">
             <DiscoverHero />
-            <LivePulseMap height="450px" />
+            <div id="live-pulse-map">
+              <LivePulseMap height="450px" />
+            </div>
           </div>
         )}
 

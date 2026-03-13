@@ -1,0 +1,10 @@
+﻿    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ emoji }),
+  });
+  if (!res.ok) throw new Error('Failed to toggle reaction');
+  return res.json();
+}

@@ -1,8 +1,10 @@
 import React from 'react';
-import { seasonalConfig } from '@/config/seasonalConfig';
+import { useSeasonalTheme } from '@/contexts/SeasonalThemeContext';
 
 const RamadanDivider: React.FC = () => {
-  if (!seasonalConfig.isRamadanTheme) return null;
+  const { isSeasonalActive, currentSeason } = useSeasonalTheme();
+  
+  if (!isSeasonalActive || currentSeason !== 'ramadan') return null;
   
   return (
     <div className="ramadan-geometric-divider" />
