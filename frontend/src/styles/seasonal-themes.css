@@ -1,60 +1,104 @@
 /* Seasonal Themes Global Configuration */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600&family=Poppins:wght@400;600&family=Montserrat:wght@400;700&family=Merriweather:ital,wght@0,400;0,700;1,400&family=Tajawal:wght@400;700&display=swap');
+
+/* Global Seasonal Transition */
+body {
+  transition: background-color 0.8s ease, color 0.5s ease;
+}
 
 /* Winter Theme */
 .winter-theme {
-  --seasonal-primary: #3b82f6; /* Blue-500 */
-  --seasonal-accent: #93c5fd; /* Blue-300 */
-  --seasonal-bg: #f0f9ff; /* sky-50 */
-  --seasonal-text: #1e3a8a; /* navy-900 */
+  --seasonal-primary: #0ea5e9;
+  --seasonal-accent: #38bdf8;
+  --seasonal-secondary: #0c4a6e;
+  --seasonal-bg: #f0f9ff;
+  --seasonal-text: #0c4a6e;
+  --seasonal-gradient: linear-gradient(135deg, #0ea5e9 0%, #38bdf8 100%);
+  --seasonal-font: 'Outfit', sans-serif;
+  --seasonal-bg-image: url('/src/assets/seasons/winter.png');
 }
 
 /* Spring Theme */
 .spring-theme {
-  --seasonal-primary: #10b981; /* Emerald-500 */
-  --seasonal-accent: #6ee7b7; /* Emerald-300 */
-  --seasonal-bg: #ecfdf5; /* emerald-50 */
-  --seasonal-text: #064e3b; /* emerald-900 */
+  --seasonal-primary: #10b981;
+  --seasonal-accent: #34d399;
+  --seasonal-secondary: #064e3b;
+  --seasonal-bg: #ecfdf5;
+  --seasonal-text: #064e3b;
+  --seasonal-gradient: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+  --seasonal-font: 'Poppins', sans-serif;
+  --seasonal-bg-image: url('/src/assets/seasons/spring.png');
 }
 
 /* Summer Theme */
 .summer-theme {
-  --seasonal-primary: #f59e0b; /* Amber-500 */
-  --seasonal-accent: #fcd34d; /* Amber-300 */
-  --seasonal-bg: #fffbeb; /* amber-50 */
-  --seasonal-text: #78350f; /* amber-900 */
+  --seasonal-primary: #f59e0b;
+  --seasonal-accent: #fbbf24;
+  --seasonal-secondary: #78350f;
+  --seasonal-bg: #fffbeb;
+  --seasonal-text: #78350f;
+  --seasonal-gradient: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+  --seasonal-font: 'Montserrat', sans-serif;
+  --seasonal-bg-image: url('/src/assets/seasons/summer.png');
 }
 
 /* Autumn Theme */
 .autumn-theme {
-  --seasonal-primary: #ea580c; /* Orange-600 */
-  --seasonal-accent: #fb923c; /* Orange-400 */
-  --seasonal-bg: #fff7ed; /* orange-50 */
-  --seasonal-text: #7c2d12; /* orange-900 */
+  --seasonal-primary: #ea580c;
+  --seasonal-accent: #fb923c;
+  --seasonal-secondary: #7c2d12;
+  --seasonal-bg: #fff7ed;
+  --seasonal-text: #7c2d12;
+  --seasonal-gradient: linear-gradient(135deg, #ea580c 0%, #fb923c 100%);
+  --seasonal-font: 'Merriweather', serif;
+  --seasonal-bg-image: url('/src/assets/seasons/autumn.png');
 }
 
-/* Ramadan (Legacy variables if needed) */
-.ramadan-theme {
-  --ramadan-gold: #D4AF37;
-  --ramadan-navy: #0B1C2D;
-  --ramadan-navy-deep: #050E17;
-  --seasonal-primary: var(--ramadan-gold);
-  --seasonal-accent: var(--ramadan-navy);
+/* Apply Theme to Body */
+[class*="-theme"] {
+  font-family: var(--seasonal-font, inherit) !important;
 }
 
-/* Generic Decorations Layer for all seasons */
-.seasonal-decoration-layer {
-  position: relative;
-  min-height: 100vh;
-  transition: background-color 0.5s ease;
+[class*="-theme"] h1, 
+[class*="-theme"] h2, 
+[class*="-theme"] h3 {
+  color: var(--seasonal-primary);
 }
 
-/* Add custom animations for snowflakes, leaves, etc. here if required */
+/* Background Overlay for Pages */
+.seasonal-bg-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: var(--seasonal-bg-image);
+  background-size: cover;
+  background-position: center;
+  opacity: 0.15;
+  pointer-events: none;
+  z-index: -1;
+  transition: opacity 1s ease;
+}
+
+/* Particle Enhancements */
+.seasonal-particle {
+  position: fixed;
+  pointer-events: none;
+  z-index: 10;
+  animation: fall 10s linear infinite;
+  opacity: 0.8;
+}
+
 @keyframes fall {
-  0% { transform: translateY(-10vh) rotate(0deg); }
-  100% { transform: translateY(110vh) rotate(360deg); }
+  0% { transform: translateY(-10vh) rotate(0deg); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(110vh) rotate(360deg); opacity: 0; }
 }
 
-.particle-winter { content: '❄'; }
-.particle-spring { content: '🌸'; }
-.particle-summer { content: '☀️'; }
-.particle-autumn { content: '🍂'; }
+.particle-winter { color: #fff; text-shadow: 0 0 5px #38bdf8; }
+.particle-spring { color: #f472b6; }
+.particle-summer { color: #fbbf24; }
+.particle-autumn { color: #ea580c; }
+

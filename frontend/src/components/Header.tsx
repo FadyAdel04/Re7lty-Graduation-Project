@@ -24,7 +24,7 @@ import { useClerk, SignedIn, SignedOut, SignInButton, useUser, SignOutButton } f
 import NotificationBell from "@/components/NotificationBell";
 import { cn } from "@/lib/utils";
 import { seasonalConfig } from "@/config/seasonalConfig";
-import { Moon, Star, Sun, Layout, Sparkles as SparklesIcon } from "lucide-react";
+import { Moon, Star, Sun, Snowflake, Flower, Leaf, Layout, Sparkles as SparklesIcon } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useSeasonalTheme } from "@/contexts/SeasonalThemeContext";
 import { Switch } from "@/components/ui/switch";
@@ -101,6 +101,7 @@ const Header = ({ onSearch }: HeaderProps) => {
 
   // Check if user is admin
   const isAdmin = user?.emailAddresses?.some(email => email.emailAddress === 'supermincraft52@gmail.com');
+  const isCompany = user?.publicMetadata?.role === 'company_owner' || user?.publicMetadata?.role === 'company_approved';
 
   const handleUserButtonClick = () => {
     if (user?.id) navigate(`/user/${user.id}`);
@@ -245,6 +246,9 @@ const Header = ({ onSearch }: HeaderProps) => {
               >
                 {themeConfig.icon === 'Moon' ? <Moon size={18} fill={themeConfig.primaryColor} /> : 
                  themeConfig.icon === 'Sun' ? <Sun size={18} fill={themeConfig.primaryColor} /> : 
+                 themeConfig.icon === 'Snowflake' ? <Snowflake size={18} fill={themeConfig.primaryColor} /> :
+                 themeConfig.icon === 'Flower' ? <Flower size={18} fill={themeConfig.primaryColor} /> :
+                 themeConfig.icon === 'Leaf' ? <Leaf size={18} fill={themeConfig.primaryColor} /> :
                  <Sparkles size={18} fill={themeConfig.primaryColor} />}
               </motion.div>
             )}
@@ -383,32 +387,18 @@ const Header = ({ onSearch }: HeaderProps) => {
 
 
              <SignedIn>
-                <NotificationBell />
+                {!isCompany && <NotificationBell />}
                 
-                {isAdmin ? (
+                {isAdmin && (
+                  <>
                   <Link to="/admin/dashboard" className="hidden sm:block" id="nav-admin-dashboard">
                     <Button className="h-10 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs gap-1.5 shadow-lg">
                       <Shield className="h-4 w-4 shrink-0" />
                       <span>لوحة الإدارة</span>
                     </Button>
                   </Link>
-                ) : user?.publicMetadata?.role === 'company_owner' ? (
-                  <Link to="/company/dashboard" className="hidden sm:block" id="nav-company-dashboard">
-                    <Button className="h-10 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs gap-1.5 shadow-lg">
-                      <Shield className="h-4 w-4 shrink-0" />
-                      <span>لوحة الشركة</span>
-                    </Button>
-                  </Link>
-                ) : (
-                  <Link to="/trips/new" className="hidden sm:block" id="nav-create-trip">
-                    <Button className="h-10 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs gap-1.5 shadow-lg">
-                      <Plus className="h-4 w-4 shrink-0" />
-                      <span className="hidden lg:inline">أنشئ رحلة</span>
-                    </Button>
-                  </Link>
-                )}
 
-                <DropdownMenu>
+                  <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button id="nav-profile" className="flex items-center gap-2 sm:gap-3 pl-1 pr-1 sm:pr-4 py-1 rounded-2xl bg-gray-50/50 border border-gray-100/50 hover:bg-indigo-50 transition-all group outline-none">
                       <div className="text-right hidden xl:block">
@@ -451,56 +441,27 @@ const Header = ({ onSearch }: HeaderProps) => {
 
                     <DropdownMenuSeparator className="bg-gray-50" />
                     
-{/* Theme Toggle in Dropdown */}
-<div className="p-1">
-  <div 
-    className={cn(
-      "flex items-center justify-between p-3 rounded-xl transition-all duration-300 cursor-pointer hover:bg-gray-50",
-      isSeasonalActive ? "bg-accent/5" : ""
-    )}
-    onClick={(e) => {
-      e.preventDefault();
-      toggleSeasonalTheme();
-    }}
-  >
-    <div className="flex items-center gap-3">
-      <div className={cn(
-        "p-1.5 rounded-lg",
-        isSeasonalActive ? "" : "bg-gray-100 text-gray-500"
-      )} style={isSeasonalActive ? { color: themeConfig.primaryColor, backgroundColor: `${themeConfig.primaryColor}20` } : {}}>
-        {isSeasonalActive ? (
-          themeConfig.icon === 'Moon' ? <Moon className="h-4 w-4" /> : 
-          themeConfig.icon === 'Sun' ? <Sun className="h-4 w-4" /> : 
-          <SparklesIcon className="h-4 w-4" />
-        ) : <Layout className="h-4 w-4" />}
-      </div>
-      <span className="text-sm font-bold text-gray-700">المظهر: {isSeasonalActive ? themeConfig.name : "عادي"}</span>
-    </div>
-    
-    {/* Custom toggle for better RTL support */}
-    <div 
-      className={cn(
-        "relative w-11 h-6 rounded-full transition-colors duration-200 ease-in-out",
-        isSeasonalActive ? "bg-indigo-600" : "bg-gray-200"
-      )}
-      style={isSeasonalActive ? { backgroundColor: themeConfig.primaryColor } : {}}
-    >
-      <div 
-        className={cn(
-          "absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-200 ease-in-out",
-          isSeasonalActive 
-            ? "rtl:right-[2px] rtl:left-auto left-[2px]" 
-            : "rtl:left-[2px] rtl:right-auto right-[2px]"
-        )}
-        style={{
-          transform: isSeasonalActive 
-            ? 'translateX(0)' 
-            : 'translateX(0)'
-        }}
-      />
-    </div>
-  </div>
-</div>
+                    {/* Theme Toggle */}
+                    <div className="p-1">
+                      <div className={cn("flex items-center justify-between p-3 rounded-xl transition-all duration-300 cursor-pointer hover:bg-gray-50", isSeasonalActive ? "bg-accent/5" : "")} onClick={(e) => { e.preventDefault(); toggleSeasonalTheme(); }}>
+                        <div className="flex items-center gap-3">
+                          <div className={cn("p-1.5 rounded-lg", isSeasonalActive ? "" : "bg-gray-100 text-gray-500")} style={isSeasonalActive ? { color: themeConfig.primaryColor, backgroundColor: `${themeConfig.primaryColor}20` } : {}}>
+                            {isSeasonalActive ? (
+                              themeConfig.icon === 'Moon' ? <Moon className="h-4 w-4" /> : 
+                              themeConfig.icon === 'Sun' ? <Sun className="h-4 w-4" /> : 
+                              themeConfig.icon === 'Snowflake' ? <Snowflake className="h-4 w-4" /> :
+                              themeConfig.icon === 'Flower' ? <Flower className="h-4 w-4" /> :
+                              themeConfig.icon === 'Leaf' ? <Leaf className="h-4 w-4" /> :
+                              <SparklesIcon className="h-4 w-4" />
+                            ) : <Layout className="h-4 w-4" />}
+                          </div>
+                          <span className="text-sm font-bold text-gray-700">المظهر: {isSeasonalActive ? themeConfig.name : "عادي"}</span>
+                        </div>
+                        <div className={cn("relative w-11 h-6 rounded-full transition-colors duration-200 ease-in-out", isSeasonalActive ? "bg-indigo-600" : "bg-gray-200")} style={isSeasonalActive ? { backgroundColor: themeConfig.primaryColor } : {}}>
+                          <div className={cn("absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-200 ease-in-out", isSeasonalActive ? "rtl:right-[2px] rtl:left-auto left-[2px]" : "rtl:left-[2px] rtl:right-auto right-[2px]")} />
+                        </div>
+                      </div>
+                    </div>
 
                     <DropdownMenuSeparator className="bg-gray-50" />
 
@@ -509,20 +470,194 @@ const Header = ({ onSearch }: HeaderProps) => {
                       className="p-3 rounded-xl cursor-pointer hover:bg-indigo-50 text-indigo-600 transition-colors gap-3"
                     >
                       <Bot className="h-4 w-4" />
-                      <span className="font-black text-sm">جولة تعريفية بالمنصة</span>
+                      <span className="font-black text-sm">جولة تعريفية</span>
                     </DropdownMenuItem>
 
                     <DropdownMenuSeparator className="bg-gray-50" />
-                    
-                    <DropdownMenuItem 
-                      onClick={() => signOut()}
-                      className="p-3 rounded-xl cursor-pointer hover:bg-rose-50 text-rose-500 transition-colors gap-3"
-                    >
+
+                    <DropdownMenuItem onClick={() => signOut()} className="p-3 rounded-xl cursor-pointer hover:bg-rose-50 text-rose-500 transition-colors gap-3">
                       <LogOut className="h-4 w-4" />
                       <span className="font-bold text-sm">تسجيل الخروج</span>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
-                </DropdownMenu>
+                  </DropdownMenu>
+                  </>
+                )}
+                
+                {isCompany && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button className="h-10 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs gap-1.5 shadow-lg group">
+                        <Shield className="h-4 w-4 shrink-0" />
+                        <span>لوحة الشركة</span>
+                        <ChevronDown className="h-3.5 w-3.5 transition-transform group-data-[state=open]:rotate-180" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-64 mt-2 p-2 rounded-[1.5rem] border-gray-100 shadow-2xl font-cairo">
+                      <DropdownMenuLabel className="px-4 py-2 border-b border-gray-50 mb-1">
+                        <p className="text-xs font-black text-indigo-500 uppercase tracking-wider mb-0.5">حساب شركة</p>
+                        <p className="text-sm font-bold text-gray-900 truncate">{user?.fullName || user?.username}</p>
+                      </DropdownMenuLabel>
+                      
+                      <DropdownMenuItem 
+                        onClick={() => navigate('/company/dashboard')}
+                        className="p-3 rounded-xl cursor-pointer hover:bg-indigo-50 text-indigo-600 transition-colors gap-3"
+                      >
+                        <Layout className="h-4 w-4" />
+                        <span className="font-black text-sm">لوحة التحكم</span>
+                      </DropdownMenuItem>
+
+                      <DropdownMenuSeparator className="bg-gray-50" />
+                      
+                      {/* Theme Toggle in Dropdown for Company */}
+                      <div className="p-1">
+                        <div 
+                          className={cn(
+                            "flex items-center justify-between p-3 rounded-xl transition-all duration-300 cursor-pointer hover:bg-gray-50",
+                            isSeasonalActive ? "bg-accent/5" : ""
+                          )}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            toggleSeasonalTheme();
+                          }}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={cn(
+                              "p-1.5 rounded-lg",
+                              isSeasonalActive ? "" : "bg-gray-100 text-gray-500"
+                            )} style={isSeasonalActive ? { color: themeConfig.primaryColor, backgroundColor: `${themeConfig.primaryColor}20` } : {}}>
+                              {isSeasonalActive ? (
+                                themeConfig.icon === 'Moon' ? <Moon className="h-4 w-4" /> : 
+                                themeConfig.icon === 'Sun' ? <Sun className="h-4 w-4" /> : 
+                                themeConfig.icon === 'Snowflake' ? <Snowflake className="h-4 w-4" /> :
+                                themeConfig.icon === 'Flower' ? <Flower className="h-4 w-4" /> :
+                                themeConfig.icon === 'Leaf' ? <Leaf className="h-4 w-4" /> :
+                                <SparklesIcon className="h-4 w-4" />
+                              ) : <Layout className="h-4 w-4" />}
+                            </div>
+                            <span className="text-sm font-bold text-gray-700">المظهر: {isSeasonalActive ? themeConfig.name : "عادي"}</span>
+                          </div>
+                          <div className={cn("relative w-11 h-6 rounded-full transition-colors duration-200 ease-in-out", isSeasonalActive ? "bg-indigo-600" : "bg-gray-200")} style={isSeasonalActive ? { backgroundColor: themeConfig.primaryColor } : {}}>
+                            <div className={cn("absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-200 ease-in-out", isSeasonalActive ? "rtl:right-[2px] rtl:left-auto left-[2px]" : "rtl:left-[2px] rtl:right-auto right-[2px]")} />
+                          </div>
+                        </div>
+                      </div>
+
+                      <DropdownMenuSeparator className="bg-gray-50" />
+
+                      <DropdownMenuItem 
+                        onClick={() => window.dispatchEvent(new CustomEvent('open-ai-tour'))}
+                        className="p-3 rounded-xl cursor-pointer hover:bg-indigo-50 text-indigo-600 transition-colors gap-3"
+                      >
+                        <Bot className="h-4 w-4" />
+                        <span className="font-black text-sm">جولة تعريفية بالمنصة</span>
+                      </DropdownMenuItem>
+
+                      <DropdownMenuSeparator className="bg-gray-50" />
+
+                      <DropdownMenuItem onClick={() => signOut()} className="p-3 rounded-xl cursor-pointer hover:bg-rose-50 text-rose-500 transition-colors gap-3">
+                        <LogOut className="h-4 w-4" />
+                        <span className="font-bold text-sm">تسجيل الخروج</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+
+                {/* Regular User Flow */}
+                {!isAdmin && !isCompany && (
+                  <>
+                  <Link to="/trips/new" className="hidden sm:block" id="nav-create-trip">
+                    <Button className="h-10 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs gap-1.5 shadow-lg">
+                      <Plus className="h-4 w-4 shrink-0" />
+                      <span className="hidden lg:inline">أنشئ رحلة</span>
+                    </Button>
+                  </Link>
+
+                  <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button id="nav-profile" className="flex items-center gap-2 sm:gap-3 pl-1 pr-1 sm:pr-4 py-1 rounded-2xl bg-gray-50/50 border border-gray-100/50 hover:bg-indigo-50 transition-all group outline-none">
+                      <div className="text-right hidden xl:block">
+                        <p className="text-[10px] font-black text-indigo-500 leading-none mb-1">مرحباً بك</p>
+                        <p className="text-xs font-black text-gray-700 leading-none truncate max-w-[100px]">{user?.fullName || user?.username}</p>
+                      </div>
+                      <Avatar className="h-9 w-9 border-2 border-white shadow-sm transition-transform group-hover:scale-105">
+                        <AvatarImage src={dbUser?.imageUrl || user?.imageUrl} />
+                        <AvatarFallback className="bg-indigo-100 text-indigo-600 font-bold text-xs">
+                          {user?.firstName?.charAt(0) || user?.username?.charAt(0) || "?"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <ChevronDown className="h-3.5 w-3.5 text-gray-400 group-hover:text-indigo-600 transition-colors" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-64 mt-2 p-2 rounded-[1.5rem] border-gray-100 shadow-2xl font-cairo">
+                    <DropdownMenuLabel className="px-4 py-3">
+                      <div className="flex flex-col">
+                        <p className="text-sm font-black text-gray-900">{user?.fullName || user?.username}</p>
+                        <p className="text-[10px] font-bold text-gray-400">{user?.primaryEmailAddress?.emailAddress}</p>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator className="bg-gray-50" />
+                    
+                    <DropdownMenuItem 
+                      onClick={() => navigate(`/user/${user?.id}`)}
+                      className="p-3 rounded-xl cursor-pointer hover:bg-indigo-50 text-gray-700 hover:text-indigo-600 transition-colors gap-3"
+                    >
+                      <User className="h-4 w-4" />
+                      <span className="font-bold text-sm">الملف الشخصي</span>
+                    </DropdownMenuItem>
+
+                    <DropdownMenuItem 
+                      onClick={() => navigate('/messages')}
+                      className="p-3 rounded-xl cursor-pointer hover:bg-indigo-50 text-gray-700 hover:text-indigo-600 transition-colors gap-3"
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                      <span className="font-bold text-sm">الرسائل</span>
+                    </DropdownMenuItem>
+
+                    <DropdownMenuSeparator className="bg-gray-50" />
+                    
+                    {/* Theme Toggle */}
+                    <div className="p-1">
+                      <div className={cn("flex items-center justify-between p-3 rounded-xl transition-all duration-300 cursor-pointer hover:bg-gray-50", isSeasonalActive ? "bg-accent/5" : "")} onClick={(e) => { e.preventDefault(); toggleSeasonalTheme(); }}>
+                        <div className="flex items-center gap-3">
+                          <div className={cn("p-1.5 rounded-lg", isSeasonalActive ? "" : "bg-gray-100 text-gray-500")} style={isSeasonalActive ? { color: themeConfig.primaryColor, backgroundColor: `${themeConfig.primaryColor}20` } : {}}>
+                            {isSeasonalActive ? (
+                              themeConfig.icon === 'Moon' ? <Moon className="h-4 w-4" /> : 
+                              themeConfig.icon === 'Sun' ? <Sun className="h-4 w-4" /> : 
+                              themeConfig.icon === 'Snowflake' ? <Snowflake className="h-4 w-4" /> :
+                              themeConfig.icon === 'Flower' ? <Flower className="h-4 w-4" /> :
+                              themeConfig.icon === 'Leaf' ? <Leaf className="h-4 w-4" /> :
+                              <SparklesIcon className="h-4 w-4" />
+                            ) : <Layout className="h-4 w-4" />}
+                          </div>
+                          <span className="text-sm font-bold text-gray-700">المظهر: {isSeasonalActive ? themeConfig.name : "عادي"}</span>
+                        </div>
+                        <div className={cn("relative w-11 h-6 rounded-full transition-colors duration-200 ease-in-out", isSeasonalActive ? "bg-indigo-600" : "bg-gray-200")} style={isSeasonalActive ? { backgroundColor: themeConfig.primaryColor } : {}}>
+                          <div className={cn("absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-200 ease-in-out", isSeasonalActive ? "rtl:right-[2px] rtl:left-auto left-[2px]" : "rtl:left-[2px] rtl:right-auto right-[2px]")} />
+                        </div>
+                      </div>
+                    </div>
+
+                    <DropdownMenuSeparator className="bg-gray-50" />
+
+                    <DropdownMenuItem 
+                      onClick={() => window.dispatchEvent(new CustomEvent('open-ai-tour'))}
+                      className="p-3 rounded-xl cursor-pointer hover:bg-indigo-50 text-indigo-600 transition-colors gap-3"
+                    >
+                      <Bot className="h-4 w-4" />
+                      <span className="font-black text-sm">جولة تعريفية</span>
+                    </DropdownMenuItem>
+
+                    <DropdownMenuSeparator className="bg-gray-50" />
+
+                    <DropdownMenuItem onClick={() => signOut()} className="p-3 rounded-xl cursor-pointer hover:bg-rose-50 text-rose-500 transition-colors gap-3">
+                      <LogOut className="h-4 w-4" />
+                      <span className="font-bold text-sm">تسجيل الخروج</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                  </DropdownMenu>
+                  </>
+                )}
               </SignedIn>
 
             <SignedOut>
@@ -552,8 +687,7 @@ const Header = ({ onSearch }: HeaderProps) => {
                       { to: "/timeline", icon: Compass, label: "الرحلات" },
                       { to: "/agency", icon: Briefcase, label: "الشركات" },
                       { to: "/leaderboard", icon: Trophy, label: "المتصدرين" },
-                      { to: "/messages", icon: MessageSquare, label: "الرسائل" },
-
+                      ...(!isCompany ? [{ to: "/messages", icon: MessageSquare, label: "الرسائل" }] : []),
                     ].map((item, idx) => {
                       const isActive = item.to === "/" ? location.pathname === "/" : location.pathname.startsWith(item.to);
                       return (
@@ -598,6 +732,9 @@ const Header = ({ onSearch }: HeaderProps) => {
                             {isSeasonalActive ? (
                               themeConfig.icon === 'Moon' ? <Moon className="h-5 w-5" /> : 
                               themeConfig.icon === 'Sun' ? <Sun className="h-5 w-5" /> : 
+                              themeConfig.icon === 'Snowflake' ? <Snowflake className="h-5 w-5" /> :
+                              themeConfig.icon === 'Flower' ? <Flower className="h-5 w-5" /> :
+                              themeConfig.icon === 'Leaf' ? <Leaf className="h-5 w-5" /> :
                               <SparklesIcon className="h-5 w-5" />
                             ) : <Layout className="h-5 w-5" />}
                           </div>
@@ -619,7 +756,7 @@ const Header = ({ onSearch }: HeaderProps) => {
                     </div>
                     <SignedIn>
                        <div className="px-2 py-2 mb-2 border-b border-gray-50">
-                          {user && user.publicMetadata?.role !== 'company_owner' && !isAdmin && (
+                          {user && !isCompany && !isAdmin && (
                             <Link 
                               to={`/user/${user.id}`} 
                               className="flex items-center gap-3 p-3 rounded-2xl text-indigo-600 font-black bg-indigo-50 shadow-sm"
