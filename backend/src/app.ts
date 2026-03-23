@@ -799,6 +799,25 @@ export function createApp() {
         next();
     });
 
+    app.get("/api/proxy/hotels", async (req, res) => {
+        try {
+            const { city } = req.query;
+            if (!city) return res.status(400).json({ error: "City is required" });
+
+            const response = await fetch(`https://api.hotels-api.com/v1/hotels/search?city=${encodeURIComponent(String(city))}`, {
+                method: 'GET',
+                headers: {
+                    'X-API-KEY': '079ecae86ca6eff8a49299bb7ee2d08f73ed1c273cd975fdf4ec31f488168900'
+                }
+            });
+            const data = await response.json();
+            res.json(data);
+        } catch (error: any) {
+            console.error("Proxy error details:", error);
+            res.status(500).json({ error: error.message || "Proxy error", name: error.name, cause: error.cause ? error.cause.message : null });
+        }
+    });
+
     app.use("/api/trips", tripsRouter);
     app.use("/api/profiles", profilesRouter);
     app.use("/api/users", usersRouter);

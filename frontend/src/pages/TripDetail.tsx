@@ -609,43 +609,105 @@ useEffect(() => {
                    <div id="trip-itinerary" className="space-y-6">
                       <h2 className="text-2xl font-black text-gray-900 px-4">خط السير <span className="text-indigo-600">التفصيلي</span></h2>
                       <div className="space-y-4">
-                         {trip.days.map((day: any, idx: number) => (
-                            <Card key={idx} className="border-0 shadow-lg rounded-[2.5rem] bg-white overflow-hidden group">
-                               <div className="p-8">
-                                  <div className="flex items-center gap-6 mb-8">
-                                     <div className="w-16 h-16 rounded-2xl bg-indigo-50 border-2 border-indigo-100 flex items-center justify-center text-indigo-600 font-black text-2xl">
-                                        {idx + 1}
-                                     </div>
-                                     <h3 className="text-2xl font-black text-gray-900">{day.title || `اليوم ${idx + 1}`}</h3>
-                                  </div>
-                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                     {day.activities
-                                       .filter((actIdx: number) => actIdx >= 0 && actIdx < trip.activities.length)
-                                       .map((actIdx: number) => {
-                                          const activity = trip.activities[actIdx];
-                                          const hasVideo = activity.videos && activity.videos.length > 0;
-                                          return (
-                                            <div 
-                                              key={actIdx} 
-                                              onClick={() => setDialogActivityIdx(actIdx)}
-                                              className="p-4 rounded-[2rem] bg-gray-50/50 border border-transparent hover:border-indigo-100 hover:bg-indigo-50/30 transition-all flex items-center gap-4 cursor-pointer group/item"
-                                            >
-                                               <div className="w-20 h-16 rounded-2xl overflow-hidden shadow-sm bg-white shrink-0 relative">
-                                                  <img src={activity.images?.[0]} className="w-full h-full object-cover group-hover/item:scale-110 transition-transform duration-500" />
-                                                  {hasVideo && (
-                                                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                                                      <Play className="w-6 h-6 text-white fill-white" />
-                                                    </div>
-                                                  )}
-                                               </div>
-                                               <span className="font-black text-gray-700 text-lg uppercase line-clamp-1">{activity.name}</span>
+                          {trip.days.map((day: any, dayIdx: number) => {
+                             const dayColor = day.color || "#4F46E5";
+                             return (
+                             <Card key={dayIdx} className="border-0 shadow-lg rounded-[2.5rem] bg-white overflow-hidden">
+                                {/* Day Header */}
+                                <div className="px-8 pt-8 pb-4">
+                                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
+                                      <div className="flex items-center gap-5">
+                                         <div
+                                           className="w-16 h-16 rounded-2xl flex items-center justify-center font-black text-2xl shrink-0"
+                                           style={{ backgroundColor: dayColor + "15", border: `3px solid ${dayColor}`, color: dayColor }}
+                                         >
+                                            {dayIdx + 1}
+                                         </div>
+                                         <div>
+                                           <p className="text-xs font-black uppercase tracking-widest mb-0.5" style={{ color: dayColor }}>اليوم {dayIdx + 1}</p>
+                                           <h3 className="text-xl font-black text-gray-900">{day.title || `اليوم ${dayIdx + 1}`}</h3>
+                                         </div>
+                                      </div>
+                                      
+                                      {day.hotel && (
+                                        <div className="flex items-center gap-3 bg-indigo-50/50 p-2.5 rounded-2xl border border-indigo-100 shadow-sm max-w-[280px]">
+                                          {day.hotel.image ? (
+                                            <img src={day.hotel.image} className="w-12 h-12 rounded-xl object-cover shrink-0" alt={day.hotel.name} />
+                                          ) : (
+                                            <div className="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
+                                              <MapPin className="w-5 h-5 text-indigo-400" />
                                             </div>
-                                          );
-                                       })}
-                                  </div>
-                               </div>
-                            </Card>
-                         ))}
+                                          )}
+                                          <div className="flex flex-col text-right pr-1">
+                                            <span className="text-[9px] font-black tracking-widest uppercase text-indigo-400 mb-0.5">مكان الإقامة المنصوح به</span>
+                                            <span className="font-bold text-sm text-gray-800 line-clamp-1">{day.hotel.name}</span>
+                                            {day.hotel.priceRange && day.hotel.priceRange !== 'غير متوفر' && (
+                                               <span className="text-[10px] font-bold text-emerald-600 mt-0.5">{day.hotel.priceRange}</span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      )}
+                                   </div>
+                                </div>
+                                {/* Activities vertical timeline */}
+                                <div className="px-8 pb-8 space-y-0">
+                                  {day.activities
+                                    .filter((actIdx: number) => actIdx >= 0 && actIdx < trip.activities.length)
+                                    .map((actIdx: number, itemIdx: number, arr: number[]) => {
+                                       const activity = trip.activities[actIdx];
+                                       const isLast = itemIdx === arr.length - 1;
+                                       const isRestaurant = activity.type === "restaurant";
+                                       return (
+                                         <div key={actIdx} className="relative flex gap-4">
+                                           {/* Timeline connector dot */}
+                                           <div className="flex flex-col items-center shrink-0 w-10">
+                                             <div
+                                               className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-sm z-10 shadow-sm"
+                                               style={{ backgroundColor: dayColor }}
+                                             >
+                                               {isRestaurant ? "" : ""}
+                                             </div>
+                                             {!isLast && (
+                                               <div className="w-0.5 flex-1 my-1 rounded-full" style={{ backgroundColor: dayColor + "30" }} />
+                                             )}
+                                           </div>
+                                           {/* Activity card */}
+                                           <div
+                                             onClick={() => setDialogActivityIdx(actIdx)}
+                                             className="flex-1 mb-4 p-4 rounded-[1.5rem] bg-gray-50/60 border border-gray-100 hover:border-gray-200 hover:bg-white transition-all cursor-pointer group/item shadow-sm hover:shadow-md"
+                                           >
+                                             <div className="flex items-start gap-3">
+                                               {activity.images?.[0] && (
+                                                 <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 shadow-sm">
+                                                   <img src={activity.images[0]} className="w-full h-full object-cover group-hover/item:scale-110 transition-transform duration-500" />
+                                                 </div>
+                                               )}
+                                               <div className="flex-1 min-w-0">
+                                                 {activity.time && (
+                                                   <div
+                                                     className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-black mb-1.5"
+                                                     style={{ backgroundColor: dayColor + "15", color: dayColor }}
+                                                   >
+                                                     <Clock className="w-3 h-3" />
+                                                     {activity.time}
+                                                   </div>
+                                                 )}
+                                                 <p className="font-black text-gray-800 text-base leading-tight line-clamp-1">{activity.name}</p>
+                                                 {activity.note && (
+                                                   <p className="text-xs text-gray-500 font-medium mt-1 leading-relaxed line-clamp-2">
+                                                     {"💡"} {activity.note}
+                                                   </p>
+                                                 )}
+                                               </div>
+                                             </div>
+                                           </div>
+                                         </div>
+                                       );
+                                    })}
+                                </div>
+                             </Card>
+                             );
+                          })}
                       </div>
                    </div>
 
@@ -664,10 +726,16 @@ useEffect(() => {
                                           <MapPin className="w-8 h-8 text-gray-300" />
                                        </div>
                                     )}
-                                    <div>
-                                       <h4 className="font-black text-gray-800">{hotel.name}</h4>
-                                       <div className="flex items-center gap-1 text-amber-500 mt-1">
-                                          <Star className="w-3 h-3 fill-current" /> <span className="text-xs font-black">{hotel.rating}</span>
+                                    <div className="flex-1 w-full">
+                                       <h4 className="font-black text-gray-800 text-lg">{hotel.name}</h4>
+                                       <p className="text-xs text-gray-500 font-bold mt-1 line-clamp-2">{hotel.description || 'فندق وإقامة مميزة'}</p>
+                                       <div className="flex items-center gap-3 mt-3">
+                                          <div className="flex items-center gap-1 text-amber-500 bg-amber-50 px-2.5 py-1 rounded-lg">
+                                             <Star className="w-3.5 h-3.5 fill-current" /> <span className="text-xs font-black">{hotel.rating}</span>
+                                          </div>
+                                          {hotel.priceRange && hotel.priceRange !== "غير متوفر" && (
+                                            <Badge className="bg-emerald-50 text-emerald-600 border-none font-bold text-[10px]">{hotel.priceRange}</Badge>
+                                          )}
                                        </div>
                                     </div>
                                  </div>
@@ -692,9 +760,12 @@ useEffect(() => {
                                           <Utensils className="w-8 h-8 text-gray-300" />
                                        </div>
                                     )}
-                                    <div>
-                                       <h4 className="font-black text-gray-800">{food.name}</h4>
-                                       <Badge className="bg-orange-50 text-orange-600 border-none mt-1">{food.rating} ⭐</Badge>
+                                    <div className="flex-1 w-full">
+                                       <h4 className="font-black text-gray-800 text-lg">{food.name}</h4>
+                                       <p className="text-xs text-gray-500 font-bold mt-1 line-clamp-2">{food.description || 'مطعم ومأكولات شهية'}</p>
+                                       <div className="mt-3 inline-flex">
+                                          <Badge className="bg-orange-50 text-orange-600 border-none px-2.5 py-1 rounded-lg font-black gap-1.5"><Utensils className="w-3 h-3" /> {food.rating} ⭐</Badge>
+                                       </div>
                                     </div>
                                  </div>
                               </Card>
@@ -728,6 +799,9 @@ useEffect(() => {
                           activityNames={trip.activities
                             .filter((a: any) => a.coordinates)
                             .map((a: any) => a.name)}
+                          markerColors={trip.activities
+                            .filter((a: any) => a.coordinates)
+                            .map((a: any) => a.color)}
                           onMarkerClick={setDialogActivityIdx}
                           height="100%"
                           className="rounded-[2rem]"
@@ -880,6 +954,9 @@ useEffect(() => {
                    activityNames={trip.activities
                      .filter((a: any) => a.coordinates)
                      .map((a: any) => a.name)}
+                   markerColors={trip.activities
+                     .filter((a: any) => a.coordinates)
+                     .map((a: any) => a.color)}
                    onMarkerClick={setDialogActivityIdx}
                    height="100%"
                    className="absolute inset-0 rounded-[2.5rem]"
@@ -896,38 +973,67 @@ useEffect(() => {
                <div>
                   <div className="h-64 relative bg-gray-100">
                      <img 
-                       src={trip.activities[dialogActivityIdx].images?.[0]} 
+                       src={trip.activities[dialogActivityIdx].images?.[0] || 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800&q=80'} 
                        className="w-full h-full object-cover"
                      />
-                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                     <div className="absolute bottom-6 right-6 text-white">
-                        <Badge className="bg-orange-500 mb-2 border-none">نشاط ومغامرة</Badge>
-                        <h3 className="text-3xl font-black">{trip.activities[dialogActivityIdx].name}</h3>
+                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                     <div className="absolute top-6 left-6 flex gap-2">
+                        {trip.activities[dialogActivityIdx].rating && (
+                          <Badge className="bg-white/90 text-amber-500 hover:bg-white border-none font-black flex gap-1 shadow-lg backdrop-blur-sm">
+                            <Star className="w-3.5 h-3.5 fill-current" /> {trip.activities[dialogActivityIdx].rating}
+                          </Badge>
+                        )}
+                        {trip.activities[dialogActivityIdx].price && (
+                          <Badge className="bg-white/90 text-emerald-600 hover:bg-white border-none font-black shadow-lg backdrop-blur-sm">
+                            {trip.activities[dialogActivityIdx].price}
+                          </Badge>
+                        )}
+                     </div>
+                     <div className="absolute bottom-6 right-6 text-white w-full pr-8">
+                        <Badge className={cn("mb-3 border-none shadow-md", trip.activities[dialogActivityIdx].type === 'restaurant' ? 'bg-orange-500' : 'bg-indigo-500')}>
+                          {trip.activities[dialogActivityIdx].type === 'restaurant' ? 'مطعم' : 'نشاط سياحي'}
+                        </Badge>
+                        <h3 className="text-3xl font-black max-w-[90%] leading-tight">{trip.activities[dialogActivityIdx].name}</h3>
                      </div>
                   </div>
-                  <div className="p-8 space-y-4">
-                     <p className="text-lg text-gray-600 leading-relaxed font-bold">
-                        {trip.activities[dialogActivityIdx].description}
-                     </p>
+                  <div className="p-8 space-y-6 max-h-[50vh] overflow-y-auto custom-scrollbar">
+                     {trip.activities[dialogActivityIdx].description && (
+                       <p className="text-lg text-gray-600 leading-relaxed font-bold">
+                          {trip.activities[dialogActivityIdx].description}
+                       </p>
+                     )}
                      
-                     <div className="grid grid-cols-2 gap-4 mt-6">
-                        <div className="p-4 rounded-3xl bg-gray-50 flex items-center gap-3">
-                           <div className="w-10 h-10 rounded-2xl bg-indigo-100 flex items-center justify-center text-indigo-600">
-                              <MapPin className="w-5 h-5" />
+                     {trip.activities[dialogActivityIdx].note && (
+                       <div className="bg-indigo-50 border-r-4 border-indigo-500 p-4 rounded-l-2xl">
+                          <p className="text-indigo-900 font-bold leading-relaxed whitespace-pre-line">
+                            💡 {trip.activities[dialogActivityIdx].note}
+                          </p>
+                       </div>
+                     )}
+                     
+                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+                        <div className="p-4 rounded-3xl bg-gray-50 flex items-center gap-4">
+                           <div className="w-12 h-12 rounded-2xl bg-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
+                              <MapPin className="w-6 h-6" />
                            </div>
-                           <div>
-                              <span className="block text-xs text-gray-400 font-bold">الموقع</span>
-                              <span className="font-black text-gray-700">{trip.city}</span>
+                           <div className="flex-1 min-w-0">
+                              <span className="block text-xs text-gray-400 font-bold mb-1">الموقع</span>
+                              <span className="font-black text-gray-700 text-sm line-clamp-2 leading-snug">
+                                {trip.activities[dialogActivityIdx].address || trip.city}
+                              </span>
                            </div>
                         </div>
-                        {trip.activities[dialogActivityIdx].duration && (
-                           <div className="p-4 rounded-3xl bg-gray-50 flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-2xl bg-emerald-100 flex items-center justify-center text-emerald-600">
-                                 <Clock className="w-5 h-5" />
+                        
+                        {(trip.activities[dialogActivityIdx].time || trip.activities[dialogActivityIdx].duration) && (
+                           <div className="p-4 rounded-3xl bg-gray-50 flex items-center gap-4">
+                              <div className="w-12 h-12 rounded-2xl bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
+                                 <Clock className="w-6 h-6" />
                               </div>
-                              <div>
-                                 <span className="block text-xs text-gray-400 font-bold">المدة المقدرة</span>
-                                 <span className="font-black text-gray-700">{trip.activities[dialogActivityIdx].duration}</span>
+                              <div className="flex-1 min-w-0">
+                                 <span className="block text-xs text-gray-400 font-bold mb-1">التوقيت</span>
+                                 <span className="font-black text-gray-700 text-sm line-clamp-2">
+                                   {trip.activities[dialogActivityIdx].time || trip.activities[dialogActivityIdx].duration}
+                                 </span>
                               </div>
                            </div>
                         )}

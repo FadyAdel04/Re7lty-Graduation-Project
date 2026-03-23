@@ -8,6 +8,7 @@ interface MapboxTripMapProps {
   positions: { lat: number; lng: number }[];
   activityNames?: string[];
   onMarkerClick?: (index: number) => void;
+  markerColors?: string[];
   className?: string;
   height?: string;
 }
@@ -16,6 +17,7 @@ export const MapboxTripMap = ({
   positions,
   activityNames = [],
   onMarkerClick,
+  markerColors = [],
   className = "",
   height = "280px",
 }: MapboxTripMapProps) => {
@@ -69,7 +71,7 @@ export const MapboxTripMap = ({
             paint: {
               "line-color": "#4F46E5",
               "line-width": 4,
-              "line-opacity": 0.8,
+              "line-opacity": 0.3, // Reduced opacity for line when using multi-color markers
               "line-dasharray": [2, 1],
             },
           });
@@ -99,27 +101,52 @@ export const MapboxTripMap = ({
       }
 
       positions.forEach((pos, idx) => {
+        const markerColor = markerColors[idx] || "#4F46E5";
         const el = document.createElement("div");
-        el.className = "mapbox-marker-activity";
-        el.style.cssText = `
-          width: 28px; height: 28px;
+        el.className = "mapbox-marker-wrapper";
+        el.style.width = "34px";
+        el.style.height = "34px";
+        el.style.zIndex = "1";
+
+        const inner = document.createElement("div");
+        inner.className = "mapbox-marker-activity";
+        inner.style.cssText = `
+          width: 34px; height: 34px;
           background: white;
-          color: #4F46E5;
+          color: ${markerColor};
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
           font-weight: 900;
-          font-size: 12px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+          font-size: 14px;
+          box-shadow: 0 4px 15px rgba(0,0,0,0.25);
           cursor: pointer;
-          border: 2px solid #4F46E5;
+          border: 3.5px solid ${markerColor};
+          transition: all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+          position: relative;
         `;
-        el.textContent = String(idx + 1);
+        inner.textContent = String(idx + 1);
+        el.appendChild(inner);
+
+        // Add hover effect
+        inner.onmouseenter = () => {
+          inner.style.transform = "scale(1.25) translateY(-5px)";
+          inner.style.boxShadow = `0 15px 30px ${markerColor}60`;
+          el.style.zIndex = "100";
+        };
+        inner.onmouseleave = () => {
+          inner.style.transform = "scale(1) translateY(0)";
+          inner.style.boxShadow = "0 4px 15px rgba(0,0,0,0.25)";
+          el.style.zIndex = "1";
+        };
 
         const name = activityNames[idx] || `نقطة ${idx + 1}`;
-        const popup = new mapboxgl.Popup({ offset: 15 })
-          .setHTML(`<div dir="rtl" style="padding:8px;min-width:120px"><strong style="color:#4F46E5">${name}</strong></div>`);
+        const popup = new mapboxgl.Popup({ offset: 15, closeButton: false })
+          .setHTML(`<div dir="rtl" style="padding:10px;min-width:140px;border-radius:12px">
+            <div style="font-size:10px;font-weight:900;color:${markerColor};text-transform:uppercase;margin-bottom:4px">الوجهة رقم ${idx + 1}</div>
+            <strong style="color:#111827;font-size:14px">${name}</strong>
+          </div>`);
 
         const marker = new mapboxgl.Marker({ element: el })
           .setLngLat([pos.lng, pos.lat])

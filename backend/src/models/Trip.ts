@@ -16,12 +16,17 @@ const ActivitySchema = new Schema({
   videos: [String],
   coordinates: { lat: Number, lng: Number },
   day: Number,
+  time: String,
+  note: String,
+  color: String,
 }, { _id: false });
 
 const DaySchema = new Schema({
   title: String,
   date: String,
   activities: [Number],
+  color: String,
+  hotel: { type: Schema.Types.Mixed },
 }, { _id: false });
 
 const FoodSchema = new Schema({

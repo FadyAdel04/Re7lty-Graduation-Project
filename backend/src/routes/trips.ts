@@ -537,6 +537,18 @@ router.post('/', requireAuthStrict, async (req, res) => {
         }));
       }
 
+      // Process day's hotel image
+      if (Array.isArray(out.days)) {
+        out.days = await Promise.all(out.days.map(async (d: any) => {
+          const nd = { ...d };
+          if (nd.hotel && typeof nd.hotel.image === 'string' && nd.hotel.image.startsWith('data:')) {
+            nd.hotel = { ...nd.hotel };
+            nd.hotel.image = await persistBase64(nd.hotel.image, "day_hotels");
+          }
+          return nd;
+        }));
+      }
+
       return out;
     };
 

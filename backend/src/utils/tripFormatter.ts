@@ -67,6 +67,16 @@ export function formatTripMedia(trip: any, req: any, viewerId?: string) {
     }))
     : [];
 
+  const days = Array.isArray(plain.days)
+    ? plain.days.map((d: any) => ({
+      ...d,
+      hotel: d.hotel ? {
+        ...d.hotel,
+        image: toAbsoluteUrl(d.hotel.image, req) || d.hotel.image,
+      } : undefined,
+    }))
+    : [];
+
   return {
     ...plain,
     image,
@@ -74,6 +84,7 @@ export function formatTripMedia(trip: any, req: any, viewerId?: string) {
     foodAndRestaurants,
     hotels,
     comments,
+    days,
   };
 }
 

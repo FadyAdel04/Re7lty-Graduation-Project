@@ -413,6 +413,173 @@ export async function sendMessageToAI(
     }
 }
 
+export interface ItineraryDay {
+    dayNum: number;
+    title: string;
+    activities: {
+        name: string;
+        type: 'attraction' | 'restaurant';
+        coordinates?: { lat: number; lng: number };
+        color?: string;
+        time?: string;
+        note?: string;
+    }[];
+    color: string;
+}
+
+const ITINERARY_COLORS = [
+    "#4F46E5", // Indigo
+    "#E11D48", // Rose
+    "#059669", // Emerald
+    "#D97706", // Amber
+    "#7C3AED", // Violet
+    "#2563EB", // Blue
+    "#DB2777", // Pink
+    "#0891B2", // Cyan
+];
+
+export interface GeneratedItineraryResponse {
+    title?: string;
+    description?: string;
+    days: ItineraryDay[];
+}
+
+export async function generateItinerary(
+    destination: string,
+    days: number,
+    selectedPlaces: { name: string; type: 'attraction' | 'restaurant'; lat?: number; lng?: number }[]
+): Promise<GeneratedItineraryResponse> {
+    try {
+        const Groq = (await import('groq-sdk')).default;
+        const groq = new Groq({
+            apiKey: GROQ_API_KEY,
+            dangerouslyAllowBrowser: true
+        });
+
+        const prompt = `أنت خبير تخطيط رحلات. قم بتنظيم الأماكن التالية في برنامج سياحي لمدة ${days} أيام في ${destination}.
+الأماكن المختارة:
+${selectedPlaces.map(p => `- ${p.name} (${p.type}) [Coords: ${p.lat}, ${p.lng}]`).join('\n')}
+
+المطلوب:
+1. توزيع الأماكن على الأيام بشكل جغرافي ذكي جداً لتقليل مسافات التنقل وتجنب إضاعة الوقت في المواصلات (استخدم الإحداثيات المذكورة لتجميع الأماكن القريبة في نفس اليوم).
+2. ترتيب الأنشطة داخل كل يوم بشكل منطقي يسهل التحرك بينهم سيراً أو بمسافات قصيرة.
+3. إضافة وقت مقترح لكل نشاط.
+4. إضافة ملاحظة بسيطة (نصيحة) لكل مكان بالعربية تتضمن أفضل طريق للوصول إذا أمكن.
+5. اجعل البرنامج ممتعاً ومنوعاً بين المعالم والمطاعم.
+
+أرجع النتيجة بصيغة JSON فقط ككائن يحتوي على 3 حقول:
+1. "title": اسم مبتكر وجذاب للرحلة (مثلاً: "لآلئ النيل: سحر التاريخ في القاهرة").
+2. "description": نص تسويقي وإبداعي جذاب يصف الرحلة وجمالها (بدون ذكر أرقام مجردة، ركز على الشعور والمغامرة).
+3. "days": قائمة الأيام.
+
+مثال للـ JSON المطلوب:
+{
+  "title": "سحر الإسكندرية: عروس البحر المتوسط",
+  "description": "استعد لرحلة تأخذك بين أحضان الطبيعة الساحرة وعبق التاريخ، حيث تمتزج ألوان المغامرة بمتعة الاسترخاء...",
+  "days": [
+    {
+      "dayNum": 1,
+      "title": "عنوان اليوم (مثلاً: قلب المدينة النابض)",
+      "activities": [
+        {
+          "name": "اسم المكان",
+          "type": "attraction" | "restaurant",
+          "time": "الوقت (مثلاً: 10:00 صباحاً)",
+          "note": "نصيحة سريعة ومفيدة"
+        }
+      ]
+    }
+  ]
+}
+
+لا تضف أي نص خارج الـ JSON.`;
+
+        const chatCompletion = await groq.chat.completions.create({
+            messages: [
+                { role: "system", content: "أنت خبير تخطيط رحلات محترف أرجع JSON فقط." },
+                { role: "user", content: prompt }
+            ],
+            model: "llama-3.3-70b-versatile",
+            temperature: 0.3,
+            max_tokens: 2000,
+        });
+
+        const text = chatCompletion.choices[0]?.message?.content || "";
+        let jsonStr = text.trim();
+        if (jsonStr.startsWith("```json")) {
+            jsonStr = jsonStr.replace(/^```json\s*/i, "").replace(/\s*```\s*$/g, "");
+        } else if (jsonStr.startsWith("```")) {
+            jsonStr = jsonStr.replace(/^```\s*/, "").replace(/\s*```\s*$/g, "");
+        }
+        let parsedData: any;
+        try {
+            parsedData = JSON.parse(jsonStr);
+        } catch (e) {
+            console.error("Failed to parse itinerary JSON", jsonStr);
+            throw e;
+        }
+
+        let itineraryDays: any[] = [];
+        let description = "";
+        let title = "";
+
+        if (Array.isArray(parsedData)) {
+            itineraryDays = parsedData;
+        } else if (parsedData && Array.isArray(parsedData.days)) {
+            itineraryDays = parsedData.days;
+            description = parsedData.description || "";
+            title = parsedData.title || "";
+        } else {
+            throw new Error("Invalid itinerary JSON structure");
+        }
+        
+        // Map colors and coordinates back for days
+        const formattedDays = itineraryDays.map((day, idx) => ({
+            ...day,
+            dayNum: day.dayNum || idx + 1,
+            title: day.title || `اليوم ${idx + 1}`,
+            color: ITINERARY_COLORS[idx % ITINERARY_COLORS.length],
+            activities: Array.isArray(day.activities) ? day.activities.map((act: any) => {
+                const original = selectedPlaces.find(p => p.name === act.name);
+                return {
+                    ...act,
+                    coordinates: original ? { lat: original.lat, lng: original.lng } : undefined,
+                    color: ITINERARY_COLORS[idx % ITINERARY_COLORS.length]
+                };
+            }) : []
+        }));
+
+        return {
+            title,
+            description,
+            days: formattedDays
+        };
+
+    } catch (error) {
+        console.error("Error generating itinerary:", error);
+        // Fallback: simple distribution if AI fails
+        const fallbackDays = Array.from({ length: days }, (_, i) => ({
+            dayNum: i + 1,
+            title: `اليوم ${i + 1}`,
+            color: ITINERARY_COLORS[i % ITINERARY_COLORS.length],
+            activities: selectedPlaces
+                .filter((_, idx) => Math.floor(idx / 3) === i)
+                .map(p => ({
+                    ...p,
+                    time: "10:00 صباحاً",
+                    note: "رحلة سعيدة!",
+                    color: ITINERARY_COLORS[i % ITINERARY_COLORS.length]
+                }))
+        }));
+
+        return {
+            title: `رحلة استكشاف ${destination}`,
+            description: "رحلة ممتعة لاستكشاف أفضل المعالم السياحية والمطاعم الرائعة.",
+            days: fallbackDays
+        };
+    }
+}
+
 export async function getCompletion(
     userInput: string,
     conversationHistory: { role: string; content: string }[]

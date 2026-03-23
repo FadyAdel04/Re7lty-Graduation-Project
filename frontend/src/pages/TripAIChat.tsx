@@ -18,6 +18,7 @@ import {
   Zap,
   ArrowUpRight,
   LayoutGrid,
+  MapPin,
 } from "lucide-react";
 import { getTripPlan, type TripPlan } from "@/lib/travel-advisor-api";
 import { useToast } from "@/hooks/use-toast";
@@ -28,7 +29,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { sendMessageToAI, type AIResponse } from "@/lib/openrouter-client";
+import { sendMessageToAI, generateItinerary, type AIResponse, type ItineraryDay, type GeneratedItineraryResponse } from "@/lib/openrouter-client";
 
 type Message = {
   id: number;
@@ -78,6 +79,8 @@ const TripAIChat = () => {
   const [availableTrips, setAvailableTrips] = useState<any[]>([]);
   const [aiQuota, setAiQuota] = useState<{ count: number; limit: number; remaining: number } | null>(null);
   const [mobileView, setMobileView] = useState<'chat' | 'plan'>('chat'); // For mobile: which panel to show
+  const [isGeneratingItinerary, setIsGeneratingItinerary] = useState(false);
+  const [generatedItinerary, setGeneratedItinerary] = useState<GeneratedItineraryResponse | null>(null);
 
   useEffect(() => {
     const fetchTrips = async () => {
@@ -235,7 +238,7 @@ const TripAIChat = () => {
     addMessage('ai', 'رائع! جاري البحث عن أفضل الأماكن والفنادق والمطاعم في ' + destination + '... 🔍✨');
 
     try {
-      const plan = await getTripPlan(destination, days);
+      const plan = await getTripPlan(destination, days, extractedData.budget || undefined);
       
       if (plan) {
         setTripPlan(plan);
@@ -259,7 +262,7 @@ const TripAIChat = () => {
         setSelectedHotels(allHotels);
         setMobileView('plan'); // Show plan on mobile when ready for user to confirm & choose
         setTimeout(() => {
-          addMessage('ai', `تم! 🎉 لقد جهزت لك خطة رحلة متكاملة إلى ${destination}. يمكنك الآن مراجعة المعالم والمطاعم والفنادق واختيار ما يناسبك، ثم احفظ رحلتك.`);
+          addMessage('ai', `تم! 🎉 لقد جهزت لك خطة رحلة متكاملة إلى ${destination}. يمكنك الآن مراجعة المعالم والمطاعم والفنادق واختيار ما يناسبك، ثم اضغط على "تنظيم الرحلة" لأقوم بترتيبها لك حسب الأيام.`);
         }, 500);
       } else {
         addMessage('ai', 'عذراً، لم أتمكن من إيجاد معلومات كافية عن هذه الوجهة. هل تريد تجربة وجهة أخرى؟');
@@ -268,6 +271,51 @@ const TripAIChat = () => {
       addMessage('ai', 'واجهت مشكلة أثناء البحث عن الأماكن. دعنا نحاول مرة أخرى.');
     } finally {
       setIsGeneratingPlan(false);
+    }
+  };
+
+  const handleGenerateFullItinerary = async () => {
+    if (!tripPlan) return;
+    
+    setIsGeneratingItinerary(true);
+    try {
+      const selectedAttractionsList = tripPlan.attractions
+        .filter((a, idx) => selectedAttractions.has(a.location_id || String(idx)))
+        .map(a => ({
+          name: a.name,
+          type: 'attraction' as const,
+          lat: parseFloat(a.latitude || "0"),
+          lng: parseFloat(a.longitude || "0")
+        }));
+        
+      const selectedRestaurantsList = tripPlan.restaurants
+        .filter((r, idx) => selectedRestaurants.has(r.location_id || String(idx)))
+        .map(r => ({
+          name: r.name,
+          type: 'restaurant' as const,
+          lat: parseFloat(r.latitude || "0"),
+          lng: parseFloat(r.longitude || "0")
+        }));
+        
+      const allSelected = [...selectedAttractionsList, ...selectedRestaurantsList];
+      
+      if (allSelected.length === 0) {
+        toast({ title: "تنبيه", description: "يرجى اختيار مكان واحد على الأقل.", variant: "destructive" });
+        return;
+      }
+      
+      const itinerary = await generateItinerary(
+        extractedData.destination || tripPlan.location.name,
+        extractedData.days || 3,
+        allSelected
+      );
+      
+      setGeneratedItinerary(itinerary);
+      toast({ title: "تم تنظيم الرحلة", description: "لقد رتبت لك الأماكن حسب الأيام لتقليل مسافات التنقل." });
+    } catch (error: any) {
+      toast({ title: "فشل التنظيم", description: "حدث خطأ أثناء تنظيم الرحلة. حاول مرة أخرى.", variant: "destructive" });
+    } finally {
+      setIsGeneratingItinerary(false);
     }
   };
 
@@ -290,35 +338,105 @@ const TripAIChat = () => {
       const selectedRestaurantsList = tripPlan.restaurants.filter((r, idx) => selectedRestaurants.has(r.location_id || String(idx)));
       const selectedHotelsList = tripPlan.hotels.filter((h, idx) => selectedHotels.has(h.location_id || String(idx)));
 
-      const activities = selectedAttractionsList.map((attraction, idx) => ({
-        name: attraction.name,
-        images: attraction.photo?.images?.medium?.url ? [attraction.photo.images.medium.url] : [],
-        day: Math.floor(idx / 3) + 1,
-        coordinates: {
-          lat: parseFloat(attraction.latitude || tripPlan.location.latitude || "30.0444"),
-          lng: parseFloat(attraction.longitude || tripPlan.location.longitude || "31.2357"),
-        }
-      }));
+      let activities: any[] = [];
+      let finalDays: any[] = [];
+
+      if (generatedItinerary) {
+        // Use the AI-generated itinerary
+        let actCounter = 0;
+        generatedItinerary.days.forEach((day, dayIdx) => {
+          const dayActs: number[] = [];
+          day.activities.forEach(act => {
+             const originalAttract = selectedAttractionsList.find(a => a.name === act.name);
+             const originalRest = selectedRestaurantsList.find(r => r.name === act.name);
+             const original = originalAttract || originalRest;
+             
+             activities.push({
+               name: act.name,
+               images: original?.photo?.images?.large?.url 
+                 ? [original.photo.images.large.url] 
+                 : (original?.photo?.images?.medium?.url ? [original.photo.images.medium.url] : []),
+               day: day.dayNum,
+               color: day.color,
+               time: act.time,
+               note: act.note,
+               description: original?.description || (act.type === 'restaurant' && originalRest ? (originalRest.cuisine?.[0]?.name ? `مطعم ${originalRest.cuisine[0].name}` : 'مطعم ومأكولات شهية') : 'نشاط سياحي ممتع'),
+               rating: original?.rating,
+               address: original?.address,
+               price: (original as any)?.price || original?.price_level || "غير متوفر",
+               type: act.type,
+               coordinates: {
+                lat: act.coordinates?.lat || parseFloat(tripPlan.location.latitude || "30.0444"),
+                lng: act.coordinates?.lng || parseFloat(tripPlan.location.longitude || "31.2357"),
+               }
+             });
+             dayActs.push(actCounter++);
+          });
+          let hotelObj = undefined;
+          if (selectedHotelsList.length > 0) {
+            const h = selectedHotelsList[dayIdx % selectedHotelsList.length];
+            hotelObj = { name: h.name, image: h.photo?.images?.medium?.url, rating: h.rating, address: h.address, priceRange: h.price };
+          }
+
+          finalDays.push({
+            title: day.title,
+            activities: dayActs,
+            color: day.color,
+            hotel: hotelObj
+          });
+        });
+      } else {
+        // Default simple distribution
+        activities = selectedAttractionsList.map((attraction, idx) => ({
+          name: attraction.name,
+          images: attraction.photo?.images?.large?.url ? [attraction.photo.images.large.url] : (attraction.photo?.images?.medium?.url ? [attraction.photo.images.medium.url] : []),
+          day: Math.floor(idx / 3) + 1,
+          time: "10:00 صباحاً", // Add default time for the fallback
+          description: attraction.description || 'نشاط سياحي ممتع',
+          rating: attraction.rating,
+          address: attraction.address,
+          price: (attraction as any).price || attraction.price_level || "غير متوفر",
+          type: 'attraction',
+          coordinates: {
+            lat: parseFloat(attraction.latitude || tripPlan.location.latitude || "30.0444"),
+            lng: parseFloat(attraction.longitude || tripPlan.location.longitude || "31.2357"),
+          }
+        }));
+
+        const numDays = extractedData.days || 3;
+        finalDays = Array.from({ length: numDays }, (_, i) => {
+          let hotelObj = undefined;
+          if (selectedHotelsList.length > 0) {
+            const h = selectedHotelsList[i % selectedHotelsList.length];
+            hotelObj = { name: h.name, image: h.photo?.images?.medium?.url, rating: h.rating, address: h.address, priceRange: h.price };
+          }
+          return {
+            title: `اليوم ${i + 1}`,
+            activities: activities
+              .map((_, idx) => idx)
+              .filter((_, idx) => Math.floor(idx / 3) === i),
+            hotel: hotelObj
+          };
+        });
+      }
 
       const numDays = extractedData.days || 3;
       const budgetMap = { low: "اقتصادية", medium: "متوسطة", high: "فاخرة" };
+      
+      const defaultDescription = `رحلة ذكية تم تصميمها بواسطة TripAI إلى ${extractedData.destination} لمدة ${numDays} أيام${extractedData.tripType ? ` - ${extractedData.tripType}` : ''}. تتضمن ${selectedAttractionsList.length} معلم سياحي، ${selectedRestaurantsList.length} مطعم، و ${selectedHotelsList.length} فندق.`;
+      
       const tripData = {
-        title: `رحلة ${extractedData.destination} - ${numDays} أيام`,
+        title: generatedItinerary?.title || `رحلة ${extractedData.destination} - ${numDays} أيام`,
         destination: tripPlan.location.name,
         city: extractedData.destination || tripPlan.location.name,
         duration: `${numDays} أيام`,
         rating: 4.8,
         image: selectedAttractionsList[0]?.photo?.images?.large?.url || selectedAttractionsList[0]?.photo?.images?.medium?.url || "",
-        description: `رحلة ذكية تم تصميمها بواسطة TripAI إلى ${extractedData.destination} لمدة ${numDays} أيام${extractedData.tripType ? ` - ${extractedData.tripType}` : ''}. تتضمن ${selectedAttractionsList.length} معلم سياحي، ${selectedRestaurantsList.length} مطعم، و ${selectedHotelsList.length} فندق.`,
+        description: generatedItinerary?.description || defaultDescription,
         budget: extractedData.budget ? budgetMap[extractedData.budget] : (estimatedPrice ? `${estimatedPrice} جنيه مصري` : "غير محدد"),
         season: extractedData.season || getCurrentSeason(),
         activities: activities,
-        days: Array.from({ length: numDays }, (_, i) => ({
-          title: `اليوم ${i + 1}`,
-          activities: activities
-            .map((_, idx) => idx)
-            .filter((_, idx) => Math.floor(idx / 3) === i),
-        })),
+        days: finalDays,
         foodAndRestaurants: selectedRestaurantsList.map(r => ({
           name: r.name,
           image: r.photo?.images?.medium?.url || "",
@@ -460,89 +578,198 @@ const TripAIChat = () => {
 
                          {/* Results Content */}
                          <div className="space-y-16 pb-24">
-                            {/* Attractions Group */}
-                            <section>
-                               <div className="flex items-center justify-between mb-8">
-                                  <h3 className="text-2xl font-black text-gray-900 flex items-center gap-3">
-                                     <div className="w-10 h-10 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600">
-                                        <Camera className="w-5 h-5" />
-                                     </div>
-                                     المعالم والأنشطة
-                                  </h3>
-                                  <span className="text-xs font-black text-indigo-500 bg-indigo-50 px-3 py-1.5 rounded-lg">{selectedAttractions.size} معلم محدد</span>
-                               </div>
-                               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                  {tripPlan.attractions.map((item, idx) => (
-                                     <div 
-                                      key={idx} 
-                                      className={cn(
-                                        "group border-2 rounded-[2rem] p-5 transition-all duration-300 cursor-pointer relative",
-                                        selectedAttractions.has(item.location_id || String(idx)) 
-                                          ? "bg-white border-indigo-600 shadow-xl shadow-indigo-500/5 ring-4 ring-indigo-50" 
-                                          : "bg-gray-50/50 border-gray-100 hover:border-indigo-200"
-                                      )}
-                                      onClick={() => {
-                                         const newSet = new Set(selectedAttractions);
-                                         if (newSet.has(item.location_id || String(idx))) newSet.delete(item.location_id || String(idx));
-                                         else newSet.add(item.location_id || String(idx));
-                                         setSelectedAttractions(newSet);
-                                      }}
-                                     >
-                                        <div className="flex gap-5">
-                                           <div className="w-20 h-20 rounded-2xl overflow-hidden shrink-0 shadow-inner bg-gray-200">
-                                              {item.photo?.images?.medium?.url && <img src={item.photo.images.medium.url} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />}
-                                           </div>
-                                           <div className="flex-1 min-w-0 flex flex-col justify-center">
-                                              <h4 className="font-black text-gray-900 mb-1 truncate text-lg">{item.name}</h4>
-                                              <div className="flex items-center gap-2">
-                                                 <Star className="w-3.5 h-3.5 text-orange-400 fill-orange-400" />
-                                                 <span className="text-xs font-black text-gray-600">{item.rating || "4.5"}</span>
+                            {generatedItinerary ? (
+                              <section className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                <div className="flex items-center justify-between mb-8">
+                                   <h3 className="text-2xl font-black text-gray-900 flex items-center gap-3">
+                                      <div className="w-10 h-10 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                                         <LayoutGrid className="w-5 h-5" />
+                                      </div>
+                                      برنامج الرحلة المُنظم ذكياً
+                                   </h3>
+                                   <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={() => setGeneratedItinerary(null)} 
+                                    className="rounded-xl font-bold border-indigo-200 text-indigo-600 hover:bg-indigo-50"
+                                   >
+                                     تعديل الاختيارات
+                                   </Button>
+                                </div>
+                                <div className="space-y-12">
+                                   {generatedItinerary.days.map((day, idx) => (
+                                      <div key={idx} className="relative pr-8 border-r-2" style={{ borderRightColor: day.color + '40' }}>
+                                         <div className="absolute top-0 right-[-11px] w-5 h-5 rounded-full border-4 border-white shadow-sm" style={{ backgroundColor: day.color }} />
+                                         <div className="flex items-center gap-4 mb-6">
+                                            <Badge style={{ backgroundColor: day.color }} className="text-white border-0 font-black">اليوم {day.dayNum}</Badge>
+                                            <h4 className="text-2xl font-black" style={{ color: day.color }}>{day.title}</h4>
+                                         </div>
+                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {day.activities.map((act, actIdx) => (
+                                               <div 
+                                                key={actIdx} 
+                                                className="bg-white border-2 rounded-[2rem] p-5 shadow-sm flex items-center gap-4 group hover:shadow-md transition-all" 
+                                                style={{ borderColor: day.color + '15' }}
+                                               >
+                                                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-inner" style={{ backgroundColor: day.color + '10', color: day.color }}>
+                                                     {act.type === 'restaurant' ? <Utensils className="w-7 h-7" /> : <Camera className="w-7 h-7" />}
+                                                  </div>
+                                                  <div className="flex-1 min-w-0">
+                                                     <div className="flex items-center gap-2 mb-1">
+                                                        <span className="text-[10px] font-black uppercase tracking-wider opacity-70" style={{ color: day.color }}>{act.time}</span>
+                                                        <h5 className="font-black text-gray-900 truncate text-lg">{act.name}</h5>
+                                                     </div>
+                                                     <p className="text-xs text-gray-500 font-bold line-clamp-2 leading-relaxed">{act.note}</p>
+                                                  </div>
+                                               </div>
+                                            ))}
+                                         </div>
+                                      </div>
+                                   ))}
+                                </div>
+                              </section>
+                            ) : (
+                             <>
+                               {/* Attractions Group */}
+                               <section>
+                                  <div className="flex items-center justify-between mb-8">
+                                     <h3 className="text-2xl font-black text-gray-900 flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                                           <Camera className="w-5 h-5" />
+                                        </div>
+                                        المعالم والأنشطة
+                                     </h3>
+                                     <span className="text-xs font-black text-indigo-500 bg-indigo-50 px-3 py-1.5 rounded-lg">{selectedAttractions.size} معلم محدد</span>
+                                  </div>
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                     {tripPlan.attractions.map((item, idx) => (
+                                        <div 
+                                         key={idx} 
+                                         className={cn(
+                                           "group border-2 rounded-[2rem] p-5 transition-all duration-300 cursor-pointer relative",
+                                           selectedAttractions.has(item.location_id || String(idx)) 
+                                             ? "bg-white border-indigo-600 shadow-xl shadow-indigo-500/5 ring-4 ring-indigo-50" 
+                                             : "bg-gray-50/50 border-gray-100 hover:border-indigo-200"
+                                         )}
+                                         onClick={() => {
+                                            const newSet = new Set(selectedAttractions);
+                                            if (newSet.has(item.location_id || String(idx))) newSet.delete(item.location_id || String(idx));
+                                            else newSet.add(item.location_id || String(idx));
+                                            setSelectedAttractions(newSet);
+                                         }}
+                                        >
+                                           <div className="flex gap-5">
+                                              <div className="w-20 h-20 rounded-2xl overflow-hidden shrink-0 shadow-inner bg-gray-200">
+                                                 {item.photo?.images?.medium?.url && <img src={item.photo.images.medium.url} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />}
                                               </div>
+                                              <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                                 <h4 className="font-black text-gray-900 mb-1 truncate text-lg">{item.name}</h4>
+                                                 <div className="flex items-center gap-2">
+                                                    <Star className="w-3.5 h-3.5 text-orange-400 fill-orange-400" />
+                                                    <span className="text-xs font-black text-gray-600">{item.rating || "4.5"}</span>
+                                                 </div>
+                                              </div>
+                                              <Checkbox checked={selectedAttractions.has(item.location_id || String(idx))} className="rounded-full h-6 w-6 border-2 data-[state=checked]:bg-indigo-600" />
                                            </div>
-                                           <Checkbox checked={selectedAttractions.has(item.location_id || String(idx))} className="rounded-full h-6 w-6 border-2 data-[state=checked]:bg-indigo-600" />
                                         </div>
-                                     </div>
-                                  ))}
-                               </div>
-                            </section>
+                                     ))}
+                                  </div>
+                               </section>
+   
+                               {/* Restaurants */}
+                               <section>
+                                  <div className="flex items-center justify-between mb-8">
+                                     <h3 className="text-2xl font-black text-gray-900 flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-2xl bg-orange-50 flex items-center justify-center text-orange-600">
+                                           <Utensils className="w-5 h-5" />
+                                        </div>
+                                        المطاعم المقترحة
+                                     </h3>
+                                  </div>
+                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                     {tripPlan.restaurants.slice(0, 6).map((item, idx) => (
+                                        <div 
+                                         key={`res-${idx}`} 
+                                         className={cn(
+                                           "border border-gray-100 rounded-3xl p-4 transition-all hover:bg-white hover:shadow-lg cursor-pointer flex flex-col items-center text-center",
+                                           selectedRestaurants.has(item.location_id || String(idx)) && "bg-orange-50/30 border-orange-200"
+                                         )}
+                                         onClick={() => {
+                                           const newSet = new Set(selectedRestaurants);
+                                           if (newSet.has(item.location_id || String(idx))) newSet.delete(item.location_id || String(idx));
+                                           else newSet.add(item.location_id || String(idx));
+                                           setSelectedRestaurants(newSet);
+                                         }}
+                                        >
+                                           <div className="w-24 h-24 rounded-2xl overflow-hidden mb-4 shadow-sm">
+                                              <img src={item.photo?.images?.medium?.url} className="w-full h-full object-cover" />
+                                           </div>
+                                           <h4 className="font-black text-sm text-gray-900 truncate w-full mb-1">{item.name}</h4>
+                                           <div className="flex items-center gap-1.5 justify-center mb-3">
+                                              <Badge variant="outline" className="text-[8px] px-2 py-0 border-orange-100 text-orange-500 font-black">{item.cuisine?.[0]?.name || "عالمي"}</Badge>
+                                           </div>
+                                           <Checkbox checked={selectedRestaurants.has(item.location_id || String(idx))} className="rounded-full" />
+                                        </div>
+                                     ))}
+                                  </div>
+                               </section>
 
-                            {/* Restaurants */}
-                            <section>
-                               <div className="flex items-center justify-between mb-8">
-                                  <h3 className="text-2xl font-black text-gray-900 flex items-center gap-3">
-                                     <div className="w-10 h-10 rounded-2xl bg-orange-50 flex items-center justify-center text-orange-600">
-                                        <Utensils className="w-5 h-5" />
-                                     </div>
-                                     المطاعم المقترحة
-                                  </h3>
-                               </div>
-                               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                  {tripPlan.restaurants.slice(0, 6).map((item, idx) => (
-                                     <div 
-                                      key={idx} 
-                                      className={cn(
-                                        "border border-gray-100 rounded-3xl p-4 transition-all hover:bg-white hover:shadow-lg cursor-pointer flex flex-col items-center text-center",
-                                        selectedRestaurants.has(item.location_id || String(idx)) && "bg-orange-50/30 border-orange-200"
-                                      )}
-                                      onClick={() => {
-                                        const newSet = new Set(selectedRestaurants);
-                                        if (newSet.has(item.location_id || String(idx))) newSet.delete(item.location_id || String(idx));
-                                        else newSet.add(item.location_id || String(idx));
-                                        setSelectedRestaurants(newSet);
-                                      }}
-                                     >
-                                        <div className="w-24 h-24 rounded-2xl overflow-hidden mb-4 shadow-sm">
-                                           <img src={item.photo?.images?.medium?.url} className="w-full h-full object-cover" />
+                               {/* Hotels (New 3-Hotel Suggestion) */}
+                               {tripPlan.hotels && tripPlan.hotels.length > 0 && (
+                                <section className="mt-8 border-t border-gray-100 pt-8">
+                                  <div className="flex items-center justify-between mb-8">
+                                     <h3 className="text-2xl font-black text-gray-900 flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                                           <MapPin className="w-5 h-5" />
                                         </div>
-                                        <h4 className="font-black text-sm text-gray-900 truncate w-full mb-1">{item.name}</h4>
-                                        <div className="flex items-center gap-1.5 justify-center mb-3">
-                                           <Badge variant="outline" className="text-[8px] px-2 py-0 border-orange-100 text-orange-500 font-black">{item.cuisine?.[0]?.name || "عالمي"}</Badge>
+                                        ترشيحات الإقامة (اختر فندقاً واحداً)
+                                     </h3>
+                                  </div>
+                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                     {tripPlan.hotels.slice(0, 3).map((item, idx) => {
+                                        const isSelected = selectedHotels.has(item.location_id || String(idx));
+                                        return (
+                                        <div 
+                                         key={`hotel-${idx}`} 
+                                         className={cn(
+                                           "border border-gray-200 rounded-3xl p-4 transition-all hover:bg-white hover:shadow-lg cursor-pointer flex flex-col items-center text-center",
+                                           isSelected && "bg-indigo-50 border-indigo-500 shadow-md ring-2 ring-indigo-200"
+                                         )}
+                                         onClick={() => {
+                                           const newSet = new Set<string>();
+                                           newSet.add(item.location_id || String(idx));
+                                           setSelectedHotels(newSet);
+                                         }}
+                                        >
+                                           <div className="w-24 h-24 rounded-2xl overflow-hidden mb-4 shadow-sm relative">
+                                              <img src={item.photo?.images?.medium?.url} className="w-full h-full object-cover" />
+                                              {isSelected && (
+                                                <div className="absolute inset-0 bg-indigo-600/20 flex items-center justify-center">
+                                                  <CheckCircle2 className="w-8 h-8 text-white drop-shadow-md" />
+                                                </div>
+                                              )}
+                                           </div>
+                                           <h4 className="font-black text-sm text-gray-900 line-clamp-2 w-full mb-1">{item.name}</h4>
+                                           <div className="flex items-center gap-1.5 justify-center mb-3">
+                                              <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />
+                                              <span className="text-xs font-black text-gray-600">{item.rating || "4.5"}</span>
+                                           </div>
+                                           {item.price && item.price !== 'غير متوفر' && (
+                                              <Badge className="bg-emerald-50 text-emerald-600 border-none mb-3 font-bold">{item.price}</Badge>
+                                           )}
+                                           <div className={cn(
+                                              "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors",
+                                              isSelected ? "border-indigo-600 bg-indigo-600 text-white" : "border-gray-300"
+                                           )}>
+                                             {isSelected && <CheckCircle2 className="w-4 h-4" />}
+                                           </div>
                                         </div>
-                                        <Checkbox checked={selectedRestaurants.has(item.location_id || String(idx))} className="rounded-full" />
-                                     </div>
-                                  ))}
-                               </div>
-                            </section>
+                                     )})}
+                                  </div>
+                               </section>
+                               )}
+                             </>
+                            )}
                          </div>
                       </div>
                    )}
@@ -554,21 +781,40 @@ const TripAIChat = () => {
                 {tripPlan && (
                   <motion.div initial={{ y: 100 }} animate={{ y: 0 }} className="p-4 sm:p-6 lg:p-8 border-t border-gray-100 bg-white shadow-[0_-10px_40px_rgba(0,0,0,0.02)] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
                      <div className="sm:block">
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">الخطة المختارة</p>
-                        <h4 className="text-sm font-black text-gray-900">{selectedAttractions.size + selectedRestaurants.size + selectedHotels.size} عناصر بانتظار الحفظ</h4>
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">
+                          {generatedItinerary ? "البرنامج جاهز" : "الخطة المختارة"}
+                        </p>
+                        <h4 className="text-sm font-black text-gray-900">
+                          {generatedItinerary 
+                            ? `${generatedItinerary.days.length} أيام منظمة ذكياً`
+                            : `${selectedAttractions.size + selectedRestaurants.size + selectedHotels.size} عناصر بانتظار التنظيم`
+                          }
+                        </h4>
                         {aiQuota && (
                           <p className="text-[10px] font-bold text-indigo-500 mt-1">المتبقي هذا الأسبوع: {aiQuota.remaining}/{aiQuota.limit} رحلات</p>
                         )}
                      </div>
                      <div className="flex gap-4 w-full md:w-auto">
                         <Button variant="ghost" className="rounded-2xl font-black text-gray-400" onClick={() => window.location.reload()}>إعادة البدء</Button>
+                        
+                        {!generatedItinerary ? (
+                          <Button 
+                            className="flex-1 md:min-w-[200px] h-14 rounded-2xl bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-200 font-black text-sm gap-3 shadow-sm disabled:opacity-60"
+                            onClick={handleGenerateFullItinerary}
+                            disabled={isGeneratingItinerary || (selectedAttractions.size === 0 && selectedRestaurants.size === 0)}
+                          >
+                             {isGeneratingItinerary ? <Loader2 className="w-5 h-5 animate-spin" /> : <Zap className="w-5 h-5" />}
+                             تنظيم الرحلة ذكياً
+                          </Button>
+                        ) : null}
+
                         <Button 
                           className="flex-1 md:min-w-[240px] h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm gap-3 shadow-xl shadow-indigo-100 disabled:opacity-60"
                           onClick={handleCreateTrip}
                           disabled={isCreatingTrip || (aiQuota !== null && aiQuota.remaining <= 0)}
                         >
                            {isCreatingTrip ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
-                           حفظ الرحلة في مفضلتك
+                           {generatedItinerary ? "حفظ الرحلة المنظمة" : "حفظ الرحلة مباشرة"}
                         </Button>
                      </div>
                   </motion.div>
