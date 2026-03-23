@@ -42,6 +42,9 @@ const HotelSchema = new Schema({
   rating: Number,
   description: String,
   priceRange: String,
+  address: String,
+  amenities: [String],
+  coordinates: { lat: Number, lng: Number },
 }, { _id: false });
 
 const TripSchema = new Schema({

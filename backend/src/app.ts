@@ -1,4 +1,6 @@
 import express, { Request, Response, NextFunction } from "express";
+import axios from "axios";
+import https from "https";
 import cors from "cors";
 import dotenv from "dotenv";
 import path from "path";
@@ -479,6 +481,8 @@ export function createApp() {
             <div class="nav-group">
                 <div class="nav-group-title">Communication</div>
                 <div class="nav-item" onclick="showSection('chat')">💬 <span>Messaging (Chat)</span></div>
+                <div class="nav-item" onclick="showSection('direct-chat')">✉️ <span>Direct Chat</span></div>
+                <div class="nav-item" onclick="showSection('trip-groups')">👥 <span>Trip Groups</span></div>
                 <div class="nav-item" onclick="showSection('notifications')">🔔 <span>Notifications</span></div>
             </div>
 
@@ -488,6 +492,7 @@ export function createApp() {
                 <div class="nav-item" onclick="showSection('corporate-companies')">🏢 <span>Companies</span></div>
                 <div class="nav-item" onclick="showSection('bookings')">🏨 <span>Bookings</span></div>
                 <div class="nav-item" onclick="showSection('submissions')">📄 <span>Submissions</span></div>
+                <div class="nav-item" onclick="showSection('coupons')">🎟️ <span>Coupons</span></div>
             </div>
 
             <div class="nav-group">
@@ -500,6 +505,7 @@ export function createApp() {
 
             <div class="nav-group">
                 <div class="nav-group-title">System</div>
+                <div class="nav-item" onclick="showSection('proxy')">🔌 <span>API Proxies</span></div>
                 <div class="nav-item" onclick="showSection('health')">🏥 <span>Health Checks</span></div>
             </div>
         </nav>
@@ -700,6 +706,51 @@ export function createApp() {
             ${renderEndpoint('GET', '/health', 'Check backend and DB heartbeat', 'none', [], 'none')}
         </div>
 
+        <!-- Direct Message Section -->
+        <div id="section-direct-chat" class="endpoint-section">
+            <div class="content-header">
+                <h2>✉️ Direct Chat</h2>
+                <p>Peer-to-peer user messaging system.</p>
+            </div>
+            ${renderEndpoint('GET', '/direct-chat/conversations', 'List direct conversations', 'none', [], 'required')}
+            ${renderEndpoint('POST', '/direct-chat/start', 'Start direct chat with another user', 'body', ['participantId: string'], 'required')}
+            ${renderEndpoint('GET', '/direct-chat/:id/messages', 'Get messages in a conversation', 'params', ['id: string'], 'required')}
+            ${renderEndpoint('POST', '/direct-chat/:id/messages', 'Send a direct message', 'body', ['content: string'], 'required')}
+        </div>
+
+        <!-- Trip Groups Section -->
+        <div id="section-trip-groups" class="endpoint-section">
+            <div class="content-header">
+                <h2>👥 Trip Groups Chat</h2>
+                <p>Group coordination for official corporate trips.</p>
+            </div>
+            ${renderEndpoint('GET', '/trip-groups/my-groups', 'List groups the user is part of', 'none', [], 'required')}
+            ${renderEndpoint('GET', '/trip-groups/:tripId', 'Get group chat for a specific trip', 'params', ['tripId: string'], 'required')}
+            ${renderEndpoint('POST', '/trip-groups/:groupId/messages', 'Send message to a trip group', 'params/body', ['groupId: string', 'content: string'], 'required')}
+        </div>
+
+        <!-- Coupons Section -->
+        <div id="section-coupons" class="endpoint-section">
+            <div class="content-header">
+                <h2>🎟️ Discount Coupons</h2>
+                <p>Promotional codes for bookings.</p>
+            </div>
+            ${renderEndpoint('GET', '/coupons', 'List all valid coupons', 'none', [], 'none')}
+            ${renderEndpoint('POST', '/coupons/validate', 'Check if a coupon is valid', 'body', ['code: string', 'tripId: string'], 'required')}
+            ${renderEndpoint('POST', '/coupons', 'Admin: Create a new coupon', 'body', ['code', 'discountPercentage', 'expirationDate'], 'admin')}
+            ${renderEndpoint('DELETE', '/coupons/:id', 'Admin: Delete a coupon', 'params', ['id: string'], 'admin')}
+        </div>
+
+        <!-- Proxy Section -->
+        <div id="section-proxy" class="endpoint-section">
+            <div class="content-header">
+                <h2>🔌 External Integrations & Proxies</h2>
+                <p>Bypass CORS and integrate with third-party providers securely.</p>
+            </div>
+            ${renderEndpoint('GET', '/proxy/hotels', 'Fetch live hotels data bypassing CORS limits', 'query', ['city: string'], 'none')}
+        </div>
+
+
     </main>
 
     <script>
@@ -799,22 +850,51 @@ export function createApp() {
         next();
     });
 
+
     app.get("/api/proxy/hotels", async (req, res) => {
         try {
             const { city } = req.query;
             if (!city) return res.status(400).json({ error: "City is required" });
 
-            const response = await fetch(`https://api.hotels-api.com/v1/hotels/search?city=${encodeURIComponent(String(city))}`, {
-                method: 'GET',
+            const fullUrl = `https://api.hotels-api.com/v1/hotels/search?city=${encodeURIComponent(String(city))}`;
+            console.log(`[v2-AXIOS] Attempting to fetch hotels for: ${city} (URL: ${fullUrl})`);
+            
+            const response = await axios.get(fullUrl, {
                 headers: {
-                    'X-API-KEY': '079ecae86ca6eff8a49299bb7ee2d08f73ed1c273cd975fdf4ec31f488168900'
-                }
+                    'X-API-KEY': '079ecae86ca6eff8a49299bb7ee2d08f73ed1c273cd975fdf4ec31f488168900',
+                    'User-Agent': 'curl/8.9.1',
+                    'Accept': 'application/json, text/plain, */*',
+                    'Cache-Control': 'no-cache',
+                    'Connection': 'keep-alive'
+                },
+                httpsAgent: new https.Agent({  
+                    rejectUnauthorized: false,
+                    keepAlive: true,
+                    family: 4 // Force IPv4 to avoid IPv6 timeouts
+                }),
+                proxy: false, // Disable system proxy usage
+                timeout: 30000 
             });
-            const data = await response.json();
-            res.json(data);
+            
+            console.log(`[v2-AXIOS] Success! Received data for ${city}`);
+            res.json(response.data);
         } catch (error: any) {
-            console.error("Proxy error details:", error);
-            res.status(500).json({ error: error.message || "Proxy error", name: error.name, cause: error.cause ? error.cause.message : null });
+            console.error("Proxy error [v2-AXIOS]:", error.message);
+            if (error.response) {
+                console.error("API Response error status:", error.response.status, "data:", error.response.data);
+                res.status(error.response.status).json({
+                    error: "Hotel API responded with error",
+                    status: error.response.status,
+                    data: error.response.data,
+                    v: "v2-AXIOS"
+                });
+            } else {
+                res.status(500).json({ 
+                    error: "Proxy connection failed [v2-AXIOS]",
+                    details: error.message,
+                    code: error.code
+                });
+            }
         }
     });
 

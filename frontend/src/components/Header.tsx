@@ -29,6 +29,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useSeasonalTheme } from "@/contexts/SeasonalThemeContext";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import WeatherWidget from "@/components/WeatherWidget";
 
 const logo = "/assets/logo.png";
 
@@ -441,6 +442,8 @@ const Header = ({ onSearch }: HeaderProps) => {
 
                     <DropdownMenuSeparator className="bg-gray-50" />
                     
+                    <WeatherWidget />
+
                     {/* Theme Toggle */}
                     <div className="p-1">
                       <div className={cn("flex items-center justify-between p-3 rounded-xl transition-all duration-300 cursor-pointer hover:bg-gray-50", isSeasonalActive ? "bg-accent/5" : "")} onClick={(e) => { e.preventDefault(); toggleSeasonalTheme(); }}>
@@ -509,6 +512,8 @@ const Header = ({ onSearch }: HeaderProps) => {
 
                       <DropdownMenuSeparator className="bg-gray-50" />
                       
+                      <WeatherWidget />
+
                       {/* Theme Toggle in Dropdown for Company */}
                       <div className="p-1">
                         <div 
@@ -616,6 +621,8 @@ const Header = ({ onSearch }: HeaderProps) => {
 
                     <DropdownMenuSeparator className="bg-gray-50" />
                     
+                    <WeatherWidget />
+
                     {/* Theme Toggle */}
                     <div className="p-1">
                       <div className={cn("flex items-center justify-between p-3 rounded-xl transition-all duration-300 cursor-pointer hover:bg-gray-50", isSeasonalActive ? "bg-accent/5" : "")} onClick={(e) => { e.preventDefault(); toggleSeasonalTheme(); }}>
@@ -715,6 +722,7 @@ const Header = ({ onSearch }: HeaderProps) => {
                   </nav>
                   
                   <div className="p-4 border-t border-gray-100 shrink-0 bg-white space-y-4">
+                    <WeatherWidget />
                     <div className="px-2">
                       <div 
                         className={cn(

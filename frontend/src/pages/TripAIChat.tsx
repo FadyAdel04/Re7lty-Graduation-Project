@@ -17,8 +17,13 @@ import {
   Clock,
   Zap,
   ArrowUpRight,
+  ArrowDown,
   LayoutGrid,
   MapPin,
+  Info,
+  Cloud,
+  Sun,
+  SunDim,
 } from "lucide-react";
 import { getTripPlan, type TripPlan } from "@/lib/travel-advisor-api";
 import { useToast } from "@/hooks/use-toast";
@@ -30,6 +35,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { sendMessageToAI, generateItinerary, type AIResponse, type ItineraryDay, type GeneratedItineraryResponse } from "@/lib/openrouter-client";
+import CityWeatherAdvisor from "@/components/CityWeatherAdvisor";
 
 type Message = {
   id: number;
@@ -37,6 +43,7 @@ type Message = {
   text: string;
   timestamp: Date;
   suggestedPlatformTrips?: { id: string; title: string; matchReason: string; image?: string; price?: string }[];
+  weatherForCity?: string;
 };
 
 type ExtractedData = {
@@ -133,13 +140,14 @@ const TripAIChat = () => {
     return () => clearTimeout(timer);
   }, [messages, isLoading, isGeneratingPlan]);
 
-  const addMessage = (type: 'ai' | 'user', text: string, suggestions?: { id: string; title: string; matchReason: string; image?: string; price?: string }[]) => {
+  const addMessage = (type: 'ai' | 'user', text: string, suggestions?: { id: string; title: string; matchReason: string; image?: string; price?: string }[], weatherCity?: string) => {
     setMessages(prev => [...prev, {
       id: prev.length + 1,
       type,
       text,
       timestamp: new Date(),
-      suggestedPlatformTrips: suggestions
+      suggestedPlatformTrips: suggestions,
+      weatherForCity: weatherCity
     }]);
   };
 
@@ -176,7 +184,12 @@ const TripAIChat = () => {
 
 
       // Add AI response to messages
-      addMessage('ai', response.reply, response.suggestedPlatformTrips);
+      addMessage(
+        'ai', 
+        response.reply, 
+        response.suggestedPlatformTrips,
+        response.shouldGeneratePlan ? (response.extractedData.destination || extractedData.destination || undefined) : undefined
+      );
 
       // Update conversation history
       setConversationHistory([
@@ -449,6 +462,12 @@ const TripAIChat = () => {
           rating: parseFloat(h.rating || "4.5"),
           priceRange: h.price || "غير متوفر",
           description: h.address || "فندق متميز",
+          address: h.address || "",
+          amenities: h.amenities?.map(a => typeof a === 'string' ? a : a.name) || [],
+          coordinates: {
+            lat: parseFloat(h.latitude || tripPlan?.location?.latitude || "0"),
+            lng: parseFloat(h.longitude || tripPlan?.location?.longitude || "0")
+          }
         })),
         isAIGenerated: true,
       };
@@ -484,10 +503,10 @@ const TripAIChat = () => {
       <main className="flex-1 container mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-10 relative z-10">
         <div className="max-w-7xl mx-auto h-[calc(100vh-5.5rem)] sm:h-[calc(100vh-6rem)] min-h-[480px] flex flex-col lg:flex-row gap-4 lg:gap-8">
           
-          {/* Result Panel (Left) - Trip plan to confirm & choose favourites */}
+          {/* Result Panel (Right now) - Trip plan to confirm & choose favourites */}
           <div id="ai-trip-plan-preview" className={cn(
             "flex-1 bg-white/70 backdrop-blur-2xl rounded-2xl lg:rounded-[2.5rem] border border-gray-100/50 shadow-xl lg:shadow-2xl shadow-indigo-500/5 flex flex-col overflow-hidden min-h-0",
-            tripPlan && "animate-in fade-in slide-in-from-left-4 duration-500",
+            tripPlan && "animate-in fade-in slide-in-from-right-4 duration-500",
             "lg:flex",
             !tripPlan && "hidden lg:flex",
             tripPlan && mobileView === 'plan' && "flex",
@@ -576,8 +595,8 @@ const TripAIChat = () => {
                             </div>
                          </div>
 
-                         {/* Results Content */}
-                         <div className="space-y-16 pb-24">
+                          {/* Results Content */}
+                          <div className="space-y-16 pb-24">
                             {generatedItinerary ? (
                               <section className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                                 <div className="flex items-center justify-between mb-8">
@@ -726,7 +745,7 @@ const TripAIChat = () => {
                                      </h3>
                                   </div>
                                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                     {tripPlan.hotels.slice(0, 3).map((item, idx) => {
+                                     {tripPlan.hotels.map((item, idx) => {
                                         const isSelected = selectedHotels.has(item.location_id || String(idx));
                                         return (
                                         <div 
@@ -851,7 +870,7 @@ const TripAIChat = () => {
           {/* Chat Panel (Right) */}
           <div className={cn(
             "w-full lg:w-[420px] bg-white rounded-2xl lg:rounded-[2.5rem] border border-gray-100 shadow-xl flex flex-col overflow-hidden min-h-0 shrink-0",
-            "animate-in fade-in slide-in-from-right-4 duration-500",
+            "animate-in fade-in slide-in-from-left-4 duration-500",
             tripPlan && mobileView === 'plan' && "hidden lg:flex",
             (!tripPlan || mobileView === 'chat') && "flex"
           )}>
@@ -1016,6 +1035,53 @@ const TripAIChat = () => {
              </div>
           </div>
         </div>
+
+        {/* Floating Weather Hover Button */}
+        {extractedData.destination && (
+          <div className="fixed bottom-24 right-6 md:right-10 z-[100] group">
+            <div className="absolute bottom-full right-0 mb-4 opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all duration-300 pointer-events-none group-hover:pointer-events-auto max-w-[calc(100vw-3rem)] origin-bottom-right">
+               <div className="relative w-[320px] sm:w-[500px] md:w-[650px] lg:w-[820px] bg-white rounded-[2.5rem] p-5 lg:p-8 shadow-[0_30px_100px_-20px_rgba(79,70,229,0.4)] border border-indigo-100 overflow-hidden ring-8 ring-indigo-50/50">
+                  <div className="flex flex-col sm:flex-row items-center justify-between mb-8 px-2 lg:px-4 gap-4">
+                     <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                           <Cloud className="w-6 h-6" />
+                        </div>
+                        <div>
+                           <h3 className="text-xl font-black text-gray-900 leading-none">توقعات الطقس: {extractedData.destination}</h3>
+                           <p className="text-xs font-bold text-gray-500 mt-2">خطة طقس لـ 7 أيام قادمة</p>
+                        </div>
+                     </div>
+                     <Badge className="bg-indigo-600 text-white px-6 py-2 rounded-2xl font-black text-sm shadow-lg shadow-indigo-100">{extractedData.destination}</Badge>
+                  </div>
+                  <div className="w-full">
+                    <CityWeatherAdvisor cityName={extractedData.destination} layout="horizontal" />
+                  </div>
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl -mr-16 -mt-16" />
+               </div>
+            </div>
+
+            <motion.button
+              initial={{ opacity: 0, scale: 0.5, y: 50 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              whileHover={{ scale: 1.1, rotate: -2 }}
+              whileTap={{ scale: 0.95 }}
+              className="group flex items-center gap-3 px-6 py-4 rounded-3xl bg-indigo-600 text-white shadow-[0_15px_40px_-10px_rgba(79,70,229,0.5)] transition-all font-black text-sm relative overflow-hidden border-[3px] border-white"
+            >
+              <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="relative z-10 flex items-center gap-3">
+                 <div className="relative">
+                    <Sun className="h-6 w-6 text-yellow-300 animate-spin-slow" />
+                    <Cloud className="h-3 w-3 absolute -bottom-1 -right-1 text-white" />
+                 </div>
+                 <div className="flex flex-col items-start leading-tight">
+                    <span className="text-[9px] text-indigo-100 uppercase tracking-widest">عرض التوقعات</span>
+                    <span>طقس {extractedData.destination}</span>
+                 </div>
+                 <ArrowUpRight className="w-4 h-4 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 group-hover:-translate-y-1 transition-all" />
+              </div>
+            </motion.button>
+          </div>
+        )}
       </main>
 
       <Footer />

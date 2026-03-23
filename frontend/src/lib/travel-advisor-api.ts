@@ -180,8 +180,8 @@ export async function getHotels(city: string, limit: number = 10, budgetLevel?: 
         }
     }
     
-    let formattedHotels: TravelAdvisorHotel[] = hotelList.map((h: any, idx: number) => ({
-      location_id: h.id?.toString() || h.hotel_id?.toString() || `hotel_${idx}`,
+    let formattedHotels: TravelAdvisorHotel[] = hotelList.filter(h => h && (h.name || h.hotel_name)).map((h: any, idx: number) => ({
+      location_id: h.location_id?.toString() || h.id?.toString() || h.hotel_id?.toString() || `hotel_${idx}`,
       name: h.name || h.hotel_name || h.title || 'Unknown Hotel',
       rating: h.rating?.toString() || h.star_rating?.toString() || h.score?.toString() || '4.5',
       num_reviews: h.reviews?.toString() || h.review_count?.toString(),
@@ -189,12 +189,12 @@ export async function getHotels(city: string, limit: number = 10, budgetLevel?: 
       longitude: h.longitude?.toString() || h.lng?.toString(),
       photo: {
         images: {
-          medium: { url: h.image || h.photo || h.thumbnail || h.picture || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=500&q=80' },
-          large: { url: h.image || h.photo || h.thumbnail || h.picture || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1000&q=80' }
+          medium: { url: h.photo?.images?.medium?.url || h.image || h.photo || h.thumbnail || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=500&q=80' },
+          large: { url: h.photo?.images?.large?.url || h.image || h.photo || h.thumbnail || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1000&q=80' }
         }
       },
       address: h.address || h.location || h.city || city,
-      price: h.price?.toString() ? `${h.price}` : h.price_range || h.rate || 'غير متوفر',
+      price: h.price?.toString() ? `${h.price}` : h.price_range || h.rate || 'اضغط لرؤية السعر',
       amenities: h.amenities ? (Array.isArray(h.amenities) ? h.amenities.map((a: any) => ({ name: typeof a === 'string' ? a : a.name })) : []) : [{ name: 'Wi-Fi' }]
     }));
 
@@ -335,23 +335,32 @@ export async function getTripPlan(city: string, days: number = 3, budgetLevel?: 
     // Calculate limits based on number of days
     const attractionsLimit = Math.min(days * 3, 15);
     const restaurantsLimit = Math.min(days * 2, 10);
-    const hotelsLimit = 5;
+    const hotelsLimit = 10;
 
     let attractions: TravelAdvisorAttraction[] = [];
     let restaurants: TravelAdvisorRestaurant[] = [];
     
+    // Default to the provided city name
+    let hotelsSearchQuery = englishCityName;
+
     if (location) {
       [attractions, restaurants] = await Promise.all([
         getAttractions(location.location_id, attractionsLimit),
         getRestaurants(location.location_id, restaurantsLimit)
       ]);
+      
+      // Use the English name from the search result if available (better for hotels API)
+      // Extract only the first part before the comma (e.g., "Madrid" from "Madrid, Spain")
+      if (location.name) {
+        hotelsSearchQuery = location.name.split(',')[0].trim();
+      }
     }
 
-    // Call new Hotels API using englishCityName (city name)
-    const hotels = await getHotels(englishCityName, hotelsLimit, budgetLevel);
+    // Call new Hotels API using hotelsSearchQuery
+    const hotels = await getHotels(hotelsSearchQuery, hotelsLimit, budgetLevel);
 
     return {
-      location: location || { location_id: "unknown", name: city }, // fallback if rapidAPI fails but new API works
+      location: location || { location_id: "unknown", name: city },
       attractions,
       restaurants,
       hotels,

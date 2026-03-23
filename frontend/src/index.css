@@ -364,3 +364,12 @@ All colors MUST be HSL.
   background: rgba(0, 0, 0, 0.2);
 }
 
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+

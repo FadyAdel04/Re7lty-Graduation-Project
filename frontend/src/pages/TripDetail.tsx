@@ -715,26 +715,56 @@ useEffect(() => {
                    {trip.hotels && trip.hotels.length > 0 && (
                      <div className="space-y-6">
                         <h2 className="text-2xl font-black text-gray-900 px-4">أماكن الإقامة</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 gap-4">
                            {trip.hotels.map((hotel: any, idx: number) => (
-                              <Card key={idx} className="border-0 shadow-lg rounded-[2rem] bg-white overflow-hidden p-4">
-                                 <div className="flex gap-4 items-center">
+                              <Card key={idx} className="border-0 shadow-lg rounded-[2rem] bg-white overflow-hidden p-5">
+                                 <div className="flex flex-col md:flex-row gap-5 items-start md:items-center">
                                     {hotel.image ? (
-                                       <img src={hotel.image} className="w-24 h-24 rounded-2xl object-cover" loading="lazy" />
+                                       <img src={hotel.image} className="w-full md:w-32 h-40 md:h-32 rounded-2xl object-cover" loading="lazy" />
                                     ) : (
-                                       <div className="w-24 h-24 rounded-2xl bg-gray-100 flex items-center justify-center shrink-0">
-                                          <MapPin className="w-8 h-8 text-gray-300" />
+                                       <div className="w-full md:w-32 h-40 md:h-32 rounded-2xl bg-gray-100 flex items-center justify-center shrink-0">
+                                          <MapPin className="w-10 h-10 text-gray-300" />
                                        </div>
                                     )}
-                                    <div className="flex-1 w-full">
-                                       <h4 className="font-black text-gray-800 text-lg">{hotel.name}</h4>
-                                       <p className="text-xs text-gray-500 font-bold mt-1 line-clamp-2">{hotel.description || 'فندق وإقامة مميزة'}</p>
-                                       <div className="flex items-center gap-3 mt-3">
-                                          <div className="flex items-center gap-1 text-amber-500 bg-amber-50 px-2.5 py-1 rounded-lg">
-                                             <Star className="w-3.5 h-3.5 fill-current" /> <span className="text-xs font-black">{hotel.rating}</span>
+                                    <div className="flex-1 w-full space-y-3">
+                                       <div className="flex justify-between items-start">
+                                         <div>
+                                            <h4 className="font-black text-gray-800 text-xl">{hotel.name}</h4>
+                                            {hotel.address && (
+                                               <div className="flex items-center gap-1.5 text-xs font-bold text-gray-400 mt-1">
+                                                  <MapPin className="w-3.5 h-3.5" />
+                                                  <span className="truncate max-w-[200px]">{hotel.address}</span>
+                                               </div>
+                                            )}
+                                         </div>
+                                         <div className="flex items-center gap-2">
+                                            <div className="flex items-center gap-1.5 bg-amber-50 text-amber-600 px-2.5 py-1.5 rounded-xl">
+                                               <Star className="w-4 h-4 fill-current" />
+                                               <span className="text-sm font-black">{hotel.rating}</span>
+                                            </div>
+                                         </div>
+                                       </div>
+                                       
+                                       <p className="text-sm text-gray-500 font-bold line-clamp-2">{hotel.description || 'فندق وإقامة مميزة'}</p>
+                                       
+                                       <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                                          <div className="flex flex-wrap gap-2">
+                                             {hotel.amenities && hotel.amenities.slice(0, 4).map((amenity: string, i: number) => (
+                                                <Badge key={i} variant="outline" className="bg-indigo-50 border-indigo-100 text-indigo-700 font-bold text-[10px] rounded-lg">
+                                                   {amenity}
+                                                </Badge>
+                                             ))}
+                                             {hotel.amenities && hotel.amenities.length > 4 && (
+                                                <Badge variant="outline" className="bg-gray-50 border-gray-200 text-gray-600 font-bold text-[10px] rounded-lg">
+                                                   +{hotel.amenities.length - 4}
+                                                </Badge>
+                                             )}
                                           </div>
+                                          
                                           {hotel.priceRange && hotel.priceRange !== "غير متوفر" && (
-                                            <Badge className="bg-emerald-50 text-emerald-600 border-none font-bold text-[10px]">{hotel.priceRange}</Badge>
+                                            <Badge className="bg-emerald-50 text-emerald-600 border-none font-black text-xs px-3 py-1.5 shrink-0">
+                                                {hotel.priceRange}
+                                            </Badge>
                                           )}
                                        </div>
                                     </div>
