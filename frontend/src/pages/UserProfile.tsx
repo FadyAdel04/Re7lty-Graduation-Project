@@ -24,6 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { bookingService, Booking } from "@/services/bookingService";
 import { Badge as UI_Badge } from "@/components/ui/badge";
+import TravelMemories from "@/components/profile/TravelMemories";
 import {
   Dialog,
   DialogContent,
@@ -341,7 +342,7 @@ const UserProfile = () => {
 
   // Fetch AI trips only when ai tab is active (lazy)
   useEffect(() => {
-    if (!id || !isOwnProfile || !isSignedIn || activeTab !== 'ai' || tabsFetched.ai) return;
+    if (!id || !isOwnProfile || !isSignedIn || activeTab !== 'ai-trips' || tabsFetched.ai) return;
     const fetchAITrips = async () => {
       setIsLoadingAITrips(true);
       try {
@@ -1060,7 +1061,7 @@ const UserProfile = () => {
            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
               
               {/* LEFT SIDE: Identity Card (4 cols) */}
-              <div className="lg:col-span-4 space-y-6">
+              <div className="lg:col-span-3 space-y-6">
                  <Card className="border-0 shadow-2xl rounded-[2.5rem] overflow-hidden bg-white/80 backdrop-blur-xl">
                     <CardContent className="p-8 flex flex-col items-center text-center">
                        {/* Avatar with Ring */}
@@ -1103,10 +1104,7 @@ const UserProfile = () => {
                                  )}
                                </>
                              )}
-                              <PassportBadge 
-                                count={uniqueCitiesCount} 
-                                points={userBadgeData.score} 
-                              />
+                              {/* Badge removed from here to be shown fully in the summary below */}
                           </div>
                           
                           <div className="flex items-center justify-center gap-1.5 group relative">
@@ -1132,14 +1130,25 @@ const UserProfile = () => {
                              )}
                            </div>
 
-                           {/* Passport Summary instead of Badge Progress */}
-                           <div className="w-full max-w-[220px] mx-auto space-y-2 py-4 border-t border-gray-50/50 mt-4">
-                               <div className="flex flex-col items-center gap-1">
-                                  <div className="p-3 bg-blue-50 rounded-2xl text-blue-600 mb-2">
-                                     <Globe className="w-8 h-8 animate-spin-slow" />
+                           {/* Tier Progress Summary */}
+                           <div className="w-full max-w-[220px] mx-auto space-y-3 py-4 border-t border-gray-50/50 mt-4">
+                               <div className="flex flex-col items-center gap-2">
+                                  <UserBadge tier={userBadgeData.tier} size="lg" progression={userBadgeData.progression} showLabel={true} />
+                                  <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden mt-1">
+                                     <div 
+                                       className="h-full bg-gradient-to-r from-orange-400 to-orange-600 rounded-full transition-all duration-1000" 
+                                       style={{ width: `${userBadgeData.progress}%` }} 
+                                     />
                                   </div>
-                                  <span className="text-sm font-black text-gray-900">سجل الاستكشاف الرقمي</span>
-                                  <p className="text-[10px] text-gray-400 font-bold">تم جمع {uniqueCitiesCount} أختام رسمية</p>
+                                  {userBadgeData.progression ? (
+                                     <p className="text-[10px] text-gray-400 font-bold">
+                                        يتبقى {userBadgeData.progression.pointsNeeded} نقطة لمستوى {userBadgeData.progression.nextTierLabel}
+                                     </p>
+                                  ) : (
+                                     <p className="text-[10px] text-gray-400 font-bold">
+                                        أنت في أعلى مستوى!
+                                     </p>
+                                  )}
                                </div>
                            </div>
                        </div>
@@ -1236,7 +1245,8 @@ const UserProfile = () => {
               </div>
 
               {/* RIGHT SIDE: Content Sections (8 cols) */}
-              <div className="lg:col-span-8 space-y-8">
+              <div className="lg:col-span-9 space-y-8">
+                 <TravelMemories trips={userTrips} isOwner={isOwnProfile} userId={id} />
                  <Card className="border-0 shadow-lg rounded-[2.5rem] bg-white p-2">
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                        <TabsList className="w-full justify-start gap-4 bg-transparent p-4 h-auto border-b border-gray-50 flex-wrap">
@@ -1247,7 +1257,6 @@ const UserProfile = () => {
                             { id: "bookings", label: "حجوزاتي", icon: <Calendar className="w-4 h-4" />, hide: !isOwnProfile },
                             { id: "saved", label: "المحفوظات", icon: <Bookmark className="w-4 h-4" /> },
                             { id: "liked", label: "الإعجابات", icon: <Heart className="w-4 h-4" /> },
-                            { id: "passport", label: "الـبـاسـبـور", icon: <Globe className="w-4 h-4" /> },
                           ].filter(t => !t.hide).map(tab => (
                              <TabsTrigger 
                                key={tab.id} 
@@ -1260,7 +1269,7 @@ const UserProfile = () => {
                           ))}
                        </TabsList>
 
-                       {["trips", "ai-trips", "stories", "saved", "liked", "bookings", "passport"].map(tabId => (
+                       {["trips", "ai-trips", "stories", "saved", "liked", "bookings"].map(tabId => (
                           <TabsContent key={tabId} value={tabId} className="p-6 transition-all animate-in fade-in slide-in-from-bottom-4">
                              {/* Shared Trip Grid Logic */}
                              {renderTabContent(tabId)}
@@ -1888,7 +1897,7 @@ const UserProfile = () => {
     }
 
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {data.map((trip: any) => (
           <TripCard 
             key={trip._id || trip.id} 

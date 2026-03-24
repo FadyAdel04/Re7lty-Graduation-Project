@@ -336,7 +336,7 @@ export async function getUserAITrips(token?: string) {
   return fetchUserTripCollection('/api/users/me/ai-trips', token);
 }
 
-export async function getAITripQuota(token?: string): Promise<{ count: number; limit: number; remaining: number } | null> {
+export async function getAITripQuota(token?: string): Promise<{ count: number; limit: number; remaining: number; nextRestoreTime?: string } | null> {
   const res = await fetch(`${BASE}/api/users/me/ai-trips-quota`, {
     headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
   });
@@ -348,7 +348,7 @@ export async function getAITripQuota(token?: string): Promise<{ count: number; l
   return res.json();
 }
 
-export async function recordAIPlanUsage(token?: string): Promise<{ count: number; limit: number; remaining: number } | null> {
+export async function recordAIPlanUsage(token?: string): Promise<{ count: number; limit: number; remaining: number; nextRestoreTime?: string } | null> {
   const res = await fetch(`${BASE}/api/users/me/ai-plan-usage`, {
     method: 'POST',
     headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },

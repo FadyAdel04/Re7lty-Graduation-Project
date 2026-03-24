@@ -288,7 +288,18 @@ router.get('/me/ai-trips-quota', requireAuthStrict, async (req, res) => {
       createdAt: { $gte: weekAgo },
     });
     const limit = 3;
-    res.json({ count, limit, remaining: Math.max(0, limit - count) });
+    let nextRestoreTime = null;
+    if (count >= limit) {
+      const oldestUsage = await AIPlanUsage.findOne({
+        userId,
+        createdAt: { $gte: weekAgo },
+      }).sort({ createdAt: 1 });
+      if (oldestUsage) {
+        nextRestoreTime = new Date(oldestUsage.createdAt.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
+      }
+    }
+    
+    res.json({ count, limit, remaining: Math.max(0, limit - count), nextRestoreTime });
   } catch (error: any) {
     console.error('Error fetching AI trip quota:', error);
     res.status(500).json({ error: 'Failed to fetch quota', message: error.message });

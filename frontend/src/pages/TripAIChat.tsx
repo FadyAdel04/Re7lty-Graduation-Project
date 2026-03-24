@@ -54,6 +54,41 @@ type ExtractedData = {
   season: string | null;
 };
 
+const CountdownTimer = ({ targetDate }: { targetDate: string }) => {
+  const [timeLeft, setTimeLeft] = useState<{ d: number; h: number; m: number; s: number } | null>(null);
+
+  useEffect(() => {
+    const calculateTimeLeft = () => {
+      const difference = new Date(targetDate).getTime() - new Date().getTime();
+      if (difference > 0) {
+        setTimeLeft({
+          d: Math.floor(difference / (1000 * 60 * 60 * 24)),
+          h: Math.floor((difference / (1000 * 60 * 60)) % 24),
+          m: Math.floor((difference / 1000 / 60) % 60),
+          s: Math.floor((difference / 1000) % 60),
+        });
+      } else {
+        setTimeLeft(null);
+      }
+    };
+
+    calculateTimeLeft();
+    const timer = setInterval(calculateTimeLeft, 1000);
+    return () => clearInterval(timer);
+  }, [targetDate]);
+
+  if (!timeLeft) return <span className="text-emerald-600 font-black text-sm">التجديد متاح الآن، يرجى تحديث الصفحة!</span>;
+
+  return (
+    <span className="font-mono font-black text-sm" dir="ltr">
+      {timeLeft.d > 0 && `${timeLeft.d}d `}
+      {timeLeft.h.toString().padStart(2, '0')}:
+      {timeLeft.m.toString().padStart(2, '0')}:
+      {timeLeft.s.toString().padStart(2, '0')}
+    </span>
+  );
+};
+
 const TripAIChat = () => {
   const { isSignedIn, getToken } = useAuth();
   const [messages, setMessages] = useState<Message[]>([
@@ -84,7 +119,7 @@ const TripAIChat = () => {
   const [isCreatingTrip, setIsCreatingTrip] = useState(false);
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
   const [availableTrips, setAvailableTrips] = useState<any[]>([]);
-  const [aiQuota, setAiQuota] = useState<{ count: number; limit: number; remaining: number } | null>(null);
+  const [aiQuota, setAiQuota] = useState<{ count: number; limit: number; remaining: number; nextRestoreTime?: string } | null>(null);
   const [mobileView, setMobileView] = useState<'chat' | 'plan'>('chat'); // For mobile: which panel to show
   const [isGeneratingItinerary, setIsGeneratingItinerary] = useState(false);
   const [generatedItinerary, setGeneratedItinerary] = useState<GeneratedItineraryResponse | null>(null);
@@ -888,14 +923,27 @@ const TripAIChat = () => {
                    </div>
                 </div>
                 {aiQuota !== null && isSignedIn && (
-                   <div className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-white/80 border border-indigo-100 shadow-sm">
-                      <span className="text-xs font-bold text-gray-600">استخدامك هذا الأسبوع</span>
-                      <span className={cn(
-                         "text-sm font-black",
-                         aiQuota.remaining <= 0 ? "text-rose-600" : "text-indigo-600"
-                      )}>
-                         {aiQuota.remaining}/{aiQuota.limit} رحلات متبقية
-                      </span>
+                   <div className="flex flex-col gap-2">
+                     <div className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-white/80 border border-indigo-100 shadow-sm">
+                        <span className="text-xs font-bold text-gray-600">استخدامك هذا الأسبوع</span>
+                        <span className={cn(
+                           "text-sm font-black",
+                           aiQuota.remaining <= 0 ? "text-rose-600" : "text-indigo-600"
+                        )}>
+                           {aiQuota.remaining}/{aiQuota.limit} رحلات متبقية
+                        </span>
+                     </div>
+                     {aiQuota.remaining < aiQuota.limit && aiQuota.nextRestoreTime && (
+                       <div className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-rose-50/80 border border-rose-100 shadow-sm">
+                         <span className="text-xs font-bold text-rose-800 flex items-center gap-1.5">
+                           <Clock className="w-3.5 h-3.5" />
+                           تجديد المحاولات بعد:
+                         </span>
+                         <span className="text-rose-600">
+                           <CountdownTimer targetDate={aiQuota.nextRestoreTime} />
+                         </span>
+                       </div>
+                     )}
                    </div>
                 )}
              </div>

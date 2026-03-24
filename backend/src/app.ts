@@ -24,6 +24,7 @@ import chatRouter from "./routes/chat";
 import directChatRouter from "./routes/directChat";
 import couponsRouter from "./routes/coupons";
 import tripGroupChatRouter from "./routes/tripGroupChat";
+import memoriesRouter from "./routes/memories";
 import { connectToDatabase } from "./db";
 import mongoose from "mongoose";
 
@@ -598,6 +599,21 @@ export function createApp() {
         <!-- Corporate Trips Section -->
         <div id="section-corporate-trips" class="endpoint-section">
             <div class="content-header">
+                <h2>🏢 Corporate Travel</h2>
+                <p>Enterprise-grade trip management for companies and travelers.</p>
+            </div>
+            ${renderEndpoint('GET', '/submissions/my-submissions', 'List all company submissions', 'none', [], 'required')}
+        </div>
+
+        <!-- Travel Memories Section -->
+        <div id="section-memories" class="endpoint-section">
+            <div class="content-header">
+                <h2>📸 Travel Memories (Re7lty Reels)</h2>
+                <p>Store and share your monthly travel highlights.</p>
+            </div>
+            ${renderEndpoint('GET', '/memories/:userId', 'Fetch all memories for a user', 'params', ['userId: string'], 'none')}
+            ${renderEndpoint('POST', '/memories', 'Create or update a monthly memory', 'body', ['monthLabel: string', 'items: any[]', 'trackIndex: number'], 'required')}
+        </div>
                 <h2>🎫 Corporate Trips</h2>
                 <p>Official trips organized by verified tourism agencies.</p>
             </div>
@@ -861,7 +877,7 @@ export function createApp() {
             
             const response = await axios.get(fullUrl, {
                 headers: {
-                    'X-API-KEY': '079ecae86ca6eff8a49299bb7ee2d08f73ed1c273cd975fdf4ec31f488168900',
+                    'X-API-KEY': process.env.HOTELS_API_KEY || '',
                     'User-Agent': 'curl/8.9.1',
                     'Accept': 'application/json, text/plain, */*',
                     'Cache-Control': 'no-cache',
@@ -924,6 +940,7 @@ export function createApp() {
     app.use("/api/direct-chat", directChatRouter);
     app.use("/api/trip-groups", tripGroupChatRouter);
     app.use("/api/coupons", couponsRouter);
+    app.use("/api/memories", memoriesRouter);
 
     // Admin Comments Integration (part of complaints section)
     app.use("/api/admin/complaints/comments", adminCommentsRouter);

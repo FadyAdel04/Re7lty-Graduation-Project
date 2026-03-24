@@ -25,11 +25,10 @@ import RightSidebar, { FollowedTraveler } from "@/components/timeline/RightSideb
 import TimelineHero from "@/components/TimelineHero";
 import LivePulseMap from "@/components/LivePulseMap";
 import { Badge } from "@/components/ui/badge";
-import { PassportBadge } from "@/components/profile/DigitalPassport";
+import UserBadge, { BadgeTier } from "@/components/UserBadge";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-
-
+import CustomVideoPlayer from "@/components/CustomVideoPlayer";
 
 const getTripIdentifier = (trip: any) => {
   if (!trip) return "";
@@ -78,15 +77,24 @@ const Timeline = () => {
   const [trips, setTrips] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [myStoriesCount, setMyStoriesCount] = useState(0);
-  const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
 
   const userTrips = trips.filter(t => t.ownerId === userId);
   const uniqueDestinations = new Set(userTrips.map(t => normalizeCity(t.city || t.destination)).filter(c => c !== 'unknown'));
+  const getTierFromPoints = (points: number): BadgeTier => {
+    if (points >= 2000) return 'legend';
+    if (points >= 800) return 'diamond';
+    if (points >= 350) return 'gold';
+    if (points >= 100) return 'silver';
+    if (points >= 30) return 'bronze';
+    return 'none';
+  };
+
   const userStats = {
     citiesVisited: uniqueDestinations.size,
     storiesShared: myStoriesCount,
     tripsCreated: userTrips.length,
-    points: uniqueDestinations.size * 150 + (userTrips.length * 20), // Simulated score logic
+    points: uniqueDestinations.size * 150 + (userTrips.length * 20),
+    tier: getTierFromPoints(uniqueDestinations.size * 150 + (userTrips.length * 20))
   };
 
   useEffect(() => {
@@ -107,7 +115,6 @@ const Timeline = () => {
         if (isMounted && data?.items) {
           setTrips(data.items);
           
-          // Initialize states from fetched data
           const initialLoves: Record<string, { liked: boolean; likes: number }> = {};
           const initialSaves: Record<string, boolean> = {};
           
@@ -158,14 +165,15 @@ const Timeline = () => {
     let isMounted = true;
     const loadFollowedAndSuggestions = async () => {
       if (!isSignedIn) {
-         setFollowedTravelers([]);
-         const uniqueUsers = new Map<string, FollowedTraveler>();
-         trips.forEach(trip => {
+          setFollowedTravelers([]);
+          const uniqueUsers = new Map<string, FollowedTraveler>();
+          trips.forEach(trip => {
           if (trip.ownerId && trip.author) {
             if (!uniqueUsers.has(trip.ownerId)) {
               uniqueUsers.set(trip.ownerId, {
                 userId: trip.ownerId, fullName: trip.author, imageUrl: trip.authorImage,
                 status: `نشر ${formatFacebookDate(trip.postedAt)}`, tripCount: 1, isFollowing: false,
+                badgeTier: trip.authorBadge,
               });
             } else { uniqueUsers.get(trip.ownerId)!.tripCount += 1; }
           }
@@ -182,64 +190,28 @@ const Timeline = () => {
         try {
             const followingData = await getUserFollowing(userId!);
             if (followingData) {
-                // Handle different response structures
                 const usersList = followingData.users || followingData.following || (Array.isArray(followingData) ? followingData : []);
                 usersList.forEach((u: any) => followingIds.add(u.userId || u.id));
             }
         } catch (e) { console.warn("Failed to load following", e); }
 
-        const uniqueSuggestions = new Map<string, FollowedTraveler>();
-        const uniqueFollowing = new Map<string, FollowedTraveler>();
-
+        const allFoundUsers = new Map<string, FollowedTraveler>();
         trips.forEach(trip => {
-          if (trip.ownerId && trip.ownerId !== userId && trip.author) {
+           if (trip.ownerId && trip.ownerId !== userId && trip.author) {
              const isFollowing = followingIds.has(trip.ownerId) || (trip.viewerFollowsAuthor === true);
-             
-             // If I follow them, add to following list
-             if (isFollowing) {
-               if (!uniqueFollowing.has(trip.ownerId)) {
-                  uniqueFollowing.set(trip.ownerId, {
-                    userId: trip.ownerId, fullName: trip.author, imageUrl: trip.authorImage,
-                    status: `نشر ${formatFacebookDate(trip.postedAt)}`, tripCount: 1, isFollowing: true,
-                  });
-               } else { uniqueFollowing.get(trip.ownerId)!.tripCount++; }
-             } 
-             // If I don't follow them, add to suggestions
-             else {
-               if (!uniqueSuggestions.has(trip.ownerId)) {
-                   uniqueSuggestions.set(trip.ownerId, {
-                      userId: trip.ownerId, fullName: trip.author, imageUrl: trip.authorImage,
-                      status: `نشر ${formatFacebookDate(trip.postedAt)}`, tripCount: 1, isFollowing: false,
-                      points: trip.authorPoints || 200,
-                   });
-               } else { uniqueSuggestions.get(trip.ownerId)!.tripCount++; }
-             }
-          }
+             if (!allFoundUsers.has(trip.ownerId)) {
+                 allFoundUsers.set(trip.ownerId, {
+                   userId: trip.ownerId, fullName: trip.author, imageUrl: trip.authorImage,
+                   status: `نشر ${formatFacebookDate(trip.postedAt)}`, tripCount: 1, isFollowing,
+                   points: trip.authorPoints || 200,
+                   badgeTier: trip.authorBadge,
+                 });
+             } else { allFoundUsers.get(trip.ownerId)!.tripCount++; }
+           }
         });
         
         if (isMounted) {
-          setFollowedTravelers(Array.from(uniqueFollowing.values()));
-          // For suggestions, we explicitly want people we DON'T follow, or we can mix them. 
-          // The user requested to check "if the user follow this user or not and change the button".
-          // So we should probably show everyone found in trips, but with correct status.
-          
-          const allFoundUsers = new Map<string, FollowedTraveler>();
-          trips.forEach(trip => {
-             if (trip.ownerId && trip.ownerId !== userId && trip.author) {
-               const isFollowing = followingIds.has(trip.ownerId) || (trip.viewerFollowsAuthor === true);
-               if (!allFoundUsers.has(trip.ownerId)) {
-                   allFoundUsers.set(trip.ownerId, {
-                     userId: trip.ownerId, fullName: trip.author, imageUrl: trip.authorImage,
-                     status: `نشر ${formatFacebookDate(trip.postedAt)}`, tripCount: 1, isFollowing,
-                     points: trip.authorPoints || 200,
-                   });
-               } else { allFoundUsers.get(trip.ownerId)!.tripCount++; }
-             }
-          });
-          
-          // Suggestions should prioritize those we don't follow, but can include others
           const sortedSuggestions = Array.from(allFoundUsers.values()).sort((a, b) => {
-             // sort: non-following first
              if (a.isFollowing === b.isFollowing) return b.tripCount - a.tripCount;
              return a.isFollowing ? 1 : -1;
           }).slice(0, 8);
@@ -265,18 +237,6 @@ const Timeline = () => {
     });
   }, [trips]);
 
-  useEffect(() => {
-    setSaveState((prev) => {
-      const next = { ...prev };
-      trips.forEach((trip) => {
-        const tripId = getTripIdentifier(trip);
-        if (!tripId || next.hasOwnProperty(tripId)) return;
-        next[tripId] = Boolean(trip.viewerSaved);
-      });
-      return next;
-    });
-  }, [trips]);
-
   const handleToggleLove = async (trip: any, fromGesture: boolean = false) => {
     const tripId = getTripIdentifier(trip);
     if (!tripId) return;
@@ -286,15 +246,12 @@ const Timeline = () => {
     }
 
     const current = loveState[tripId] || { liked: Boolean(trip.viewerLoved), likes: trip.likes || 0 };
-    
-    // Opt-out of toggling if it's already liked and coming from double click
     if (fromGesture && current.liked) {
       setShowHeartByTrip((p) => ({ ...p, [tripId]: true }));
       setTimeout(() => setShowHeartByTrip((p) => ({ ...p, [tripId]: false })), 1000);
       return;
     }
 
-    // Optimistic update
     const nextLiked = !current.liked;
     const nextLikes = nextLiked ? current.likes + 1 : Math.max(0, current.likes - 1);
     
@@ -308,11 +265,9 @@ const Timeline = () => {
     try {
       const token = await getToken();
       const result = await toggleTripLove(trip._id || trip.id, token || "");
-      // Sync with server result just in case
       setLoveState((prev) => ({ ...prev, [tripId]: { liked: result.loved, likes: result.likes } }));
     } catch (e) {
       console.error(e);
-      // Rollback on error
       setLoveState((prev) => ({ ...prev, [tripId]: current }));
       toast({ title: "حدث خطأ ما", variant: "destructive" });
     }
@@ -334,7 +289,6 @@ const Timeline = () => {
        const token = await getToken();
        const res = await toggleFollowUser(targetUserId, token || "");
        setSuggestedTravelers(prev => prev.map(t => t.userId === targetUserId ? { ...t, isFollowing: res.following } : t));
-       if (!res.following) setFollowedTravelers(prev => prev.filter(t => t.userId !== targetUserId));
        toast({ title: res.following ? "تمت المتابعة" : "تم إلغاء المتابعة" });
      } catch (e) { console.error(e); }
   };
@@ -370,14 +324,13 @@ const Timeline = () => {
         <div className="max-w-[1400px] mx-auto mt-4">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 relative items-start">
             
-            {/* LEFT SIDEBAR */}
             <div className="lg:col-span-3 sticky top-24 hidden lg:block space-y-6 overflow-y-auto max-h-[85vh] no-scrollbar">
-               <LeftSidebar
-                 filters={filters}
-                 onFiltersChange={setFilters}
-                 userStats={userStats}
-                 upcomingTrip={null}
-               />
+                 <LeftSidebar
+                   filters={filters}
+                   onFiltersChange={setFilters}
+                   userStats={userStats}
+                   upcomingTrip={null}
+                 />
                
                <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
                   <h4 className="font-bold text-gray-900 mb-4 flex items-center justify-end gap-2">
@@ -388,8 +341,8 @@ const Timeline = () => {
                      {['لوحة المتصدرين', 'اكتشف الرحلات'].map(link => (
                        <Link key={link} to={link === 'لوحة المتصدرين' ? '/leaderboard' : link === 'اكتشف الرحلات' ? '/discover' : '#'} className="flex items-center justify-between p-2 rounded-xl text-sm text-gray-600 hover:bg-orange-50 hover:text-orange-600 transition-all">
                          <div className="flex items-center gap-2">
-                            <ArrowRight className="w-3 h-3 rotate-180" />
-                            {link}
+                             <ArrowRight className="w-3 h-3 rotate-180" />
+                             {link}
                          </div>
                        </Link>
                      ))}
@@ -397,9 +350,7 @@ const Timeline = () => {
                </div>
             </div>
 
-            {/* CENTER FEED */}
             <div className="lg:col-span-6 space-y-8">
-              {/* Mobile: Filter section toggle */}
               <div className="flex lg:hidden mb-4">
                 <Sheet open={showFiltersMobile} onOpenChange={setShowFiltersMobile}>
                   <SheetTrigger asChild>
@@ -460,24 +411,19 @@ const Timeline = () => {
                                    </div>
                                 </Link>
                                  <div className="space-y-0.5 text-right flex-1 min-w-0">
-                                     <div className="flex flex-col gap-1">
-                                        <Link to={toProfilePath(trip)} className="font-bold text-gray-900 hover:text-orange-600 transition-colors block leading-tight">
-                                           {trip.author}
-                                        </Link>
-                                        <PassportBadge 
-                                          count={trip.authorTripsCount || (trip.author ? 1 : 0)} 
-                                          points={trip.authorPoints || 200} 
-                                          size="sm"
-                                          className="w-fit"
-                                        />
-                                     </div>
+                                      <div className="flex items-center gap-2 mb-1">
+                                         <Link to={toProfilePath(trip)} className="font-bold text-gray-900 hover:text-orange-600 transition-colors block leading-tight">
+                                            {trip.author}
+                                         </Link>
+                                         <UserBadge tier={trip.authorBadge || 'none'} size='sm' showLabel={true} />
+                                      </div>
                                     <div className="flex items-center gap-2 text-xs text-gray-500">
                                        {formatFacebookDate(trip.postedAt)}
                                        <Clock className="w-3 h-3 text-orange-400" />
                                       <span className="text-gray-300">|</span>
                                       {trip.destination}
                                       <MapPin className="w-3 h-3 text-orange-400" />
-                                   </div>
+                                    </div>
                                  </div>
                              </div>
                              
@@ -507,14 +453,10 @@ const Timeline = () => {
                           </div>
 
                            {(!(trip.postType === 'ask' && !trip.image)) && (
-                             <div className="relative aspect-video overflow-hidden cursor-pointer" onDoubleClick={() => handleToggleLove(trip, true)}>
-                               {playingVideoId === id && trip.activities?.[0]?.videos?.[0] ? (
-                                 <video 
+                             <div className={cn("relative aspect-video overflow-hidden", trip.postType !== 'quick' && "cursor-pointer")} onDoubleClick={(!trip.activities?.[0]?.videos?.[0] && trip.postType !== 'quick') ? () => handleToggleLove(trip, true) : undefined} onClick={trip.postType !== 'quick' ? undefined : (e) => e.stopPropagation()}>
+                               {trip.activities?.[0]?.videos?.[0] ? (
+                                 <CustomVideoPlayer 
                                    src={trip.activities[0].videos[0]} 
-                                   autoPlay 
-                                   controls 
-                                   className="w-full h-full object-contain bg-black"
-                                   onEnded={() => setPlayingVideoId(null)}
                                  />
                                ) : (
                                  <>
@@ -526,20 +468,6 @@ const Timeline = () => {
                                      </div>
                                    )}
                                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                                   
-                                   {trip.postType === 'quick' && trip.activities?.[0]?.videos?.length > 0 && (
-                                     <div 
-                                       className="absolute inset-0 flex items-center justify-center z-10"
-                                       onClick={(e) => {
-                                         e.stopPropagation();
-                                         setPlayingVideoId(id);
-                                       }}
-                                     >
-                                        <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center group-hover:scale-110 transition-transform shadow-2xl">
-                                           <Play className="w-8 h-8 text-white fill-white translate-x-0.5" />
-                                        </div>
-                                     </div>
-                                   )}
                                  </>
                                )}
                                
@@ -599,11 +527,17 @@ const Timeline = () => {
                           <div className="p-6 pt-2 text-right">
                              {trip.postType !== 'ask' ? (
                                <>
-                                 <Link to={`/trips/${id}`}>
-                                    <h3 className="text-2xl font-black text-gray-900 mb-2 hover:text-orange-600 transition-colors">
+                                 {trip.postType === 'quick' ? (
+                                    <h3 className="text-2xl font-black text-gray-900 mb-2 transition-colors">
                                       {trip.title}
                                     </h3>
-                                 </Link>
+                                 ) : (
+                                    <Link to={`/trips/${id}`}>
+                                       <h3 className="text-2xl font-black text-gray-900 mb-2 hover:text-orange-600 transition-colors">
+                                         {trip.title}
+                                       </h3>
+                                    </Link>
+                                 )}
                                  <p className="text-gray-500 leading-relaxed line-clamp-2 md:line-clamp-3 mb-6 font-light">
                                     {trip.description}
                                  </p>
@@ -642,7 +576,7 @@ const Timeline = () => {
                                    <Button variant="ghost" className="rounded-full h-11 px-4 text-gray-500 hover:bg-gray-50">
                                       <Share2 className="w-5 h-5" />
                                    </Button>
-                                    {trip.postType !== 'ask' && (
+                                    {(trip.postType !== 'ask' && trip.postType !== 'quick') && (
                                       <Link to={`/trips/${id}`}>
                                           <Button variant="ghost" size="sm" className="rounded-full px-4 text-orange-600 hover:bg-orange-50 h-11">
                                               المزيد
@@ -660,17 +594,13 @@ const Timeline = () => {
               )}
             </div>
 
-            {/* RIGHT SIDEBAR */}
             <div className="lg:col-span-3 sticky top-24 hidden xl:block space-y-6">
-
-
                 <RightSidebar
                   followedTravelers={suggestedTravelers}
                   onToggleFollow={handleFollowedToggle}
                   isLoading={loadingFollowed}
                 />
             </div>
-
           </div>
         </div>
       </main>
@@ -700,7 +630,6 @@ const Timeline = () => {
            </div>
         </DialogContent>
       </Dialog>
-
     </div>
   );
 };
