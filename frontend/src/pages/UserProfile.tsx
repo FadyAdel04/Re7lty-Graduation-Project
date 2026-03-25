@@ -1289,7 +1289,9 @@ const UserProfile = () => {
           <DialogContent className="font-cairo rounded-[2rem]">
              <DialogHeader>
                 <DialogTitle className="text-right">تغيير صورة الغلاف</DialogTitle>
-                <DialogDescription className="text-right">سيظهر هذا الغلاف في الجزء العلوي من ملفك الشخصي.</DialogDescription>
+                <DialogDescription className="text-right">
+                   قم برفع صورة جديدة لتعيينها كصورة غلاف لبروفايلك.
+                </DialogDescription>
              </DialogHeader>
              <div className="py-6 flex flex-col items-center justify-center border-2 border-dashed border-indigo-100 rounded-3xl group transition-colors hover:bg-indigo-50">
                  <ImageIcon className="w-12 h-12 text-indigo-300 mb-4 group-hover:scale-110 transition-transform" />
@@ -1304,6 +1306,9 @@ const UserProfile = () => {
             <DialogContent className="max-w-2xl font-cairo rounded-[2rem]">
                 <DialogHeader>
                   <DialogTitle className="text-right">إضافة قضة رحلة جديدة (Story)</DialogTitle>
+                  <DialogDescription className="text-right">
+                     شارك تجربتك بصورة أو فيديو يظهر في ملفك الشخصي لمدة ٢٤ ساعة.
+                  </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-6 pt-4 text-right">
                    <div className="aspect-[9/16] max-h-[400px] w-full bg-gray-50 rounded-[2rem] border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden relative group">
@@ -1331,6 +1336,10 @@ const UserProfile = () => {
         {isEditBookingOpen && editingBooking && (
           <Dialog open={isEditBookingOpen} onOpenChange={setIsEditBookingOpen}>
             <DialogContent className="max-w-2xl font-cairo rounded-[2rem] overflow-hidden p-0 border-0 shadow-2xl" dir="rtl">
+                <DialogHeader className="sr-only">
+                   <DialogTitle>تعديل بيانات الحجز</DialogTitle>
+                   <DialogDescription>يمكنك تحديث معلوماتك أو اختيار مقاعد مختلفة.</DialogDescription>
+                </DialogHeader>
                 <div className="bg-indigo-600 p-8 text-white relative">
                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
                    <h2 className="text-3xl font-black mb-2 flex items-center gap-3">
@@ -1431,6 +1440,10 @@ const UserProfile = () => {
         )}
         <Dialog open={!!selectedBookingDetails} onOpenChange={(open) => !open && setSelectedBookingDetails(null)}>
           <DialogContent className="max-w-lg font-cairo rounded-[2rem] overflow-hidden p-0 border-0 shadow-2xl" dir="rtl">
+            <DialogHeader className="sr-only">
+               <DialogTitle>تفاصيل الحجز</DialogTitle>
+               <DialogDescription>عرض تفاصيل الحجز الحالي وحالة القبول أو الرفض.</DialogDescription>
+            </DialogHeader>
             {selectedBookingDetails && (
               <>
                 <div className="bg-indigo-600 p-6 text-white">
@@ -1592,6 +1605,7 @@ const UserProfile = () => {
           <DialogContent className="max-w-xl font-cairo rounded-[2rem]">
             <DialogHeader>
               <DialogTitle className="text-right">تعديل المنشور</DialogTitle>
+              <DialogDescription className="text-right">قم بتعديل عنوان ووصف منشورك.</DialogDescription>
             </DialogHeader>
             <div className="space-y-6 pt-4 text-right">
               <div className="space-y-2">

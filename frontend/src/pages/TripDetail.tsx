@@ -965,6 +965,10 @@ useEffect(() => {
       {/* Full Map Dialog */}
       <Dialog open={showFullMap} onOpenChange={setShowFullMap}>
          <DialogContent className="max-w-6xl w-[90vw] h-[80vh] p-0 overflow-hidden rounded-[2.5rem] border-0 bg-transparent z-[6000]" dir="rtl">
+            <DialogHeader className="sr-only">
+               <DialogTitle>خريطة الرحلة الكاملة</DialogTitle>
+               <DialogDescription>عرض تفصيلي لجميع نقاط التوقف والأنشطة على الخريطة.</DialogDescription>
+            </DialogHeader>
             <div className="relative w-full h-full rounded-[2.5rem] overflow-hidden bg-white shadow-2xl border-4 border-white">
                <Button 
                  variant="ghost" 
@@ -999,6 +1003,10 @@ useEffect(() => {
       {/* Place Details Dialog */}
       <Dialog open={dialogActivityIdx !== null} onOpenChange={(open) => !open && setDialogActivityIdx(null)}>
          <DialogContent className="max-w-2xl p-0 overflow-hidden rounded-[2.5rem] font-cairo text-right" dir="rtl">
+            <DialogHeader className="sr-only">
+               <DialogTitle>تفاصيل النشاط</DialogTitle>
+               <DialogDescription>عرض الصور والوصف والموقع لهذا النشاط بالتحديد.</DialogDescription>
+            </DialogHeader>
             {dialogActivityIdx !== null && trip.activities[dialogActivityIdx] && (
                <div>
                   <div className="h-64 relative bg-gray-100">

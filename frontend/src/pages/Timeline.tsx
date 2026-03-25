@@ -11,7 +11,7 @@ import TripComments from "@/components/TripComments";
 import ReportTripDialog from "@/components/ReportTripDialog";
 import { SignedIn, useAuth, useUser } from "@clerk/clerk-react";
 import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLoading } from "@/contexts/LoadingContext";
 import TripSkeletonLoader from "@/components/TripSkeletonLoader";
@@ -616,6 +616,9 @@ const Timeline = () => {
                     التعليقات
                     <span className="block text-sm font-bold text-indigo-500 mt-1">{activeCommentsTrip?.title}</span>
                  </DialogTitle>
+                 <DialogDescription className="sr-only">
+                    عرض جميع تعليقات المستخدمين على هذا المنشور والتفاعل معها.
+                 </DialogDescription>
               </DialogHeader>
            </div>
            <div className="p-6 pt-0 overflow-y-auto custom-scrollbar h-full">
