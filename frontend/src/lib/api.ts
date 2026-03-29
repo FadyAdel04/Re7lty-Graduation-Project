@@ -739,3 +739,37 @@ export async function getAISuggestions(city: string) {
   }
   return res.json();
 }
+
+// === Leaderboard API ===
+
+export async function getCurrentLeaderboard() {
+  const res = await fetch(`${BASE}/api/leaderboard/current`);
+  if (!res.ok) throw new Error('Failed to fetch current leaderboard');
+  return res.json();
+}
+
+export async function getLeaderboardHistory() {
+  const res = await fetch(`${BASE}/api/leaderboard/history`);
+  if (!res.ok) throw new Error('Failed to fetch leaderboard history');
+  return res.json();
+}
+
+export async function getLeaderboardHistoryDetail(id: string) {
+  const res = await fetch(`${BASE}/api/leaderboard/history/${id}`);
+  if (!res.ok) throw new Error('Failed to fetch leaderboard history details');
+  return res.json();
+}
+
+export async function finalizeLeaderboardWeek(token: string) {
+  const res = await fetch(`${BASE}/api/leaderboard/end-week`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || 'Failed to finalize week');
+  }
+  return res.json();
+}

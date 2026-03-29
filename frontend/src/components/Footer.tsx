@@ -3,7 +3,7 @@ import { Facebook, Twitter, Instagram, Mail, Globe, Sparkles, MapPin, Phone } fr
 import { cn } from "@/lib/utils";
 import { useSeasonalTheme } from "@/contexts/SeasonalThemeContext";
 
-const logo = "/assets/logo.png";
+const logo = "/assets/logo.webp";
 
 const Footer = () => {
   const { isSeasonalActive, currentSeason, themeConfig } = useSeasonalTheme();
@@ -45,14 +45,15 @@ const Footer = () => {
             
             <div className="flex items-center gap-3">
               {[
-                { icon: Facebook, color: "hover:bg-[#1877F2]", link: "#" },
-                { icon: Twitter, color: "hover:bg-[#1DA1F2]", link: "#" },
-                { icon: Instagram, color: "hover:bg-gradient-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7]", link: "#" },
-                { icon: Mail, color: "hover:bg-indigo-600", link: "#" },
+                { icon: Facebook, color: "hover:bg-[#1877F2]", link: "#", name: "تواصل معنا عبر فيسبوك" },
+                { icon: Twitter, color: "hover:bg-[#1DA1F2]", link: "#", name: "تواصل معنا عبر تويتر" },
+                { icon: Instagram, color: "hover:bg-gradient-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7]", link: "#", name: "تواصل معنا عبر انستجرام" },
+                { icon: Mail, color: "hover:bg-indigo-600", link: "#", name: "ارسل لنا بريد إلكتروني" },
               ].map((social, i) => (
                 <a 
                   key={i} 
                   href={social.link} 
+                  aria-label={social.name}
                   className={cn(
                     "w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 hover:text-white transition-all duration-300 shadow-sm",
                     social.color
@@ -68,10 +69,10 @@ const Footer = () => {
 
           {/* Navigation Links (2 Columns) */}
           <div className="lg:col-span-2 space-y-6">
-            <h4 className="text-gray-900 font-black text-lg flex items-center gap-2">
+            <h3 className="text-gray-900 font-black text-lg flex items-center gap-2">
               <Globe className="w-5 h-5 text-indigo-600" />
               روابط سريعة
-            </h4>
+            </h3>
             <ul className="space-y-4">
               {[
                 { name: "الرئيسية", path: "/" },
@@ -91,10 +92,10 @@ const Footer = () => {
 
           {/* Support Links (2 Columns) */}
           <div className="lg:col-span-2 space-y-6">
-            <h4 className="text-gray-900 font-black text-lg flex items-center gap-2">
+            <h3 className="text-gray-900 font-black text-lg flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-orange-500" />
               مركز الدعم
-            </h4>
+            </h3>
             <ul className="space-y-4">
               {[
                 { name: "الدعم", path: "/support" },
@@ -116,7 +117,7 @@ const Footer = () => {
 
           {/* Newsletter / Contact (3 Columns) */}
           <div className="lg:col-span-3 space-y-6">
-            <h4 className="text-gray-900 font-black text-lg">تواصل معنا</h4>
+            <h3 className="text-gray-900 font-black text-lg">تواصل معنا</h3>
             <div className="space-y-4">
               <div className="flex items-start gap-4">
                 <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
@@ -144,7 +145,7 @@ const Footer = () => {
               <div className="flex flex-row flex-wrap gap-3">
                 <div className="opacity-40 grayscale cursor-not-allowed select-none">
                   <img 
-                    src="https://upload.wikimedia.org/wikipedia/commons/3/3c/Download_on_the_App_Store_Badge.svg" 
+                    src="/assets/app-store-badge.svg" 
                     alt="App Store" 
                     className="h-10 w-auto"
                     loading="lazy"
@@ -154,7 +155,7 @@ const Footer = () => {
                 </div>
                 <div className="opacity-40 grayscale cursor-not-allowed select-none">
                   <img 
-                    src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg" 
+                    src="/assets/google-play-badge.svg" 
                     alt="Google Play" 
                     className="h-10 w-auto"
                     loading="lazy"

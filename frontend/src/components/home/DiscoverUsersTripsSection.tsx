@@ -93,7 +93,7 @@ const DiscoverUsersTripsSection = () => {
                     </div>
                     <div className="flex items-center justify-between">
                        <div>
-                          <h4 className="font-bold text-gray-900 text-sm">{item.title}</h4>
+                          <h3 className="font-bold text-gray-900 text-sm">{item.title}</h3>
                           <span className="text-xs text-gray-500 flex items-center gap-1 mt-0.5"><User className="h-3 w-3" /> {item.user}</span>
                        </div>
                        <div className={`w-8 h-8 rounded-full ${item.color} flex items-center justify-center text-white`}>

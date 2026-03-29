@@ -49,21 +49,21 @@ const AISection = () => {
                  <div className="p-3 rounded-xl bg-white/5 border border-white/10">
                    <MessageSquare className="h-6 w-6 text-secondary" />
                  </div>
-                 <h4 className="font-semibold text-lg">محادثة طبيعية</h4>
+                 <h3 className="font-semibold text-lg">محادثة طبيعية</h3>
                  <p className="text-sm text-gray-500">تحدث وكأنك مع خبير سياحي</p>
                </div>
                <div className="flex flex-col items-center lg:items-start gap-2">
                  <div className="p-3 rounded-xl bg-white/5 border border-white/10">
                    <Zap className="h-6 w-6 text-primary" />
                  </div>
-                 <h4 className="font-semibold text-lg">سرعة فائقة</h4>
+                 <h3 className="font-semibold text-lg">سرعة فائقة</h3>
                  <p className="text-sm text-gray-500">خطة كاملة في أقل من دقيقة</p>
                </div>
                <div className="flex flex-col items-center lg:items-start gap-2">
                  <div className="p-3 rounded-xl bg-white/5 border border-white/10">
                    <Sparkles className="h-6 w-6 text-orange-400" />
                  </div>
-                 <h4 className="font-semibold text-lg">تخصيص كامل</h4>
+                 <h3 className="font-semibold text-lg">تخصيص كامل</h3>
                  <p className="text-sm text-gray-500">يناسب ميزانيتك واهتماماتك</p>
                </div>
             </div>

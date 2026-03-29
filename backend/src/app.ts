@@ -25,6 +25,7 @@ import directChatRouter from "./routes/directChat";
 import couponsRouter from "./routes/coupons";
 import tripGroupChatRouter from "./routes/tripGroupChat";
 import memoriesRouter from "./routes/memories";
+import leaderboardRouter from "./routes/leaderboard";
 import { connectToDatabase } from "./db";
 import mongoose from "mongoose";
 
@@ -502,6 +503,7 @@ export function createApp() {
                 <div class="nav-item" onclick="showSection('complaints')">⚠️ <span>Complaints</span></div>
                 <div class="nav-item" onclick="showSection('reports')">🚩 <span>Content Reports</span></div>
                 <div class="nav-item" onclick="showSection('admin-users')">🔐 <span>Admin Management</span></div>
+                <div class="nav-item" onclick="showSection('leaderboard')">🏆 <span>Leaderboard Settings</span></div>
             </div>
 
             <div class="nav-group">
@@ -757,6 +759,17 @@ export function createApp() {
             ${renderEndpoint('DELETE', '/coupons/:id', 'Admin: Delete a coupon', 'params', ['id: string'], 'admin')}
         </div>
 
+        <!-- Leaderboard Section -->
+        <div id="section-leaderboard" class="endpoint-section">
+            <div class="content-header">
+                <h2>🏆 Leaderboard System</h2>
+                <p>Manage weekly winners and historical rankings.</p>
+            </div>
+            ${renderEndpoint('GET', '/leaderboard/current', 'Get the live leaderboard for the current week', 'none', [], 'none')}
+            ${renderEndpoint('GET', '/leaderboard/history', 'List all historical weekly winners', 'none', [], 'none')}
+            ${renderEndpoint('POST', '/leaderboard/end-week', 'Archive current results and reset weeklyLikes', 'none', [], 'admin')}
+        </div>
+
         <!-- Proxy Section -->
         <div id="section-proxy" class="endpoint-section">
             <div class="content-header">
@@ -941,6 +954,7 @@ export function createApp() {
     app.use("/api/trip-groups", tripGroupChatRouter);
     app.use("/api/coupons", couponsRouter);
     app.use("/api/memories", memoriesRouter);
+    app.use("/api/leaderboard", leaderboardRouter);
 
     // Admin Comments Integration (part of complaints section)
     app.use("/api/admin/complaints/comments", adminCommentsRouter);

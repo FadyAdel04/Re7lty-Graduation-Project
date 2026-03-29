@@ -46,7 +46,6 @@ const BookingVerify = lazy(() => import("./pages/BookingVerify"));
 import TripAIChatWidget from "@/components/TripAIChatWidget";
 import AITourGuide from "@/components/AITourGuide";
 import ScrollToTop from "@/components/ScrollToTop";
-import { Analytics } from "@vercel/analytics/react";
 import { SignedIn, SignedOut, RedirectToSignIn, useUser } from "@clerk/clerk-react";
 import { UploadProgressProvider } from "@/contexts/UploadProgressContext";
 import { UploadProgressBar } from "@/components/UploadProgressBar";
@@ -204,7 +203,6 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <Analytics />
           <BrowserRouter>
             <NotificationProvider>
               <SeasonalThemeProvider>

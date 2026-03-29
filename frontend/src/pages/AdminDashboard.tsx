@@ -15,7 +15,9 @@ import {
   Star,
   MapPin,
   LogOut,
-  DollarSign
+  DollarSign,
+  Calendar,
+  Trophy
 } from "lucide-react";
 import { useClerk } from "@clerk/clerk-react";
 import { adminService } from "@/services/adminService";
@@ -25,6 +27,7 @@ import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import { 
   AreaChart, 
   Area, 
@@ -68,6 +71,11 @@ const AdminDashboard = () => {
   const [topTrips, setTopTrips] = useState<any[]>([]);
   const [weeklyActivity, setWeeklyActivity] = useState<any[]>([]);
   const [recentUsers, setRecentUsers] = useState<any[]>([]);
+  
+  // Leaderboard Management State
+  const [leaderboardHistory, setLeaderboardHistory] = useState<any[]>([]);
+  const [isFinalizing, setIsFinalizing] = useState(false);
+  const [selectedLeaderboardWeek, setSelectedLeaderboardWeek] = useState<any>(null);
 
   useEffect(() => {
     // Check if user is admin (specific email)
@@ -99,12 +107,14 @@ const AdminDashboard = () => {
         weeklyActivityData,
         allUsersData,
         bookingAnalytics,
+        leaderboardHistoryData,
       ] = await Promise.all([
         adminService.getAnalytics(token || undefined),
         adminService.getTopTrips(token || undefined),
         adminService.getWeeklyActivity(token || undefined),
         adminService.getAllUsers(token || undefined),
         adminService.getAdminBookingAnalytics(token || undefined),
+        adminService.getLeaderboardHistory(token || undefined),
       ]);
       
       // Update stats with real data from backend
@@ -126,6 +136,7 @@ const AdminDashboard = () => {
       });
       
       setBookingStats(bookingAnalytics);
+      setLeaderboardHistory(leaderboardHistoryData || []);
       
       // Set chart and list data
       setTopTrips(topTripsData || []);
@@ -141,6 +152,35 @@ const AdminDashboard = () => {
       console.error('Error fetching dashboard data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleFinalizeWeek = async () => {
+    if (!window.confirm('هل أنت متأكد من إنهاء الأسبوع الحالي؟ سيتم أرشفة النتائج وتصفير الإعجابات الأسبوعية لجميع الرحلات.')) {
+      return;
+    }
+
+    try {
+      setIsFinalizing(true);
+      const token = await getToken();
+      await adminService.finalizeLeaderboardWeek(token || undefined);
+      alert('تم إنهاء الأسبوع بنجاح!');
+      fetchData(); // Refresh history
+    } catch (error: any) {
+      alert('فشل إنهاء الأسبوع: ' + (error.response?.data?.error || error.message));
+    } finally {
+      setIsFinalizing(false);
+    }
+  };
+
+  const handleSelectHistory = async (week: any) => {
+    try {
+      setSelectedLeaderboardWeek(week); // Show immediate UI state
+      const token = await getToken();
+      const details = await adminService.getLeaderboardHistoryDetail(week._id, token || undefined);
+      setSelectedLeaderboardWeek(details);
+    } catch (err) {
+      console.error("Failed to fetch history details:", err);
     }
   };
 
@@ -262,6 +302,92 @@ const AdminDashboard = () => {
                    </div>
                 </div>
              </div>
+
+              {/* Leaderboard Management Section (New) */}
+              <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-xl shadow-gray-200/20 p-8 space-y-8">
+                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                       <div className="w-12 h-12 rounded-2xl bg-yellow-50 flex items-center justify-center text-yellow-600">
+                          <Trophy className="w-6 h-6" />
+                       </div>
+                       <div>
+                          <h3 className="text-xl font-black text-gray-900 font-cairo">إدارة قائمة المتصدرين</h3>
+                          <p className="text-xs font-bold text-gray-400">تتبع أرشيف الفائزين وإغلاق الأسابيع الحالية</p>
+                       </div>
+                    </div>
+                    <Button 
+                      onClick={handleFinalizeWeek}
+                      disabled={isFinalizing}
+                      className="bg-gray-900 text-white hover:bg-black rounded-2xl h-12 px-6 font-black"
+                    >
+                       {isFinalizing ? 'جاري الحفظ...' : 'إنهاء الأسبوع الحالي وأرشفته'}
+                    </Button>
+                 </div>
+
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Weekly History List */}
+                    <div className="space-y-4 border rounded-3xl p-6 bg-gray-50/50 max-h-[400px] overflow-y-auto custom-scrollbar">
+                       <h4 className="text-sm font-black text-gray-500 mb-4 px-2">أرشيف الأسابيع الموصدة</h4>
+                       {leaderboardHistory.length === 0 ? (
+                         <div className="text-center py-10 text-gray-400 font-bold">لا يوجد أرشيف حالياً</div>
+                       ) : leaderboardHistory.map((week) => (
+                         <div 
+                           key={week._id}
+                           onClick={() => handleSelectHistory(week)}
+                           className={cn(
+                             "p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between",
+                             selectedLeaderboardWeek?._id === week._id 
+                               ? "bg-indigo-600 text-white border-indigo-600 shadow-lg" 
+                               : "bg-white border-gray-100 hover:border-indigo-200 text-gray-900"
+                           )}
+                         >
+                            <div className="flex items-center gap-3">
+                               <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", selectedLeaderboardWeek?._id === week._id ? "bg-white/20" : "bg-indigo-50 text-indigo-600")}>
+                                  <Calendar className="w-5 h-5" />
+                               </div>
+                               <div>
+                                  <p className="font-black text-sm">{week.label}</p>
+                                  <p className={cn("text-[10px] font-bold", selectedLeaderboardWeek?._id === week._id ? "text-indigo-100" : "text-gray-400")}>
+                                     {new Date(week.startDate).toLocaleDateString('ar-EG')}
+                                  </p>
+                               </div>
+                            </div>
+                            <Badge className={cn("border-0", selectedLeaderboardWeek?._id === week._id ? "bg-white/20 text-white" : "bg-gray-100 text-gray-500")}>
+                               {week.winners?.length || 0} فائزين
+                            </Badge>
+                         </div>
+                       ))}
+                    </div>
+
+                    {/* Detailed Trips for selected week */}
+                    <div className="border rounded-3xl p-6 bg-white space-y-4 overflow-y-auto max-h-[400px] custom-scrollbar">
+                       <h4 className="text-sm font-black text-gray-500 mb-4 px-2">رحلات الأسبوع المحددة</h4>
+                       {!selectedLeaderboardWeek ? (
+                          <div className="h-full flex flex-col items-center justify-center py-10 opacity-30 text-center space-y-3">
+                             <Plane className="w-12 h-12" />
+                             <p className="font-black text-sm">اختر أسبوعاً من القائمة لعرض رحلاته</p>
+                          </div>
+                       ) : (
+                          <div className="space-y-3">
+                             {(selectedLeaderboardWeek.allTrips || selectedLeaderboardWeek.winners || []).map((trip: any, i: number) => (
+                               <div key={trip._id || trip.tripId || i} className="flex items-center gap-3 p-3 rounded-2xl border border-gray-50 hover:bg-gray-50 transition-colors">
+                                  <div className="w-8 h-8 rounded-lg bg-gray-900 text-white flex items-center justify-center font-black text-xs">
+                                     #{trip.rank || i + 1}
+                                  </div>
+                                  <div className="w-10 h-10 rounded-xl overflow-hidden bg-gray-100">
+                                     <img src={trip.image || trip.tripImage || '/placeholder-trip.jpg'} className="w-full h-full object-cover" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                     <p className="font-black text-sm truncate">{trip.title || trip.tripTitle}</p>
+                                     <p className="text-[10px] font-bold text-gray-400">{trip.author || trip.winnerName}</p>
+                                  </div>
+                               </div>
+                             ))}
+                          </div>
+                       )}
+                    </div>
+                 </div>
+              </div>
 
              {/* 1. Top Performing Trips */}
              <div className="bg-white rounded-[2.5rem] border border-gray-50 shadow-xl shadow-gray-200/20 p-8">
