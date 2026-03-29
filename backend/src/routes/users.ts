@@ -198,7 +198,22 @@ router.get('/me', requireAuthStrict, async (req, res) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const clerkUser = await clerkClient.users.getUser(userId);
+    let clerkUser: any;
+    try {
+      clerkUser = await clerkClient.users.getUser(userId);
+    } catch (e: any) {
+      if (req.headers['x-demo-user']) {
+        clerkUser = {
+          primaryEmailAddress: { emailAddress: 'demo@re7lty.com' },
+          username: 'demo_user',
+          fullName: 'رحلتي (حساب تجريبي)',
+          imageUrl: 'https://ui-avatars.com/api/?name=Demo&format=png',
+          publicMetadata: { bio: 'حساب تجريبي للتطبيق', location: 'مصر' }
+        };
+      } else {
+        throw e;
+      }
+    }
     const existingUser = await User.findOne({ clerkId: userId });
     const dbUser = await User.findOneAndUpdate(
       { clerkId: userId },
