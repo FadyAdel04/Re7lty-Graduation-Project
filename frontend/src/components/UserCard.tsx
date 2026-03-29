@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useAuth } from "@clerk/clerk-react";
 import { toggleFollowUser } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { PassportBadge } from "./profile/DigitalPassport";
+import UserBadge from "./UserBadge";
 
 interface UserCardProps {
   user: {
@@ -18,6 +18,7 @@ interface UserCardProps {
     tripsCount?: number;
     points?: number;
     stampsCount?: number;
+    badgeTier?: any;
   };
   isFollowing?: boolean;
   onFollowToggle?: (newStatus: boolean) => void;
@@ -95,11 +96,11 @@ const UserCard = ({ user, isFollowing: initialIsFollowing = false, onFollowToggl
               <h3 className="font-bold text-gray-900 text-lg group-hover:text-orange-600 transition-colors leading-tight">
                 {user.fullName || user.username}
               </h3>
-              <PassportBadge 
-                count={user.stampsCount || user.tripsCount || 0} 
-                points={user.points || (user.tripsCount ? user.tripsCount * 50 : 0)} 
+              <UserBadge 
+                tier={user.badgeTier || 'none'} 
                 size="sm"
                 className="w-fit"
+                showLabel={true}
               />
             </div>
             {user.username && (

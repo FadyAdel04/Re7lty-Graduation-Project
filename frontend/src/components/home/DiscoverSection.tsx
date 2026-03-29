@@ -11,7 +11,7 @@ const DiscoverSection = () => {
          <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
             <path d="M0 0 L100 100 M100 0 L0 100" stroke="currentColor" strokeWidth="0.5" />
          </svg>
-         <div className="absolute inset-0 bg-[url('https://upload.wikimedia.org/wikipedia/commons/e/ec/World_map_blank_without_borders.svg')] bg-no-repeat bg-center bg-cover opacity-20 grayscale"></div>
+         <div className="absolute inset-0 bg-[url('/assets/world-map.svg')] bg-no-repeat bg-center bg-cover opacity-20 grayscale"></div>
       </div>
 
       <div className="container mx-auto px-4 relative z-10">

@@ -180,6 +180,29 @@ export const UserBadge: React.FC<UserBadgeProps> = ({
                 </div>
               </div>
             )}
+
+            <div className="pt-3 border-t border-white/10 space-y-2 mt-3 block">
+               <p className="text-[10px] font-bold text-gray-400 mb-2 text-center">نظام تسلسل المستويات (النقاط المطلوبة)</p>
+               <div className="flex flex-col gap-1 border border-white/5 rounded-xl bg-black/20 p-2">
+                 {Object.entries(badgeConfigs).map(([key, badge]: [string, any]) => {
+                    const reqPoints = key === 'none' ? '0' : key === 'bronze' ? '30' : key === 'silver' ? '100' : key === 'gold' ? '350' : key === 'diamond' ? '800' : '2000';
+                    return (
+                      <div key={key} className={cn("flex items-center justify-between p-1.5 rounded-lg", tier === key ? "bg-white/10 shadow-sm" : "")}>
+                         <div className="flex items-center gap-2">
+                            <div className={cn("p-1 rounded bg-gradient-to-br", badge.color)}>
+                               <badge.icon className="w-2.5 h-2.5 text-white" />
+                            </div>
+                            <span className={cn("text-[11px] font-bold", tier === key ? "text-white" : "text-gray-400")}>{badge.label}</span>
+                         </div>
+                         <span className={cn("text-[10px] font-mono", tier === key ? "text-indigo-400 font-bold" : "text-gray-600")}>
+                           {reqPoints}
+                         </span>
+                      </div>
+                    );
+                 })}
+               </div>
+               <p className="text-[9px] text-gray-500 mt-2 text-center leading-relaxed">اجمع نقاط عبر نشر الرحلات (20)، والقصص (5)، وكسب تفاعلات ومتابعين للحصول على ترقيات مميزة.</p>
+            </div>
           </div>
         </TooltipContent>
       </Tooltip>

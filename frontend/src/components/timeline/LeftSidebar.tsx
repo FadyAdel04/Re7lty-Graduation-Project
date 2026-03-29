@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { PlusCircle, MapPin, TrendingUp, Bookmark, Calendar, Globe, Award, Sparkles } from "lucide-react";
-import { PassportBadge } from "../profile/DigitalPassport";
+import UserBadge, { BadgeTier } from "@/components/UserBadge";
 import {
   Select,
   SelectContent,

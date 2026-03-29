@@ -2,8 +2,8 @@ import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { UserPlus, UserMinus, Compass } from "lucide-react";
-import { PassportBadge } from "@/components/profile/DigitalPassport";
+import { Compass } from "lucide-react";
+import UserBadge from "@/components/UserBadge";
 import { cn } from "@/lib/utils";
 
 export interface FollowedTraveler {
@@ -14,6 +14,7 @@ export interface FollowedTraveler {
   tripCount: number;
   isFollowing: boolean;
   points?: number;
+  badgeTier?: any;
 }
 
 interface RightSidebarProps {
@@ -74,10 +75,10 @@ const RightSidebar = ({ followedTravelers, onToggleFollow, isLoading }: RightSid
                       >
                         {traveler.fullName}
                       </Link>
-                      <PassportBadge 
-                        count={traveler.tripCount} 
-                        points={traveler.points || (traveler.tripCount * 50)} 
+                      <UserBadge 
+                        tier={traveler.badgeTier || 'none'} 
                         size="sm"
+                        showLabel={true}
                       />
                     </div>
                   </div>

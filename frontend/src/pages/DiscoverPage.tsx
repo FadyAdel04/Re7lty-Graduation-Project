@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@clerk/clerk-react";
 import { cn } from "@/lib/utils";
+import UserBadge from "@/components/UserBadge";
 
 interface SearchResult {
   trips: any[];
@@ -348,9 +349,12 @@ const DiscoverPage = () => {
                                <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></div>
                              </div>
                              <div>
-                               <h4 className="font-bold text-sm text-gray-900 group-hover:text-orange-600 transition-colors">
-                                 {user.fullName || user.username}
-                               </h4>
+                                <div className="flex items-center gap-2">
+                                  <h4 className="font-bold text-sm text-gray-900 group-hover:text-orange-600 transition-colors">
+                                    {user.fullName || user.username}
+                                  </h4>
+                                  <UserBadge tier={user.badgeTier || 'none'} size="sm" />
+                                </div>
                                <p className="text-xs text-gray-500 line-clamp-1">
                                  {user.bio || "مسافر شغوف 🌍"}
                                </p>

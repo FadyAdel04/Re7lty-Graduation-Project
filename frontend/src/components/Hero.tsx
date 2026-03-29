@@ -14,7 +14,7 @@ const FEATURES = [
     title: "خطط بذكاء",
     subtitle: "  بالذكاء الاصطناعي",
     description: "احصل على جدول سياحي متكامل ومخصص لك في ثوانٍ باستخدام أحدث تقنيات الذكاء الاصطناعي.",
-    image: "/assets/hero-1.png", // Tech/Planning vibe
+    image: "/assets/hero-1.webp", // Tech/Planning vibe
     icon: Sparkles,
     stat: "مجاني 100%",
     statLabel: "بدء الاستخدام",
@@ -26,7 +26,7 @@ const FEATURES = [
     title: "سافر بأمان",
     subtitle: "شركات سياحة معتمدة",
     description: "نجمع لك أفضل عروض الشركات السياحية الموثقة لضمان خدمات راقية وحجوزات آمنة تماماً.",
-    image: "/assets/hero-2.png", // Bus/Professional vibe
+    image: "/assets/hero-2.webp", // Bus/Professional vibe
     icon: ShieldCheck,
     stat: "+50",
     statLabel: "شركة معتمدة",
@@ -38,7 +38,7 @@ const FEATURES = [
     title: "مجتمع رحلتي",
     subtitle: "تواصل مع مسافرين مثلك",
     description: "انضم إلى مجتمع نابض بالحياة، شارك تجاربك، وتعرف على رفقاء سفر جدد يشاركونك نفس الشغف.",
-    image: "/assets/hero-3.png", // Friends/Camping vibe
+    image: "/assets/hero-3.webp", // Friends/Camping vibe
     icon: Users2,
     stat: "+2,500",
     statLabel: "عضو نشط",
@@ -50,7 +50,7 @@ const FEATURES = [
     title: "وثّق ذكرياتك",
     subtitle: "شارك لحظاتك التي لا تُنسى",
     description: "أنشئ جدولك الزمني الخاص، ارفع صور رحلاتك، وألهم الآخرين بمغامراتك الرائعة.",
-    image: "/assets/hero-4.png", // Nature/Photography
+    image: "/assets/hero-4.webp", // Nature/Photography
     icon: ImageIcon,
     stat: "لا نهائي",
     statLabel: "مساحة تخزين",
@@ -103,9 +103,12 @@ const Hero = () => {
             {/* Using img instead of background-image for faster discovery */}
             <img 
               src={feature.image} 
-              alt="" 
+              alt={feature.title}
               className="absolute inset-0 w-full h-full object-cover transform scale-105 transition-transform duration-[10s] ease-linear"
-              loading={isCurrent ? "eager" : "lazy"}
+              loading={feature.id === 1 ? "eager" : "lazy"}
+              {...{ fetchpriority: feature.id === 1 ? "high" : "auto" } as any}
+              width="750"
+              height="750"
               decoding="async"
             />
             <div className="absolute inset-0 bg-gradient-to-r from-gray-950 via-gray-900/80 to-black/40" />

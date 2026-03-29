@@ -26,6 +26,7 @@ const TripAIChatWidget = () => {
           shadow-lg transition-all"
           size="lg"
           onClick={handleClick}
+          aria-label="مخطط الرحلات الذكي"
         >
           <Bot className="ml-2 h-5 w-5" />
           <span className="hidden md:inline">مخطط الرحلات الذكى !</span>

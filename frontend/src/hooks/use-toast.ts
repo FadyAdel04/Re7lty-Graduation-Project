@@ -137,6 +137,40 @@ type Toast = Omit<ToasterToast, "id">;
 function toast({ ...props }: Toast) {
   const id = genId();
 
+  if (props.variant === "destructive") {
+    // Log the technical error to the console
+    console.error(`[Application Error Log]:`, props.title || '', props.description || '');
+
+    // Translate English technical errors to simple Arabic messages for the user
+    if (typeof props.description === "string") {
+      const lower = props.description.toLowerCase();
+      if (lower.includes("unauthorized") || lower.includes("not logged in") || lower.includes("jwt")) {
+        props.description = "يجب عليك تسجيل الدخول للمتابعة.";
+      } else if (lower.includes("not found")) {
+        props.description = "العنصر المطلوب غير موجود أو تم حذفه.";
+      } else if (lower.includes("network error") || lower.includes("failed to fetch") || lower.includes("cors")) {
+        props.description = "حدثت مشكلة في الاتصال، يرجى التحقق من اتصالك بالإنترنت.";
+      } else if (lower.includes("database") || lower.includes("mongodb")) {
+        props.description = "تعذر الاتصال بالخادم، يرجى المحاولة لاحقاً.";
+      } else if (lower.includes("limit") || lower.includes("quota") || lower.includes("exceeded")) {
+        props.description = "عذراً، لقد وصلت إلى الحد الأقصى المسموح به حالياً.";
+      } else if (lower.includes("failed to") || lower.includes("error")) {
+        props.description = "حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى.";
+      } else if (!props.description.match(/[\u0600-\u06FF]/)) {
+        // Fallback for remaining English errors
+        props.description = "عذراً، حدث خطأ. يرجى المحاولة لاحقاً.";
+      }
+    } else if (props.description instanceof Error) {
+      props.description = "عذراً، حدث خطأ نرجو المحاولة مجدداً.";
+    }
+
+    if (typeof props.title === "string" && !props.title.match(/[\u0600-\u06FF]/)) {
+       props.title = "تنبيه النظام";
+    } else if (!props.title) {
+       props.title = "خطأ";
+    }
+  }
+
   const update = (props: ToasterToast) =>
     dispatch({
       type: "UPDATE_TOAST",

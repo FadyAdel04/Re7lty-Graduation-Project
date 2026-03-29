@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Search, MapPin, Menu, Trophy, Compass, Briefcase, Home, Plus, X, Sparkles, Globe, Shield, Bell, User, MessageSquare, Bot, LogOut, ChevronDown } from "lucide-react";
+import { Search, MapPin, Menu, Trophy, Compass, Briefcase, Home, Plus, X, Sparkles, Globe, Shield, Bell, User, MessageSquare, Bot, LogOut, ChevronDown, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link, useNavigate, useLocation } from "react-router-dom";
@@ -30,8 +30,9 @@ import { useSeasonalTheme } from "@/contexts/SeasonalThemeContext";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import WeatherWidget from "@/components/WeatherWidget";
+import { usePWAInstall } from "@/hooks/usePWAInstall";
 
-const logo = "/assets/logo.png";
+const logo = "/assets/logo.webp";
 
 interface HeaderProps {
   onSearch?: (query: string) => void;
@@ -54,6 +55,7 @@ const Header = ({ onSearch }: HeaderProps) => {
   const location = useLocation();
   const { isSeasonalActive, toggleSeasonalTheme, themeConfig } = useSeasonalTheme();
   const { signOut } = useClerk();
+  const { isInstallable, installPWA } = usePWAInstall();
 
   const fetchDbUser = async () => {
     if (user?.id) {
@@ -232,6 +234,7 @@ const Header = ({ onSearch }: HeaderProps) => {
               width="100"
               height="100"
               loading="eager"
+              {...{ fetchpriority: "high" } as any}
               decoding="async"
               className={cn(
                 "w-auto transition-all duration-500 group-hover:scale-110 group-hover:-rotate-3 object-contain relative z-10",
@@ -364,9 +367,20 @@ const Header = ({ onSearch }: HeaderProps) => {
           <div className="flex items-center gap-1 order-3">
             
             <div className="lg:hidden flex items-center gap-2">
-              <Button variant="ghost" size="icon" className="rounded-2xl hover:bg-indigo-50 text-gray-500 hover:text-indigo-600 transition-colors" onClick={() => setMobileSearchOpen(true)}>
+              <Button variant="ghost" size="icon" className="rounded-2xl hover:bg-indigo-50 text-gray-500 hover:text-indigo-600 transition-colors" onClick={() => setMobileSearchOpen(true)} aria-label="بحث">
                 <Search className="h-5 w-5" />
               </Button>
+              {isInstallable && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="rounded-2xl border-indigo-100 text-indigo-600 hover:bg-indigo-50 font-bold gap-1 px-3 shadow-md border-b-[3px] active:border-b-0 active:translate-y-[3px]"
+                  onClick={installPWA}
+                >
+                  <Download className="h-4 w-4" />
+                  <span className="text-[10px]">التطبيق</span>
+                </Button>
+              )}
               <Button 
                 variant="ghost" 
                 size="icon" 
@@ -376,6 +390,7 @@ const Header = ({ onSearch }: HeaderProps) => {
                 )} 
                 style={isSeasonalActive ? { color: themeConfig.primaryColor } : {}}
                 onClick={toggleSeasonalTheme}
+                aria-label="تغيير المظهر"
               >
                 {isSeasonalActive ? (
                   themeConfig.icon === 'Moon' ? <Moon className="h-5 w-5" /> : 
@@ -398,16 +413,27 @@ const Header = ({ onSearch }: HeaderProps) => {
                       <span>لوحة الإدارة</span>
                     </Button>
                   </Link>
+                  
+                  {isInstallable && (
+                    <Button 
+                      variant="outline" 
+                      className="hidden sm:flex h-10 px-4 rounded-xl border-indigo-100 text-indigo-600 hover:bg-indigo-50 font-black text-xs gap-1.5 shadow-md border-b-[3px] active:border-b-0 active:translate-y-[3px] transition-all"
+                      onClick={installPWA}
+                    >
+                      <Download className="h-4 w-4 shrink-0" />
+                      <span>حمل التطبيق المجاني</span>
+                    </Button>
+                  )}
 
                   <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button id="nav-profile" className="flex items-center gap-2 sm:gap-3 pl-1 pr-1 sm:pr-4 py-1 rounded-2xl bg-gray-50/50 border border-gray-100/50 hover:bg-indigo-50 transition-all group outline-none">
+                    <button id="nav-profile" className="flex items-center gap-2 sm:gap-3 pl-1 pr-1 sm:pr-4 py-1 rounded-2xl bg-gray-50/50 border border-gray-100/50 hover:bg-indigo-50 transition-all group outline-none" aria-label="قائمة الملف الشخصي">
                       <div className="text-right hidden xl:block">
                         <p className="text-[10px] font-black text-indigo-500 leading-none mb-1">مرحباً بك</p>
                         <p className="text-xs font-black text-gray-700 leading-none truncate max-w-[100px]">{user?.fullName || user?.username}</p>
                       </div>
                       <Avatar className="h-9 w-9 border-2 border-white shadow-sm transition-transform group-hover:scale-105">
-                        <AvatarImage src={dbUser?.imageUrl || user?.imageUrl} />
+                        <AvatarImage src={dbUser?.imageUrl || user?.imageUrl} alt="الصورة الشخصية" />
                         <AvatarFallback className="bg-indigo-100 text-indigo-600 font-bold text-xs">
                           {user?.firstName?.charAt(0) || user?.username?.charAt(0) || "?"}
                         </AvatarFallback>
@@ -580,13 +606,13 @@ const Header = ({ onSearch }: HeaderProps) => {
 
                   <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button id="nav-profile" className="flex items-center gap-2 sm:gap-3 pl-1 pr-1 sm:pr-4 py-1 rounded-2xl bg-gray-50/50 border border-gray-100/50 hover:bg-indigo-50 transition-all group outline-none">
+                    <button id="nav-profile" className="flex items-center gap-2 sm:gap-3 pl-1 pr-1 sm:pr-4 py-1 rounded-2xl bg-gray-50/50 border border-gray-100/50 hover:bg-indigo-50 transition-all group outline-none" aria-label="قائمة الملف الشخصي">
                       <div className="text-right hidden xl:block">
                         <p className="text-[10px] font-black text-indigo-500 leading-none mb-1">مرحباً بك</p>
                         <p className="text-xs font-black text-gray-700 leading-none truncate max-w-[100px]">{user?.fullName || user?.username}</p>
                       </div>
                       <Avatar className="h-9 w-9 border-2 border-white shadow-sm transition-transform group-hover:scale-105">
-                        <AvatarImage src={dbUser?.imageUrl || user?.imageUrl} />
+                        <AvatarImage src={dbUser?.imageUrl || user?.imageUrl} alt="الصورة الشخصية" />
                         <AvatarFallback className="bg-indigo-100 text-indigo-600 font-bold text-xs">
                           {user?.firstName?.charAt(0) || user?.username?.charAt(0) || "?"}
                         </AvatarFallback>
@@ -678,7 +704,7 @@ const Header = ({ onSearch }: HeaderProps) => {
             {/* Mobile Sidebar */}
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="lg:hidden h-12 w-12 rounded-2xl bg-gray-50 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600">
+                <Button variant="ghost" size="icon" className="lg:hidden h-12 w-12 rounded-2xl bg-gray-50 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600" aria-label="القائمة الجانبية">
                   <Menu className="h-6 w-6" />
                 </Button>
               </SheetTrigger>
@@ -770,7 +796,7 @@ const Header = ({ onSearch }: HeaderProps) => {
                               className="flex items-center gap-3 p-3 rounded-2xl text-indigo-600 font-black bg-indigo-50 shadow-sm"
                             >
                               <Avatar className="h-10 w-10 border-2 border-white shadow-sm">
-                                <AvatarImage src={dbUser?.imageUrl || user.imageUrl} />
+                                <AvatarImage src={dbUser?.imageUrl || user.imageUrl} alt="الصورة الشخصية" />
                                 <AvatarFallback className="bg-white text-indigo-600 uppercase">
                                   {user.firstName?.charAt(0) || user.username?.charAt(0)}
                                 </AvatarFallback>

@@ -94,30 +94,60 @@ export default function WeatherWidget() {
       }
     };
 
-    if ((!cachedWeatherData || !cachedLocationName) && !cachedError) {
-      if ("geolocation" in navigator) {
+    const startGeolocation = () => {
+      const DEFAULT_LAT = 30.0444;
+      const DEFAULT_LON = 31.2357;
+
+      const useFallback = (reason: string) => {
+        console.warn(`Weather: ${reason}. Using Cairo as fallback.`);
+        fetchWeather(DEFAULT_LAT, DEFAULT_LON);
+        fetchLocationName(DEFAULT_LAT, DEFAULT_LON);
+      };
+
+      if (!("geolocation" in navigator)) {
+        useFallback("Geolocation not supported");
+        return;
+      }
+
+      const getPosition = () => {
         navigator.geolocation.getCurrentPosition(
           (position) => {
             const { latitude, longitude } = position.coords;
             fetchWeather(latitude, longitude);
             fetchLocationName(latitude, longitude);
           },
-          (error) => {
-            console.error("Error getting location: ", error);
-            cachedError = "Location access denied";
-            if (mounted) {
-              setError(cachedError);
-              setLoading(false);
+          (err) => {
+            const isDenied = err.code == 1 || (err.message && err.message.toLowerCase().includes('denied'));
+            if (isDenied) {
+              cachedError = "Location access denied";
+              useFallback("Location access denied");
+            } else {
+              console.error("Error getting location:", err);
+              useFallback("Location lookup failed");
             }
-          }
+          },
+          { timeout: 10000, enableHighAccuracy: false }
         );
+      };
+
+      if (navigator.permissions && navigator.permissions.query) {
+        navigator.permissions.query({ name: 'geolocation' as PermissionName })
+          .then((permissionStatus) => {
+            if (permissionStatus.state === 'denied') {
+              cachedError = "Location access denied";
+              useFallback("Location access denied (blocked by user)");
+            } else {
+              getPosition();
+            }
+          })
+          .catch(() => getPosition());
       } else {
-        cachedError = "Geolocation not supported";
-        if (mounted) {
-          setError(cachedError);
-          setLoading(false);
-        }
+        getPosition();
       }
+    };
+
+    if ((!cachedWeatherData || !cachedLocationName) && !cachedError) {
+      startGeolocation();
     }
 
     return () => { mounted = false; };

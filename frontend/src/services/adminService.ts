@@ -419,5 +419,42 @@ export const adminService = {
             withCredentials: true
         });
         return response.data;
+    },
+
+    // Leaderboard Management
+    async getCurrentLeaderboardStatus(token?: string) {
+        const response = await axios.get(`${API_URL}/api/leaderboard/current`, {
+            headers: getAuthHeaders(token),
+            withCredentials: true
+        });
+        return response.data;
+    },
+
+    async getLeaderboardHistory(token?: string) {
+        const response = await axios.get(`${API_URL}/api/leaderboard/history`, {
+            headers: getAuthHeaders(token),
+            withCredentials: true
+        });
+        return response.data;
+    },
+
+    async getLeaderboardHistoryDetail(id: string, token?: string) {
+        const response = await axios.get(`${API_URL}/api/leaderboard/history/${id}`, {
+            headers: getAuthHeaders(token),
+            withCredentials: true
+        });
+        return response.data;
+    },
+
+    async finalizeLeaderboardWeek(token?: string) {
+        const response = await axios.post(
+            `${API_URL}/api/leaderboard/end-week`,
+            {},
+            {
+                headers: getAuthHeaders(token),
+                withCredentials: true
+            }
+        );
+        return response.data;
     }
 };

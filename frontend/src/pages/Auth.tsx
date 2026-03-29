@@ -1,7 +1,7 @@
 import { useState } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-const logo = "/assets/logo.png";
+const logo = "/assets/logo.webp";
 import { Link, Navigate, useLocation } from "react-router-dom";
 import { SignIn, SignUp } from "@clerk/clerk-react";
 import { SignedIn, SignedOut } from "@clerk/clerk-react";

@@ -2,6 +2,7 @@ import express from 'express';
 import { DirectConversation, DirectMessage } from '../models/DirectChat';
 import { User } from '../models/User';
 import { Notification } from '../models/Notification';
+import { Follow } from '../models/Follow';
 import { ClerkExpressRequireAuth } from '@clerk/clerk-sdk-node';
 import { getPusher } from '../services/pusher';
 import { persistBase64 } from '../utils/media';
@@ -23,6 +24,16 @@ router.post('/start', ClerkExpressRequireAuth(), async (req, res) => {
 
         if (myId === targetUserId) {
             return res.status(400).json({ error: 'Cannot message yourself' });
+        }
+
+        // Enforce Mutual Follow requirement
+        const [iFollowThem, theyFollowMe] = await Promise.all([
+             Follow.exists({ followerId: myId, followingId: targetUserId }),
+             Follow.exists({ followerId: targetUserId, followingId: myId })
+        ]);
+
+        if (!iFollowThem || !theyFollowMe) {
+             return res.status(403).json({ error: 'يمكنك فقط مراسلة المستخدمين الذين تتابعهم ويتابعونك (متابعة متبادلة).' });
         }
 
         // Find existing direct conversation between these two users
@@ -134,6 +145,19 @@ router.post('/:conversationId/messages', ClerkExpressRequireAuth(), async (req, 
 
         if (!conversation.participants.includes(myId)) {
             return res.status(403).json({ error: 'Not a member of this conversation' });
+        }
+
+        // Enforce mutual follow requirement for sending ongoing messages
+        const otherParticipantId = conversation.participants.find((p: string) => p !== myId);
+        if (otherParticipantId) {
+             const [iFollowThem, theyFollowMe] = await Promise.all([
+                  Follow.exists({ followerId: myId, followingId: otherParticipantId }),
+                  Follow.exists({ followerId: otherParticipantId, followingId: myId })
+             ]);
+
+             if (!iFollowThem || !theyFollowMe) {
+                  return res.status(403).json({ error: 'لا يمكنك إرسال رسائل إلا لمن يتابعك وتتابعه (متابعة متبادلة).' });
+             }
         }
 
         // Persist media if it's base64
