@@ -14,6 +14,11 @@ import 'pages/profile/profile_page.dart';
 
 import 'pages/search/search_page.dart';
 
+import 'pages/drawer/corporate_trips_page.dart';
+import 'pages/drawer/leaderboard_page.dart';
+import 'pages/drawer/support_page.dart';
+import 'pages/drawer/settings_page.dart';
+
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
@@ -100,6 +105,22 @@ class Re7ltyApp extends StatelessWidget {
             return TripDetailPage(tripId: id);
           },
         ),
+        GoRoute(
+          path: '/corporate-trips',
+          builder: (context, state) => const CorporateTripsPage(),
+        ),
+        GoRoute(
+          path: '/leaderboard',
+          builder: (context, state) => const LeaderboardPage(),
+        ),
+        GoRoute(
+          path: '/support',
+          builder: (context, state) => const SupportPage(),
+        ),
+        GoRoute(
+          path: '/settings',
+          builder: (context, state) => const SettingsPage(),
+        ),
       ],
     );
 
@@ -112,7 +133,18 @@ class Re7ltyApp extends StatelessWidget {
           secondary: const Color(0xFF0F172A),
         ),
         useMaterial3: true,
-        textTheme: GoogleFonts.outfitTextTheme(),
+        scaffoldBackgroundColor: const Color(0xFFF8F9FA),
+        textTheme: GoogleFonts.cairoTextTheme(Theme.of(context).textTheme).apply(
+          bodyColor: Colors.black87,
+          displayColor: Colors.black87,
+        ),
+        appBarTheme: AppBarTheme(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          scrolledUnderElevation: 1,
+          iconTheme: const IconThemeData(color: Colors.black87),
+          titleTextStyle: GoogleFonts.cairo(color: Colors.black87, fontSize: 20, fontWeight: FontWeight.bold),
+        ),
       ),
       routerConfig: router,
       builder: (context, child) => Directionality(textDirection: TextDirection.rtl, child: child!),
@@ -129,20 +161,60 @@ class MainScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: navigationShell,
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: navigationShell.currentIndex,
-        onTap: (index) => navigationShell.goBranch(index),
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: Colors.orange,
-        unselectedItemColor: Colors.grey,
-        showSelectedLabels: true,
-        showUnselectedLabels: true,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'الرئيسية'),
-          BottomNavigationBarItem(icon: Icon(Icons.search), activeIcon: Icon(Icons.search), label: 'استكشف'),
-          BottomNavigationBarItem(icon: Icon(Icons.add_circle_outline), activeIcon: Icon(Icons.add_circle), label: 'أنشئ'),
-          BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outline), activeIcon: Icon(Icons.chat_bubble), label: 'المساعد'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'حسابي'),
+      floatingActionButton: FloatingActionButton(
+        elevation: 4,
+        backgroundColor: const Color(0xFFF97316),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+        onPressed: () => navigationShell.goBranch(2),
+        child: const Icon(Icons.add_location_alt, color: Colors.white, size: 28),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      bottomNavigationBar: BottomAppBar(
+        shape: const CircularNotchedRectangle(),
+        notchMargin: 8,
+        color: Colors.white,
+        elevation: 8,
+        child: SizedBox(
+          height: 60,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildNavItem(Icons.home_outlined, Icons.home, 'الرئيسية', 0),
+              _buildNavItem(Icons.search_outlined, Icons.search, 'استكشف', 1),
+              const SizedBox(width: 40), // Empty space for the FAB notch
+              _buildNavItem(Icons.chat_bubble_outline, Icons.chat_bubble, 'المساعد', 3),
+              _buildNavItem(Icons.person_outline, Icons.person, 'حسابي', 4),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(IconData unselected, IconData selected, String label, int index) {
+    final isSelected = navigationShell.currentIndex == index;
+    return InkWell(
+      onTap: () => navigationShell.goBranch(index),
+      splashColor: Colors.transparent,
+      highlightColor: Colors.transparent,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            isSelected ? selected : unselected,
+            color: isSelected ? const Color(0xFFF97316) : Colors.grey[500],
+            size: 26,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+              color: isSelected ? const Color(0xFFF97316) : Colors.grey[600],
+            ),
+          ),
         ],
       ),
     );
