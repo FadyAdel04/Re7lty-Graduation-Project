@@ -19,11 +19,11 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
   @override
   Widget build(BuildContext context) {
-    final tripsAsync = ref.watch(tripsProvider({
-      if (_query.isNotEmpty) 'q': _query,
-      if (_selectedCity != null) 'city': _selectedCity,
-      if (_selectedSeason != null) 'season': _selectedSeason,
-    }));
+    final tripsAsync = ref.watch(tripsProvider(TripFilter(
+      query: _query.isNotEmpty ? _query : null,
+      city: _selectedCity,
+      season: _selectedSeason,
+    )));
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -162,67 +162,69 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(30))),
       builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) => Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('تصفية الرحلات', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 24),
-              const Text('الوجهة أو المدينة', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: ['القاهرة', 'دهب', 'شرم الشيخ', 'الأقصر', 'أسوان', 'سيوة', 'الإسكندرية', 'الجونة'].map((city) {
-                  final isSelected = _selectedCity == city;
-                  return ChoiceChip(
-                    label: Text(city),
-                    selected: isSelected,
-                    onSelected: (selected) {
-                      setState(() => _selectedCity = selected ? city : null);
-                      setModalState(() {});
-                    },
-                    selectedColor: Colors.orange,
-                    labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.black87),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 24),
-              const Text('الموسم المفضل', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: ['winter', 'summer', 'fall', 'spring'].map((s) {
-                  final isSelected = _selectedSeason == s;
-                  return ChoiceChip(
-                    label: Text(_translateSeason(s)),
-                    selected: isSelected,
-                    onSelected: (selected) {
-                      setState(() => _selectedSeason = selected ? s : null);
-                      setModalState(() {});
-                    },
-                    selectedColor: Colors.orange,
-                    labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.black87),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.all(18),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                  ),
-                  child: const Text('تطبيق التغييرات', style: TextStyle(fontWeight: FontWeight.bold)),
+        builder: (context, setModalState) => SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('تصفية الرحلات', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 24),
+                const Text('الوجهة أو المدينة', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: ['القاهرة', 'دهب', 'شرم الشيخ', 'الأقصر', 'أسوان', 'سيوة', 'الإسكندرية', 'الجونة'].map((city) {
+                    final isSelected = _selectedCity == city;
+                    return ChoiceChip(
+                      label: Text(city),
+                      selected: isSelected,
+                      onSelected: (selected) {
+                        setState(() => _selectedCity = selected ? city : null);
+                        setModalState(() {});
+                      },
+                      selectedColor: Colors.orange,
+                      labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.black87),
+                    );
+                  }).toList(),
                 ),
-              ),
-            ],
+                const SizedBox(height: 24),
+                const Text('الموسم المفضل', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: ['winter', 'summer', 'fall', 'spring'].map((s) {
+                    final isSelected = _selectedSeason == s;
+                    return ChoiceChip(
+                      label: Text(_translateSeason(s)),
+                      selected: isSelected,
+                      onSelected: (selected) {
+                        setState(() => _selectedSeason = selected ? s : null);
+                        setModalState(() {});
+                      },
+                      selectedColor: Colors.orange,
+                      labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.black87),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 32),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.all(18),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                    ),
+                    child: const Text('تطبيق التغييرات', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

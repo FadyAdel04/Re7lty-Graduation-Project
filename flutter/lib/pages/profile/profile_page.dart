@@ -21,8 +21,8 @@ class UserProfilePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // For 'me', we might need a separate mechanism or use a special ID
-    final effectiveId = userId == 'me' ? 'current_user_id' : userId; // TODO: Get actual current user ID
+    // Backend supports 'me' as a keyword
+    final effectiveId = userId;
     final userAsync = ref.watch(userProfileProvider(effectiveId));
 
     return Scaffold(
@@ -212,7 +212,7 @@ class _UserTripsList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final tripsAsync = ref.watch(tripsProvider({'authorId': userId}));
+    final tripsAsync = ref.watch(tripsProvider(TripFilter(authorId: userId)));
 
     return tripsAsync.when(
       data: (trips) => trips.isEmpty

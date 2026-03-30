@@ -9,15 +9,17 @@ class TripService {
     String? query,
     String? city,
     String? season,
+    String? authorId,
     String sort = 'recent',
     int page = 1,
     int limit = 20,
   }) async {
     try {
       final response = await _apiService.get('/trips', queryParameters: {
-        'q': query,
-        'city': city,
-        'season': season,
+        if (query != null) 'q': query,
+        if (city != null) 'city': city,
+        if (season != null) 'season': season,
+        if (authorId != null) 'authorId': authorId,
         'sort': sort,
         'page': page,
         'limit': limit,

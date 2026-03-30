@@ -588,9 +588,10 @@ class _PostTypeSelection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(24.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
           const Text(
             'ماذا تريد أن تشارك؟',
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
@@ -628,6 +629,7 @@ class _PostTypeSelection extends StatelessWidget {
             onTap: () => onSelect(TripPostType.ask),
           ).animate().fadeIn(duration: 400.ms, delay: 200.ms).slideX(begin: 0.1),
         ],
+        ),
       ),
     );
   }
