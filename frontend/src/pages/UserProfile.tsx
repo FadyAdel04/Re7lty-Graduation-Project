@@ -380,12 +380,34 @@ const UserProfile = () => {
     fetchBookings();
   }, [id, activeTab, isOwnProfile, isSignedIn, getToken, tabsFetched.bookings]);
 
+  const resetStoryForm = () => {
+    setStoryMedia(null);
+    setStoryMediaType(null);
+    setStoryCaption("");
+    setIsPublishingStory(false);
+  };
+
+  const loadMyStories = async () => {
+    if (!clerkUser) return;
+    try {
+      setIsLoadingMyStories(true);
+      const token = await getToken();
+      if (!token) return;
+      const data = await getMyStories(token);
+      setMyStories(data?.items || []);
+    } catch (error) {
+      console.error("Error loading my stories:", error);
+    } finally {
+      setIsLoadingMyStories(false);
+    }
+  };
+
   // Fetch my stories only when stories tab is active (lazy)
   useEffect(() => {
     if (!id || !isOwnProfile || !isSignedIn || activeTab !== 'stories' || tabsFetched.stories) return;
     setTabsFetched(prev => ({ ...prev, stories: true }));
     loadMyStories();
-  }, [id, activeTab, isOwnProfile, isSignedIn, getToken, tabsFetched.stories]);
+  }, [id, activeTab, isOwnProfile, isSignedIn, getToken, tabsFetched.stories, clerkUser]);
 
   const handleUpdateField = async (fieldName: string, value: string) => {
     if (!clerkUser || !isOwnProfile) return;
@@ -448,21 +470,23 @@ const UserProfile = () => {
     let file = e.target.files?.[0];
     if (!file || !clerkUser || !isOwnProfile) return;
 
-    // Ensure valid image mime type for Clerk
-    // Sometimes browsers set empty type or octet-stream for images
-    if (!file.type || !file.type.startsWith('image/')) {
-       console.log('Original file type:', file.type);
-       const ext = file.name.split('.').pop()?.toLowerCase();
-       let mimeType = 'image/jpeg';
-       if (ext === 'png') mimeType = 'image/png';
-       if (ext === 'webp') mimeType = 'image/webp';
-       if (ext === 'gif') mimeType = 'image/gif';
-       
-       // Create new file with correct type
-       file = new File([file], file.name, { type: mimeType });
-    }
-
     try {
+      // Ensure valid image mime type for Clerk
+      // Sometimes browsers set empty type or octet-stream for images
+      let mimeType = file.type;
+      if (!mimeType || !mimeType.startsWith('image/') || mimeType === 'application/octet-stream') {
+         console.log('Original file type:', file.type);
+         const ext = file.name.split('.').pop()?.toLowerCase();
+         mimeType = 'image/jpeg';
+         if (ext === 'png') mimeType = 'image/png';
+         if (ext === 'webp') mimeType = 'image/webp';
+         if (ext === 'gif') mimeType = 'image/gif';
+      }
+
+      // Recreate file from buffer to completely strip original metadata/type
+      const buffer = await file.arrayBuffer();
+      file = new File([buffer], file.name, { type: mimeType });
+
       // Show loading state
       toast({
         title: "جاري رفع الصورة...",
@@ -657,27 +681,6 @@ const UserProfile = () => {
     reader.readAsDataURL(file);
   };
 
-  const resetStoryForm = () => {
-    setStoryMedia(null);
-    setStoryMediaType(null);
-    setStoryCaption("");
-    setIsPublishingStory(false);
-  };
-
-  const loadMyStories = async () => {
-    if (!clerkUser) return;
-    try {
-      setIsLoadingMyStories(true);
-      const token = await getToken();
-      if (!token) return;
-      const data = await getMyStories(token);
-      setMyStories(data?.items || []);
-    } catch (error) {
-      console.error("Error loading my stories:", error);
-    } finally {
-      setIsLoadingMyStories(false);
-    }
-  };
 
   const handlePublishStory = async () => {
     if (!clerkUser || !isOwnProfile) return;
