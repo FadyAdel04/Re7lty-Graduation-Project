@@ -42,7 +42,7 @@ const CreateTrip = () => {
       formData.append('folder', sigData.folder);
 
       const response = await fetch(
-        `https://api.cloudinary.com/v1_1/${sigData.cloudName}/${file.type.startsWith('video/') ? 'video' : 'image'}/upload`,
+        `https://api.cloudinary.com/v1_1/${sigData.cloudName}/auto/upload`,
         {
           method: 'POST',
           body: formData,
@@ -196,21 +196,41 @@ const CreateTrip = () => {
 
   // Save to localStorage whenever data changes
   useEffect(() => {
-    const dataToSave = {
-      tripData: {
-        ...tripData,
-        coverImage: null, // Don't save file
-      },
-      activities,
-      locations,
-      days,
-      foodPlaces,
-      hotels,
-      taggedUsers,
-      postType,
-      currentStep,
-    };
-    localStorage.setItem('tripDraft', JSON.stringify(dataToSave));
+    try {
+      const cleanMediaUrls = (url: string) => {
+        if (typeof url === 'string' && (url.startsWith('data:') || url.startsWith('blob:'))) {
+          return '';
+        }
+        return url;
+      };
+
+      const dataToSave = {
+        tripData: {
+          ...tripData,
+          coverImage: null, // Don't save file
+          coverImageUrl: cleanMediaUrls(tripData.coverImageUrl)
+        },
+        activities: activities.map(a => ({
+          ...a,
+          images: a.images?.map(cleanMediaUrls).filter(Boolean) || [],
+          videos: a.videos?.map(cleanMediaUrls).filter(Boolean) || []
+        })),
+        locations: locations.map(loc => ({
+          ...loc,
+          images: loc.images?.map(img => typeof img === 'string' ? cleanMediaUrls(img) : '').filter(Boolean) || [],
+          videos: loc.videos?.map(vid => typeof vid === 'string' ? cleanMediaUrls(vid) : '').filter(Boolean) || []
+        })),
+        days,
+        foodPlaces: foodPlaces.map(fp => ({ ...fp, image: cleanMediaUrls(fp.image as string) })),
+        hotels: hotels.map(h => ({ ...h, image: cleanMediaUrls(h.image as string) })),
+        taggedUsers,
+        postType,
+        currentStep,
+      };
+      localStorage.setItem('tripDraft', JSON.stringify(dataToSave));
+    } catch (e) {
+      console.warn('Failed to save draft:', e);
+    }
   }, [tripData, activities, locations, days, foodPlaces, hotels, taggedUsers, postType, currentStep]);
 
   // Update activities when locations change
@@ -239,11 +259,7 @@ const CreateTrip = () => {
   const handleCoverImageUpload = (files: FileList | null) => {
     if (files && files[0]) {
       const file = files[0];
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setTripData({ ...tripData, coverImage: file, coverImageUrl: reader.result as string });
-      };
-      reader.readAsDataURL(file);
+      setTripData({ ...tripData, coverImage: file, coverImageUrl: URL.createObjectURL(file) });
     }
   };
 
@@ -263,11 +279,11 @@ const CreateTrip = () => {
 
   const handleFoodImageUpload = (index: number, files: FileList | null) => {
     if (files && files[0]) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        updateFoodPlace(index, "image", reader.result as string);
-      };
-      reader.readAsDataURL(files[0]);
+      const file = files[0];
+      const updated = [...foodPlaces];
+      updated[index] = { ...updated[index], image: URL.createObjectURL(file) };
+      (updated[index] as any).file = file; // Persist file for submission
+      setFoodPlaces(updated);
     }
   };
 
@@ -287,11 +303,11 @@ const CreateTrip = () => {
 
   const handleHotelImageUpload = (index: number, files: FileList | null) => {
     if (files && files[0]) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        updateHotel(index, "image", reader.result as string);
-      };
-      reader.readAsDataURL(files[0]);
+      const file = files[0];
+      const updated = [...hotels];
+      updated[index] = { ...updated[index], image: URL.createObjectURL(file) };
+      (updated[index] as any).file = file; // Persist file for submission
+      setHotels(updated);
     }
   };
 
