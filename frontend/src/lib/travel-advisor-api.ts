@@ -1,7 +1,4 @@
-// Travel Advisor API service using RapidAPI
-const RAPIDAPI_KEY = '8887399421msh0d6d70328fb0fa5p1da174jsn2a02cf1627bc';
-const RAPIDAPI_HOST = 'travel-advisor.p.rapidapi.com';
-const BASE_URL = 'https://travel-advisor.p.rapidapi.com';
+import { API_BASE_URL } from '../config/api';
 
 // Map Arabic city names to English for API
 const cityNameMap: Record<string, string> = {
@@ -115,12 +112,8 @@ function getEnglishCityName(arabicCity: string): string {
 // Search for location
 export async function searchLocation(query: string): Promise<TravelAdvisorLocation | null> {
   try {
-    const response = await fetch(`${BASE_URL}/locations/search?query=${encodeURIComponent(query)}&limit=1&offset=0&units=km&currency=USD&sort=relevance&lang=en_US`, {
-      method: 'GET',
-      headers: {
-        'X-RapidAPI-Key': RAPIDAPI_KEY,
-        'X-RapidAPI-Host': RAPIDAPI_HOST,
-      },
+    const response = await fetch(`${API_BASE_URL}/api/proxy/search?query=${encodeURIComponent(query)}`, {
+      method: 'GET'
     });
 
     if (!response.ok) {
@@ -147,8 +140,7 @@ export async function searchLocation(query: string): Promise<TravelAdvisorLocati
 
 export async function getHotels(city: string, limit: number = 10, budgetLevel?: "low" | "medium" | "high"): Promise<TravelAdvisorHotel[]> {
   try {
-    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
-    const response = await fetch(`${API_URL}/proxy/hotels?city=${encodeURIComponent(city)}`, {
+    const response = await fetch(`${API_BASE_URL}/api/proxy/hotels?city=${encodeURIComponent(city)}`, {
       method: 'GET'
     });
 
@@ -279,12 +271,8 @@ export async function getHotels(city: string, limit: number = 10, budgetLevel?: 
 // Get attractions for a location
 export async function getAttractions(locationId: string, limit: number = 10): Promise<TravelAdvisorAttraction[]> {
   try {
-    const response = await fetch(`${BASE_URL}/attractions/list?location_id=${locationId}&currency=USD&lang=en_US&lunit=km&limit=${limit}&sort=recommended`, {
-      method: 'GET',
-      headers: {
-        'X-RapidAPI-Key': RAPIDAPI_KEY,
-        'X-RapidAPI-Host': RAPIDAPI_HOST,
-      },
+    const response = await fetch(`${API_BASE_URL}/api/proxy/attractions?location_id=${locationId}&limit=${limit}`, {
+      method: 'GET'
     });
 
     if (!response.ok) {
@@ -302,12 +290,8 @@ export async function getAttractions(locationId: string, limit: number = 10): Pr
 // Get restaurants for a location
 export async function getRestaurants(locationId: string, limit: number = 10): Promise<TravelAdvisorRestaurant[]> {
   try {
-    const response = await fetch(`${BASE_URL}/restaurants/list?location_id=${locationId}&currency=USD&lang=en_US&lunit=km&limit=${limit}&sort=recommended`, {
-      method: 'GET',
-      headers: {
-        'X-RapidAPI-Key': RAPIDAPI_KEY,
-        'X-RapidAPI-Host': RAPIDAPI_HOST,
-      },
+    const response = await fetch(`${API_BASE_URL}/api/proxy/restaurants?location_id=${locationId}&limit=${limit}`, {
+      method: 'GET'
     });
 
     if (!response.ok) {

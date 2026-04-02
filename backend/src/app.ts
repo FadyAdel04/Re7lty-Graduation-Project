@@ -63,6 +63,7 @@ const initializeDatabase = async () => {
         await connectToDatabase(process.env.MONGODB_URI);
     } catch (error) {
         console.error("✗ Failed to connect to MongoDB:", error);
+        throw error;
     }
 };
 
@@ -92,6 +93,8 @@ const ensureDatabaseConnection = async () => {
     }
 };
 
+import webhooksRouter from "./routes/webhooks";
+
 export function createApp() {
     const app = express();
 
@@ -104,6 +107,9 @@ export function createApp() {
         allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
         exposedHeaders: ['Content-Type', 'Authorization'],
     }));
+
+    // Webhooks MUST be parsed as raw buffers, so mount them strictly BEFORE express.json()
+    app.use("/api/webhooks", webhooksRouter);
 
     // Increase body size limit to handle large image/PDF payloads (200MB)
     app.use(express.json({ limit: "200mb" }));
@@ -924,6 +930,60 @@ export function createApp() {
                     code: error.code
                 });
             }
+        }
+    });
+
+    // RapidAPI proxies to prevent CORS issues on the frontend
+    const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY || '8887399421msh0d6d70328fb0fa5p1da174jsn2a02cf1627bc';
+    
+    app.get("/api/proxy/search", async (req, res) => {
+        try {
+            const { query } = req.query;
+            const fullUrl = `https://travel-advisor.p.rapidapi.com/locations/search?query=${encodeURIComponent(String(query))}&limit=1&offset=0&units=km&currency=USD&sort=relevance&lang=en_US`;
+            const response = await axios.get(fullUrl, {
+                headers: {
+                    'X-RapidAPI-Key': RAPIDAPI_KEY,
+                    'X-RapidAPI-Host': 'travel-advisor.p.rapidapi.com'
+                }
+            });
+            res.json(response.data);
+        } catch(error: any) { 
+            console.error("Proxy search error:", error.message);
+            res.status(500).json({ error: error.message });
+        }
+    });
+
+    app.get("/api/proxy/attractions", async (req, res) => {
+        try {
+            const { location_id, limit } = req.query;
+            const fullUrl = `https://travel-advisor.p.rapidapi.com/attractions/list?location_id=${location_id}&currency=USD&lang=en_US&lunit=km&limit=${limit || 10}&sort=recommended`;
+            const response = await axios.get(fullUrl, {
+                headers: {
+                    'X-RapidAPI-Key': RAPIDAPI_KEY,
+                    'X-RapidAPI-Host': 'travel-advisor.p.rapidapi.com'
+                }
+            });
+            res.json(response.data);
+        } catch(error: any) { 
+            console.error("Proxy attractions error:", error.message);
+            res.status(500).json({ error: error.message });
+        }
+    });
+
+    app.get("/api/proxy/restaurants", async (req, res) => {
+        try {
+            const { location_id, limit } = req.query;
+            const fullUrl = `https://travel-advisor.p.rapidapi.com/restaurants/list?location_id=${location_id}&currency=USD&lang=en_US&lunit=km&limit=${limit || 10}&sort=recommended`;
+            const response = await axios.get(fullUrl, {
+                headers: {
+                    'X-RapidAPI-Key': RAPIDAPI_KEY,
+                    'X-RapidAPI-Host': 'travel-advisor.p.rapidapi.com'
+                }
+            });
+            res.json(response.data);
+        } catch(error: any) { 
+            console.error("Proxy restaurants error:", error.message);
+            res.status(500).json({ error: error.message });
         }
     });
 
