@@ -168,8 +168,8 @@ const seedData = async () => {
 
         // 8. Communication (Chat, Direct Chat, Trip Chat)
         // User <-> Company Chat
-        const convo = await Conversation.create({ participants: [testUser.clerkId, testCompany._id.toString()], userId: testUser.clerkId, companyId: testCompany._id });
-        await Message.create({ conversationId: convo._id, senderId: testuser.clerkId, senderType: "user", content: "Hello", read: false });
+        const convo = await Conversation.create({ participants: [testUser.clerkId, String(testCompany._id)], userId: testUser.clerkId, companyId: testCompany._id });
+        await Message.create({ conversationId: convo._id, senderId: testUser.clerkId, senderType: "user", content: "Hello", read: false });
 
         // User <-> Normal User Chat
         const directConvo = await DirectConversation.create({ participants: [testUser.clerkId, testCompanyOwner.clerkId] });
