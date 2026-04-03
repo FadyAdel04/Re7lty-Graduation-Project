@@ -6,13 +6,16 @@ export async function connectToDatabase(uri: string): Promise<typeof mongoose> {
   }
 
   // Clean the URI - trim whitespace and remove potential surrounding quotes commonly found in environment variables
-  const cleanUri = uri.trim().replace(/^["'](.+)["']$/, '$1');
+  const cleanUri = uri.trim().replace(/^["']|["']$/g, '');
   
+  // Extra safety: log the first 20 characters to debug scheme issues without exposing password
+  console.log(`📡 Preparing connection... Scheme detected: ${cleanUri.substring(0, 15)}...`);
+
   // Basic validation of scheme to provide a clear error before reaching the driver
   if (!cleanUri.startsWith("mongodb://") && !cleanUri.startsWith("mongodb+srv://")) {
     throw new Error(
       `Invalid MongoDB connection string: Expected it to start with "mongodb://" or "mongodb+srv://". ` +
-      `Current value starts with: "${cleanUri.substring(0, 15)}..."`
+      `Instead, it starts with: "${cleanUri.substring(0, 15)}"`
     );
   }
   

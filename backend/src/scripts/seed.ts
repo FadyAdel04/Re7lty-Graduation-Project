@@ -23,6 +23,7 @@ import { Story } from "../models/Story";
 import { TripChatGroup, TripChatMessage } from "../models/TripChat";
 import { TripLove } from "../models/TripLove";
 import { TripSave } from "../models/TripSave";
+import { connectToDatabase } from "../db";
 
 dotenv.config();
 
@@ -32,7 +33,7 @@ console.log(`Connecting to MongoDB...`);
 
 const seedData = async () => {
     try {
-        await mongoose.connect(dbUri);
+        await connectToDatabase(dbUri);
         console.log("Connected successfully to DB!");
 
         console.log("Clearing existing collections...");
