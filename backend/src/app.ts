@@ -859,6 +859,17 @@ export function createApp() {
 
     app.get("/api/health", async (_req, res) => {
         try {
+            // Check if URI exists before attempting connection
+            if (!process.env.MONGODB_URI) {
+                return res.json({
+                    status: "ok",
+                    service: "backend",
+                    db: "disconnected",
+                    error: "MONGODB_URI is not set in environment variables.",
+                    timestamp: new Date().toISOString()
+                });
+            }
+
             // Ensure database connection
             await ensureDatabaseConnection();
             const isConnected = mongoose.connection.readyState === 1;
@@ -869,11 +880,13 @@ export function createApp() {
                 timestamp: new Date().toISOString()
             });
         } catch (error: any) {
+            console.error("Health check database connection error:", error);
             res.json({
                 status: "ok",
                 service: "backend",
                 db: "disconnected",
                 error: error.message,
+                details: "Please verify MONGODB_URI is correctly set in your deployment dashboard and IP is whitelisted.",
                 timestamp: new Date().toISOString()
             });
         }

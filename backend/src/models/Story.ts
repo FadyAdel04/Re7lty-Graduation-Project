@@ -32,7 +32,6 @@ const StorySchema = new Schema(
     expiresAt: {
       type: Date,
       required: true,
-      index: true,
     },
   },
   { timestamps: true }

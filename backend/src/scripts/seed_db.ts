@@ -26,7 +26,7 @@ import { TripSave } from "../models/TripSave";
 
 dotenv.config();
 
-const dbUri = process.env.MONGODB_URI || "mongodb+srv://wocode:<db_password>@re7lty.xwg0o7y.mongodb.net/re7lty?retryWrites=true&w=majority&appName=Re7lty";
+const dbUri = process.env.MONGODB_URI || "mongodb+srv://wocode:Fa5251596%40@re7lty.xwg0o7y.mongodb.net/re7lty?retryWrites=true&w=majority&appName=Re7lty";
 
 console.log(`Connecting to MongoDB...`);
 
