@@ -4,6 +4,8 @@ import { cn } from "@/lib/utils";
 import { useSeasonalTheme } from "@/contexts/SeasonalThemeContext";
 
 const logo = "/assets/logo.webp";
+import googlePlayBadge from "@/assets/googleplaybadge.png";
+import appStoreBadge from "@/assets/appleStore.png";
 
 const Footer = () => {
   const { isSeasonalActive, currentSeason, themeConfig } = useSeasonalTheme();
@@ -139,32 +141,28 @@ const Footer = () => {
               </div>
             </div>
 
-            {/* App Badges */}
-            <div className="pt-6 space-y-3">
-              <p className="text-gray-400 text-xs font-bold">قريباً على الهواتف الذكية</p>
-              <div className="flex flex-row flex-wrap gap-3">
-                <div className="opacity-40 grayscale cursor-not-allowed select-none">
-                  <img 
-                    src="/assets/app-store-badge.svg" 
-                    alt="App Store" 
-                    className="h-10 w-auto"
-                    loading="lazy"
-                    width="120"
-                    height="40"
-                  />
-                </div>
-                <div className="opacity-40 grayscale cursor-not-allowed select-none">
-                  <img 
-                    src="/assets/google-play-badge.svg" 
-                    alt="Google Play" 
-                    className="h-10 w-auto"
-                    loading="lazy"
-                    width="135"
-                    height="40"
-                  />
-                </div>
-              </div>
-            </div>
+{/* App Badges - Fixed dimensions version */}
+<div className="pt-6 space-y-3">
+  <p className="text-gray-400 text-xs font-bold">قريباً على الهواتف الذكية</p>
+  <div className="grid grid-cols-2 gap-3">
+    <div className="opacity-40 grayscale cursor-not-allowed select-none">
+      <img 
+        src={appStoreBadge}
+        alt="App Store" 
+        className="h-12 w-full object-contain"
+        loading="lazy"
+      />
+    </div>
+    <div className="opacity-40 grayscale cursor-not-allowed select-none">
+      <img 
+        src={googlePlayBadge} 
+        alt="Google Play" 
+        className="h-12 w-full object-contain"
+        loading="lazy"
+      />
+    </div>
+  </div>
+</div>
           </div>
 
         </div>
