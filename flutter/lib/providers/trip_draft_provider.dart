@@ -181,3 +181,5 @@ class TripDraftNotifier extends StateNotifier<TripDraft> {
 final tripDraftProvider = StateNotifierProvider<TripDraftNotifier, TripDraft>((ref) => TripDraftNotifier());
 
 final tripCreationTypeProvider = StateProvider<dynamic>((ref) => null);
+
+

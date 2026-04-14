@@ -7,7 +7,10 @@ class TravelAdvisorService {
   final String _apiKey = dotenv.get('RAPID_API_KEY', fallback: '');
   final String _apiHost = dotenv.get('RAPID_API_HOST', fallback: 'travel-advisor.p.rapidapi.com');
   final String _baseUrl = dotenv.get('RAPID_API_BASE_URL', fallback: 'https://travel-advisor.p.rapidapi.com');
-  final Dio _dio = Dio();
+  final Dio _dio = Dio(BaseOptions(
+    connectTimeout: const Duration(seconds: 10),
+    receiveTimeout: const Duration(seconds: 25),
+  ));
 
   final Map<String, String> _cityNameMap = {
     'القاهرة': 'Cairo, Egypt',
@@ -149,3 +152,5 @@ class TravelAdvisorService {
     );
   }
 }
+
+

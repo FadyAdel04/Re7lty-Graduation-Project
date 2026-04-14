@@ -167,3 +167,5 @@ class TripCard extends StatelessWidget {
     }
   }
 }
+
+

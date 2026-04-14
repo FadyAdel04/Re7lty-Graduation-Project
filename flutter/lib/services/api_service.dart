@@ -16,12 +16,12 @@ class ApiService {
   ApiService() {
     _dio = Dio(BaseOptions(
       baseUrl: baseUrl,
-      connectTimeout: const Duration(seconds: 30),
-      receiveTimeout: const Duration(seconds: 30),
+      connectTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 20),
+      sendTimeout: const Duration(seconds: 15),
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'x-demo-user': 'true', // Enables the bypass on backend for development
       },
     ));
 
@@ -29,11 +29,28 @@ class ApiService {
       onRequest: (options, handler) {
         return handler.next(options);
       },
+      onResponse: (response, handler) {
+        return handler.next(response);
+      },
       onError: (DioException e, handler) {
-        print('API Error: ${e.message}');
+        if (e.type == DioExceptionType.connectionTimeout) {
+          print('⚠️ API Timeout: Could not connect to $baseUrl — is the server running?');
+        } else if (e.type == DioExceptionType.receiveTimeout) {
+          print('⚠️ API Receive Timeout: Server took too long to respond.');
+        } else {
+          print('❌ API Error [${e.type.name}]: ${e.message}');
+        }
         return handler.next(e);
       },
     ));
+  }
+
+  void setToken(String? token) {
+    if (token != null && token.isNotEmpty) {
+      _dio.options.headers['Authorization'] = 'Bearer $token';
+    } else {
+      _dio.options.headers.remove('Authorization');
+    }
   }
 
   Future<Response> get(String path, {Map<String, dynamic>? queryParameters}) async {

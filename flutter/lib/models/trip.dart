@@ -7,6 +7,7 @@ class Trip {
   final double rating;
   final String? image;
   final String? author;
+  final String? authorImage;
   final int authorFollowers;
   final int likes;
   final int saves;
@@ -23,6 +24,7 @@ class Trip {
   final String? ownerId;
   final bool isAIGenerated;
   final String postType;
+  final bool isLoved;
 
   Trip({
     required this.id,
@@ -33,6 +35,7 @@ class Trip {
     this.rating = 4.5,
     this.image,
     this.author,
+    this.authorImage,
     this.authorFollowers = 0,
     this.likes = 0,
     this.saves = 0,
@@ -49,6 +52,7 @@ class Trip {
     this.ownerId,
     this.isAIGenerated = false,
     this.postType = 'detailed',
+    this.isLoved = false,
   });
 
   factory Trip.fromJson(Map<String, dynamic> json) {
@@ -61,6 +65,7 @@ class Trip {
       rating: (json['rating'] ?? 4.5).toDouble(),
       image: json['image'],
       author: json['author'],
+      authorImage: json['authorImage'] ?? json['authorAvatar'],
       authorFollowers: json['authorFollowers'] ?? 0,
       likes: json['likes'] ?? 0,
       saves: json['saves'] ?? 0,
@@ -89,6 +94,7 @@ class Trip {
       ownerId: json['ownerId'],
       isAIGenerated: json['isAIGenerated'] ?? false,
       postType: json['postType'] ?? 'detailed',
+      isLoved: json['viewerLoved'] ?? false,
     );
   }
 
@@ -101,6 +107,7 @@ class Trip {
       'rating': rating,
       'image': image,
       'author': author,
+      'authorImage': authorImage,
       'authorFollowers': authorFollowers,
       'likes': likes,
       'saves': saves,
@@ -286,3 +293,5 @@ class Comment {
     );
   }
 }
+
+

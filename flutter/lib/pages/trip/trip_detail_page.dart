@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/trip_provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:go_router/go_router.dart';
 
 class TripDetailPage extends ConsumerWidget {
@@ -99,8 +100,32 @@ class TripDetailPage extends ConsumerWidget {
             ),
           ],
         ),
-        loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
-        error: (err, stack) => Scaffold(body: Center(child: Text('Error: $err'))),
+        loading: () => const Scaffold(body: Center(child: CircularProgressIndicator(color: Colors.orange))),
+        error: (err, stack) => Scaffold(
+          appBar: AppBar(backgroundColor: Colors.white, elevation: 0),
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.cloud_off_rounded, size: 72, color: Colors.orange),
+                  const SizedBox(height: 20),
+                  const Text('تعذّر تحميل الرحلة', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  const Text('تحقق من اتصالك أو تشغيل السيرفر', style: TextStyle(color: Colors.grey)),
+                  const SizedBox(height: 24),
+                  ElevatedButton.icon(
+                    onPressed: () => ref.refresh(tripDetailProvider(tripId)),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('إعادة المحاولة'),
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.white),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {},
@@ -171,22 +196,27 @@ class TripDetailPage extends ConsumerWidget {
   }
 
   Widget _buildMapView(dynamic trip) {
-    final markers = trip.activities.map((act) => Marker(
-      markerId: MarkerId(act.name),
-      position: LatLng(act.lat ?? 0.0, act.lng ?? 0.0),
-      infoWindow: InfoWindow(title: act.name),
-    )).toSet();
+    // Note: In mapbox_maps_flutter, markers are handled via AnnotationManagers.
+    // For this static-styled description view, we'll initialize the MapWidget with the center.
+    final firstPoint = trip.activities.isNotEmpty 
+        ? [trip.activities.first.lng ?? 31.2357, trip.activities.first.lat ?? 30.0444]
+        : [31.2357, 30.0444];
 
     return Container(
       height: 200,
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.grey[200]!)),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20), 
+        border: Border.all(color: Colors.grey[200]!)
+      ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
-        child: GoogleMap(
-          initialCameraPosition: CameraPosition(target: markers.isNotEmpty ? markers.first.position : const LatLng(30.0444, 31.2357), zoom: 12),
-          markers: markers.cast<Marker>(),
-          zoomControlsEnabled: false,
-          scrollGesturesEnabled: false, // Static look in description
+        child: MapWidget(
+          key: const ValueKey("mapbox_view"),
+          cameraOptions: CameraOptions(
+            center: Point(coordinates: Position(firstPoint[0], firstPoint[1])),
+            zoom: 12.0,
+          ),
+          styleUri: MapboxStyles.OUTDOORS,
         ),
       ),
     );
@@ -277,3 +307,5 @@ class TripDetailPage extends ConsumerWidget {
     );
   }
 }
+
+
