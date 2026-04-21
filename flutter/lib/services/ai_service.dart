@@ -7,7 +7,10 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 class AIService {
   final String _apiKey = dotenv.get('GROQ_API_KEY', fallback: '');
   final String _apiUrl = dotenv.get('GROQ_API_URL', fallback: 'https://api.groq.com/openai/v1/chat/completions');
-  final Dio _dio = Dio();
+  final Dio _dio = Dio(BaseOptions(
+    connectTimeout: const Duration(seconds: 10),
+    receiveTimeout: const Duration(seconds: 20),
+  ));
 
   static const String systemPrompt = '''أنت TripAI - مستشار سفر احترافي لمنصة "رحلتي" (Re7lty).
 🎯 دورك: تخطيط رحلات، اقتراح رحلات المنصة، الإجابة عن أسئلة السفر والمنصة.
@@ -56,3 +59,5 @@ class AIService {
     }
   }
 }
+
+

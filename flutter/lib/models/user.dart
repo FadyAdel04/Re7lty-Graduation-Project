@@ -43,8 +43,11 @@ class User {
     required this.subscription,
   });
 
-  // Getter for compatibility with old code
+  // Getters for compatibility and cleaner code
   int get tripsCount => trips.length;
+  bool get isCompany => profileType == 'company';
+  String? get avatar => imageUrl;
+  String? get profileImageUrl => imageUrl;
 
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
@@ -120,3 +123,5 @@ class Subscription {
     };
   }
 }
+
+

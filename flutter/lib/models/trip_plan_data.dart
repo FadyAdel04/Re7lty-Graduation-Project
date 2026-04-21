@@ -128,3 +128,5 @@ class TripPlanData {
     this.hotels = const [],
   });
 }
+
+

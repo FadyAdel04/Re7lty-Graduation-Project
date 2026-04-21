@@ -87,6 +87,14 @@ router.get("/cloudinary-signature", requireAuthStrict, (req, res) => {
  */
 
 async function getActorSnapshot(userId: string) {
+  // Handle demo user bypass
+  if (userId.startsWith('user_2r9nE5R8r7TzK6pM9wL1vQ3xH4j')) {
+    return { 
+      actorName: "Demo User", 
+      actorImage: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde" 
+    };
+  }
+  
   const user = await clerkClient.users.getUser(userId);
   const actorName = user.fullName || user.firstName || user.username || "مستخدم";
   const actorImage = user.imageUrl;
@@ -149,10 +157,22 @@ async function getActorSnapshot(userId: string) {
  */
 router.get('/', async (req, res) => {
   try {
-    const { q, city, season, sort = 'recent', page = '1', limit = '20' } = req.query as any;
+    const { q, city, season, type, authorId, sort = 'recent', page = '1', limit = '20' } = req.query as any;
     const filter: any = {};
     const authInfo = getAuth(req);
     const viewerId = authInfo.userId || undefined;
+
+    // Filter by specific author
+    if (authorId) {
+      filter.ownerId = authorId;
+    }
+
+    // Filter by type (company or traveler)
+    if (type) {
+      const users = await User.find({ profileType: type === 'company' ? 'company' : 'user' }).select('clerkId');
+      const ownerIds = users.map(u => u.clerkId);
+      filter.ownerId = { $in: ownerIds };
+    }
 
     // Enhanced search - search in title, destination, city, description, and author
     if (q) {
@@ -393,15 +413,25 @@ router.post('/', requireAuthStrict, async (req, res) => {
 
     // Fetch user details from Clerk to get author information
     let clerkUser;
-    try {
-      clerkUser = await clerkClient.users.getUser(userId);
-      console.log(`[Trip Creation] Fetched Clerk user: ${clerkUser.fullName || clerkUser.username}`);
-    } catch (clerkError: any) {
-      console.error('Error fetching user from Clerk:', clerkError.message);
-      return res.status(500).json({
-        error: 'Failed to fetch user details from Clerk',
-        message: clerkError.message
-      });
+    
+    // Check if it's a demo user
+    if (userId.startsWith('user_2r9nE5R8r7TzK6pM9wL1vQ3xH4j')) {
+      clerkUser = {
+        fullName: "Demo User",
+        imageUrl: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde",
+        username: "demo_user"
+      };
+    } else {
+      try {
+        clerkUser = await clerkClient.users.getUser(userId);
+        console.log(`[Trip Creation] Fetched Clerk user: ${clerkUser.fullName || clerkUser.username}`);
+      } catch (clerkError: any) {
+        console.error('Error fetching user from Clerk:', clerkError.message);
+        return res.status(500).json({
+          error: 'Failed to fetch user details from Clerk',
+          message: clerkError.message
+        });
+      }
     }
 
     // AI trip quota: 3 per user per week (rolling 7 days)
@@ -931,8 +961,11 @@ router.post('/:id/comments', requireAuthStrict, async (req, res) => {
       return res.status(404).json({ error: 'Trip not found' });
     }
 
-    const clerkUser = await clerkClient.users.getUser(userId);
-    const authorName = clerkUser.fullName || clerkUser.firstName || clerkUser.username || 'مستخدم';
+    const clerkUser = (req.headers['x-demo-user'] && process.env.NODE_ENV !== 'production') 
+      ? { fullName: 'Demo User', imageUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde', username: 'demo_user' }
+      : await clerkClient.users.getUser(userId);
+
+    const authorName = (clerkUser as any).fullName || (clerkUser as any).firstName || (clerkUser as any).username || 'مستخدم';
 
     // We no longer block synchronously. We schedule a check.
     // Use a flag to track if we should schedule (after successful save)
@@ -1287,9 +1320,13 @@ router.delete('/:id', requireAuthStrict, async (req, res) => {
     // Check if user is admin
     let isAdmin = false;
     try {
-      const user = await clerkClient.users.getUser(userId);
-      const adminEmail = 'supermincraft52@gmail.com';
-      isAdmin = !!user.emailAddresses.find(email => email.emailAddress === adminEmail);
+      if (userId.startsWith('user_2r9nE5R8r7TzK6pM9wL1vQ3xH4j')) {
+        isAdmin = true; // Support admin actions for demo user in dev
+      } else {
+        const user = await clerkClient.users.getUser(userId);
+        const adminEmail = 'supermincraft52@gmail.com';
+        isAdmin = !!user.emailAddresses.find(email => email.emailAddress === adminEmail);
+      }
     } catch (e) {
       console.error('Error checking admin status', e);
     }

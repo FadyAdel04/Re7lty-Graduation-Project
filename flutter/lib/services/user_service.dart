@@ -35,4 +35,32 @@ class UserService {
     final response = await _apiService.patch('/users/me', data: data);
     return User.fromJson(response.data);
   }
+
+  Future<List<User>> searchUsers(String query, {String? type}) async {
+    final response = await _apiService.get('/users/search', queryParameters: {
+      'q': query,
+      if (type != null) 'type': type,
+    });
+    final List items = response.data is List ? response.data : (response.data['items'] ?? []);
+    return items.map((e) => User.fromJson(e)).toList();
+  }
+  Future<bool> completeOnboarding(String role) async {
+    try {
+      final response = await _apiService.post('/users/onboarding', data: {'role': role});
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> submitCompanySubmission(Map<String, dynamic> data) async {
+    try {
+      final response = await _apiService.post('/submissions', data: data);
+      return response.statusCode == 201;
+    } catch (e) {
+      return false;
+    }
+  }
 }
+
+

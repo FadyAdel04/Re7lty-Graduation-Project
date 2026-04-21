@@ -1,9 +1,12 @@
 import 'package:dio/dio.dart';
 import '../models/trip.dart';
+import '../models/corporate_trip.dart';
 import 'api_service.dart';
 
 class TripService {
-  final ApiService _apiService = ApiService();
+  final ApiService _apiService;
+
+  TripService(this._apiService);
 
   Future<List<Trip>> getTrips({
     String? query,
@@ -11,6 +14,7 @@ class TripService {
     String? season,
     String? authorId,
     String sort = 'recent',
+    String? type,
     int page = 1,
     int limit = 20,
   }) async {
@@ -20,6 +24,7 @@ class TripService {
         if (city != null) 'city': city,
         if (season != null) 'season': season,
         if (authorId != null) 'authorId': authorId,
+        if (type != null) 'type': type,
         'sort': sort,
         'page': page,
         'limit': limit,
@@ -38,7 +43,9 @@ class TripService {
         throw Exception('Failed to load trips: ${response.statusCode}');
       }
     } catch (e) {
-      throw Exception('Error fetching trips: $e');
+      // Return empty list so UI shows gracefully instead of error state
+      print('⚠️ TripService.getTrips error: $e');
+      return [];
     }
   }
 
@@ -81,4 +88,34 @@ class TripService {
       return false;
     }
   }
+
+  Future<bool> addComment(String tripId, String content) async {
+    try {
+      final response = await _apiService.post('/trips/$tripId/comments', data: {
+        'content': content,
+      });
+      return response.statusCode == 201 || response.statusCode == 200;
+    } catch (e) {
+      print('❌ TripService.addComment error: $e');
+      if (e is DioException) {
+        print('Response data: ${e.response?.data}');
+      }
+      return false;
+    }
+  }
+
+  Future<List<CorporateTrip>> getCorporateTrips({String? destination}) async {
+    try {
+      final response = await _apiService.get('/corporate/trips', queryParameters: {
+        if (destination != null) 'destination': destination,
+      });
+      final List items = response.data['trips'] ?? [];
+      return items.map((e) => CorporateTrip.fromJson(e)).toList();
+    } catch (e) {
+      print('⚠️ TripService.getCorporateTrips error: $e');
+      return [];
+    }
+  }
 }
+
+

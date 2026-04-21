@@ -116,15 +116,20 @@ router.get('/', async (req, res) => {
         } = req.query;
 
         const query: any = { isActive: true };
-
-        if (destination) query.destination = destination;
+        
+        if (destination) {
+            query.$or = [
+                { destination: { $regex: destination, $options: 'i' } },
+                { title: { $regex: destination, $options: 'i' } }
+            ];
+        }
         if (companyId) query.companyId = companyId;
         if (season) query.season = season;
         if (minRating) query.rating = { $gte: Number(minRating) };
 
         const trips = await CorporateTrip.find(query)
             .populate('companyId')
-            .sort({ rating: -1, createdAt: -1 })
+            .sort({ createdAt: -1 })
             .limit(Number(limit))
             .skip(Number(skip));
 
