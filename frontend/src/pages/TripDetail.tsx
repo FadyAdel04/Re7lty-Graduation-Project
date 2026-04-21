@@ -23,6 +23,7 @@ import {
   Play,
   Zap,
   Navigation,
+  ArrowUpRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -153,6 +154,10 @@ useEffect(() => {
           postType: apiTrip.postType || 'detailed',
           taggedUsers: apiTrip.taggedUsers || [],
           postedAt: apiTrip.postedAt || new Date().toISOString(),
+          startCity: apiTrip.startCity,
+          transportationPrice: apiTrip.transportationPrice,
+          totalEstimatedPrice: apiTrip.totalEstimatedPrice,
+          transportOptions: apiTrip.transportOptions,
         };
         setTrip(transformedTrip);
         setLikesCount(transformedTrip.likes);
@@ -195,8 +200,8 @@ useEffect(() => {
       setIsLiked(!isLiked);
       setLikesCount((prev) => (isLiked ? Math.max(0, prev - 1) : prev + 1));
       toast({
-        title: isLiked ? "تم إلغاء الإعجاب" : "تم الإعجاب بالرحلة",
-        description: !isLiked ? "يمكنك العثور عليها في قائمة المفضلات" : undefined,
+        title: isLiked ? "طھظ… ط¥ظ„ط؛ط§ط، ط§ظ„ط¥ط¹ط¬ط§ط¨" : "طھظ… ط§ظ„ط¥ط¹ط¬ط§ط¨ ط¨ط§ظ„ط±ط­ظ„ط©",
+        description: !isLiked ? "ظٹظ…ظƒظ†ظƒ ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظٹظ‡ط§ ظپظٹ ظ‚ط§ط¦ظ…ط© ط§ظ„ظ…ظپط¶ظ„ط§طھ" : undefined,
       });
       return;
     }
@@ -209,20 +214,20 @@ useEffect(() => {
       setLoveLoading(true);
       const token = await getToken();
       if (!token) {
-        throw new Error("يرجى إعادة تسجيل الدخول");
+        throw new Error("ظٹط±ط¬ظ‰ ط¥ط¹ط§ط¯ط© طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„");
       }
       const result = await toggleTripLove(String(trip._id || trip.id), token);
       setIsLiked(result.loved);
       setLikesCount(result.likes);
       toast({
-        title: result.loved ? "تم الإعجاب بالرحلة" : "تم إلغاء الإعجاب",
-        description: result.loved ? "يمكنك العثور عليها في قائمة المفضلات" : undefined,
+        title: result.loved ? "طھظ… ط§ظ„ط¥ط¹ط¬ط§ط¨ ط¨ط§ظ„ط±ط­ظ„ط©" : "طھظ… ط¥ظ„ط؛ط§ط، ط§ظ„ط¥ط¹ط¬ط§ط¨",
+        description: result.loved ? "ظٹظ…ظƒظ†ظƒ ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظٹظ‡ط§ ظپظٹ ظ‚ط§ط¦ظ…ط© ط§ظ„ظ…ظپط¶ظ„ط§طھ" : undefined,
       });
     } catch (error: any) {
       console.error("Error updating love state:", error);
       toast({
-        title: "خطأ",
-        description: error.message || "تعذر تحديث حالة الإعجاب",
+        title: "ط®ط·ط£",
+        description: error.message || "طھط¹ط°ط± طھط­ط¯ظٹط« ط­ط§ظ„ط© ط§ظ„ط¥ط¹ط¬ط§ط¨",
         variant: "destructive",
       });
     } finally {
@@ -238,8 +243,8 @@ useEffect(() => {
       setIsSaved(nextSaved);
       setSavesCount((prev) => (nextSaved ? prev + 1 : Math.max(0, prev - 1)));
       toast({
-        title: nextSaved ? "تم حفظ الرحلة" : "تم إلغاء الحفظ",
-        description: nextSaved ? "يمكنك العثور عليها في قائمة المحفوظات" : "",
+        title: nextSaved ? "طھظ… ط­ظپط¸ ط§ظ„ط±ط­ظ„ط©" : "طھظ… ط¥ظ„ط؛ط§ط، ط§ظ„ط­ظپط¸",
+        description: nextSaved ? "ظٹظ…ظƒظ†ظƒ ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظٹظ‡ط§ ظپظٹ ظ‚ط§ط¦ظ…ط© ط§ظ„ظ…ط­ظپظˆط¸ط§طھ" : "",
       });
       return;
     }
@@ -253,20 +258,20 @@ useEffect(() => {
       setSaveLoading(true);
       const token = await getToken();
       if (!token) {
-        throw new Error("يرجى إعادة تسجيل الدخول");
+        throw new Error("ظٹط±ط¬ظ‰ ط¥ط¹ط§ط¯ط© طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„");
       }
       const result = await toggleTripSave(String(trip._id), token);
       setIsSaved(result.saved);
       setSavesCount(result.saves);
       toast({
-        title: result.saved ? "تم حفظ الرحلة" : "تم إلغاء الحفظ",
-        description: result.saved ? "يمكنك العثور عليها في قائمة المحفوظات" : "",
+        title: result.saved ? "طھظ… ط­ظپط¸ ط§ظ„ط±ط­ظ„ط©" : "طھظ… ط¥ظ„ط؛ط§ط، ط§ظ„ط­ظپط¸",
+        description: result.saved ? "ظٹظ…ظƒظ†ظƒ ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظٹظ‡ط§ ظپظٹ ظ‚ط§ط¦ظ…ط© ط§ظ„ظ…ط­ظپظˆط¸ط§طھ" : "",
       });
     } catch (error: any) {
       console.error("Error updating save state:", error);
       toast({
-        title: "خطأ",
-        description: error.message || "تعذر تحديث حالة الحفظ",
+        title: "ط®ط·ط£",
+        description: error.message || "طھط¹ط°ط± طھط­ط¯ظٹط« ط­ط§ظ„ط© ط§ظ„ط­ظپط¸",
         variant: "destructive",
       });
     } finally {
@@ -276,16 +281,16 @@ useEffect(() => {
 
   const handleUnauthenticatedLike = () => {
     toast({
-      title: "تسجيل الدخول مطلوب",
-      description: "يجب تسجيل الدخول للإعجاب بالرحلات",
+      title: "طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ظ…ط·ظ„ظˆط¨",
+      description: "ظٹط¬ط¨ طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ظ„ظ„ط¥ط¹ط¬ط§ط¨ ط¨ط§ظ„ط±ط­ظ„ط§طھ",
       variant: "destructive",
     });
   };
 
   const handleUnauthenticatedSave = () => {
     toast({
-      title: "تسجيل الدخول مطلوب",
-      description: "يجب تسجيل الدخول لحفظ الرحلات",
+      title: "طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ظ…ط·ظ„ظˆط¨",
+      description: "ظٹط¬ط¨ طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ظ„ط­ظپط¸ ط§ظ„ط±ط­ظ„ط§طھ",
       variant: "destructive",
     });
   };
@@ -305,8 +310,8 @@ useEffect(() => {
     } else {
       navigator.clipboard.writeText(url);
       toast({
-        title: "تم نسخ الرابط",
-        description: "يمكنك مشاركة الرابط الآن",
+        title: "طھظ… ظ†ط³ط® ط§ظ„ط±ط§ط¨ط·",
+        description: "ظٹظ…ظƒظ†ظƒ ظ…ط´ط§ط±ظƒط© ط§ظ„ط±ط§ط¨ط· ط§ظ„ط¢ظ†",
       });
     }
   };
@@ -315,8 +320,8 @@ useEffect(() => {
     if (!trip?.ownerId) return;
     if (!isSignedIn) {
       toast({
-        title: "تسجيل الدخول مطلوب",
-        description: "يجب تسجيل الدخول لمتابعة الرحلات",
+        title: "طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ظ…ط·ظ„ظˆط¨",
+        description: "ظٹط¬ط¨ طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ظ„ظ…طھط§ط¨ط¹ط© ط§ظ„ط±ط­ظ„ط§طھ",
         variant: "destructive",
       });
       return;
@@ -326,22 +331,22 @@ useEffect(() => {
       setFollowLoading(true);
       const token = await getToken();
       if (!token) {
-        throw new Error("يرجى إعادة تسجيل الدخول");
+        throw new Error("ظٹط±ط¬ظ‰ ط¥ط¹ط§ط¯ط© طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„");
       }
       const response = await toggleFollowUser(trip.ownerId, token);
       setIsFollowingAuthor(response.following);
       setAuthorFollowers(response.followers || 0);
       toast({
-        title: response.following ? "تمت المتابعة" : "تم إلغاء المتابعة",
+        title: response.following ? "طھظ…طھ ط§ظ„ظ…طھط§ط¨ط¹ط©" : "طھظ… ط¥ظ„ط؛ط§ط، ط§ظ„ظ…طھط§ط¨ط¹ط©",
         description: response.following
-          ? "ستظهر تحديثات هذا العضو في متابعاتك"
+          ? "ط³طھط¸ظ‡ط± طھط­ط¯ظٹط«ط§طھ ظ‡ط°ط§ ط§ظ„ط¹ط¶ظˆ ظپظٹ ظ…طھط§ط¨ط¹ط§طھظƒ"
           : undefined,
       });
     } catch (error: any) {
       console.error("Error toggling follow:", error);
       toast({
-        title: "خطأ",
-        description: error.message || "تعذر تحديث حالة المتابعة",
+        title: "ط®ط·ط£",
+        description: error.message || "طھط¹ط°ط± طھط­ط¯ظٹط« ط­ط§ظ„ط© ط§ظ„ظ…طھط§ط¨ط¹ط©",
         variant: "destructive",
       });
     } finally {
@@ -651,21 +656,25 @@ useEffect(() => {
                                 </div>
                                 {/* Activities vertical timeline */}
                                 <div className="px-8 pb-8 space-y-0">
-                                  {day.activities
-                                    .filter((actIdx: number) => actIdx >= 0 && actIdx < trip.activities.length)
-                                    .map((actIdx: number, itemIdx: number, arr: number[]) => {
-                                       const activity = trip.activities[actIdx];
+                                  {(day.activities as any[]).map((actEntry: any, itemIdx: number, arr: any[]) => {
+                                       // Support both index-based (number) and object-based (full activity) entries
+                                       const isIndexBased = typeof actEntry === 'number';
+                                       const activity = isIndexBased
+                                         ? (actEntry >= 0 && actEntry < (trip.activities || []).length ? trip.activities[actEntry] : null)
+                                         : actEntry;
+                                       if (!activity) return null;
+                                       const actKey = isIndexBased ? actEntry : itemIdx;
                                        const isLast = itemIdx === arr.length - 1;
                                        const isRestaurant = activity.type === "restaurant";
                                        return (
-                                         <div key={actIdx} className="relative flex gap-4">
+                                         <div key={actKey} className="relative flex gap-4">
                                            {/* Timeline connector dot */}
                                            <div className="flex flex-col items-center shrink-0 w-10">
                                              <div
                                                className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-sm z-10 shadow-sm"
                                                style={{ backgroundColor: dayColor }}
                                              >
-                                               {isRestaurant ? "" : ""}
+                                               {isRestaurant ? "🍽️" : "📍"}
                                              </div>
                                              {!isLast && (
                                                <div className="w-0.5 flex-1 my-1 rounded-full" style={{ backgroundColor: dayColor + "30" }} />
@@ -673,7 +682,7 @@ useEffect(() => {
                                            </div>
                                            {/* Activity card */}
                                            <div
-                                             onClick={() => setDialogActivityIdx(actIdx)}
+                                             onClick={() => isIndexBased && setDialogActivityIdx(actEntry)}
                                              className="flex-1 mb-4 p-4 rounded-[1.5rem] bg-gray-50/60 border border-gray-100 hover:border-gray-200 hover:bg-white transition-all cursor-pointer group/item shadow-sm hover:shadow-md"
                                            >
                                              <div className="flex items-start gap-3">
@@ -693,10 +702,22 @@ useEffect(() => {
                                                    </div>
                                                  )}
                                                  <p className="font-black text-gray-800 text-base leading-tight line-clamp-1">{activity.name}</p>
-                                                 {activity.note && (
-                                                   <p className="text-xs text-gray-500 font-medium mt-1 leading-relaxed line-clamp-2">
-                                                     {"💡"} {activity.note}
+                                                 {activity.description && (
+                                                   <p className="text-sm text-gray-700 font-medium mt-1.5 leading-relaxed">
+                                                     {activity.description}
                                                    </p>
+                                                 )}
+                                                 {activity.note && (
+                                                   <div className="mt-2.5 bg-yellow-50 text-yellow-800 p-2.5 rounded-xl text-xs font-bold flex items-start gap-2 shadow-sm border border-yellow-100/50">
+                                                     <span className="text-base shrink-0">💡</span>
+                                                     <span className="leading-relaxed">{activity.note}</span>
+                                                   </div>
+                                                 )}
+                                                 {(activity as any).tips && (
+                                                   <div className="mt-2 bg-indigo-50 text-indigo-800 p-2.5 rounded-xl text-xs font-bold flex items-start gap-2 shadow-sm border border-indigo-100/50">
+                                                     <span className="text-base shrink-0">✨</span>
+                                                     <span className="leading-relaxed">{(activity as any).tips}</span>
+                                                   </div>
                                                  )}
                                                </div>
                                              </div>
@@ -719,11 +740,11 @@ useEffect(() => {
                            {trip.hotels.map((hotel: any, idx: number) => (
                               <Card key={idx} className="border-0 shadow-lg rounded-[2rem] bg-white overflow-hidden p-5">
                                  <div className="flex flex-col md:flex-row gap-5 items-start md:items-center">
-                                    {hotel.image ? (
-                                       <img src={hotel.image} className="w-full md:w-32 h-40 md:h-32 rounded-2xl object-cover" loading="lazy" />
+                                    {hotel.image || hotel.images?.[0] ? (
+                                       <img src={typeof hotel.image === 'string' ? hotel.image : (Array.isArray(hotel.image) ? hotel.image[0] : hotel.images?.[0])} className="w-full md:w-32 h-40 md:h-32 rounded-2xl object-cover shadow-sm" loading="lazy" />
                                     ) : (
-                                       <div className="w-full md:w-32 h-40 md:h-32 rounded-2xl bg-gray-100 flex items-center justify-center shrink-0">
-                                          <MapPin className="w-10 h-10 text-gray-300" />
+                                       <div className="w-full md:w-32 h-40 md:h-32 rounded-2xl bg-indigo-50 flex items-center justify-center shrink-0 border border-indigo-100">
+                                          <MapPin className="w-10 h-10 text-indigo-300" />
                                        </div>
                                     )}
                                     <div className="flex-1 w-full space-y-3">
@@ -775,6 +796,78 @@ useEffect(() => {
                      </div>
                    )}
 
+                   {/* Pricing & Logistics */}
+                   {(trip.totalEstimatedPrice || trip.startCity) && (
+                     <div className="space-y-6">
+                        <h2 className="text-2xl font-black text-gray-900 px-4 flex items-center gap-3">
+                           <div className="w-10 h-10 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                              <Bus className="w-5 h-5" />
+                           </div>
+                           تفاصيل التكاليف واللوجستيات
+                        </h2>
+                        <Card className="border-0 shadow-xl rounded-[2.5rem] bg-gradient-to-br from-indigo-600 to-indigo-800 text-white overflow-hidden relative">
+                           <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32 blur-3xl opacity-50" />
+                           <div className="p-8 md:p-10 relative z-10">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                 {/* Trip Origin & Destination */}
+                                 <div className="space-y-6">
+                                    <div className="flex items-center gap-4">
+                                       <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20">
+                                          <Navigation className="w-6 h-6 text-indigo-200" />
+                                       </div>
+                                       <div>
+                                          <p className="text-[10px] font-black uppercase tracking-widest text-indigo-200 mb-1">خط السير الرئيسي</p>
+                                          <div className="flex items-center gap-3 font-black text-xl">
+                                             <span>{trip.startCity || "غير محدد"}</span>
+                                             <ArrowUpRight className="w-5 h-5 text-indigo-400 rotate-45" />
+                                             <span>{trip.city}</span>
+                                          </div>
+                                       </div>
+                                    </div>
+
+                                    {trip.transportOptions && trip.transportOptions.length > 0 && (
+                                       <div className="grid grid-cols-3 gap-3">
+                                          {trip.transportOptions.map((opt: any, idx: number) => (
+                                             <div key={idx} className="bg-white/10 border border-white/10 rounded-2xl p-3 flex flex-col items-center hover:bg-white/20 transition-all">
+                                                <span className="text-[10px] font-bold text-indigo-200 mb-1">{opt.label}</span>
+                                                <span className="text-sm font-black">{opt.price} ج.م</span>
+                                             </div>
+                                          ))}
+                                       </div>
+                                    )}
+                                 </div>
+
+                                 {/* Total Price Summary */}
+                                 <div className="bg-white/5 rounded-[2rem] p-6 border border-white/10 flex flex-col justify-center">
+                                    <p className="text-[11px] font-black uppercase tracking-widest text-indigo-200 mb-2">إجمالي التكلفة التقديرية (للفرد)</p>
+                                    <div className="flex items-baseline gap-2 mb-4">
+                                       <span className="text-4xl md:text-5xl font-black">{trip.totalEstimatedPrice?.toLocaleString() || "---"}</span>
+                                       <span className="text-lg font-black text-indigo-200">ج.م</span>
+                                    </div>
+                                    <div className="space-y-2 opacity-80">
+                                       <p className="text-xs font-bold leading-relaxed flex items-center gap-2">
+                                          <div className="w-1.5 h-1.5 bg-indigo-300 rounded-full" />
+                                          تكلفة المواصلات الأساسية
+                                       </p>
+                                       <p className="text-xs font-bold leading-relaxed flex items-center gap-2">
+                                          <div className="w-1.5 h-1.5 bg-indigo-300 rounded-full" />
+                                          الإقامة لـ {trip.duration} في {trip.budget}
+                                       </p>
+                                       <p className="text-xs font-bold leading-relaxed flex items-center gap-2">
+                                          <div className="w-1.5 h-1.5 bg-indigo-300 rounded-full" />
+                                          تقدير وجبات الطعام والأنشطة
+                                       </p>
+                                    </div>
+                                    <p className="mt-4 text-[9px] font-bold text-indigo-300 bg-indigo-900/40 px-3 py-1.5 rounded-lg border border-indigo-400/20 italic">
+                                       * ملحوظة: السعر تقديري بناءً على متوسط الأسعار في لحظة التحليل.
+                                    </p>
+                                 </div>
+                              </div>
+                           </div>
+                        </Card>
+                     </div>
+                   )}
+
                    {/* Food & Restaurants */}
                    {trip.foodAndRestaurants && trip.foodAndRestaurants.length > 0 && (
                      <div className="space-y-6">
@@ -783,11 +876,11 @@ useEffect(() => {
                            {trip.foodAndRestaurants.map((food: any, idx: number) => (
                               <Card key={idx} className="border-0 shadow-lg rounded-[2rem] bg-white overflow-hidden p-4">
                                  <div className="flex gap-4 items-center">
-                                    {food.image ? (
-                                       <img src={food.image} className="w-24 h-24 rounded-2xl object-cover" loading="lazy" />
+                                    {food.image || food.images?.[0] ? (
+                                       <img src={typeof food.image === 'string' ? food.image : (Array.isArray(food.image) ? food.image[0] : food.images?.[0])} className="w-24 h-24 rounded-2xl object-cover shadow-sm" loading="lazy" />
                                     ) : (
-                                       <div className="w-24 h-24 rounded-2xl bg-gray-100 flex items-center justify-center shrink-0">
-                                          <Utensils className="w-8 h-8 text-gray-300" />
+                                       <div className="w-24 h-24 rounded-2xl bg-orange-50 flex items-center justify-center shrink-0 border border-orange-100">
+                                          <Utensils className="w-8 h-8 text-orange-300" />
                                        </div>
                                     )}
                                     <div className="flex-1 w-full">
@@ -819,7 +912,7 @@ useEffect(() => {
                       >
                         <Maximize2 className="w-4 h-4 text-orange-400" /> عرض الخريطة المكبرة
                       </div>
-                      {trip.activities?.[0]?.coordinates ? (
+                      {trip.activities?.some((a: any) => a.coordinates) ? (
                         <div className="absolute inset-0 z-0 rounded-[2rem] overflow-hidden">
                         <MapboxTripMap
                           key={`map-${trip._id || trip.id}`}

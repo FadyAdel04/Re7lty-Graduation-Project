@@ -18,7 +18,7 @@ import { Tag, Ticket } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import BusSeatLayout from "@/components/company/BusSeatLayout";
 import { Link } from "react-router-dom";
-import { validateEgyptPhone, validateEmail } from "@/lib/validators";
+import { validatePhone, validateEmail, validateCardNumber, validateExpiryDate, validateCVV } from "@/lib/validators";
 
 interface BookingCardProps {
   trip: Trip;
@@ -215,18 +215,23 @@ const BookingCard = ({ trip, company, sticky = false }: BookingCardProps) => {
     }
 
     // Require payment details before confirming
+    // Enhanced payment details validation
     if (bookingData.paymentMethod === "credit_card") {
-      const cardNum = (bookingData.cardNumber || "").replace(/\s/g, "");
-      if (!cardNum || cardNum.length < 13) {
-        toast({ title: "أدخل بيانات البطاقة", description: "يرجى إدخال رقم البطاقة بشكل صحيح", variant: "destructive" });
+      const cardCheck = validateCardNumber(bookingData.cardNumber);
+      if (!cardCheck.valid) {
+        toast({ title: "رقم البطاقة غير صحيح", description: cardCheck.message, variant: "destructive" });
         return;
       }
-      if (!bookingData.expiryDate?.trim()) {
-        toast({ title: "أدخل تاريخ الانتهاء", description: "يرجى إدخال تاريخ انتهاء البطاقة (MM/YY)", variant: "destructive" });
+      
+      const expiryCheck = validateExpiryDate(bookingData.expiryDate);
+      if (!expiryCheck.valid) {
+        toast({ title: "تاريخ الانتهاء غير صحيح", description: expiryCheck.message, variant: "destructive" });
         return;
       }
-      if (!bookingData.cvv?.trim() || bookingData.cvv.length < 3) {
-        toast({ title: "أدخل رمز CVV", description: "يرجى إدخال رمز الأمان (CVV) الموجود على البطاقة", variant: "destructive" });
+      
+      const cvvCheck = validateCVV(bookingData.cvv);
+      if (!cvvCheck.valid) {
+        toast({ title: "رمز الأمان غير صحيح", description: cvvCheck.message, variant: "destructive" });
         return;
       }
     } else {
@@ -256,7 +261,7 @@ const BookingCard = ({ trip, company, sticky = false }: BookingCardProps) => {
        return;
     }
 
-    const phoneCheck = validateEgyptPhone(bookingData.userPhone);
+    const phoneCheck = validatePhone(bookingData.userPhone);
     if (!phoneCheck.valid) {
       toast({ title: "رقم الهاتف غير صحيح", description: phoneCheck.message, variant: "destructive" });
       return;
@@ -560,23 +565,25 @@ const BookingCard = ({ trip, company, sticky = false }: BookingCardProps) => {
                           />
                        </div>
                     </div>
-                    <div className="space-y-1">
-                       <Label className="text-xs font-black text-gray-500">رقم الهاتف (11 رقمًا، مثال: 01234567890)</Label>
-                       <Input
-                         type="tel"
-                         inputMode="numeric"
-                         pattern="[0-9]*"
-                         maxLength={11}
-                         value={bookingData.userPhone}
-                         onChange={(e) => {
-                           const v = e.target.value.replace(/\D/g, "").slice(0, 11);
-                           setBookingData({ ...bookingData, userPhone: v });
-                         }}
-                         className="h-11 rounded-lg bg-gray-50 border-gray-100 text-sm px-3 focus:bg-white touch-manipulation"
-                         placeholder="01xxxxxxxxx"
-                         required
-                       />
-                    </div>
+                     <div className="space-y-1">
+                        <Label className="text-xs font-black text-gray-500">رقم الهاتف (مثال: 01x xxxx xxxx)</Label>
+                        <Input
+                          type="tel"
+                          value={bookingData.userPhone}
+                          onChange={(e) => {
+                            let v = e.target.value.replace(/[^\d+]/g, "");
+                            // Simple Egypt format: 01x xxxx xxxx
+                            if (v.startsWith("01") && !v.startsWith("0100") && v.length <= 11 && !v.includes("+")) {
+                               if (v.length > 3 && v.length <= 7) v = v.slice(0, 3) + " " + v.slice(3);
+                               else if (v.length > 7) v = v.slice(0, 3) + " " + v.slice(3, 7) + " " + v.slice(7);
+                            }
+                            setBookingData({ ...bookingData, userPhone: v });
+                          }}
+                          className="h-11 rounded-lg bg-gray-50 border-gray-100 text-sm px-3 focus:bg-white touch-manipulation"
+                          placeholder="01x xxxx xxxx"
+                          required
+                        />
+                     </div>
                     <div className="space-y-1">
                        <Label className="text-xs font-black text-gray-500">البريد الإلكتروني</Label>
                        <Input
@@ -666,15 +673,51 @@ const BookingCard = ({ trip, company, sticky = false }: BookingCardProps) => {
                           </div>
                           {bookingData.paymentMethod === 'credit_card' ? (
                              <div className="space-y-2">
-                                <Input placeholder="رقم البطاقة" className="bg-white/5 border-white/10 text-white h-10 rounded-lg text-xs" value={bookingData.cardNumber} onChange={(e) => setBookingData({...bookingData, cardNumber: e.target.value})} />
-                                <div className="grid grid-cols-2 gap-2">
-                                   <Input placeholder="MM/YY" className="bg-white/5 border-white/10 text-white h-10 rounded-lg text-center text-xs" value={bookingData.expiryDate} onChange={(e) => setBookingData({...bookingData, expiryDate: e.target.value})} />
-                                   <Input placeholder="CVV" className="bg-white/5 border-white/10 text-white h-10 rounded-lg text-center text-xs" value={bookingData.cvv} onChange={(e) => setBookingData({...bookingData, cvv: e.target.value})} />
-                                </div>
+                                 <Input 
+                                    placeholder="رقم البطاقة" 
+                                    className="bg-white/5 border-white/10 text-white h-10 rounded-lg text-xs" 
+                                    value={bookingData.cardNumber} 
+                                    onChange={(e) => {
+                                       let v = e.target.value.replace(/\D/g, "");
+                                       // Format: xxxx xxxx xxxx xxxx
+                                       v = v.replace(/(\d{4})(?=\d)/g, "$1 ").trim();
+                                       setBookingData({...bookingData, cardNumber: v.slice(0, 19)});
+                                    }} 
+                                 />
+                                 <div className="grid grid-cols-2 gap-2">
+                                    <Input 
+                                       placeholder="MM/YY" 
+                                       className="bg-white/5 border-white/10 text-white h-10 rounded-lg text-center text-xs" 
+                                       value={bookingData.expiryDate} 
+                                       onChange={(e) => {
+                                          let v = e.target.value.replace(/\D/g, "");
+                                          if (v.length > 2) v = v.slice(0, 2) + "/" + v.slice(2, 4);
+                                          setBookingData({...bookingData, expiryDate: v.slice(0, 5)});
+                                       }} 
+                                    />
+                                    <Input 
+                                       placeholder="CVV" 
+                                       type="password"
+                                       className="bg-white/5 border-white/10 text-white h-10 rounded-lg text-center text-xs" 
+                                       value={bookingData.cvv} 
+                                       onChange={(e) => setBookingData({...bookingData, cvv: e.target.value.replace(/\D/g, "").slice(0, 4)})} 
+                                    />
+                                 </div>
                              </div>
                           ) : (
                              <div className="relative">
-                                <Input placeholder="01x xxxx xxxx" inputMode="numeric" className="bg-white/5 border-white/10 text-white h-11 rounded-lg pr-10 text-sm" value={bookingData.walletNumber} onChange={(e) => setBookingData({...bookingData, walletNumber: e.target.value})} />
+                                                                 <Input 
+                                    placeholder="01x xxxx xxxx" 
+                                    inputMode="numeric" 
+                                    className="bg-white/5 border-white/10 text-white h-11 rounded-lg pr-10 text-sm" 
+                                    value={bookingData.walletNumber} 
+                                    onChange={(e) => {
+                                       let v = e.target.value.replace(/\D/g, "");
+                                       if (v.length > 3 && v.length <= 7) v = v.slice(0, 3) + " " + v.slice(3);
+                                       else if (v.length > 7) v = v.slice(0, 3) + " " + v.slice(3, 7) + " " + v.slice(7);
+                                       setBookingData({...bookingData, walletNumber: v.slice(0, 13)});
+                                    }} 
+                                 />
                                 <Wallet className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-indigo-400" />
                              </div>
                           )}

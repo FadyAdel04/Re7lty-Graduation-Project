@@ -6,9 +6,22 @@
 const EGYPT_PHONE_REGEX = /^0(10|11|12|15)\d{8}$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-/** Egypt phone: 11 digits, numbers only, starts with 010/011/012/015 */
-export function validateEgyptPhone(value: string): { valid: boolean; message?: string } {
+/** 
+ * Phone validation: 
+ * - If 11 digits, must follow Egypt 01x format
+ * - If starts with +, allow 10-15 digits (international)
+ */
+export function validatePhone(value: string): { valid: boolean; message?: string } {
   const digits = value.replace(/\D/g, "");
+  const isInternational = value.trim().startsWith("+") || value.trim().startsWith("00");
+
+  if (isInternational) {
+    if (digits.length < 10 || digits.length > 15) {
+      return { valid: false, message: "رقم الهاتف الدولي يجب أن يكون بين 10 و 15 رقماً" };
+    }
+    return { valid: true };
+  }
+
   if (digits.length !== 11) {
     return { valid: false, message: "رقم الهاتف يجب أن يكون 11 رقماً" };
   }
@@ -17,6 +30,59 @@ export function validateEgyptPhone(value: string): { valid: boolean; message?: s
   }
   return { valid: true };
 }
+
+/** Luhn Algorithm for credit card validation */
+export function validateCardNumber(value: string): { valid: boolean; message?: string } {
+  const digits = value.replace(/\D/g, "");
+  if (digits.length < 13 || digits.length > 19) {
+    return { valid: false, message: "رقم البطاقة غير صحيح (يجب أن يكون بين 13 و 19 رقماً)" };
+  }
+  
+  let sum = 0;
+  let shouldDouble = false;
+  for (let i = digits.length - 1; i >= 0; i--) {
+    let digit = parseInt(digits.charAt(i));
+    if (shouldDouble) {
+      if ((digit *= 2) > 9) digit -= 9;
+    }
+    sum += digit;
+    shouldDouble = !shouldDouble;
+  }
+  
+  if (sum % 10 !== 0) {
+    return { valid: false, message: "رقم البطاقة غير صحيح" };
+  }
+  return { valid: true };
+}
+
+/** Expiry date: MM/YY, not in the past */
+export function validateExpiryDate(value: string): { valid: boolean; message?: string } {
+  const match = value.match(/^(0[1-9]|1[0-2])\/?([2-9][0-9])$/);
+  if (!match) {
+    return { valid: false, message: "التاريخ غير صحيح (MM/YY)" };
+  }
+  
+  const month = parseInt(match[1]);
+  const year = parseInt("20" + match[2]);
+  const now = new Date();
+  const currentMonth = now.getMonth() + 1;
+  const currentYear = now.getFullYear();
+  
+  if (year < currentYear || (year === currentYear && month < currentMonth)) {
+    return { valid: false, message: "البطاقة منتهية الصلاحية" };
+  }
+  return { valid: true };
+}
+
+/** CVV: 3 or 4 digits */
+export function validateCVV(value: string): { valid: boolean; message?: string } {
+  const digits = value.replace(/\D/g, "");
+  if (digits.length < 3 || digits.length > 4) {
+    return { valid: false, message: "رمز الأمان يجب أن يكون 3 أو 4 أرقام" };
+  }
+  return { valid: true };
+}
+
 
 /** Email: valid format, required */
 export function validateEmail(value: string): { valid: boolean; message?: string } {

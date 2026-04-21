@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { adminService } from "@/services/adminService";
 import { Loader2 } from "lucide-react";
-import { validateEgyptPhone, validateEmail } from "@/lib/validators";
+import { validatePhone, validateEmail } from "@/lib/validators";
 
 interface CompanyFormDialogProps {
   open: boolean;
@@ -83,9 +83,9 @@ const CompanyFormDialog = ({ open, onOpenChange, onSuccess, initialData }: Compa
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const phoneCheck = validateEgyptPhone(formData.contactInfo.phone || "");
+    const phoneCheck = validatePhone(formData.contactInfo.phone || "");
     if (!phoneCheck.valid) { alert("رقم الهاتف: " + (phoneCheck.message || "")); return; }
-    const whatsappCheck = validateEgyptPhone(formData.contactInfo.whatsapp || "");
+    const whatsappCheck = validatePhone(formData.contactInfo.whatsapp || "");
     if (!whatsappCheck.valid) { alert("رقم الواتساب: " + (whatsappCheck.message || "")); return; }
     const emailCheck = validateEmail(formData.contactInfo.email || "");
     if (!emailCheck.valid) { alert("البريد الإلكتروني: " + (emailCheck.message || "")); return; }
@@ -208,9 +208,16 @@ const CompanyFormDialog = ({ open, onOpenChange, onSuccess, initialData }: Compa
                     <Input 
                       id="phone" 
                       value={formData.contactInfo.phone} 
-                      onChange={(e) => setFormData({...formData, contactInfo: {...formData.contactInfo, phone: e.target.value}})}
+                      onChange={(e) => {
+                        let v = e.target.value.replace(/[^\d+]/g, "");
+                        if (v.startsWith("01") && !v.startsWith("0100") && v.length <= 11 && !v.includes("+")) {
+                          if (v.length > 3 && v.length <= 7) v = v.slice(0, 3) + " " + v.slice(3);
+                          else if (v.length > 7) v = v.slice(0, 3) + " " + v.slice(3, 7) + " " + v.slice(7);
+                        }
+                        setFormData({...formData, contactInfo: {...formData.contactInfo, phone: v}});
+                      }}
                       required 
-                      placeholder="+966..."
+                      placeholder="01x xxxx xxxx"
                     />
                   </div>
                   <div className="space-y-2">
@@ -218,9 +225,16 @@ const CompanyFormDialog = ({ open, onOpenChange, onSuccess, initialData }: Compa
                     <Input 
                       id="whatsapp" 
                       value={formData.contactInfo.whatsapp} 
-                      onChange={(e) => setFormData({...formData, contactInfo: {...formData.contactInfo, whatsapp: e.target.value}})}
+                      onChange={(e) => {
+                        let v = e.target.value.replace(/[^\d+]/g, "");
+                        if (v.startsWith("01") && !v.startsWith("0100") && v.length <= 11 && !v.includes("+")) {
+                          if (v.length > 3 && v.length <= 7) v = v.slice(0, 3) + " " + v.slice(3);
+                          else if (v.length > 7) v = v.slice(0, 3) + " " + v.slice(3, 7) + " " + v.slice(7);
+                        }
+                        setFormData({...formData, contactInfo: {...formData.contactInfo, whatsapp: v}});
+                      }}
                       required 
-                      placeholder="+966..."
+                      placeholder="01x xxxx xxxx"
                     />
                   </div>
                   <div className="space-y-2">

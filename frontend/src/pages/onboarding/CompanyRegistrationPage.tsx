@@ -8,7 +8,7 @@ import { CheckCircle2, ChevronRight, Send, Building2 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useToast } from "@/hooks/use-toast";
-import { validateEgyptPhone, validateEmail } from "@/lib/validators";
+import { validatePhone, validateEmail } from "@/lib/validators";
 
 const CompanyRegistrationPage = () => {
     const { getToken, isSignedIn } = useAuth();
@@ -97,9 +97,9 @@ const CompanyRegistrationPage = () => {
                     message: formData.get('message') as string
                   };
 
-                  const phoneCheck = validateEgyptPhone(data.phone || "");
+                  const phoneCheck = validatePhone(data.phone || "");
                   if (!phoneCheck.valid) { toast({ title: "رقم الهاتف غير صحيح", description: phoneCheck.message, variant: "destructive" }); submitBtn.disabled = false; submitBtn.innerHTML = originalBtnText; return; }
-                  const whatsappCheck = validateEgyptPhone(data.whatsapp || "");
+                  const whatsappCheck = validatePhone(data.whatsapp || "");
                   if (!whatsappCheck.valid) { toast({ title: "رقم الواتساب غير صحيح", description: whatsappCheck.message, variant: "destructive" }); submitBtn.disabled = false; submitBtn.innerHTML = originalBtnText; return; }
                   const emailCheck = validateEmail(data.email || "");
                   if (!emailCheck.valid) { toast({ title: "البريد الإلكتروني غير صحيح", description: emailCheck.message, variant: "destructive" }); submitBtn.disabled = false; submitBtn.innerHTML = originalBtnText; return; }
@@ -143,11 +143,37 @@ const CompanyRegistrationPage = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div className="space-y-2">
                        <label className="text-sm font-medium text-gray-700">رقم الهاتف</label>
-                       <Input name="phone" required placeholder="01xxxxxxxxx" className="rounded-xl border-gray-200 focus-visible:ring-orange-500 h-10" />
+                       <Input 
+                         name="phone" 
+                         required 
+                         placeholder="01x xxxx xxxx" 
+                         className="rounded-xl border-gray-200 focus-visible:ring-orange-500 h-10"
+                         onChange={(e) => {
+                           let v = e.target.value.replace(/[^\d+]/g, "");
+                           if (v.startsWith("01") && !v.startsWith("0100") && v.length <= 11 && !v.includes("+")) {
+                             if (v.length > 3 && v.length <= 7) v = v.slice(0, 3) + " " + v.slice(3);
+                             else if (v.length > 7) v = v.slice(0, 3) + " " + v.slice(3, 7) + " " + v.slice(7);
+                           }
+                           e.target.value = v;
+                         }}
+                       />
                     </div>
                     <div className="space-y-2">
                        <label className="text-sm font-medium text-gray-700">رقم الواتساب</label>
-                       <Input name="whatsapp" required placeholder="01xxxxxxxxx" className="rounded-xl border-gray-200 focus-visible:ring-orange-500 h-10" />
+                       <Input 
+                         name="whatsapp" 
+                         required 
+                         placeholder="01x xxxx xxxx" 
+                         className="rounded-xl border-gray-200 focus-visible:ring-orange-500 h-10"
+                         onChange={(e) => {
+                           let v = e.target.value.replace(/[^\d+]/g, "");
+                           if (v.startsWith("01") && !v.startsWith("0100") && v.length <= 11 && !v.includes("+")) {
+                             if (v.length > 3 && v.length <= 7) v = v.slice(0, 3) + " " + v.slice(3);
+                             else if (v.length > 7) v = v.slice(0, 3) + " " + v.slice(3, 7) + " " + v.slice(7);
+                           }
+                           e.target.value = v;
+                         }}
+                       />
                     </div>
                   </div>
 

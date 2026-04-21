@@ -1,8 +1,17 @@
-const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY
-const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
+import { GOVERNORATES_COORDINATES, TRANSPORT_PRICES } from "./egypt-data";
 
-// Disable fallback mode when using Groq API (it's fast and reliable)
-const USE_FALLBACK_MODE = false;
+const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
+const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
+const DISTANCE_API_KEY = "vPh4fSouXiKX5Ew7d8a9c2b1"; // Example key, should be in env
+const DISTANCE_API_URL = "https://api.distancematrix.ai/maps/api/distancematrix/json";
+
+const USE_FALLBACK_MODE = !GROQ_API_KEY;
+
+export interface TransportOption {
+    type: 'microbus' | 'bus' | 'vip';
+    price: number;
+    label: string;
+}
 
 export interface AIResponse {
     reply: string;
@@ -12,49 +21,78 @@ export interface AIResponse {
         budget: "low" | "medium" | "high" | null;
         tripType: string | null;
         season: string | null;
+        checkIn?: string | null;
+        checkOut?: string | null;
+        wantsHotels?: boolean;
+        transportOrigin?: string | null;
+        transportDestination?: string | null;
+        latitude?: number | null;
+        longitude?: number | null;
     };
     shouldGeneratePlan: boolean;
     estimatedPriceEGP: number | null;
-    tripPreview?: {
-        attractions: string[];
-        restaurants: string[];
-        hotels: string[];
-    } | null;
-    awaitingConfirmation?: boolean;
+    transportOptions?: TransportOption[];
     suggestedPlatformTrips?: { id: string; title: string; matchReason: string; image?: string; price?: string }[];
+    awaitingConfirmation: boolean;
+    showDatePicker?: boolean;
 }
 
-// Egyptian cities for pattern matching
-const EGYPTIAN_CITIES = [
-    'القاهرة', 'الإسكندرية', 'مرسى مطروح', 'الأقصر', 'أسوان',
-    'شرم الشيخ', 'دهب', 'الجونة', 'مرسى علم', 'الغردقة',
-    'الإسماعيلية', 'بورسعيد', 'السويس', 'طنطا', 'المنصورة',
-    'سيوة', 'نويبع', 'طابا', 'رأس سدر', 'العين السخنة'
-];
+export interface ItineraryDay {
+    dayNum: number;
+    title: string;
+    activities: ItineraryActivity[];
+    color: string;
+}
 
-// Helper to normalize text (handles Arabic hamzas, ta-marbuta, and English case)
+export interface ItineraryActivity {
+    name: string;
+    time: string;
+    note: string;
+    type: 'attraction' | 'restaurant';
+    coordinates?: { lat: number; lng: number };
+}
+
+export interface GeneratedItineraryResponse {
+    title: string;
+    description: string;
+    days: ItineraryDay[];
+}
+
 function normalizeText(text: string): string {
-    if (!text) return "";
-    return text
-        .toLowerCase()
+    return text.toLowerCase().trim()
         .replace(/[أإآ]/g, 'ا')
         .replace(/ة/g, 'ه')
         .replace(/ى/g, 'ي')
-        .trim();
+        .replace(/\s+/g, ' ');
+}
+
+const EGYPTIAN_CITIES = Object.keys(GOVERNORATES_COORDINATES).filter(c => c.match(/[\u0600-\u06FF]/));
+
+async function fetchRealDistance(origin: string, destination: string): Promise<number | null> {
+    try {
+        const originCoords = GOVERNORATES_COORDINATES[origin];
+        const destCoords = GOVERNORATES_COORDINATES[destination];
+        
+        if (!originCoords || !destCoords) return null;
+
+        const url = `${DISTANCE_API_URL}?origins=${originCoords.lat},${originCoords.lng}&destinations=${destCoords.lat},${destCoords.lng}&key=${DISTANCE_API_KEY}`;
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (data.status === 'OK' && data.rows[0].elements[0].status === 'OK') {
+            return Math.round(data.rows[0].elements[0].distance.value / 1000); // meters to KM
+        }
+    } catch (e) {
+        console.error("Distance Matrix API Error:", e);
+    }
+    return null;
 }
 
 // Fallback AI using pattern matching
 function fallbackAI(userMessage: string, previousData: any): AIResponse {
     const message = normalizeText(userMessage);
 
-    // Check for confirmation keywords
-    const confirmationKeywords = ['نعم', 'موافق', 'احفظ', 'تمام', 'أكيد', 'yes', 'ok'];
-    const declineKeywords = ['لا', 'غير', 'no', 'لأ', 'مش'];
-
-    const isConfirmation = confirmationKeywords.some(keyword => message.includes(normalizeText(keyword)));
-    const isDecline = declineKeywords.some(keyword => message.includes(normalizeText(keyword)));
-
-    // Extract destination
+    // Extraction logic (Minimal)
     let destination = previousData?.destination || null;
     for (const city of EGYPTIAN_CITIES) {
         if (message.includes(normalizeText(city))) {
@@ -63,557 +101,330 @@ function fallbackAI(userMessage: string, previousData: any): AIResponse {
         }
     }
 
-    // Extract days
-    let days = previousData?.days || null;
-    const dayPatterns = [
-        /(\d+)\s*(يوم|أيام|يومين)/,
-        /(يوم|يومين|ثلاثة أيام|أربعة أيام|خمسة أيام|ستة أيام|سبعة أيام|أسبوع|اسبوع)/,
-    ];
-
-    for (const pattern of dayPatterns) {
-        const match = message.match(pattern);
-        if (match) {
-            if (match[0].includes('يومين')) days = 2;
-            else if (match[0].includes('ثلاثة') || match[0].includes('3')) days = 3;
-            else if (match[0].includes('أربعة') || match[0].includes('4')) days = 4;
-            else if (match[0].includes('خمسة') || match[0].includes('5')) days = 5;
-            else if (match[0].includes('ستة') || match[0].includes('6')) days = 6;
-            else if (match[0].includes('سبعة') || match[0].includes('7') || match[0].includes('أسبوع') || match[0].includes('اسبوع')) days = 7;
-            else if (match[1] && !isNaN(parseInt(match[1]))) days = parseInt(match[1]);
-            break;
-        }
-    }
-
-    // Extract budget
-    let budget: "low" | "medium" | "high" | null = previousData?.budget || null;
-    if (message.includes('رخيص') || message.includes('اقتصادي') || message.includes('محدود')) budget = 'low';
-    else if (message.includes('متوسط') || message.includes('معقول')) budget = 'medium';
-    else if (message.includes('فاخر') || message.includes('غالي') || message.includes('مرتفع')) budget = 'high';
-
-    // Extract trip type
-    let tripType = previousData?.tripType || null;
-    if (message.includes('مغامر') || message.includes('مغامرة')) tripType = 'مغامرة';
-    else if (message.includes('استرخاء') || message.includes('راحة')) tripType = 'استرخاء';
-    else if (message.includes('عائل') || message.includes('عيال')) tripType = 'عائلية';
-    else if (message.includes('شباب') || message.includes('شبابي')) tripType = 'شبابية';
-    else if (message.includes('ثقاف') || message.includes('تاريخ')) tripType = 'ثقافية';
-    else if (message.includes('شهر عسل') || message.includes('رومانسي')) tripType = 'شهر عسل';
-
-    // Estimate price
-    let estimatedPrice = null;
-    if (destination && days) {
-        const basePrice = budget === 'low' ? 1500 : budget === 'high' ? 5000 : 3000;
-        estimatedPrice = Math.round(basePrice * days);
-    }
-
-    // Check if user is confirming after seeing preview
-    if (isConfirmation && previousData?.awaitingConfirmation) {
-        return {
-            reply: 'ممتاز! جاري تجهيز خطة رحلتك الكاملة...',
-            extractedData: {
-                destination,
-                days,
-                budget,
-                tripType,
-                season: null
-            },
-            shouldGeneratePlan: true,
-            estimatedPriceEGP: estimatedPrice,
-            tripPreview: null,
-            awaitingConfirmation: false
-        };
-    }
-
-    // Check if user is declining
-    if (isDecline && previousData?.awaitingConfirmation) {
-        return {
-            reply: 'حسناً، هل تريد تغيير الوجهة أو المدة أو الميزانية؟',
-            extractedData: {
-                destination,
-                days,
-                budget,
-                tripType,
-                season: null
-            },
-            shouldGeneratePlan: false,
-            estimatedPriceEGP: estimatedPrice,
-            tripPreview: null,
-            awaitingConfirmation: false
-        };
-    }
-
-    // Determine conversation phase
-    let reply = '';
-    let shouldGenerate = false;
-    let tripPreview = null;
-    let awaitingConfirmation = false;
-
-    if (!destination) {
-        reply = 'رائع! إلى أين تريد السفر؟ يمكنك الاختيار من المدن المصرية الجميلة مثل شرم الشيخ، دهب، الأقصر، أسوان، الإسكندرية، أو أي مدينة أخرى.';
-    } else if (!days) {
-        reply = `اختيار ممتاز! ${destination} وجهة رائعة. كم يوماً تخطط للبقاء هناك؟`;
-    } else if (!budget) {
-        reply = `رائع! ${days} ${days === 1 ? 'يوم' : 'أيام'} في ${destination}. ما هي ميزانيتك المتوقعة؟ (اقتصادية، متوسطة، أو فاخرة)`;
-    } else {
-        // All data collected - show preview
-        const attractions = getAttractionSuggestions(destination);
-        const restaurants = getRestaurantSuggestions(destination);
-        const hotels = getHotelSuggestions(destination);
-
-        tripPreview = { attractions, restaurants, hotels };
-        awaitingConfirmation = true;
-
-        reply = `رائع! إليك بعض الأماكن المقترحة في ${destination}:
-
-🏛️ المعالم السياحية:
-${attractions.map(a => `• ${a}`).join('\n')}
-
-🍽️ المطاعم:
-${restaurants.map(r => `• ${r}`).join('\n')}
-
-🏨 الفنادق:
-${hotels.map(h => `• ${h}`).join('\n')}
-
-السعر المتوقع: ${estimatedPrice?.toLocaleString()} جنيه مصري
-
-هل تريد حفظ هذه الرحلة؟`;
-    }
-
-    return {
-        reply,
+    const response: AIResponse = {
+        reply: "عذراً، أنا أعمل حالياً في الوضع المحدود. يرجى المحاولة مرة أخرى لاحقاً أو كتابة رسالة أكثر وضوحاً.",
         extractedData: {
             destination,
-            days,
-            budget,
-            tripType,
-            season: null
+            days: previousData?.days || null,
+            budget: previousData?.budget || null,
+            tripType: previousData?.tripType || null,
+            season: null,
+            transportOrigin: previousData?.transportOrigin || null,
+            transportDestination: previousData?.transportDestination || null
         },
-        shouldGeneratePlan: shouldGenerate,
-        estimatedPriceEGP: estimatedPrice,
-        tripPreview,
-        awaitingConfirmation
+        shouldGeneratePlan: false,
+        estimatedPriceEGP: null,
+        suggestedPlatformTrips: [],
+        awaitingConfirmation: false
     };
+
+    // Add pricing logic even in fallback
+    const origin = response.extractedData.transportOrigin;
+    const dest = response.extractedData.transportDestination;
+
+    if (origin && dest) {
+        const distance = calculateManualDistance(origin, dest) || 250;
+        const fuelFactor = TRANSPORT_PRICES.FUEL_PRICE / 15;
+        const basePrice = Math.round(distance * TRANSPORT_PRICES.BASE_PRICES.microbus * fuelFactor);
+        
+        response.transportOptions = [
+            { type: 'microbus', price: basePrice, label: "ميكروباص" },
+            { type: 'bus', price: Math.round(distance * TRANSPORT_PRICES.BASE_PRICES.bus * fuelFactor), label: "أتوبيس" },
+            { type: 'vip', price: Math.round(distance * TRANSPORT_PRICES.BASE_PRICES.vip * fuelFactor), label: "VIP / ليموزين" }
+        ];
+        
+        const days = response.extractedData.days || 3;
+        const budget = response.extractedData.budget || 'medium';
+        const dailyRate = budget === 'low' ? 600 : budget === 'high' ? 3500 : 1400;
+        response.estimatedPriceEGP = (days * dailyRate) + basePrice;
+    }
+
+    return response;
 }
 
-// Helper functions to generate suggestions (fallback only - API should provide real data)
-function getAttractionSuggestions(city: string): string[] {
-    // Return generic suggestions - real data should come from API
-    return [
-        'معالم سياحية',
-        'أماكن تاريخية',
-        'مناظر طبيعية',
-        'أسواق محلية',
-        'متاحف'
-    ];
-}
-
-function getRestaurantSuggestions(city: string): string[] {
-    // Return generic suggestions - real data should come from API
-    return [
-        'مطاعم محلية',
-        'مطاعم عالمية',
-        'مطاعم شعبية'
-    ];
-}
-
-function getHotelSuggestions(city: string): string[] {
-    // Return generic suggestions - real data should come from API
-    return [
-        'فنادق متنوعة',
-        'خيارات إقامة مختلفة'
-    ];
-}
-
-const SYSTEM_PROMPT = `أنت TripAI - مستشار سفر احترافي لمنصة "رحلتي" (Re7lty).
-
-🎯 دورك: تخطيط رحلات، اقتراح رحلات المنصة، الإجابة عن أسئلة السفر والمنصة.
+const SYSTEM_PROMPT = `أنت TripAI - مساعد تخطيط رحلات ذكي لمنصة "رحلتي" (Re7lty). تتحدث بالعربي المصري البسيط والودود. هدفك مساعدة المستخدمين على تخطيط رحلتهم خطوة بخطوة بطريقة تفاعلية.
 
 ━━━━━━━━━━━━━━━━━━━━━━
-📚 معرفة المنصة (للإجابة على الأسئلة)
-━━━━━━━━━━━━━━━━━━━━━━
-• المنصة: منصة مصرية تجمع التواصل الاجتماعي + تخطيط الرحلات بالذكاء الاصطناعي + حجز رحلات الشركات
-• إضافة رحلة: من القائمة → "Add New Trip" → ملء البيانات (عنوان، وجهة، أيام، نوع، ميزانية) → النشر
-• حجز رحلة: البحث في "Templates" أو "Discover" → اختيار الرحلة → "Book Now" → انتظار موافقة الشركة
-• نظام النقاط: +50 لإضافة رحلة، +5 لـLike، +3 لـComment، +10 لـSave
-• المستويات: Explorer (0-100)، Adventurer (100-500)، Traveler (500-1000)، Legend (1000+)
+🧠 قواعد المحادثة (اتبعها بالترتيب بدون انحراف):
+
+في كل مرحلة، يجب عليك عرض خيارات بسيطة للمستخدم ليختار منها بسهولة، أو تشجيعه على كتابة ما يريد. لا تنتقل للمرحلة التالية إلا بعد إجابة المستخدم على المرحلة الحالية.
+
+المرحلة 1 - الوجهة: اطلب من المستخدم تحديد وجهة السفر.
+مثال: "يا أهلاً بك! 🌍 عايز تسافر فين؟ (ممكن تختار: شرم الشيخ، دهب، الإسكندرية، الغردقة، أو اكتب أي مكان تاني في بالك)"
+
+المرحلة 2 - مدينة الانطلاق: اسأله من أين سيبدأ رحلته.
+مثال: "جميل جداً! طيب هتسافر منين؟ (ممكن تختار: القاهرة، الجيزة، الإسكندرية، المنصورة، أو اكتب محافظتك 🚌)"
+
+المرحلة 3 - عدد الأيام: اسأله عن مدة الرحلة بالأيام.
+مثال: "رحلتك دي كام يوم؟ (مثلاً: 3 أيام، 5 أيام، أسبوع 📅)"
+
+المرحلة 4 - الفنادق: اسأل إن كان يريد البحث عن فنادق في الوجهة.
+مثال: "تحب أدورلك على أفضل الفنادق للإقامة في [الوجهة]؟ (اختر: نعم 👍 / لا 👎)"
+
+المرحلة 5أ - (لو نعم للفنادق) أطلب منه التواريخ: خليه يحدد وقت والسفر واعمل showDatePicker: true فقط مرة واحدة.
+المرحلة 5ب - (لو لا للفنادق) اكمل لمرحلة التأكيد 6 مباشرة.
+
+المرحلة 6 - التأكيد وعرض النتائج: اعرض ملخص كامل للرحلة واطلب منه التأكيد النهائي. ولا تنس تفعيل awaitingConfirmation: true.
+📋 ملخص التأكيد يجب أن يكون كالتالي:
+"✅ تمام جداً! خلينا نراجع ونأكد تفاصيل رحلتك:
+📍 الوجهة: [الوجهة]
+🏠 الانطلاق من: [مدينة الانطلاق]
+📅 المدة: [الأيام] أيام
+🏨 عرض الفنادق: [نعم/لا]
+[📅 التواريخ: من [checkIn] إلى [checkOut]]
+💰 التكلفة التقديرية المبدئية: [السعر] ج.م
+👇 اضغط 'تأكيد الرحلة' علشان ابدأ أجمع لك النتائج وأرتب لك البرنامج"
+
+المرحلة 7 - التنفيذ (فقط بعد الضغط على زر التأكيد من قبل المستخدم): قم بتفعيل shouldGeneratePlan: true.
 
 ━━━━━━━━━━━━━━━━━━━━━━
-⚙️ قواعد السلوك
-━━━━━━━━━━━━━━━━━━━━━━
-1. ✅ لا تكرر الأسئلة: راجع extractedData أولاً. إذا ذُكرت الوجهة/الأيام/الميزانية → لا تسأل مرة أخرى
-2. ✅ الأولوية لرحلات المنصة: ابحث في "Available Platform Trips" أولاً. إذا وجدت مطابقة 70%+ → اقترحها في suggestedPlatformTrips
-3. ✅ استخرج البيانات بدقة:
-   - أيام: "3 أيام"→3، "يومين"→2، "أسبوع"→7، "5 days"→5
-   - وجهة: اسم المدينة (عربي/إنجليزي)
-   - ميزانية: low/medium/high
-4. ✅ تعامل مع الأسماء بذكاء (Case-insensitive، تجاهل أخطاء إملائية بسيطة)
-5. ✅ كن مباشراً واحترافياً، لغة عربية واضحة
+⚠️ قواعد صارمة جداً:
+- اسأل سؤال واحد فقط في كل رد لتجنب إرباك المستخدم.
+- قدّم دائماً خيارات أو أمثلة بسيطة بين أقواس في سؤالك.
+- لا تطلب أبداً معلومات ذكرها المستخدم أو اختارها مسبقاً.
+- النموذج يجب أن يحافظ على كل البيانات في المستخرجة extractedData بين الردود (لا تمسح أي حقل).
+- shouldGeneratePlan يكون true فقط وفقط بعد تأكيد المستخدم النهائي في المرحلة 6.
+- awaitingConfirmation يكون true فقط في مرحلة التأكيد والمراجعة.
 
 ━━━━━━━━━━━━━━━━━━━━━━
-🤖 مراحل العمل
-━━━━━━━━━━━━━━━━━━━━━━
-المرحلة 1: تحليل نية المستخدم
-• سؤال عن المنصة؟ → أجب من المعرفة أعلاه
-• سؤال عن مكان سياحي؟ → أجب ثم اسأل عن التخطيط
-• طلب تخطيط؟ → انتقل للمرحلة 2
-
-المرحلة 2: البحث في رحلات المنصة
-• ابحث في "Available Platform Trips"
-• مطابقة؟ → ضعها في suggestedPlatformTrips مع matchReason واضح
-• لا مطابقة؟ → انتقل للمرحلة 3
-
-المرحلة 3: جمع البيانات
-• راجع extractedData
-• اسأل عن الناقص فقط: وجهة، أيام، ميزانية
-
-المرحلة 4: عرض المعاينة
-• البيانات مكتملة؟ → اقترح معالم/فنادق/مطاعم + سعر تقديري
-• اطلب التأكيد: awaitingConfirmation: true
-
-المرحلة 5: التأكيد
-• موافقة؟ → shouldGeneratePlan: true
-• رفض؟ → ارجع للمرحلة 3
+💰 حساب التكلفة استرشادياً:
+- مواصلات/كيلو: ميكروباص (\${TRANSPORT_PRICES.BASE_PRICES.microbus})، أتوبيس (\${TRANSPORT_PRICES.BASE_PRICES.bus})، VIP ليموزين (\${TRANSPORT_PRICES.BASE_PRICES.vip}).
+- النفقات اليومية: اقتصادي (600)، متوسط (1400)، فاخر (3500).
 
 ━━━━━━━━━━━━━━━━━━━━━━
-� JSON Response Format
-━━━━━━━━━━━━━━━━━━━━━━
+📦 تنسيق الرد (JSON ONLY - يجب أن يكون الرد كود JSON صالح تماماً، لا تضف أي نص خارجه):
 {
-  "reply": "ردك بالعربية",
+  "reply": "نص الرد بالمصري مع عرض الخيارات كأمثلة",
   "extractedData": {
-    "destination": "المدينة أو null",
-    "days": رقم_أو_null,
-    "budget": "low"|"medium"|"high"|null,
-    "tripType": "النوع أو null",
+    "destination": null,
+    "days": null,
+    "budget": null,
+    "wantsHotels": null,
+    "transportOrigin": null,
+    "transportDestination": null,
+    "checkIn": null,
+    "checkOut": null,
+    "tripType": null,
     "season": null
   },
+  "showDatePicker": false,
   "shouldGeneratePlan": false,
-  "estimatedPriceEGP": رقم_أو_null,
-  "tripPreview": {"attractions":[],"restaurants":[],"hotels":[]} | null,
-  "awaitingConfirmation": false,
-  "suggestedPlatformTrips": [{"id":"","title":"","matchReason":"","image":"","price":""}]
+  "estimatedPriceEGP": null,
+  "awaitingConfirmation": false
 }
-
-⚠️ أرجع JSON فقط. لا markdown، لا نص إضافي.
 `;
+
+// Helper for distance fallback
+function calculateManualDistance(city1: string, city2: string): number | null {
+    const c1 = GOVERNORATES_COORDINATES[city1];
+    const c2 = GOVERNORATES_COORDINATES[city2];
+    if (!c1 || !c2) return null;
+
+    // Haversine formula
+    const R = 6371; // Radius of the Earth in km
+    const dLat = (c2.lat - c1.lat) * Math.PI / 180;
+    const dLon = (c2.lng - c1.lng) * Math.PI / 180;
+    const a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(c1.lat * Math.PI / 180) * Math.cos(c2.lat * Math.PI / 180) * 
+        Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const d = R * c;
+    
+    // Add 25% road curvature factor to mimic real road distance
+    return Math.round(d * 1.25);
+}
 
 export async function sendMessageToAI(
     userMessage: string,
     conversationHistory: { role: string; content: string }[],
     currentExtractedData?: any,
-    availableTrips: any[] = []
+    availableTrips: any[] = [],
+    chatMode: 'platform' | 'ai' = 'platform'
 ): Promise<AIResponse> {
-    // If fallback mode is enabled, use pattern matching
-    if (USE_FALLBACK_MODE) {
-        console.log('Using fallback AI mode (pattern matching)');
-        return fallbackAI(userMessage, currentExtractedData);
-    }
+    if (USE_FALLBACK_MODE) return fallbackAI(userMessage, currentExtractedData);
 
     try {
-        // Initialize Groq client
-        const Groq = (await import('groq-sdk')).default;
-        const groq = new Groq({
-            apiKey: GROQ_API_KEY,
-            dangerouslyAllowBrowser: true // Required for browser usage
-        });
+        let transportContext = "";
+        let detectedOrigin = currentExtractedData?.transportOrigin || null;
+        let detectedDest = currentExtractedData?.transportDestination || null;
 
-        // Prepare context about available trips (truncated to stay within Groq token limits)
-        let tripsContext = "";
-        if (availableTrips && availableTrips.length > 0) {
-            const limitedTrips = availableTrips.slice(0, 15);
-            const tripsSummary = limitedTrips.map(t => ({
-                id: t._id || t.id,
-                title: (t.title || "").slice(0, 50),
-                destination: t.destination || t.city,
-                budget: t.budget,
-                price: t.price || (t.estimatedPrice ? `${t.estimatedPrice} EGP` : "")
-            }));
-            tripsContext = `\n\nPlatform Trips:\n${JSON.stringify(tripsSummary)}`;
+        const normalizedMsg = normalizeText(userMessage);
+        for (const city of EGYPTIAN_CITIES) {
+            if (normalizedMsg.includes(normalizeText(city))) {
+                if (!detectedOrigin) detectedOrigin = city;
+                else if (!detectedDest && city !== detectedOrigin) detectedDest = city;
+            }
         }
 
-        // Build messages array for Groq API
-        // Limit conversation history to last 3 exchanges and truncate long messages
-        const MAX_MSG_LEN = 400;
-        const recentHistory = conversationHistory.slice(-6).map(msg => ({
-            role: msg.role,
-            content: msg.content.length > MAX_MSG_LEN ? msg.content.slice(0, MAX_MSG_LEN) + "…" : msg.content
-        }));
+        if (detectedOrigin && detectedDest) {
+            let distance = await fetchRealDistance(detectedOrigin, detectedDest);
+            
+            if (!distance) {
+                distance = calculateManualDistance(detectedOrigin, detectedDest);
+                if (distance) {
+                    console.log(`Fallback distance used for ${detectedOrigin} to ${detectedDest}: ${distance}km`);
+                }
+            }
+
+            if (distance) {
+                transportContext = `\n\n[IMPORTANT TRANSPORT DATA] Current Trip: From ${detectedOrigin} to ${detectedDest}.
+- Real Distance: ${distance} km.
+- IMPORTANT: Show this distance (${distance} km) in your reply.
+- Calculation: Use ONE-WAY distance for pricing.
+- Fuel Coefficient: ${TRANSPORT_PRICES.FUEL_PRICE / 20}
+- Base per KM: Microbus: ${TRANSPORT_PRICES.BASE_PRICES.microbus}, Bus: ${TRANSPORT_PRICES.BASE_PRICES.bus}, VIP: ${TRANSPORT_PRICES.BASE_PRICES.vip}.
+- Return ONLY JSON as per formatting rules.
+- Add Disclaimer in reply: "جميع الأسعار تقديرية وقد تختلف بناءً على أسعار الوقود وتوقيت السفر."`;
+            }
+        }
+
+        const stateContext = currentExtractedData 
+            ? `\n\n[MANDATORY CURRENT STATE - DO NOT OMIT FIELDS]: ${JSON.stringify(currentExtractedData)}\nInstruction: You must include all fields from this state in your response json unless explicitly changed by user.` 
+            : "";
 
         const messages = [
-            { role: "system" as const, content: SYSTEM_PROMPT + tripsContext },
-            ...recentHistory.map(msg => ({
-                role: (msg.role === 'assistant' ? 'assistant' : 'user') as 'user' | 'assistant',
-                content: msg.content
-            })),
-            { role: "user" as const, content: userMessage }
+            { role: "system", content: SYSTEM_PROMPT + transportContext + stateContext },
+            ...conversationHistory.filter(m => m.role === 'user' || m.role === 'assistant').slice(-8),
+            { role: "user", content: userMessage }
         ];
 
-        // Call Groq API using SDK (keep payload small to avoid 400 "reduce length")
-        const chatCompletion = await groq.chat.completions.create({
-            messages: messages,
-            model: "llama-3.3-70b-versatile",
-            temperature: 0.7,
-            max_tokens: 600,
+        const res = await fetch(GROQ_API_URL, {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${GROQ_API_KEY}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                model: "llama-3.1-8b-instant",
+                messages,
+                temperature: 0.7,
+                response_format: { type: "json_object" }
+            })
         });
 
-        const text = chatCompletion.choices[0]?.message?.content || "";
-
-        // Try to parse JSON response with multiple strategies
-        const parseAIResponse = (str: string): AIResponse | null => {
-            let jsonStr = str.trim().replace(/\ufeff/g, "");
-            if (jsonStr.startsWith("```json")) {
-                jsonStr = jsonStr.replace(/^```json\s*/i, "").replace(/\s*```\s*$/g, "");
-            } else if (jsonStr.startsWith("```")) {
-                jsonStr = jsonStr.replace(/^```\s*/, "").replace(/\s*```\s*$/g, "");
-            }
-            const attempts: string[] = [];
-            const jsonStart = jsonStr.indexOf('{');
-            const jsonEnd = jsonStr.lastIndexOf('}');
-            if (jsonStart !== -1 && jsonEnd > jsonStart) {
-                attempts.push(jsonStr.substring(jsonStart, jsonEnd + 1));
-                const lastOpen = jsonStr.lastIndexOf('{');
-                if (lastOpen !== jsonStart && lastOpen < jsonEnd) {
-                    attempts.push(jsonStr.substring(lastOpen, jsonEnd + 1));
-                }
-            }
-            for (const candidate of attempts.length ? attempts : [jsonStr]) {
-                const toTry = [
-                    candidate,
-                    candidate.replace(/,(\s*[}\]])/g, "$1"),
-                ];
-                for (const s of toTry) {
-                    try {
-                        const out = JSON.parse(s) as AIResponse;
-                        if (out && typeof out.reply === "string" && out.extractedData) return out;
-                    } catch {
-                        continue;
-                    }
-                }
-            }
-            return null;
-        };
-
-        const parsed = parseAIResponse(text);
-        if (parsed) return parsed;
-
-        console.warn("Failed to parse AI response, using fallback");
-        return fallbackAI(userMessage, currentExtractedData);
-    } catch (error: any) {
-        console.error("Groq API Error, using fallback:", error);
-
-        // Handle specific error types that should still throw, otherwise fallback
-        if (error.message?.includes('402')) {
-            throw error; // Re-throw 402 specific error
-        } else if (error.message?.includes('429')) {
-            throw error; // Re-throw 429 specific error
-        } else if (error.message?.includes('401')) {
-            throw error; // Re-throw 401 specific error
-        } else {
-            return fallbackAI(userMessage, currentExtractedData);
+        if (!res.ok) {
+            const errorData = await res.json().catch(() => ({}));
+            console.error("Groq API Detail Error:", errorData);
+            throw new Error(`Groq API Error: ${errorData.error?.message || res.statusText}`);
         }
+
+        const data = await res.json();
+        const response: AIResponse = JSON.parse(data.choices[0].message.content);
+
+        // --- MANUALLY CALCULATE TRANSPORT & TOTALS FOR 1000% ACCURACY ---
+        if (detectedOrigin && detectedDest) {
+            const distance = calculateManualDistance(detectedOrigin, detectedDest) || 0;
+            if (distance > 0) {
+                const fuelFactor = TRANSPORT_PRICES.FUEL_PRICE / 15; // Normalized factor
+                
+                const options: TransportOption[] = [
+                    { type: 'microbus', price: Math.round(distance * TRANSPORT_PRICES.BASE_PRICES.microbus * fuelFactor), label: "ميكروباص" },
+                    { type: 'bus', price: Math.round(distance * TRANSPORT_PRICES.BASE_PRICES.bus * fuelFactor), label: "أتوبيس" },
+                    { type: 'vip', price: Math.round(distance * TRANSPORT_PRICES.BASE_PRICES.vip * fuelFactor), label: "VIP / ليموزين" }
+                ];
+                
+                response.transportOptions = options;
+                
+                // Estimate total trip cost if days and budget are known
+                const days = response.extractedData.days || currentExtractedData?.days || 0;
+                const budget = response.extractedData.budget || currentExtractedData?.budget || 'medium';
+                
+                if (days > 0) {
+                    const dailyRate = budget === 'low' ? 600 : budget === 'high' ? 3500 : 1400;
+                    const accommodationCost = days * dailyRate;
+                    const transportCost = options[0].price; // Use cheapest as base
+                    response.estimatedPriceEGP = accommodationCost + transportCost;
+                }
+            }
+        }
+
+        // Map back detected cities if AI extraction was slightly different
+        if (detectedOrigin && !response.extractedData.transportOrigin) response.extractedData.transportOrigin = detectedOrigin;
+        if (detectedDest && !response.extractedData.transportDestination) response.extractedData.transportDestination = detectedDest;
+
+        return response;
+    } catch (e) {
+        console.error("AI Assistant Error:", e);
+        return fallbackAI(userMessage, currentExtractedData);
     }
-}
-
-export interface ItineraryDay {
-    dayNum: number;
-    title: string;
-    activities: {
-        name: string;
-        type: 'attraction' | 'restaurant';
-        coordinates?: { lat: number; lng: number };
-        color?: string;
-        time?: string;
-        note?: string;
-    }[];
-    color: string;
-}
-
-const ITINERARY_COLORS = [
-    "#4F46E5", // Indigo
-    "#E11D48", // Rose
-    "#059669", // Emerald
-    "#D97706", // Amber
-    "#7C3AED", // Violet
-    "#2563EB", // Blue
-    "#DB2777", // Pink
-    "#0891B2", // Cyan
-];
-
-export interface GeneratedItineraryResponse {
-    title?: string;
-    description?: string;
-    days: ItineraryDay[];
 }
 
 export async function generateItinerary(
     destination: string,
     days: number,
-    selectedPlaces: { name: string; type: 'attraction' | 'restaurant'; lat?: number; lng?: number }[]
+    selectedItems: any[],
+    budget?: string | null
 ): Promise<GeneratedItineraryResponse> {
-    try {
-        const Groq = (await import('groq-sdk')).default;
-        const groq = new Groq({
-            apiKey: GROQ_API_KEY,
-            dangerouslyAllowBrowser: true
-        });
+     // Build rich item descriptions with coordinates
+     const itemDescriptions = selectedItems.map((item, idx) => {
+       const latLng = item.lat && item.lng ? `(${item.lat.toFixed(4)}, ${item.lng.toFixed(4)})` : '';
+       const dur = item.estimatedDuration ? `~${item.estimatedDuration} دقيقة` : '';
+       const cost = item.costLevel || '';
+       return `${idx + 1}. ${item.name} [${item.type}] ${latLng} ${dur} ${cost}`;
+     }).join('\n');
 
-        const prompt = `أنت خبير تخطيط رحلات. قم بتنظيم الأماكن التالية في برنامج سياحي لمدة ${days} أيام في ${destination}.
+     const budgetContext = budget
+       ? `\nالميزانية: ${budget === 'low' ? 'اقتصادية - ركز على الأماكن المجانية والرخيصة' : budget === 'high' ? 'فاخرة - اقترح تجارب مميزة' : 'متوسطة'}`
+       : '';
+
+     const prompt = `أنت خبير تنظيم رحلات سياحية في مصر. نظّم الأماكن التالية في جدول رحلة لمدة ${days} أيام في ${destination}.
+${budgetContext}
+
+قواعد مهمة:
+1. جمّع الأماكن القريبة جغرافياً في نفس اليوم (استخدم الإحداثيات)
+2. حد أقصى 5 أماكن في اليوم و 8 ساعات أنشطة
+3. رتب كل يوم: الصباح → معالم سياحية، الظهر → غداء، العصر → أنشطة، المساء → عشاء/استرخاء
+4. أضف وقت تنقل واقعي بين الأماكن (15-30 دقيقة)
+5. كل يوم يبدأ 9:00 AM وينتهي قبل 9:00 PM
+6. اعطِ كل يوم عنوان جذاب واسم منطقة
+
 الأماكن المختارة:
-${selectedPlaces.map(p => `- ${p.name} (${p.type}) [Coords: ${p.lat}, ${p.lng}]`).join('\n')}
+${itemDescriptions}
 
-المطلوب:
-1. توزيع الأماكن على الأيام بشكل جغرافي ذكي جداً لتقليل مسافات التنقل وتجنب إضاعة الوقت في المواصلات (استخدم الإحداثيات المذكورة لتجميع الأماكن القريبة في نفس اليوم).
-2. ترتيب الأنشطة داخل كل يوم بشكل منطقي يسهل التحرك بينهم سيراً أو بمسافات قصيرة.
-3. إضافة وقت مقترح لكل نشاط.
-4. إضافة ملاحظة بسيطة (نصيحة) لكل مكان بالعربية تتضمن أفضل طريق للوصول إذا أمكن.
-5. اجعل البرنامج ممتعاً ومنوعاً بين المعالم والمطاعم.
-
-أرجع النتيجة بصيغة JSON فقط ككائن يحتوي على 3 حقول:
-1. "title": اسم مبتكر وجذاب للرحلة (مثلاً: "لآلئ النيل: سحر التاريخ في القاهرة").
-2. "description": نص تسويقي وإبداعي جذاب يصف الرحلة وجمالها (بدون ذكر أرقام مجردة، ركز على الشعور والمغامرة).
-3. "days": قائمة الأيام.
-
-مثال للـ JSON المطلوب:
+أرجع النتيجة بصيغة JSON فقط:
 {
-  "title": "سحر الإسكندرية: عروس البحر المتوسط",
-  "description": "استعد لرحلة تأخذك بين أحضان الطبيعة الساحرة وعبق التاريخ، حيث تمتزج ألوان المغامرة بمتعة الاسترخاء...",
+  "title": "عنوان جذاب للرحلة بالعربي",
+  "description": "وصف شيق للرحلة في 2 سطر",
   "days": [
     {
       "dayNum": 1,
-      "title": "عنوان اليوم (مثلاً: قلب المدينة النابض)",
+      "title": "عنوان جذاب لليوم",
+      "area": "اسم المنطقة/الحي",
+      "color": "#HEX_COLOR",
       "activities": [
-        {
-          "name": "اسم المكان",
-          "type": "attraction" | "restaurant",
-          "time": "الوقت (مثلاً: 10:00 صباحاً)",
-          "note": "نصيحة سريعة ومفيدة"
-        }
+         {
+           "name": "اسم المكان كما هو",
+           "time": "10:00 AM",
+           "endTime": "12:00 PM",
+           "duration": 120,
+           "note": "وصف قصير أو نصيحة",
+           "type": "attraction أو restaurant",
+           "coordinates": {"lat": 30.0444, "lng": 31.2357}
+         }
       ]
     }
   ]
-}
-
-لا تضف أي نص خارج الـ JSON.`;
-
-        const chatCompletion = await groq.chat.completions.create({
-            messages: [
-                { role: "system", content: "أنت خبير تخطيط رحلات محترف أرجع JSON فقط." },
-                { role: "user", content: prompt }
-            ],
-            model: "llama-3.3-70b-versatile",
-            temperature: 0.3,
-            max_tokens: 2000,
-        });
-
-        const text = chatCompletion.choices[0]?.message?.content || "";
-        let jsonStr = text.trim();
-        if (jsonStr.startsWith("```json")) {
-            jsonStr = jsonStr.replace(/^```json\s*/i, "").replace(/\s*```\s*$/g, "");
-        } else if (jsonStr.startsWith("```")) {
-            jsonStr = jsonStr.replace(/^```\s*/, "").replace(/\s*```\s*$/g, "");
-        }
-        let parsedData: any;
-        try {
-            parsedData = JSON.parse(jsonStr);
-        } catch (e) {
-            console.error("Failed to parse itinerary JSON", jsonStr);
-            throw e;
-        }
-
-        let itineraryDays: any[] = [];
-        let description = "";
-        let title = "";
-
-        if (Array.isArray(parsedData)) {
-            itineraryDays = parsedData;
-        } else if (parsedData && Array.isArray(parsedData.days)) {
-            itineraryDays = parsedData.days;
-            description = parsedData.description || "";
-            title = parsedData.title || "";
-        } else {
-            throw new Error("Invalid itinerary JSON structure");
-        }
-        
-        // Map colors and coordinates back for days
-        const formattedDays = itineraryDays.map((day, idx) => ({
-            ...day,
-            dayNum: day.dayNum || idx + 1,
-            title: day.title || `اليوم ${idx + 1}`,
-            color: ITINERARY_COLORS[idx % ITINERARY_COLORS.length],
-            activities: Array.isArray(day.activities) ? day.activities.map((act: any) => {
-                const original = selectedPlaces.find(p => p.name === act.name);
-                return {
-                    ...act,
-                    coordinates: original ? { lat: original.lat, lng: original.lng } : undefined,
-                    color: ITINERARY_COLORS[idx % ITINERARY_COLORS.length]
-                };
-            }) : []
-        }));
-
-        return {
-            title,
-            description,
-            days: formattedDays
-        };
-
-    } catch (error) {
-        console.error("Error generating itinerary:", error);
-        // Fallback: simple distribution if AI fails
-        const fallbackDays = Array.from({ length: days }, (_, i) => ({
-            dayNum: i + 1,
-            title: `اليوم ${i + 1}`,
-            color: ITINERARY_COLORS[i % ITINERARY_COLORS.length],
-            activities: selectedPlaces
-                .filter((_, idx) => Math.floor(idx / 3) === i)
-                .map(p => ({
-                    ...p,
-                    time: "10:00 صباحاً",
-                    note: "رحلة سعيدة!",
-                    color: ITINERARY_COLORS[i % ITINERARY_COLORS.length]
-                }))
-        }));
-
-        return {
-            title: `رحلة استكشاف ${destination}`,
-            description: "رحلة ممتعة لاستكشاف أفضل المعالم السياحية والمطاعم الرائعة.",
-            days: fallbackDays
-        };
-    }
-}
-
-export async function getCompletion(
-    userInput: string,
-    conversationHistory: { role: string; content: string }[]
-): Promise<string> {
-    if (!userInput || userInput.trim().length < 3) return "";
+}`;
 
     try {
-        const Groq = (await import('groq-sdk')).default;
-        const groq = new Groq({
-            apiKey: GROQ_API_KEY,
-            dangerouslyAllowBrowser: true
-        });
-
-        const messages = [
-            {
-                role: "system" as const,
-                content: "أنت مساعد إكمال جمل لمستشار سفر محترف. أكمل جملة المستخدم بشكل طبيعي ومهني ومختصر جداً (بحد أقصى 3 كلمات). أرجع التكملة فقط بدون علامات تنصيص. لا تكرر ما كتبه المستخدم. أكمل من حيث انتهى. الامامن بتاعت الرحلات الوزيايرات داخل مصر فقط"
+        const res = await fetch(GROQ_API_URL, {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${GROQ_API_KEY}`,
+                "Content-Type": "application/json"
             },
-            ...conversationHistory.slice(-2).map(msg => ({
-                role: (msg.role === 'assistant' ? 'assistant' : 'user') as 'user' | 'assistant',
-                content: msg.content
-            })),
-            { role: "user" as const, content: userInput }
-        ];
-
-        const chatCompletion = await groq.chat.completions.create({
-            messages: messages,
-            model: "llama-3.1-8b-instant",
-            temperature: 0.1,
-            max_tokens: 10,
+            body: JSON.stringify({
+                model: "llama-3.3-70b-versatile",
+                messages: [{ role: "user", content: prompt }],
+                response_format: { type: "json_object" }
+            })
         });
 
-        return chatCompletion.choices[0]?.message?.content?.trim() || "";
+        if (!res.ok) throw new Error("Groq API Error");
+        const data = await res.json();
+        return JSON.parse(data.choices[0].message.content);
     } catch (e) {
-        return "";
+        throw new Error("فشل تنظيم الرحلة ذكياً.");
     }
 }

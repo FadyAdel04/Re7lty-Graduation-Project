@@ -85,6 +85,10 @@ const TripSchema = new Schema({
     enum: ['detailed', 'quick', 'ask'],
     default: 'detailed',
   }, // 'detailed' = full trip, 'quick' = simple post, 'ask' = question/post (no points)
+  startCity: String,
+  transportationPrice: Number,
+  totalEstimatedPrice: Number,
+  transportOptions: Schema.Types.Mixed,
 }, { timestamps: true });
 
 TripSchema.index({ postedAt: -1 });

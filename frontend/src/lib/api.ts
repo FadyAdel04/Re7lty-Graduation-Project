@@ -773,3 +773,12 @@ export async function finalizeLeaderboardWeek(token: string) {
   }
   return res.json();
 }
+export async function searchHotelsByLocation(latitude: string, longitude: string, checkIn: string, checkOut: string) {
+  const query = new URLSearchParams({ latitude, longitude, checkIn, checkOut });
+  const res = await fetch(`${BASE}/api/proxy/hotels-by-location?${query.toString()}`);
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(errorText || 'Failed to search hotels');
+  }
+  return await res.json();
+}

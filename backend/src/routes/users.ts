@@ -296,13 +296,20 @@ router.get('/me/ai-trips-quota', requireAuthStrict, async (req, res) => {
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
+    const existingUser = await User.findOne({ clerkId: userId });
+    const isAdmin = existingUser?.role === 'admin' || existingUser?.email === 'supermincraft52@gmail.com';
+
+    if (isAdmin) {
+      return res.json({ count: 0, limit: 999999, remaining: 999999, nextRestoreTime: null, isAdmin: true });
+    }
+
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
     const count = await AIPlanUsage.countDocuments({
       userId,
       createdAt: { $gte: weekAgo },
     });
-    const limit = 3;
+    const limit = 20;
     let nextRestoreTime = null;
     if (count >= limit) {
       const oldestUsage = await AIPlanUsage.findOne({
@@ -314,7 +321,7 @@ router.get('/me/ai-trips-quota', requireAuthStrict, async (req, res) => {
       }
     }
     
-    res.json({ count, limit, remaining: Math.max(0, limit - count), nextRestoreTime });
+    res.json({ count, limit, remaining: Math.max(0, limit - count), nextRestoreTime, isAdmin: false });
   } catch (error: any) {
     console.error('Error fetching AI trip quota:', error);
     res.status(500).json({ error: 'Failed to fetch quota', message: error.message });
@@ -328,22 +335,29 @@ router.post('/me/ai-plan-usage', requireAuthStrict, async (req, res) => {
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
+    const existingUser = await User.findOne({ clerkId: userId });
+    const isAdmin = existingUser?.role === 'admin' || existingUser?.email === 'supermincraft52@gmail.com';
+
+    if (isAdmin) {
+      return res.json({ count: 0, limit: 999999, remaining: 999999, isAdmin: true });
+    }
+
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
     const count = await AIPlanUsage.countDocuments({
       userId,
       createdAt: { $gte: weekAgo },
     });
-    const limit = 3;
+    const limit = 20;
     if (count >= limit) {
       return res.status(429).json({
         error: 'AI trip quota exceeded',
-        message: 'لقد استخدمت الحد الأسبوعي لخطط الرحلات بالذكاء الاصطناعي (3 خطط). يرجى المحاولة الأسبوع المقبل.',
+        message: 'لقد استخدمت الحد الأسبوعي لخطط الرحلات بالذكاء الاصطناعي (20 خطة). يرجى المحاولة الأسبوع المقبل.',
       });
     }
     await AIPlanUsage.create({ userId });
     const newCount = count + 1;
-    res.json({ count: newCount, limit, remaining: Math.max(0, limit - newCount) });
+    res.json({ count: newCount, limit, remaining: Math.max(0, limit - newCount), isAdmin: false });
   } catch (error: any) {
     console.error('Error recording AI plan usage:', error);
     res.status(500).json({ error: 'Failed to record usage', message: (error as Error).message });

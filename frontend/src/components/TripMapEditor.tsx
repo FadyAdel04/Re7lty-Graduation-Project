@@ -5,7 +5,8 @@ import { MapPin, Navigation, Trash2, Search, X, Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-
+import { cn } from '@/lib/utils';
+import { Plus } from 'lucide-react';
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
 export interface TripLocation {
@@ -56,6 +57,7 @@ const TripMapEditor = ({ locations, route, onLocationsChange, onRouteChange, des
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<GeocodingResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [isAddingMode, setIsAddingMode] = useState(false);
 
   // Initialize Map
   useEffect(() => {
@@ -140,15 +142,10 @@ const TripMapEditor = ({ locations, route, onLocationsChange, onRouteChange, des
     const map = mapRef.current;
     
     const handleClick = (e: mapboxgl.MapLayerMouseEvent) => {
-      // If user clicked a marker or popup, don't add point
-      // Mapbox markers are DOM elements, so if the target is inside a marker, we don't trigger this or we filter it.
-      // Actually, map click events don't trigger if you click a DOM marker (unless you set pointer-events: none)
-      
       const { lng, lat } = e.lngLat;
-      
       if (isDrawingRouteRef.current) {
         onRouteChange([...routeRef.current, [lat, lng]]);
-      } else {
+      } else if (isAddingMode) {
         const newLocation: TripLocation = {
           id: Date.now().toString(),
           coordinates: [lat, lng],
@@ -336,11 +333,25 @@ const TripMapEditor = ({ locations, route, onLocationsChange, onRouteChange, des
         </div>
         <div className="flex gap-2 flex-wrap justify-end w-full sm:w-auto">
           <Button
+            variant={isAddingMode ? "default" : "outline"}
+            size="sm"
+            onClick={() => {
+              setIsAddingMode(!isAddingMode);
+              setIsDrawingRoute(false);
+              setIsAddingManually(false);
+            }}
+            className={cn("rounded-xl transition-all", isAddingMode && "bg-emerald-600 hover:bg-emerald-700")}
+          >
+            <Plus className="h-4 w-4 ml-2" />
+            {isAddingMode ? 'إيقاف وضع الإضافة' : 'تفعيل وضع الإضافة'}
+          </Button>
+          <Button
             variant={isDrawingRoute ? "default" : "outline"}
             size="sm"
             onClick={() => {
               setIsDrawingRoute(!isDrawingRoute);
               setIsAddingManually(false);
+              setIsAddingMode(false);
             }}
             className="rounded-xl"
           >

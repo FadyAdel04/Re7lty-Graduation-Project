@@ -3,6 +3,7 @@ import { Cloud, Sun, CloudRain, Snowflake, Wind, CloudLightning, Loader2, MapPin
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
+import { GOVERNORATES_COORDINATES } from "@/lib/egypt-data";
 
 const getWeatherIcon = (code: number, className: string = "h-4 w-4") => {
   if (code === 0) return <Sun className={cn("text-yellow-500", className)} />;
@@ -61,15 +62,39 @@ export default function CityWeatherAdvisor({ cityName, layout = 'vertical' }: Ci
     const fetchWeatherByCity = async () => {
       try {
         setLoading(true);
-        // Step 1: Geocoding
-        const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}&count=1&language=ar&format=json`);
-        const geoData = await geoRes.json();
+        let latitude, longitude;
 
-        if (!geoData.results || geoData.results.length === 0) {
-          throw new Error("لم نتمكن من العثور على إحداثيات المدينة");
+        // Step 1: Check local data first for performance and reliability
+        const normalize = (name: string) => name.replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').trim();
+        const normalizedInput = normalize(cityName);
+        
+        let localCity = GOVERNORATES_COORDINATES[cityName];
+        if (!localCity) {
+          // Try finding it by normalized key
+          const foundKey = Object.keys(GOVERNORATES_COORDINATES).find(k => normalize(k) === normalizedInput);
+          if (foundKey) localCity = GOVERNORATES_COORDINATES[foundKey];
         }
 
-        const { latitude, longitude } = geoData.results[0];
+        if (localCity) {
+          latitude = localCity.lat;
+          longitude = localCity.lng;
+        } else {
+          // Step 2: External Geocoding as fallback
+          let response = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}&count=1&language=ar&format=json`);
+          let geoData = await response.json();
+
+          if (!geoData.results || geoData.results.length === 0) {
+            // Fallback to English if Arabic fails
+            response = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}&count=1&language=en&format=json`);
+            geoData = await response.json();
+          }
+
+          if (!geoData.results || geoData.results.length === 0) {
+            throw new Error("لم نتمكن من العثور على إحداثيات المدينة");
+          }
+          latitude = geoData.results[0].latitude;
+          longitude = geoData.results[0].longitude;
+        }
 
         // Step 2: Weather
         const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=auto`);

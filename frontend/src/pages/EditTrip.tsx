@@ -20,6 +20,8 @@ import { useUser, useAuth } from "@clerk/clerk-react";
 import { TripActivity, TripDay, FoodPlace, Hotel } from "@/lib/trips-data";
 import { getTrip, updateTrip, getCloudinarySignature } from "@/lib/api";
 import UploadProgressLoader from "@/components/UploadProgressLoader";
+import { EGYPT_CITIES_LIST } from "@/lib/egypt-data";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const EditTrip = () => {
   const { id } = useParams<{ id: string }>();
@@ -758,24 +760,21 @@ const EditTrip = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                        <div className="space-y-4">
                           <Label className="text-xl font-black text-gray-900 pr-2">الوجهة</Label>
-                          <Select value={tripData.destination} onValueChange={(v) => {
-                             const city = destinationMap[v] || v;
-                             setTripData({...tripData, destination: v, city});
-                          }}>
-                             <SelectTrigger className="h-16 rounded-2xl bg-gray-50 border-gray-100 text-lg font-bold">
-                                <SelectValue placeholder="اختر المدينة" />
-                             </SelectTrigger>
-                             <SelectContent>
-                                <SelectItem value="alexandria">الإسكندرية</SelectItem>
-                                <SelectItem value="matrouh">مرسى مطروح</SelectItem>
-                                <SelectItem value="luxor">الأقصر</SelectItem>
-                                <SelectItem value="aswan">أسوان</SelectItem>
-                                <SelectItem value="hurghada">الغردقة</SelectItem>
-                                <SelectItem value="sharm">شرم الشيخ</SelectItem>
-                                <SelectItem value="dahab">دهب</SelectItem>
-                                <SelectItem value="bahariya">الواحات البحرية</SelectItem>
-                             </SelectContent>
-                          </Select>
+                           <Select value={tripData.destination} onValueChange={(v) => {
+                              const city = v;
+                              setTripData({...tripData, destination: v, city});
+                           }}>
+                              <SelectTrigger className="h-16 rounded-2xl bg-gray-50 border-gray-100 text-lg font-bold">
+                                 <SelectValue placeholder="اختر المدينة" />
+                              </SelectTrigger>
+                              <SelectContent className="max-h-[300px]">
+                                 {EGYPT_CITIES_LIST.map((city) => (
+                                   <SelectItem key={city.nameAr} value={city.nameAr}>
+                                     {city.emoji} {city.nameAr}
+                                   </SelectItem>
+                                 ))}
+                              </SelectContent>
+                           </Select>
                        </div>
                        <div className="space-y-4">
                           <Label className="text-xl font-black text-gray-900 pr-2">الموسم (اختياري)</Label>
@@ -906,10 +905,20 @@ const EditTrip = () => {
                                               newLocs[idx].name = e.target.value;
                                               setLocations(newLocs);
                                             }}
-                                            placeholder={`موقع ${idx + 1}`}
-                                            className="h-9 font-bold border-gray-100 bg-gray-50 focus:bg-white transition-all"
+                                            placeholder={`اسم الموقع (مثال: قلعة قايتباي)`}
+                                            className="h-9 font-bold border-gray-100 bg-gray-50 focus:bg-white transition-all mb-2"
                                           />
-                                          <div className="flex items-center gap-2 text-[10px] text-gray-400 font-mono">
+                                          <Textarea 
+                                            value={loc.description} 
+                                            onChange={(e) => {
+                                              const newLocs = [...locations];
+                                              newLocs[idx].description = e.target.value;
+                                              setLocations(newLocs);
+                                            }}
+                                            placeholder="وصف مختصر للنشاط..."
+                                            className="min-h-[60px] text-xs border-gray-100 bg-gray-50/50 focus:bg-white transition-all resize-none"
+                                          />
+                                          <div className="flex items-center gap-2 text-[10px] text-gray-400 font-mono mt-1">
                                              <span>{loc.coordinates[0].toFixed(4)}, {loc.coordinates[1].toFixed(4)}</span>
                                           </div>
                                        </div>
@@ -999,7 +1008,7 @@ const EditTrip = () => {
                      <CardTitle className="text-3xl font-black text-gray-900">جدولة الرحلة</CardTitle>
                      <p className="text-gray-500 font-bold mt-2">قم بزيادة جودة رحلتك بتنظيم المواقع حسب الأيام.</p>
                   </CardHeader>
-                   <CardContent className="p-6 h-[calc(100vh-200px)]">
+                   <CardContent className="p-6 h-[calc(100vh-250px)] lg:h-[700px] min-h-[500px]">
                      <div className="grid grid-cols-12 gap-6 h-full">
                         {/* Days Sidebar - Col 3 */}
                         <div className="col-span-3 h-full flex flex-col space-y-4 border-l border-gray-100 pl-4">
@@ -1094,8 +1103,9 @@ const EditTrip = () => {
                                  ) : (
                                     days[currentDay-1]?.activities.map((actIdx) => {
                                        const act = activities[actIdx];
+                                       if (!act) return null;
                                        return (
-                                          <div key={actIdx} className="bg-white rounded-2xl p-4 shadow-sm border border-emerald-100 flex items-center justify-between group">
+                                          <div key={`act-${actIdx}-${Math.random()}`} className="bg-white rounded-2xl p-4 shadow-sm border border-emerald-100 flex items-center justify-between group">
                                              <div className="flex items-center gap-4">
                                                 <Badge variant="outline" className="h-8 w-8 rounded-full flex items-center justify-center p-0 border-emerald-200 text-emerald-600 bg-emerald-50 font-mono">
                                                    {days[currentDay-1]?.activities.indexOf(actIdx) + 1}
@@ -1143,7 +1153,7 @@ const EditTrip = () => {
                           تجارب المطاعم والأكلات
                        </CardTitle>
                     </CardHeader>
-                    <CardContent className="p-6 h-[calc(100vh-200px)]">
+                    <CardContent className="p-6 h-[calc(100vh-250px)] lg:h-[700px] min-h-[500px]">
                        <div className="grid grid-cols-12 gap-6 h-full">
                           {/* Form Section */}
                           <div className="col-span-12 lg:col-span-4 h-full flex flex-col space-y-4 border-l border-gray-100 pl-4 overflow-y-auto custom-scrollbar">
@@ -1295,7 +1305,7 @@ const EditTrip = () => {
                           أماكن الإقامة والفنادق
                        </CardTitle>
                     </CardHeader>
-                    <CardContent className="p-6 h-[calc(100vh-200px)]">
+                    <CardContent className="p-6 h-[calc(100vh-250px)] lg:h-[700px] min-h-[500px]">
                        <div className="grid grid-cols-12 gap-6 h-full">
                           {/* Form Section */}
                           <div className="col-span-12 lg:col-span-4 h-full flex flex-col space-y-4 border-l border-gray-100 pl-4 overflow-y-auto custom-scrollbar">
@@ -1508,8 +1518,9 @@ const EditTrip = () => {
                                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                     {day.activities.length > 0 ? day.activities.map(actIdx => {
                                        const act = activities[actIdx];
+                                       if (!act) return null;
                                        return (
-                                          <div key={actIdx} className="bg-white border border-gray-100 rounded-2xl p-3 flex gap-3 shadow-sm hover:shadow-md transition-all">
+                                          <div key={`act-${actIdx}-${Math.random()}`} className="bg-white border border-gray-100 rounded-2xl p-3 flex gap-3 shadow-sm hover:shadow-md transition-all">
                                              <div className="w-16 h-16 rounded-xl bg-gray-100 shrink-0 overflow-hidden">
                                                 {act.images?.[0] ? <img src={typeof act.images[0] === 'string' ? act.images[0] : ''} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center bg-gray-50"><MapPin className="w-6 h-6 text-gray-300" /></div>}
                                              </div>

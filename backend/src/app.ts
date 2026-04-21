@@ -901,65 +901,260 @@ export function createApp() {
 
     app.get("/api/proxy/hotels", async (req, res) => {
         try {
-            const { city } = req.query;
-            if (!city) return res.status(400).json({ error: "City is required" });
+            const { city, budget, checkIn, checkOut, lat: qLat, lon: qLon, location_id: qLocationId } = req.query;
+            // Prioritize RAPIDAPI_KEY from .env, then RAPIDAPI_HOTELS_KEY, then the fallback
+            const HOTELS_KEY = process.env.RAPIDAPI_KEY_HOTELS_TRIP_ADVISOR;
+            const GEOAPIFY_KEY = process.env.GEOAPIFY_API_KEY;
 
-            const fullUrl = `https://api.hotels-api.com/v1/hotels/search?city=${encodeURIComponent(String(city))}`;
-            console.log(`[v2-AXIOS] Attempting to fetch hotels for: ${city} (URL: ${fullUrl})`);
-            
-            const response = await axios.get(fullUrl, {
-                headers: {
-                    'X-API-KEY': process.env.HOTELS_API_KEY || '',
-                    'User-Agent': 'curl/8.9.1',
-                    'Accept': 'application/json, text/plain, */*',
-                    'Cache-Control': 'no-cache',
-                    'Connection': 'keep-alive'
-                },
-                httpsAgent: new https.Agent({  
-                    rejectUnauthorized: false,
-                    keepAlive: true,
-                    family: 4 // Force IPv4 to avoid IPv6 timeouts
-                }),
-                proxy: false, // Disable system proxy usage
-                timeout: 30000 
-            });
-            
-            console.log(`[v2-AXIOS] Success! Received data for ${city}`);
-            res.json(response.data);
-        } catch (error: any) {
-            console.error("Proxy error [v2-AXIOS]:", error.message);
-            if (error.response) {
-                console.error("API Response error status:", error.response.status, "data:", error.response.data);
-                res.status(error.response.status).json({
-                    error: "Hotel API responded with error",
-                    status: error.response.status,
-                    data: error.response.data,
-                    v: "v2-AXIOS"
-                });
-            } else {
-                res.status(500).json({ 
-                    error: "Proxy connection failed [v2-AXIOS]",
-                    details: error.message,
-                    code: error.code
-                });
+            // Generate default dates if missing (Very important for Tripadvisor API)
+            const today = new Date();
+            const tomorrow = new Date(today);
+            tomorrow.setDate(today.getDate() + 1);
+            const in4Days = new Date(today);
+            in4Days.setDate(today.getDate() + 4);
+
+            const finalCheckIn = checkIn || tomorrow.toISOString().split('T')[0];
+            const finalCheckOut = checkOut || in4Days.toISOString().split('T')[0];
+
+            let lat = qLat;
+            let lon = qLon;
+            let formattedHotels: any[] = [];
+
+            let rawHotels: any[] = [];
+            try {
+                let hotelsUrl = "";
+                if (qLocationId) {
+                    console.log(`[Hotels Proxy] Trying Tripadvisor16 geoId: ${qLocationId}`);
+                    hotelsUrl = `https://tripadvisor16.p.rapidapi.com/api/v1/hotels/searchHotels?geoId=${qLocationId}&checkIn=${finalCheckIn}&checkOut=${finalCheckOut}&pageNumber=1&currencyCode=EGP`;
+                } else {
+                    if (!lat || !lon) {
+                        try {
+                            const geocodeUrl = `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(String(city))}&apiKey=${GEOAPIFY_KEY}`;
+                            const geocodeRes = await axios.get(geocodeUrl);
+                            if (geocodeRes.data.results?.[0]) {
+                                lat = geocodeRes.data.results[0].lat;
+                                lon = geocodeRes.data.results[0].lon;
+                            }
+                        } catch (e) { console.error("Geocoding failed"); }
+                    }
+                    
+                    if (lat && lon) {
+                        console.log(`[Hotels Proxy] Falling back to Tripadvisor16 lat/lng search: ${lat}, ${lon}`);
+                        hotelsUrl = `https://tripadvisor16.p.rapidapi.com/api/v1/hotels/searchHotelsByLocation?latitude=${lat}&longitude=${lon}&checkIn=${finalCheckIn}&checkOut=${finalCheckOut}&currencyCode=EGP`;
+                    }
+                }
+
+                if (hotelsUrl) {
+                    let response = await axios.get(hotelsUrl, {
+                        headers: {
+                            'X-RapidAPI-Key': HOTELS_KEY,
+                            'X-RapidAPI-Host': 'tripadvisor16.p.rapidapi.com'
+                        },
+                        timeout: 12000
+                    });
+
+                    // Comprehensive data extraction for Tripadvisor16
+                    rawHotels = response.data?.data?.data || response.data?.data || response.data?.hotels || response.data?.results || [];
+                    
+                    if (!Array.isArray(rawHotels) && typeof response.data?.data === 'object') {
+                         const possibleKeys = ['data', 'hotels', 'results', 'items', 'list'];
+                         for (const key of possibleKeys) {
+                             if (Array.isArray(response.data.data[key])) {
+                                 rawHotels = response.data.data[key];
+                                 break;
+                             }
+                         }
+                    }
+                }
+
+                // Intermediate Fallback: If geoId search returned nothing, try lat/lng search
+                if ((!rawHotels || rawHotels.length === 0) && lat && lon) {
+                    console.log(`[Hotels Proxy] No results for geoId ${qLocationId}, trying lat/lng search...`);
+                    const fallbackUrl = `https://tripadvisor16.p.rapidapi.com/api/v1/hotels/searchHotelsByLocation?latitude=${lat}&longitude=${lon}&checkIn=${finalCheckIn}&checkOut=${finalCheckOut}&currencyCode=EGP`;
+                    let fbResponse = await axios.get(fallbackUrl, {
+                        headers: {
+                            'X-RapidAPI-Key': HOTELS_KEY,
+                            'X-RapidAPI-Host': 'tripadvisor16.p.rapidapi.com'
+                        },
+                        timeout: 10000
+                    }).catch(() => null);
+
+                    if (fbResponse?.data) {
+                        const fbData = fbResponse.data?.data?.data || fbResponse.data?.data || fbResponse.data?.hotels || fbResponse.data?.results || [];
+                        if (Array.isArray(fbData) && fbData.length > 0) {
+                            rawHotels = fbData;
+                        }
+                }
             }
+
+            // FALLBACK: If Tripadvisor16 failed or returned nothing, try Booking.com
+                if ((!rawHotels || rawHotels.length === 0) && lat && lon) {
+                    console.log(`[Hotels Proxy] Tripadvisor16 returned no results. Falling back to Booking.com...`);
+                    const bookingUrl = `https://booking-com.p.rapidapi.com/v1/hotels/search-by-coordinates?longitude=${lon}&latitude=${lat}&checkin_date=${finalCheckIn}&checkout_date=${finalCheckOut}&locale=en-gb&filter_by_currency=EGP&room_number=1&adults_number=2&order_by=popularity&units=metric&page_number=0&include_adjacency=true`;
+                    
+                    const bRes = await axios.get(bookingUrl, {
+                        headers: {
+                            'X-RapidAPI-Key': HOTELS_KEY,
+                            'X-RapidAPI-Host': 'booking-com.p.rapidapi.com'
+                        },
+                        timeout: 12000
+                    });
+                    
+                    const bData = bRes.data?.result || bRes.data?.data || bRes.data || [];
+                    if (Array.isArray(bData)) {
+                        rawHotels = bData.map((h: any) => ({
+                            id: h.hotel_id,
+                            title: h.hotel_name,
+                            name: h.hotel_name,
+                            bubbleRating: { rating: h.review_score / 2 || 4.5 },
+                            rating: h.review_score / 2 || 4.5,
+                            priceForDisplay: h.min_total_price ? `${h.min_total_price} EGP` : "Check Price",
+                            cardPhotos: [{ sizes: { urlTemplate: h.main_photo_url?.replace('square60', 'max1280x900') } }],
+                            latitude: h.latitude,
+                            longitude: h.longitude,
+                            address: h.address || h.city
+                        }));
+                    }
+                }
+                
+                if (!Array.isArray(rawHotels)) rawHotels = [];
+
+                formattedHotels = rawHotels
+                    .filter((h: any) => h && (h.title || h.name || h.hotel_name))
+                    .map((h: any) => {
+                        let photoUrl = "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=500&q=80";
+                        
+                        if (h.cardPhotos?.[0]?.sizes?.urlTemplate) {
+                            photoUrl = h.cardPhotos[0].sizes.urlTemplate
+                                .replace('{width}', '800')
+                                .replace('{height}', '500');
+                        } else if (h.heroImage?.urlTemplate) {
+                             photoUrl = h.heroImage.urlTemplate
+                                .replace('{width}', '800')
+                                .replace('{height}', '500');
+                        } else if (h.photo?.images?.large?.url) {
+                            photoUrl = h.photo.images.large.url;
+                        }
+
+                        const price = h.priceForDisplay || 
+                                      h.commerceInfo?.priceForDisplay?.text || 
+                                      h.priceSummary?.price?.text ||
+                                      "جاري التحقق";
+
+                        return {
+                            location_id: h.id || h.hotelId || String(Math.random()),
+                            name: h.title || h.name || "فندق في " + city,
+                            latitude: h.latitude,
+                            longitude: h.longitude,
+                            address: h.address || String(city),
+                            rating: h.bubbleRating?.rating || h.rating || "4.5",
+                            price: price,
+                            photo: {
+                                images: {
+                                    medium: { url: photoUrl },
+                                    large: { url: photoUrl }
+                                }
+                            },
+                            amenities: ["Wi-Fi", "Parking", "Pool"]
+                        };
+                    });
+                
+                console.log(`[Hotels Proxy] Found ${formattedHotels.length} hotels`);
+
+                // EXTRA SAFETY: If location_id returned 0, try list-by-latlng as last resort
+                if (formattedHotels.length === 0 && qLocationId && (qLat || qLon || city)) {
+                    console.log(`[Hotels Proxy] 0 results for geoId ${qLocationId}, trying lat/lng fallback...`);
+                    // We recursive-like call ourselves or just run the other URL logic
+                    // For simplicity, just return empty and let frontend fallback, 
+                    // or implement a quick retry here.
+                }
+
+                return res.json(formattedHotels);
+
+            } catch (apiErr: any) {
+                console.error("[Hotels Proxy] Internal fetch failed:", apiErr.message);
+                return res.json([]); // Return empty list on failure
+            }
+        } catch (error: any) {
+            console.error("Hotels Proxy critical error:", error.message);
+            res.status(500).json({ error: error.message });
         }
     });
 
     // RapidAPI proxies to prevent CORS issues on the frontend
-    const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY || '8887399421msh0d6d70328fb0fa5p1da174jsn2a02cf1627bc';
+    const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY || '2ed4a558c2mshe06fddea2ff2dd5p196f5ejsne6f896119af2';
     
     app.get("/api/proxy/search", async (req, res) => {
         try {
             const { query } = req.query;
-            const fullUrl = `https://travel-advisor.p.rapidapi.com/locations/search?query=${encodeURIComponent(String(query))}&limit=1&offset=0&units=km&currency=USD&sort=relevance&lang=en_US`;
-            const response = await axios.get(fullUrl, {
-                headers: {
-                    'X-RapidAPI-Key': RAPIDAPI_KEY,
-                    'X-RapidAPI-Host': 'travel-advisor.p.rapidapi.com'
+            console.log(`[Search Proxy] Dual-search for: ${query}`);
+            
+            let taLocationId: string | null = null;
+            let taName: string | null = null;
+            let taLat: string | null = null;
+            let taLng: string | null = null;
+            let t16GeoId: string | null = null;
+
+            // Run both APIs in parallel for speed
+            const [taResult, t16Result] = await Promise.allSettled([
+                // Travel Advisor → numeric location_id for attractions/restaurants
+                axios.get(
+                    `https://travel-advisor.p.rapidapi.com/locations/search?query=${encodeURIComponent(String(query))}&limit=1&offset=0&units=km&currency=USD&sort=relevance&lang=en_US`,
+                    { headers: { 'X-RapidAPI-Key': RAPIDAPI_KEY, 'X-RapidAPI-Host': 'travel-advisor.p.rapidapi.com' }, timeout: 8000 }
+                ),
+                // Tripadvisor16 → geoId for hotels
+                axios.get(
+                    `https://tripadvisor16.p.rapidapi.com/api/v1/hotels/searchLocation?query=${encodeURIComponent(String(query))}`,
+                    { headers: { 'X-RapidAPI-Key': RAPIDAPI_KEY, 'X-RapidAPI-Host': 'tripadvisor16.p.rapidapi.com' }, timeout: 8000 }
+                )
+            ]);
+
+            // Extract Travel Advisor result
+            if (taResult.status === 'fulfilled') {
+                const firstResult = taResult.value.data?.data?.[0]?.result_object;
+                if (firstResult?.location_id) {
+                    taLocationId = firstResult.location_id;
+                    taName = firstResult.name;
+                    taLat = firstResult.latitude;
+                    taLng = firstResult.longitude;
+                    console.log(`[Search Proxy] TA: ${taName} (id: ${taLocationId}, lat: ${taLat})`);
                 }
+            } else {
+                console.warn(`[Search Proxy] Travel Advisor failed: ${taResult.reason?.message}`);
+            }
+
+            // Extract Tripadvisor16 result
+            if (t16Result.status === 'fulfilled') {
+                const t16Items = t16Result.value.data?.data || [];
+                if (Array.isArray(t16Items) && t16Items.length > 0) {
+                    t16GeoId = t16Items[0].geoId || t16Items[0].locationId;
+                    // Also use T16 coords if TA didn't return them
+                    if (!taLat && t16Items[0].latitude) taLat = t16Items[0].latitude;
+                    if (!taLng && t16Items[0].longitude) taLng = t16Items[0].longitude;
+                    console.log(`[Search Proxy] T16 geoId: ${t16GeoId}`);
+                }
+            } else {
+                console.warn(`[Search Proxy] Tripadvisor16 failed: ${t16Result.reason?.message}`);
+            }
+
+            if (!taLocationId && !t16GeoId) {
+                console.warn(`[Search Proxy] No results found for: ${query}`);
+                return res.json({ data: [] });
+            }
+
+            // Return BOTH IDs — frontend uses location_id for attractions/restaurants,
+            // geoId is passed separately to the hotels proxy
+            res.json({
+                data: [{
+                    result_object: {
+                        location_id: taLocationId || t16GeoId, // TA id primary, T16 geoId fallback
+                        geoId: t16GeoId,                        // T16 geoId specifically for hotels
+                        name: taName || String(query),
+                        latitude: taLat,
+                        longitude: taLng
+                    }
+                }]
             });
-            res.json(response.data);
         } catch(error: any) { 
             console.error("Proxy search error:", error.message);
             res.status(500).json({ error: error.message });
@@ -969,14 +1164,77 @@ export function createApp() {
     app.get("/api/proxy/attractions", async (req, res) => {
         try {
             const { location_id, limit } = req.query;
-            const fullUrl = `https://travel-advisor.p.rapidapi.com/attractions/list?location_id=${location_id}&currency=USD&lang=en_US&lunit=km&limit=${limit || 10}&sort=recommended`;
-            const response = await axios.get(fullUrl, {
-                headers: {
-                    'X-RapidAPI-Key': RAPIDAPI_KEY,
-                    'X-RapidAPI-Host': 'travel-advisor.p.rapidapi.com'
+            if (!location_id || location_id === 'undefined') {
+                return res.json({ data: [] });
+            }
+            console.log(`[Attractions Proxy] Travel Advisor - location_id: ${location_id}`);
+
+            const fullUrl = `https://travel-advisor.p.rapidapi.com/attractions/list?location_id=${location_id}&currency=USD&lang=en_US&lunit=km&limit=${limit || 12}&sort=recommended`;
+            let response;
+            try {
+                response = await axios.get(fullUrl, {
+                    headers: {
+                        'X-RapidAPI-Key': RAPIDAPI_KEY,
+                        'X-RapidAPI-Host': 'travel-advisor.p.rapidapi.com'
+                    },
+                    timeout: 10000
+                });
+            } catch (err: any) {
+                console.warn(`[Attractions Proxy] Primary key failed, trying fallback...`);
+                const fallbackKey = '2ed4a558c2mshe06fddea2ff2dd5p196f5ejsne6f896119af2';
+                response = await axios.get(fullUrl, {
+                    headers: {
+                        'X-RapidAPI-Key': fallbackKey,
+                        'X-RapidAPI-Host': 'travel-advisor.p.rapidapi.com'
+                    },
+                    timeout: 10000
+                });
+            }
+
+            // Robustly extract data array from various possible structures
+            let rawData = response.data?.data || response.data?.results || response.data || [];
+            if (!Array.isArray(rawData) && typeof response.data === 'object') {
+                const keys = ['data', 'results', 'items', 'attractions'];
+                for (const k of keys) {
+                    if (Array.isArray(response.data[k])) {
+                        rawData = response.data[k];
+                        break;
+                    }
                 }
+            }
+            
+            const results = Array.isArray(rawData) ? rawData.filter((item: any) => item && (item.name || item.title)) : [];
+
+            console.log(`[Attractions Proxy] Found ${results.length} attractions`);
+
+            const normalized = results.map((item: any) => {
+                // Travel Advisor stores photos in photo.images nested object
+                const photoUrl = item.photo?.images?.large?.url
+                    || item.photo?.images?.medium?.url
+                    || item.photo?.images?.original?.url
+                    || "https://images.unsplash.com/photo-1548013146-72479768bbaa?w=800&q=80";
+
+                return {
+                    location_id: item.location_id || String(Math.random()),
+                    name: item.name || "معلم سياحي",
+                    description: item.description || item.ranking_denominator || "",
+                    rating: String(item.rating || item.bubbleRating?.rating || "4.5"),
+                    num_reviews: item.num_reviews || "0",
+                    ranking: item.ranking || "",
+                    latitude: item.latitude,
+                    longitude: item.longitude,
+                    address: item.address || "",
+                    website: item.website || "",
+                    photo: {
+                        images: {
+                            large: { url: photoUrl },
+                            medium: { url: item.photo?.images?.medium?.url || photoUrl }
+                        }
+                    }
+                };
             });
-            res.json(response.data);
+
+            res.json({ data: normalized });
         } catch(error: any) { 
             console.error("Proxy attractions error:", error.message);
             res.status(500).json({ error: error.message });
@@ -986,16 +1244,109 @@ export function createApp() {
     app.get("/api/proxy/restaurants", async (req, res) => {
         try {
             const { location_id, limit } = req.query;
-            const fullUrl = `https://travel-advisor.p.rapidapi.com/restaurants/list?location_id=${location_id}&currency=USD&lang=en_US&lunit=km&limit=${limit || 10}&sort=recommended`;
-            const response = await axios.get(fullUrl, {
-                headers: {
-                    'X-RapidAPI-Key': RAPIDAPI_KEY,
-                    'X-RapidAPI-Host': 'travel-advisor.p.rapidapi.com'
+            if (!location_id || location_id === 'undefined') {
+                return res.json({ data: [] });
+            }
+            console.log(`[Restaurants Proxy] Travel Advisor - location_id: ${location_id}`);
+
+            const fullUrl = `https://travel-advisor.p.rapidapi.com/restaurants/list?location_id=${location_id}&currency=USD&lang=en_US&lunit=km&limit=${limit || 12}&sort=recommended`;
+            let response;
+            try {
+                response = await axios.get(fullUrl, {
+                    headers: {
+                        'X-RapidAPI-Key': RAPIDAPI_KEY,
+                        'X-RapidAPI-Host': 'travel-advisor.p.rapidapi.com'
+                    },
+                    timeout: 10000
+                });
+            } catch (err: any) {
+                console.warn(`[Attractions Proxy] Primary key failed, trying fallback...`);
+                const fallbackKey = '2ed4a558c2mshe06fddea2ff2dd5p196f5ejsne6f896119af2';
+                response = await axios.get(fullUrl, {
+                    headers: {
+                        'X-RapidAPI-Key': fallbackKey,
+                        'X-RapidAPI-Host': 'travel-advisor.p.rapidapi.com'
+                    },
+                    timeout: 10000
+                });
+            }
+
+            // Robustly extract data array from various possible structures
+            let rawData = response.data?.data || response.data?.results || response.data || [];
+            if (!Array.isArray(rawData) && typeof response.data === 'object') {
+                const keys = ['data', 'results', 'items', 'restaurants'];
+                for (const k of keys) {
+                    if (Array.isArray(response.data[k])) {
+                        rawData = response.data[k];
+                        break;
+                    }
                 }
+            }
+            
+            const results = Array.isArray(rawData) ? rawData.filter((item: any) => item && (item.name || item.title)) : [];
+
+            console.log(`[Restaurants Proxy] Found ${results.length} restaurants`);
+
+            const normalized = results.map((item: any) => {
+                const photoUrl = item.photo?.images?.large?.url
+                    || item.photo?.images?.medium?.url
+                    || item.photo?.images?.original?.url
+                    || "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=80";
+
+                return {
+                    location_id: item.location_id || String(Math.random()),
+                    name: item.name || "مطعم",
+                    description: item.description || "",
+                    rating: String(item.rating || item.bubbleRating?.rating || "4.3"),
+                    num_reviews: item.num_reviews || "0",
+                    price_level: item.price_level || item.price || "",
+                    latitude: item.latitude,
+                    longitude: item.longitude,
+                    address: item.address || "",
+                    phone: item.phone || "",
+                    website: item.website || "",
+                    cuisine: Array.isArray(item.cuisine) ? item.cuisine : [],
+                    photo: {
+                        images: {
+                            large: { url: photoUrl },
+                            medium: { url: item.photo?.images?.medium?.url || photoUrl }
+                        }
+                    }
+                };
             });
-            res.json(response.data);
+
+            res.json({ data: normalized });
         } catch(error: any) { 
             console.error("Proxy restaurants error:", error.message);
+            res.status(500).json({ error: error.message });
+        }
+    });
+
+    app.get("/api/proxy/hotels-by-location", async (req, res) => {
+        try {
+            const { latitude, longitude, checkIn, checkOut, units = 'metric' } = req.query;
+            
+            if (!latitude || !longitude || !checkIn || !checkOut) {
+                return res.status(400).json({ error: "Missing required parameters: latitude, longitude, checkIn, checkOut" });
+            }
+
+            const hotelsKey = process.env.RAPIDAPI_HOTELS_KEY || '2ed4a558c2mshe06fddea2ff2dd5p196f5ejsne6f896119af2';
+            
+            // Booking.com Search by Coordinates API
+            const fullUrl = `https://booking-com.p.rapidapi.com/v1/hotels/search-by-coordinates?latitude=${latitude}&longitude=${longitude}&checkin_date=${checkIn}&checkout_date=${checkOut}&units=${units}&room_number=1&adults_number=2&order_by=popularity&locale=ar&currency=EGP`;
+            
+            console.log(`[Proxy] Searching hotels near ${latitude}, ${longitude} for dates ${checkIn} to ${checkOut}`);
+            
+            const response = await axios.get(fullUrl, {
+                headers: {
+                    'X-RapidAPI-Key': hotelsKey,
+                    'X-RapidAPI-Host': 'booking-com.p.rapidapi.com'
+                }
+            });
+            
+            res.json(response.data);
+        } catch(error: any) { 
+            console.error("Proxy hotels error:", error.message);
             res.status(500).json({ error: error.message });
         }
     });

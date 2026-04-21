@@ -413,10 +413,10 @@ router.post('/', requireAuthStrict, async (req, res) => {
         isAIGenerated: true,
         postedAt: { $gte: weekAgo },
       });
-      if (count >= 3) {
+      if (count >= 20) {
         return res.status(429).json({
           error: 'AI trip quota exceeded',
-          message: 'لقد استخدمت الحد الأسبوعي لإنشاء الرحلات بالذكاء الاصطناعي (3 رحلات). يرجى المحاولة الأسبوع المقبل.',
+          message: 'لقد استخدمت الحد الأسبوعي لإنشاء الرحلات بالذكاء الاصطناعي (20 رحلة). يرجى المحاولة الأسبوع المقبل.',
         });
       }
     }
