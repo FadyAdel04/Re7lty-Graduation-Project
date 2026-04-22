@@ -229,7 +229,13 @@ router.get('/verify/:bookingId', requireAuthStrict, async (req, res) => {
     const { userId } = getAuth(req);
     const { bookingId } = req.params;
 
-    const booking = await Booking.findById(bookingId);
+    let booking = await Booking.findById(bookingId);
+    
+    // Fallback: If not found by ID, try finding by Paymob Order ID
+    if (!booking) {
+      booking = await Booking.findOne({ paymobOrderId: bookingId });
+    }
+
     if (!booking) return res.status(404).json({ error: 'Booking not found' });
     if (booking.userId !== userId) return res.status(403).json({ error: 'Unauthorized' });
 

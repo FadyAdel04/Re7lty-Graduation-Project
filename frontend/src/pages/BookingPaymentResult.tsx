@@ -31,19 +31,37 @@ const BookingPaymentResult = () => {
     const determineStatus = async () => {
       try {
         const token = await getToken();
+        
         // 1. Initial check from URL
         if (isSuccess) {
           setStatus("success");
           return;
         }
 
-        // 2. Fallback: Verify with backend (Webhook might have finished)
-        const bookingId = merchantOrderId || searchParams.get("merchant_order_id");
+        // 2. Aggressive polling for 10 seconds (webhook might be slow)
+        const bookingId = merchantOrderId || searchParams.get("merchant_order_id") || orderId;
         if (bookingId) {
-          const verify = await paymobService.verifyPayment(bookingId, token || undefined);
-          if (verify.paymentStatus === 'paid') {
-            setStatus("success");
-            return;
+          let attempts = 0;
+          const maxAttempts = 5; // Poll 5 times every 2 seconds
+          
+          const pollStatus = async () => {
+            try {
+              const verify = await paymobService.verifyPayment(bookingId, token || undefined);
+              if (verify.paymentStatus === 'paid') {
+                setStatus("success");
+                return true;
+              }
+            } catch (e) {
+              console.warn("Polling error:", e);
+            }
+            return false;
+          };
+
+          while (attempts < maxAttempts) {
+            const found = await pollStatus();
+            if (found) return;
+            attempts++;
+            await new Promise(r => setTimeout(r, 2000));
           }
         }
 
