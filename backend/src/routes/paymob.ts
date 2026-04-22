@@ -207,8 +207,7 @@ router.get('/webhook', (req, res) => {
   const queryParams = new URLSearchParams(req.query as any).toString();
   console.log('[Paymob Redirect Callback]', req.query);
 
-  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
-  const redirectUrl = `${frontendUrl}/booking-payment-result?${queryParams}`;
+  const redirectUrl = `${FRONTEND_URL}/booking-payment-result?${queryParams}`;
   
   res.redirect(redirectUrl);
 });
