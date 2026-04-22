@@ -17,8 +17,8 @@ import { Tag, Ticket } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import BusSeatLayout from "@/components/company/BusSeatLayout";
-import { Link } from "react-router-dom";
-import { validatePhone, validateEmail, validateCardNumber, validateExpiryDate, validateCVV } from "@/lib/validators";
+import { Link, useNavigate } from "react-router-dom";
+import { validatePhone, validateEmail } from "@/lib/validators";
 
 interface BookingCardProps {
   trip: Trip;
@@ -29,6 +29,7 @@ interface BookingCardProps {
 const BookingCard = ({ trip, company, sticky = false }: BookingCardProps) => {
   const { user } = useUser();
   const { getToken } = useAuth();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [showBookingDialog, setShowBookingDialog] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -41,15 +42,28 @@ const BookingCard = ({ trip, company, sticky = false }: BookingCardProps) => {
     userPhone: "",
     specialRequests: "",
     selectedSeats: [] as string[],
-    paymentMethod: "credit_card" as "credit_card" | "wallet",
-    cardNumber: "",
-    expiryDate: "",
-    cvv: "",
-    walletNumber: ""
+    paymentMethod: "card" as "card" | "wallet" | "instapay",
+    walletPhone: ""
   });
+  const [allTripBookings, setAllTripBookings] = useState<Booking[]>([]);
+
+  useEffect(() => {
+    const fetchAllBookings = async () => {
+      try {
+        const tripId = trip._id || trip.id;
+        if (tripId) {
+          const bookings = await bookingService.getTripBookings(tripId);
+          setAllTripBookings(bookings);
+        }
+      } catch (error) {
+        console.error("Error fetching all trip bookings:", error);
+      }
+    };
+    fetchAllBookings();
+  }, [trip._id, trip.id]);
 
   const [currentBusIndex, setCurrentBusIndex] = useState(0);
-  const [bookingStep, setBookingStep] = useState<1 | 2 | 3>(1);
+  const [bookingStep, setBookingStep] = useState<1 | 2>(1);
 
   const [couponCode, setCouponCode] = useState("");
   const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
@@ -183,10 +197,39 @@ const BookingCard = ({ trip, company, sticky = false }: BookingCardProps) => {
 
   // Filter booked seats for current bus
   const currentBookedSeats = useMemo(() => {
-    return (trip.seatBookings || [])
+    const list: { seatNumber: string; passengerName: string }[] = [];
+    
+    // Add existing accepted seat bookings from trip model
+    (trip.seatBookings || [])
         .filter(sb => (sb.busIndex || 0) === currentBusIndex)
-        .map(sb => ({ seatNumber: sb.seatNumber, passengerName: sb.passengerName }));
-  }, [trip.seatBookings, currentBusIndex]);
+        .forEach(sb => {
+          list.push({ seatNumber: sb.seatNumber, passengerName: sb.passengerName });
+        });
+        
+    // Add seats from all current (pending/accepted) bookings
+    allTripBookings.forEach(booking => {
+      if (booking.selectedSeats) {
+        booking.selectedSeats.forEach(seatStr => {
+          let seatNumber = seatStr;
+          let busIndex = 0;
+          if (seatStr.includes('-')) {
+            const parts = seatStr.split('-');
+            busIndex = parseInt(parts[0]) || 0;
+            seatNumber = parts[1];
+          }
+          
+          if (busIndex === currentBusIndex) {
+            // Avoid duplicates
+            if (!list.some(item => item.seatNumber === seatNumber)) {
+              list.push({ seatNumber: seatNumber, passengerName: booking.userName });
+            }
+          }
+        });
+      }
+    });
+    
+    return list;
+  }, [trip.seatBookings, allTripBookings, currentBusIndex]);
 
   // Selected seats for current bus
   const currentSelectedSeats = useMemo(() => {
@@ -204,63 +247,16 @@ const BookingCard = ({ trip, company, sticky = false }: BookingCardProps) => {
 
   const handleSubmitBooking = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Only allow submit from payment step (step 3)
-    if (bookingStep !== 3) {
-      toast({
-        title: "أكمل خطوة الدفع",
-        description: "يجب إكمال خطوة الدفع لتأكيد الحجز",
-        variant: "destructive"
-      });
-      return;
-    }
+    if (bookingStep !== 2) return;
 
-    // Require payment details before confirming
-    // Enhanced payment details validation
-    if (bookingData.paymentMethod === "credit_card") {
-      const cardCheck = validateCardNumber(bookingData.cardNumber);
-      if (!cardCheck.valid) {
-        toast({ title: "رقم البطاقة غير صحيح", description: cardCheck.message, variant: "destructive" });
-        return;
-      }
-      
-      const expiryCheck = validateExpiryDate(bookingData.expiryDate);
-      if (!expiryCheck.valid) {
-        toast({ title: "تاريخ الانتهاء غير صحيح", description: expiryCheck.message, variant: "destructive" });
-        return;
-      }
-      
-      const cvvCheck = validateCVV(bookingData.cvv);
-      if (!cvvCheck.valid) {
-        toast({ title: "رمز الأمان غير صحيح", description: cvvCheck.message, variant: "destructive" });
-        return;
-      }
-    } else {
-      const walletNum = (bookingData.walletNumber || "").replace(/\s/g, "");
-      if (!walletNum || walletNum.length < 10) {
-        toast({ title: "أدخل رقم المحفظة", description: "يرجى إدخال رقم هاتف المحفظة الإلكترونية", variant: "destructive" });
-        return;
-      }
-    }
-
-    // If user entered a coupon code, they must apply it or clear it
     if (couponCode.trim() && !appliedCoupon) {
-      toast({
-        title: "الكوبون",
-        description: "قم بتطبيق الكوبون بالضغط على «تطبيق» أو احذف الكود إذا كنت لا تريد استخدامه",
-        variant: "destructive"
-      });
+      toast({ title: "الكوبون", description: "طبّق الكوبون أو احذف الكود", variant: "destructive" });
       return;
     }
-
     if (!user) {
-       toast({
-         title: "يجب تسجيل الدخول",
-         description: "يرجى تسجيل الدخول لإتمام الحجز",
-         variant: "destructive"
-       });
-       return;
+      toast({ title: "يجب تسجيل الدخول", variant: "destructive" });
+      return;
     }
-
     const phoneCheck = validatePhone(bookingData.userPhone);
     if (!phoneCheck.valid) {
       toast({ title: "رقم الهاتف غير صحيح", description: phoneCheck.message, variant: "destructive" });
@@ -271,53 +267,26 @@ const BookingCard = ({ trip, company, sticky = false }: BookingCardProps) => {
       toast({ title: "البريد الإلكتروني غير صحيح", description: emailCheck.message, variant: "destructive" });
       return;
     }
-
     if (trip.startDate && new Date(trip.startDate) <= new Date()) {
-      toast({
-        title: "لا يمكن الحجز",
-        description: "انتهى موعد بدء الرحلة",
-        variant: "destructive"
-      });
+      toast({ title: "انتهى موعد الرحلة", variant: "destructive" });
       return;
     }
-
-    if (userBookingsForTrip.some(b => b.status === "pending" || b.status === "accepted")) {
-      toast({
-        title: "حجز مكرر",
-        description: "لديك حجز سابق لهذه الرحلة بالفعل",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Validate available seats
+    // Removed: check for existing bookings to allow multiple bookings per user
     if (bookingData.numberOfPeople > availableSeats) {
-        toast({
-            title: "عذراً، لا توجد مقاعد كافية",
-            description: `المتبقي فقط ${availableSeats} مقاعد في هذه الرحلة.`,
-            variant: "destructive"
-        });
-        return;
+      toast({ title: `لا توجد مقاعد كافية (المتاح ${availableSeats})`, variant: "destructive" });
+      return;
     }
-
-    // Validate selected seats (REQUIRED feature)
     if (bookingData.selectedSeats.length !== bookingData.numberOfPeople) {
-        toast({
-            title: "يرجى اختيار المقاعد",
-            description: `يجب عليك اختيار ${bookingData.numberOfPeople} مقاعد من المخطط لإتمام الحجز. (حالياً تم اختيار ${bookingData.selectedSeats.length})`,
-            variant: "destructive"
-        });
-        return;
+      toast({ title: `اختر ${bookingData.numberOfPeople} مقاعد (اخترت ${bookingData.selectedSeats.length})`, variant: "destructive" });
+      return;
     }
 
     setIsSubmitting(true);
     try {
       const token = await getToken();
-      
-      if (!trip._id) {
-        throw new Error("Trip ID is missing");
-      }
-      
+      if (!trip._id) throw new Error("Trip ID is missing");
+
+      // Step 1: Create the booking
       const bookingPayload = {
         tripId: trip._id || trip.id,
         numberOfPeople: bookingData.numberOfPeople,
@@ -332,43 +301,20 @@ const BookingCard = ({ trip, company, sticky = false }: BookingCardProps) => {
         discountApplied: discount,
         totalPrice: totalPrice,
       };
-
       const result = await bookingService.createBooking(bookingPayload, token || undefined);
 
-      if (result.success) {
-        toast({
-          title: "تم إرسال الحجز بنجاح! 🎉",
-          description: "سيتم مراجعة طلبك وإخطارك بالنتيجة قريباً",
-        });
-        setShowBookingDialog(false);
-        setBookingData({
-          firstName: user?.firstName || "",
-          lastName: user?.lastName || "",
-          email: user?.emailAddresses?.[0]?.emailAddress || "",
-          numberOfPeople: 1,
-          userPhone: "",
-          specialRequests: "",
-          selectedSeats: [],
-          paymentMethod: 'credit_card',
-          cardNumber: "",
-          expiryDate: "",
-          cvv: "",
-          walletNumber: ""
-        });
+      if (!result.success) throw new Error("فشل إنشاء الحجز");
 
-        if (user) {
-           setTimeout(async () => {
-             const allBookings = await bookingService.getMyBookings(token || undefined);
-             const filtered = allBookings.filter(b => b.tripId === (trip._id || trip.id));
-             setUserBookingsForTrip(filtered);
-           }, 1000);
-        }
-      }
+      const bookingId = result.booking._id;
+
+      // Redirect to the new dedicated payment page
+      toast({ title: "تم إنشاء الحجز", description: "جاري تحويلك لصفحة الدفع الآمن" });
+      navigate(`/booking/${bookingId}/pay`);
     } catch (error: any) {
-      console.error("Booking error:", error);
+      console.error("Booking/Payment error:", error);
       toast({
-        title: "فشل إرسال الحجز",
-        description: error.response?.data?.error || "حدث خطأ أثناء إرسال الحجز. يرجى المحاولة مرة أخرى",
+        title: "فشل إتمام العملية",
+        description: error.response?.data?.error || error.message || "حدث خطأ. يرجى المحاولة مرة أخرى",
         variant: "destructive"
       });
     } finally {
@@ -494,7 +440,7 @@ const BookingCard = ({ trip, company, sticky = false }: BookingCardProps) => {
                 </div>
                 {/* Step indicator */}
                 <div className="flex items-center gap-1 sm:gap-2">
-                   {[1, 2, 3].map((step) => (
+                   {[1, 2].map((step) => (
                      <div key={step} className="flex items-center">
                         <div className={cn(
                           "flex items-center justify-center rounded-full w-8 h-8 sm:w-9 sm:h-9 text-xs font-black border-2 transition-all",
@@ -503,9 +449,9 @@ const BookingCard = ({ trip, company, sticky = false }: BookingCardProps) => {
                           {bookingStep > step ? <Check className="w-4 h-4" /> : step}
                         </div>
                         <span className={cn("mr-1.5 sm:mr-2 text-[10px] sm:text-xs font-bold hidden sm:inline", bookingStep === step ? "text-white" : "text-white/70")}>
-                          {step === 1 ? "البيانات" : step === 2 ? "المقاعد" : "الدفع"}
+                          {step === 1 ? "البيانات" : "المقاعد"}
                         </span>
-                        {step < 3 && <ChevronLeft className="w-4 h-4 text-white/40 -mr-0.5" />}
+                        {step < 2 && <ChevronLeft className="w-4 h-4 text-white/40 -mr-0.5" />}
                      </div>
                    ))}
                 </div>
@@ -515,7 +461,7 @@ const BookingCard = ({ trip, company, sticky = false }: BookingCardProps) => {
           <form
             onSubmit={handleSubmitBooking}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && bookingStep !== 3) e.preventDefault();
+              if (e.key === "Enter" && bookingStep !== 2) e.preventDefault();
             }}
             className="flex-1 min-h-0 flex flex-col bg-gray-50/50 relative overflow-hidden"
           >
@@ -650,104 +596,34 @@ const BookingCard = ({ trip, company, sticky = false }: BookingCardProps) => {
                  </div>
                )}
 
-               {/* Step 3: Payment */}
-               {bookingStep === 3 && (
-                 <div className="max-w-lg mx-auto space-y-4">
-                    <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-                       <div className="flex items-center gap-2 mb-4">
-                          <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600 border border-emerald-100">
-                             <CreditCard className="w-4 h-4" />
-                          </div>
-                          <h4 className="text-base font-black text-gray-900">الدفع</h4>
-                       </div>
-                       <div className="bg-slate-900 rounded-2xl p-4 text-white space-y-3">
-                          <div className="flex p-1 bg-white/5 rounded-lg border border-white/10">
-                             <button type="button" onClick={() => setBookingData({...bookingData, paymentMethod: 'credit_card'})}
-                                className={cn("flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md font-black text-xs touch-manipulation", bookingData.paymentMethod === 'credit_card' ? "bg-white text-slate-900" : "text-gray-400 hover:text-white")}>
-                                <CreditCard className="w-4 h-4" /> بطاقة بنكية
-                             </button>
-                             <button type="button" onClick={() => setBookingData({...bookingData, paymentMethod: 'wallet'})}
-                                className={cn("flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md font-black text-xs touch-manipulation", bookingData.paymentMethod === 'wallet' ? "bg-white text-slate-900" : "text-gray-400 hover:text-white")}>
-                                <Wallet className="w-4 h-4" /> محفظة
-                             </button>
-                          </div>
-                          {bookingData.paymentMethod === 'credit_card' ? (
-                             <div className="space-y-2">
-                                 <Input 
-                                    placeholder="رقم البطاقة" 
-                                    className="bg-white/5 border-white/10 text-white h-10 rounded-lg text-xs" 
-                                    value={bookingData.cardNumber} 
-                                    onChange={(e) => {
-                                       let v = e.target.value.replace(/\D/g, "");
-                                       // Format: xxxx xxxx xxxx xxxx
-                                       v = v.replace(/(\d{4})(?=\d)/g, "$1 ").trim();
-                                       setBookingData({...bookingData, cardNumber: v.slice(0, 19)});
-                                    }} 
-                                 />
-                                 <div className="grid grid-cols-2 gap-2">
-                                    <Input 
-                                       placeholder="MM/YY" 
-                                       className="bg-white/5 border-white/10 text-white h-10 rounded-lg text-center text-xs" 
-                                       value={bookingData.expiryDate} 
-                                       onChange={(e) => {
-                                          let v = e.target.value.replace(/\D/g, "");
-                                          if (v.length > 2) v = v.slice(0, 2) + "/" + v.slice(2, 4);
-                                          setBookingData({...bookingData, expiryDate: v.slice(0, 5)});
-                                       }} 
-                                    />
-                                    <Input 
-                                       placeholder="CVV" 
-                                       type="password"
-                                       className="bg-white/5 border-white/10 text-white h-10 rounded-lg text-center text-xs" 
-                                       value={bookingData.cvv} 
-                                       onChange={(e) => setBookingData({...bookingData, cvv: e.target.value.replace(/\D/g, "").slice(0, 4)})} 
-                                    />
-                                 </div>
-                             </div>
-                          ) : (
-                             <div className="relative">
-                                                                 <Input 
-                                    placeholder="01x xxxx xxxx" 
-                                    inputMode="numeric" 
-                                    className="bg-white/5 border-white/10 text-white h-11 rounded-lg pr-10 text-sm" 
-                                    value={bookingData.walletNumber} 
-                                    onChange={(e) => {
-                                       let v = e.target.value.replace(/\D/g, "");
-                                       if (v.length > 3 && v.length <= 7) v = v.slice(0, 3) + " " + v.slice(3);
-                                       else if (v.length > 7) v = v.slice(0, 3) + " " + v.slice(3, 7) + " " + v.slice(7);
-                                       setBookingData({...bookingData, walletNumber: v.slice(0, 13)});
-                                    }} 
-                                 />
-                                <Wallet className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-indigo-400" />
-                             </div>
-                          )}
-                       </div>
-                    </div>
-                    <div className="p-3 bg-gray-50 rounded-2xl border border-gray-100">
-                       <Label className="text-xs font-black text-gray-500 mb-2 block">كوبون خصم</Label>
+              {/* Coupon and Summary moved to step 2 for transparency */}
+               {bookingStep === 2 && (
+                 <div className="max-w-lg mx-auto space-y-4 mt-6">
+                    <div className="p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100/50">
+                       <Label className="text-xs font-black text-indigo-600 mb-2 block">هل لديك كوبون خصم؟</Label>
                        <div className="flex gap-2">
-                          <Input value={couponCode} onChange={(e) => setCouponCode(e.target.value.toUpperCase())} placeholder="ادخل الكود..." className="h-10 flex-1 text-sm rounded-lg" disabled={!!appliedCoupon} />
+                          <Input value={couponCode} onChange={(e) => setCouponCode(e.target.value.toUpperCase())} placeholder="ادخل الكود..." className="h-10 flex-1 text-sm rounded-lg bg-white border-indigo-100" disabled={!!appliedCoupon} />
                           {appliedCoupon ? (
-                             <Button type="button" variant="outline" size="sm" onClick={() => { setAppliedCoupon(null); setCouponCode(""); }} className="text-red-600 border-red-100">إلغاء</Button>
+                             <Button type="button" variant="outline" size="sm" onClick={() => { setAppliedCoupon(null); setCouponCode(""); }} className="text-red-600 border-red-100 bg-white">إلغاء</Button>
                           ) : (
                              <Button type="button" size="sm" onClick={handleValidateCoupon} disabled={!couponCode || isValidatingCoupon} className="bg-indigo-600 hover:bg-indigo-700">{isValidatingCoupon ? <Loader2 className="w-4 h-4 animate-spin" /> : "تطبيق"}</Button>
                           )}
                        </div>
                     </div>
-                    <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-                       <div className="flex justify-between border-b border-gray-100 pb-2 text-sm">
+                    <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+                       <div className="flex justify-between border-b border-gray-50 pb-2 text-sm">
                           <span className="text-gray-500 font-bold">التكلفة (x{bookingData.numberOfPeople})</span>
                           <span className="font-black text-gray-900">{subtotal.toLocaleString()} ج.م</span>
                        </div>
                        {appliedCoupon && (
-                         <div className="flex justify-between border-b border-gray-100 py-2 text-sm text-emerald-600">
-                            <span className="font-bold">خصم ({appliedCoupon.code})</span>
-                            <span className="font-black">-{discount.toLocaleString()} ج.م</span>
+                         <div className="flex justify-between border-b border-gray-50 py-2 text-sm text-emerald-600 font-bold">
+                            <span>خصم ({appliedCoupon.code})</span>
+                            <span>-{discount.toLocaleString()} ج.م</span>
                          </div>
                        )}
-                       <div className="text-center pt-3">
-                          <p className="text-xs font-black text-indigo-500 uppercase mb-1">الإجمالي</p>
-                          <p className="text-2xl font-black text-gray-900">{totalPrice.toLocaleString()} <span className="text-sm text-gray-400">ج.م</span></p>
+                       <div className="flex justify-between items-center pt-3">
+                          <p className="text-sm font-black text-gray-400 uppercase">الإجمالي النهائي</p>
+                          <p className="text-2xl font-black text-indigo-600">{totalPrice.toLocaleString()} <span className="text-sm">ج.م</span></p>
                        </div>
                     </div>
                  </div>
@@ -760,12 +636,12 @@ const BookingCard = ({ trip, company, sticky = false }: BookingCardProps) => {
                  type="button"
                  variant="outline"
                  className="rounded-xl border-gray-200 gap-1 font-bold"
-                 onClick={() => setBookingStep((s) => (s > 1 ? (s - 1) as 1 | 2 | 3 : 1))}
+                 onClick={() => setBookingStep((s) => (s > 1 ? (s - 1) as 1 | 2 : 1))}
                  style={{ visibility: bookingStep === 1 ? "hidden" : "visible" }}
                >
                  <ChevronRight className="w-4 h-4" /> رجوع
                </Button>
-               {bookingStep < 3 ? (
+               {bookingStep < 2 ? (
                  <Button
                    type="button"
                    className="rounded-xl bg-indigo-600 hover:bg-indigo-700 gap-1 font-black"
@@ -776,25 +652,22 @@ const BookingCard = ({ trip, company, sticky = false }: BookingCardProps) => {
                          return;
                        }
                        setBookingStep(2);
-                     } else if (bookingStep === 2) {
-                       if (bookingData.selectedSeats.length !== bookingData.numberOfPeople) {
-                         toast({ title: "اختر المقاعد", description: `يجب اختيار ${bookingData.numberOfPeople} مقعد`, variant: "destructive" });
-                         return;
-                       }
-                       setBookingStep(3);
                      }
                    }}
                  >
                    الخطوة التالية <ChevronLeft className="w-4 h-4" />
                  </Button>
                ) : (
-                 <Button
-                   type="submit"
-                   disabled={isSubmitting}
-                   className="rounded-xl bg-indigo-600 hover:bg-indigo-700 font-black min-h-[48px] px-6"
-                 >
-                   {isSubmitting ? <><Loader2 className="w-4 h-4 animate-spin ml-2" /> جاري المعالجة...</> : "تأكيد الحجز والدفع الآن"}
-                 </Button>
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 font-black min-h-[48px] px-6 gap-2"
+                  >
+                    {isSubmitting
+                      ? <><Loader2 className="w-4 h-4 animate-spin" /> جاري الإرسال...</>
+                      : <><CreditCard className="w-4 h-4" /> تأكيد الحجز والانتقال للدفع</>
+                    }
+                  </Button>
                )}
             </div>
           </form>

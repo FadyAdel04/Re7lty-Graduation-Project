@@ -4,6 +4,7 @@ import { requireAuthStrict, getAuth, clerkClient } from "../utils/auth";
 import { Booking } from "../models/Booking";
 import { CorporateTrip } from "../models/CorporateTrip";
 import { CorporateCompany } from "../models/CorporateCompany";
+import { User } from "../models/User";
 import { createNotification } from "../utils/notificationDispatcher";
 import { handleBookingAccepted, handleBookingCancelled } from "../utils/tripChatManager";
 import { validateEgyptPhone, validateEmail } from "../utils/validators";
@@ -53,14 +54,7 @@ router.post("/", requireAuthStrict, async (req, res) => {
             return res.status(400).json({ error: "لا توجد مقاعد كافية في هذه الرحلة" });
         }
 
-        const existingBooking = await Booking.findOne({
-            tripId,
-            userId,
-            status: { $in: ["pending", "accepted"] }
-        });
-        if (existingBooking) {
-            return res.status(400).json({ error: "لديك حجز سابق لهذه الرحلة بالفعل" });
-        }
+        // Removed: Check for existing booking to allow multiple bookings per user
 
         if (selectedSeats && selectedSeats.length > 0) {
             const alreadyBooked = trip.seatBookings?.some(s => selectedSeats.includes(s.seatNumber));
@@ -113,9 +107,13 @@ router.post("/", requireAuthStrict, async (req, res) => {
             couponId: (couponId as any) || undefined, discountApplied
         });
 
-        if (company.ownerId) {
+        const recipients = new Set<string>();
+        if (company.ownerId) recipients.add(company.ownerId);
+        if ((company as any).createdBy) recipients.add((company as any).createdBy);
+
+        for (const recipientId of recipients) {
             await createNotification({
-                recipientId: company.ownerId, actorId: userId, actorName: userName, actorImage: user.imageUrl, type: "system",
+                recipientId, actorId: userId, actorName: userName, actorImage: user.imageUrl, type: "system",
                 message: `حجز جديد لرحلة "${trip.title}" من ${booking.userName}`,
                 metadata: { bookingId: booking._id, tripId: trip._id }
             });
@@ -162,16 +160,35 @@ router.get("/verify/:reference", async (req, res) => {
     }
 });
 
-router.get("/my-bookings", requireAuthStrict, async (req, res) => {
+/**
+ * GET /api/bookings/trip/:tripId
+ * Returns all pending/accepted bookings for a trip to show occupied seats.
+ */
+router.get("/trip/:tripId", async (req, res) => {
     try {
-        const { userId } = getAuth(req);
-        if (!userId) return res.status(401).json({ error: "Unauthorized" });
-        const bookings = await Booking.find({ userId: userId || "" }).sort({ createdAt: -1 }).lean();
+        const { tripId } = req.params;
+        const bookings = await Booking.find({ 
+            tripId: tripId, 
+            status: { $in: ["pending", "accepted"] } 
+        }).select('selectedSeats status userName').lean();
+        
         res.json(bookings);
     } catch (error: any) {
         res.status(500).json({ error: error.message });
     }
 });
+
+router.get("/my-bookings", requireAuthStrict, async (req: any, res) => {
+    try {
+        const userId = req.auth?.userId;
+        if (!userId) return res.status(401).json({ error: "Unauthorized" });
+        const bookings = await Booking.find({ userId }).sort({ createdAt: -1 }).lean();
+        res.json(bookings);
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 
 router.post("/:id/cancel", requireAuthStrict, async (req, res) => {
     try {
@@ -218,32 +235,48 @@ router.post("/:id/cancel", requireAuthStrict, async (req, res) => {
     }
 });
 
-router.get("/company-bookings", requireAuthStrict, async (req, res) => {
+router.get("/company-bookings", requireAuthStrict, async (req: any, res) => {
     try {
-        const { userId } = getAuth(req);
-        const { User } = await import("../models/User");
-        const user = await User.findOne({ clerkId: userId });
+        const auth = req.auth;
+        const userId = auth?.userId;
+        
+        if (!userId) {
+            console.error("GET /company-bookings - No userId found in req.auth");
+            return res.status(401).json({ error: "Unauthorized - No user ID" });
+        }
+
+        let user = await User.findOne({ clerkId: userId });
         let companyId = user?.companyId;
+
         if (!companyId) {
             const company = await CorporateCompany.findOne({ $or: [{ ownerId: userId }, { createdBy: userId }] });
-            if (company) companyId = company._id as any;
+            if (company) {
+                companyId = company._id as any;
+            }
         }
-        if (!companyId) return res.status(404).json({ error: "Company not found" });
-        const bookings = await Booking.find({ companyId: companyId as any }).sort({ createdAt: -1 }).lean();
+
+        if (!companyId) {
+            return res.status(404).json({ error: "Company not found for this user" });
+        }
+
+        const bookings = await Booking.find({ companyId: companyId as any })
+            .sort({ createdAt: -1 })
+            .lean();
+            
         res.json(bookings);
     } catch (error: any) {
-        res.status(500).json({ error: error.message });
+        console.error("GET /company-bookings - Server Error:", error);
+        res.status(500).json({ error: "Internal Server Error", details: error.message });
     }
 });
 
-router.post("/:id/accept", requireAuthStrict, async (req, res) => {
+router.post("/:id/accept", requireAuthStrict, async (req: any, res) => {
     try {
-        const { userId } = getAuth(req);
+        const userId = req.auth?.userId;
         const { id } = req.params;
         const booking = await Booking.findById(id);
         if (!booking) return res.status(404).json({ error: "Booking not found" });
 
-        const { User } = await import("../models/User");
         const currentUserProfile = await User.findOne({ clerkId: userId });
 
         const company = await CorporateCompany.findById(booking.companyId);
@@ -302,15 +335,14 @@ router.post("/:id/accept", requireAuthStrict, async (req, res) => {
     }
 });
 
-router.post("/:id/reject", requireAuthStrict, async (req, res) => {
+router.post("/:id/reject", requireAuthStrict, async (req: any, res) => {
     try {
-        const { userId } = getAuth(req);
+        const userId = req.auth?.userId;
         const { id } = req.params;
         const { reason } = req.body;
         const booking = await Booking.findById(id);
         if (!booking) return res.status(404).json({ error: "Booking not found" });
 
-        const { User } = await import("../models/User");
         const currentUserProfile = await User.findOne({ clerkId: userId });
 
         const company = await CorporateCompany.findById(booking.companyId);
@@ -351,15 +383,14 @@ router.post("/:id/reject", requireAuthStrict, async (req, res) => {
     }
 });
 
-router.post("/:id/cancel-by-company", requireAuthStrict, async (req, res) => {
+router.post("/:id/cancel-by-company", requireAuthStrict, async (req: any, res) => {
     try {
-        const { userId } = getAuth(req);
+        const userId = req.auth?.userId;
         const { id } = req.params;
         const { reason } = req.body;
         const booking = await Booking.findById(id);
         if (!booking) return res.status(404).json({ error: "Booking not found" });
 
-        const { User } = await import("../models/User");
         const currentUserProfile = await User.findOne({ clerkId: userId });
 
         const company = await CorporateCompany.findById(booking.companyId);
@@ -444,17 +475,29 @@ router.put("/:id/payment", requireAuthStrict, async (req, res) => {
     }
 });
 
-router.get("/analytics", requireAuthStrict, async (req, res) => {
+router.get("/analytics", requireAuthStrict, async (req: any, res) => {
     try {
-        const { userId } = getAuth(req);
-        const { User } = await import("../models/User");
+        const auth = req.auth;
+        const userId = auth?.userId;
+
+        if (!userId) {
+            console.error("GET /analytics - No userId found in req.auth");
+            return res.status(401).json({ error: "Unauthorized - No user ID" });
+        }
+
         const user = await User.findOne({ clerkId: userId });
         let companyId = user?.companyId;
+
         if (!companyId) {
             const company = await CorporateCompany.findOne({ $or: [{ ownerId: userId }, { createdBy: userId }] });
-            if (company) companyId = company._id as any;
+            if (company) {
+                companyId = company._id as any;
+            }
         }
-        if (!companyId) return res.status(404).json({ error: "Company not found" });
+
+        if (!companyId) {
+            return res.status(404).json({ error: "Company not found for this user" });
+        }
 
         const now = new Date();
         const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -519,15 +562,50 @@ router.get("/analytics", requireAuthStrict, async (req, res) => {
                 commission: rAll.commission,
                 net: rAll.net,
                 paid: rPaid.total,
-                paidCommission: rPaid.commission,
-                paidNet: rPaid.net,
                 pending: rPending.total,
-                refunded: rRefunded.total,
-                today: rToday.net ?? rToday.total,
-                week: rWeek.net ?? rWeek.total,
-                month: rMonth.net ?? rMonth.total
+                refunded: rRefunded.total
+            },
+            trends: {
+                today: rToday.total,
+                week: rWeek.total,
+                month: rMonth.total
             }
         });
+    } catch (error: any) {
+        console.error("GET /analytics - Server Error:", error);
+        res.status(500).json({ error: "Internal Server Error", details: error.message });
+    }
+});
+
+router.get("/:id", requireAuthStrict, async (req: any, res) => {
+    try {
+        const userId = req.auth?.userId;
+        const { id } = req.params;
+        
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ error: "Invalid booking ID format" });
+        }
+        
+        const booking = await Booking.findById(id);
+        if (!booking) return res.status(404).json({ error: "Booking not found" });
+        
+        // Ensure the user owns this booking or is the company owner
+        if (booking.userId !== userId) {
+            // Check if it's the company owner
+            const user = await User.findOne({ clerkId: userId });
+            const company = await CorporateCompany.findById(booking.companyId);
+            const isCompanyOwner = company && (
+                (company as any).ownerId === userId || 
+                (company as any).createdBy === userId || 
+                (user?.companyId?.toString() === (company as any)._id?.toString())
+            );
+            
+            if (!isCompanyOwner) {
+                return res.status(403).json({ error: "Unauthorized" });
+            }
+        }
+        
+        res.json(booking);
     } catch (error: any) {
         res.status(500).json({ error: error.message });
     }

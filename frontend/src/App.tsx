@@ -42,6 +42,8 @@ const CompanyRegistrationPage = lazy(() => import("./pages/onboarding/CompanyReg
 const CompanyDetailsPage = lazy(() => import("./pages/company/CompanyDetailsPage"));
 const Leaderboard = lazy(() => import("./pages/Leaderboard"));
 const BookingVerify = lazy(() => import("./pages/BookingVerify"));
+const BookingPaymentResult = lazy(() => import("./pages/BookingPaymentResult"));
+const BookingPaymentPage = lazy(() => import("./pages/BookingPaymentPage"))
 
 import TripAIChatWidget from "@/components/TripAIChatWidget";
 import AITourGuide from "@/components/AITourGuide";
@@ -160,6 +162,8 @@ const AppContent = () => {
           <Route path="/corporate-trips/:tripSlug" element={<TripDetailsPage />} />
           <Route path="/verify-booking" element={<BookingVerify />} />
           <Route path="/verify-booking/:reference" element={<BookingVerify />} />
+          <Route path="/booking-payment-result" element={<BookingPaymentResult />} />
+          <Route path="/booking/:bookingId/pay" element={<BookingPaymentPage />} />
           
           {/* Admin routes - protected by email check */}
           <Route path="/admin" element={<AdminDashboard />} />

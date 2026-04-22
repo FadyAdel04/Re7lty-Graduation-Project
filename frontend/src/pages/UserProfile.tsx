@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import EmojiPicker, { Theme } from "emoji-picker-react";
-import { MapPin, Calendar, Users, Heart, Settings, Camera, Edit2, Save, X, LogOut, Bookmark, MessageCircle, Award, Crown, Gem, LayoutGrid, Sparkles, Image as ImageIcon, Trash2, Building2, Globe, Info, Loader2, Smile } from "lucide-react";
+import { MapPin, Calendar, Users, Heart, Settings, Camera, Edit2, Save, X, LogOut, Bookmark, MessageCircle, Award, Crown, Gem, LayoutGrid, Sparkles, Image as ImageIcon, Trash2, Building2, Globe, Info, Loader2, Smile, CreditCard } from "lucide-react";
 import { useUser, useAuth, useClerk } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -1761,10 +1761,24 @@ const UserProfile = () => {
                   
                   <div className="flex flex-col gap-1">
                     <h4 className="text-xl font-black text-gray-900">{booking.tripTitle}</h4>
-                    <p className="text-sm font-bold text-indigo-600 flex items-center gap-1">
-                      <Users className="w-3 h-3" />
-                      باسم: {booking.userName}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-bold text-indigo-600 flex items-center gap-1">
+                        <Users className="w-3 h-3" />
+                        باسم: {booking.userName}
+                      </p>
+                      {(booking as any).paymentStatus === 'paid' && (
+                        <div className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[9px] font-black flex items-center gap-1">
+                           <CreditCard className="w-3 h-3" />
+                           مدفوع
+                        </div>
+                      )}
+                      {(booking as any).paymentStatus === 'pending' && booking.status !== 'cancelled' && (
+                        <div className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full text-[9px] font-black flex items-center gap-1">
+                           <CreditCard className="w-3 h-3" />
+                           انتظار الدفع
+                        </div>
+                      )}
+                    </div>
                   </div>
                   
                   <div className="flex flex-wrap items-center gap-4 text-sm font-medium text-gray-500">

@@ -26,6 +26,7 @@ import couponsRouter from "./routes/coupons";
 import tripGroupChatRouter from "./routes/tripGroupChat";
 import memoriesRouter from "./routes/memories";
 import leaderboardRouter from "./routes/leaderboard";
+import paymobRouter from "./routes/paymob";
 import { connectToDatabase } from "./db";
 import mongoose from "mongoose";
 
@@ -1373,6 +1374,9 @@ export function createApp() {
 
     // Bookings routes
     app.use("/api/bookings", bookingsRouter);
+
+    // Paymob Payment Gateway
+    app.use("/api/paymob", paymobRouter);
     app.use("/api/chat", chatRouter);
     app.use("/api/direct-chat", directChatRouter);
     app.use("/api/trip-groups", tripGroupChatRouter);

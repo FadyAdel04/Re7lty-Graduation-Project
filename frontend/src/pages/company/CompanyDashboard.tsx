@@ -116,8 +116,41 @@ const CompanyDashboard = () => {
     const [stats, setStats] = useState<any>(null);
     const [selectedTripForEdit, setSelectedTripForEdit] = useState<any>(null);
     const [selectedTripForSeats, setSelectedTripForSeats] = useState<any>(null);
+    const [selectedTripBookings, setSelectedTripBookings] = useState<any[]>([]);
+    const [isFetchingTripBookings, setIsFetchingTripBookings] = useState(false);
+
+    useEffect(() => {
+        const fetchTripBookings = async () => {
+            const tripId = selectedTripForSeats?._id || selectedTripForSeats?.id;
+            if (!tripId) return;
+            
+            setIsFetchingTripBookings(true);
+            try {
+                const data = await bookingService.getTripBookings(tripId);
+                setSelectedTripBookings(data);
+            } catch (error) {
+                console.error("Error fetching trip bookings:", error);
+            } finally {
+                setIsFetchingTripBookings(false);
+            }
+        };
+        fetchTripBookings();
+    }, [selectedTripForSeats]);
     const [currentBusIndex, setCurrentBusIndex] = useState(0);
     const [isSavingSeats, setIsSavingSeats] = useState(false);
+
+    // Auto-refresh when tab changes
+    useEffect(() => {
+        if (!isLoaded || !user) return;
+        
+        if (activeTab === 'bookings') {
+            handleRefreshBookings();
+        } else if (activeTab === 'trips') {
+            handleRefreshTrips();
+        } else if (activeTab === 'reports') {
+            fetchAnalytics();
+        }
+    }, [activeTab, isLoaded, user]);
 
     // QR Scanner State
     const [qrResult, setQrResult] = useState<string | null>(null);
@@ -484,6 +517,11 @@ const CompanyDashboard = () => {
             });
 
             if (!response.ok) throw new Error("Failed to save seats");
+
+            // Update local state and refetch
+            const tripId = selectedTripForSeats._id || selectedTripForSeats.id;
+            const updatedBookings = await bookingService.getTripBookings(tripId);
+            setSelectedTripBookings(updatedBookings);
 
             toast({
                 title: "تم حفظ المقاعد",
@@ -1144,7 +1182,10 @@ const CompanyDashboard = () => {
                                                                     اضغط على المقعد لتسجيل اسم المسافر
                                                                 </p>
                                                             </div>
-                                                            {isSavingSeats && <Loader2 className="w-6 h-6 animate-spin text-indigo-600" />}
+                                                            <div className="flex items-center gap-4">
+                                                                {isFetchingTripBookings && <Loader2 className="w-5 h-5 animate-spin text-indigo-600" />}
+                                                                {isSavingSeats && <Loader2 className="w-6 h-6 animate-spin text-indigo-600" />}
+                                                            </div>
                                                         </div>
 
                                                         {/* Bus Selection Tabs */}
@@ -1174,12 +1215,29 @@ const CompanyDashboard = () => {
                                                                 ? selectedTripForSeats.transportations[currentBusIndex].type 
                                                                 : (selectedTripForSeats.transportationType || 'bus-48')
                                                             } 
-                                                            bookedSeats={(selectedTripForSeats.seatBookings || []).filter((s: any) => (s.busIndex || 0) === currentBusIndex)}
+                                                            bookedSeats={[
+                                                                ...(selectedTripForSeats.seatBookings || [])
+                                                                    .filter((s: any) => (s.busIndex || 0) === currentBusIndex)
+                                                                    .map((s: any) => ({ seatNumber: s.seatNumber, passengerName: s.passengerName })),
+                                                                ...selectedTripBookings
+                                                                    .flatMap(b => (b.selectedSeats || []).map(seatStr => {
+                                                                        let seatNumber = seatStr;
+                                                                        let busIndex = 0;
+                                                                        if (seatStr.includes('-')) {
+                                                                            const parts = seatStr.split('-');
+                                                                            busIndex = parseInt(parts[0]) || 0;
+                                                                            seatNumber = parts[1];
+                                                                        }
+                                                                        return { busIndex, seatNumber, passengerName: b.userName };
+                                                                    }))
+                                                                    .filter(s => s.busIndex === currentBusIndex)
+                                                            ]}
                                                             isAdmin={true}
                                                             onSaveSeats={handleSaveSeats}
-                                                            totalBookedPassengers={bookings.filter(b => (b.tripId as any) === (selectedTripForSeats._id || selectedTripForSeats.id) && b.status === 'accepted').length}
-                                                            tripBookings={bookings.filter(b => (b.tripId as any) === (selectedTripForSeats._id || selectedTripForSeats.id) && b.status === 'accepted')}
+                                                            totalBookedPassengers={bookings.filter(b => ((b.tripId as any)?._id || b.tripId as any) === (selectedTripForSeats._id || selectedTripForSeats.id) && (b.status === 'accepted' || b.paymentStatus === 'paid')).length}
+                                                            tripBookings={bookings.filter(b => ((b.tripId as any)?._id || b.tripId as any) === (selectedTripForSeats._id || selectedTripForSeats.id) && (b.status === 'accepted' || b.paymentStatus === 'paid'))}
                                                         />
+                                                        
                                                     </Card>
                                                 ) : (
                                                     <div className="h-full flex flex-col items-center justify-center p-20 border-2 border-dashed border-gray-100 rounded-[3rem] text-gray-400">

@@ -96,6 +96,19 @@ export const bookingService = {
         }
     },
 
+    // Get all bookings for a specific trip
+    getTripBookings: async (tripId: string): Promise<Booking[]> => {
+        try {
+            const response = await axios.get(`${API_URL}/api/bookings/trip/${tripId}`, {
+                withCredentials: true
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching trip bookings:', error);
+            throw error;
+        }
+    },
+
     // Get user's bookings
     getMyBookings: async (token?: string): Promise<Booking[]> => {
         try {
@@ -106,6 +119,20 @@ export const bookingService = {
             return response.data;
         } catch (error) {
             console.error('Error fetching user bookings:', error);
+            throw error;
+        }
+    },
+
+    // Get a specific booking by ID
+    getBookingById: async (bookingId: string, token?: string): Promise<Booking> => {
+        try {
+            const response = await axios.get(`${API_URL}/api/bookings/${bookingId}`, {
+                headers: getAuthHeaders(token),
+                withCredentials: true
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching booking by ID:', error);
             throw error;
         }
     },

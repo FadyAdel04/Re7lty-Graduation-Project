@@ -45,7 +45,9 @@ const BookingSchema = new Schema({
     discountApplied: { type: Number },
     bookingDate: { type: Date, default: Date.now },
     specialRequests: { type: String },
-    notes: { type: String }
+    notes: { type: String },
+    paymobOrderId: { type: String },
+    paymobTransactionId: { type: String }
 }, { timestamps: true });
 
 export type BookingDocument = mongoose.InferSchemaType<typeof BookingSchema> & mongoose.Document;

@@ -403,7 +403,7 @@ const Header = ({ onSearch }: HeaderProps) => {
 
 
              <SignedIn>
-                {!isCompany && <NotificationBell />}
+                {(isCompany || !isAdmin) && <NotificationBell />}
                 
                 {isAdmin && (
                   <>
