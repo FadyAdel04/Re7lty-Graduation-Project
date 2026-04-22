@@ -229,11 +229,21 @@ router.get('/verify/:bookingId', requireAuthStrict, async (req, res) => {
     const { userId } = getAuth(req);
     const { bookingId } = req.params;
 
-    let booking = await Booking.findById(bookingId);
+    let booking = null;
     
-    // Fallback: If not found by ID, try finding by Paymob Order ID
+    // 1. Try finding by ObjectId if valid
+    if (mongoose.Types.ObjectId.isValid(bookingId)) {
+      booking = await Booking.findById(bookingId);
+    }
+    
+    // 2. Fallback: Try finding by Paymob Order ID (which is a number/string)
     if (!booking) {
       booking = await Booking.findOne({ paymobOrderId: bookingId });
+    }
+    
+    // 3. Fallback: Try finding by Merchant Order ID (which we set to bookingId during order creation)
+    if (!booking && mongoose.Types.ObjectId.isValid(bookingId)) {
+      booking = await Booking.findById(bookingId);
     }
 
     if (!booking) return res.status(404).json({ error: 'Booking not found' });

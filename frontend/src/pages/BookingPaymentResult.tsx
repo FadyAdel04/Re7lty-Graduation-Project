@@ -29,30 +29,37 @@ const BookingPaymentResult = () => {
 
   useEffect(() => {
     const determineStatus = async () => {
+      console.log("[PaymentResult] Starting verification...", { success, pending, txnResponseCode, orderId, merchantOrderId });
       try {
         const token = await getToken();
+        console.log("[PaymentResult] Got auth token");
         
         // 1. Initial check from URL
         if (isSuccess) {
+          console.log("[PaymentResult] URL indicates SUCCESS");
           setStatus("success");
           return;
         }
 
         // 2. Aggressive polling for 10 seconds (webhook might be slow)
         const bookingId = merchantOrderId || searchParams.get("merchant_order_id") || orderId;
+        console.log("[PaymentResult] Verifying bookingId:", bookingId);
+
         if (bookingId) {
           let attempts = 0;
-          const maxAttempts = 5; // Poll 5 times every 2 seconds
+          const maxAttempts = 5; 
           
           const pollStatus = async () => {
             try {
+              console.log(`[PaymentResult] Polling attempt ${attempts + 1}...`);
               const verify = await paymobService.verifyPayment(bookingId, token || undefined);
+              console.log("[PaymentResult] Backend verification response:", verify.paymentStatus);
               if (verify.paymentStatus === 'paid') {
                 setStatus("success");
                 return true;
               }
-            } catch (e) {
-              console.warn("Polling error:", e);
+            } catch (e: any) {
+              console.warn("[PaymentResult] Polling error:", e.response?.data || e.message);
             }
             return false;
           };
@@ -65,10 +72,11 @@ const BookingPaymentResult = () => {
           }
         }
 
+        console.log("[PaymentResult] Verification timed out or failed. Final status: failed");
         if (isPending) setStatus("pending");
         else setStatus("failed");
-      } catch (err) {
-        console.error("Verification error:", err);
+      } catch (err: any) {
+        console.error("[PaymentResult] Global verification error:", err);
         setStatus(isSuccess ? "success" : "failed");
       }
     };
