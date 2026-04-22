@@ -4,6 +4,7 @@ import { requireAuthStrict, getAuth } from '../utils/auth';
 import { Booking } from '../models/Booking';
 import { CorporateTrip } from '../models/CorporateTrip';
 import { CorporateCompany } from '../models/CorporateCompany';
+import mongoose from 'mongoose';
 import { createNotification } from '../utils/notificationDispatcher';
 
 const router = express.Router();
