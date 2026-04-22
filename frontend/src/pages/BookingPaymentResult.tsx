@@ -29,17 +29,29 @@ const BookingPaymentResult = () => {
 
   useEffect(() => {
     const determineStatus = async () => {
-      // Give Paymob webhook time to update
-      await new Promise(r => setTimeout(r, 1500));
+      try {
+        const token = await getToken();
+        // 1. Initial check from URL
+        if (isSuccess) {
+          setStatus("success");
+          return;
+        }
 
-      if (isSuccess) {
-        setStatus("success");
-      } else if (isPending) {
-        setStatus("pending");
-      } else if (success === "false") {
-        setStatus("failed");
-      } else {
-        setStatus("failed");
+        // 2. Fallback: Verify with backend (Webhook might have finished)
+        const bookingId = merchantOrderId || searchParams.get("merchant_order_id");
+        if (bookingId) {
+          const verify = await paymobService.verifyPayment(bookingId, token || undefined);
+          if (verify.paymentStatus === 'paid') {
+            setStatus("success");
+            return;
+          }
+        }
+
+        if (isPending) setStatus("pending");
+        else setStatus("failed");
+      } catch (err) {
+        console.error("Verification error:", err);
+        setStatus(isSuccess ? "success" : "failed");
       }
     };
     determineStatus();

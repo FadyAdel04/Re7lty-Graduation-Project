@@ -54,6 +54,7 @@ router.post('/create-payment-intention', requireAuthStrict, async (req, res) => 
       amount_cents: amountCents,
       currency: 'EGP',
       items: [],
+      merchant_order_id: bookingId.toString(), // Link to our booking ID
     });
     const orderId = orderResponse.data.id;
 
@@ -179,7 +180,11 @@ router.post('/webhook', async (req, res) => {
         actorName: 'نظام الدفع',
         type: 'system',
         message: `✅ تم تأكيد دفعك لرحلة "${booking.tripTitle}". المبلغ: ${booking.totalPrice} ج.م`,
-        metadata: { bookingId: booking._id, status: 'paid' },
+        metadata: { 
+          bookingId: booking._id, 
+          status: 'paid',
+          merchant_order_id: booking._id 
+        },
       } as any);
 
       console.log(`[Paymob] Payment SUCCESS for booking ${booking._id}`);
