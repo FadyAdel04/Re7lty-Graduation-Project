@@ -17,7 +17,10 @@ const PAYMOB_BASE_URL = 'https://accept.paymob.com/api';
 const PAYMOB_CARD_INTEGRATION_ID = process.env.PAYMOB_CARD_INTEGRATION_ID || '';
 const PAYMOB_WALLET_INTEGRATION_ID = process.env.PAYMOB_WALLET_INTEGRATION_ID || '';
 const PAYMOB_IFRAME_ID = process.env.PAYMOB_IFRAME_ID || '';
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:8080';
+const FRONTEND_URL = process.env.FRONTEND_URL || 
+  (process.env.NODE_ENV === 'production' 
+    ? 'https://re7lty-graduation-project.vercel.app' 
+    : 'http://localhost:8080');
 
 /**
  * POST /api/paymob/create-payment-intention
