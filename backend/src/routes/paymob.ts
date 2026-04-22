@@ -236,8 +236,17 @@ router.get('/verify/:bookingId', requireAuthStrict, async (req, res) => {
       booking = await Booking.findOne({ paymobOrderId: bookingId });
     }
 
-    if (!booking) return res.status(404).json({ error: 'Booking not found' });
-    if (booking.userId !== userId) return res.status(403).json({ error: 'Unauthorized' });
+    if (!booking) {
+      console.warn(`[Paymob Verify] Booking not found for ID: ${bookingId}`);
+      return res.status(404).json({ error: 'Booking not found' });
+    }
+
+    console.log(`[Paymob Verify] Checking ownership. Auth User: ${userId}, Booking Owner: ${booking.userId}`);
+
+    if (booking.userId !== userId) {
+      console.error(`[Paymob Verify] 403 Unauthorized. Auth User: ${userId} tried to access Booking: ${bookingId} owned by ${booking.userId}`);
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
 
     res.json({
       success: true,
