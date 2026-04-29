@@ -866,7 +866,7 @@ const CreateTrip = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] font-cairo text-right" dir="rtl">
+    <div className="min-h-screen bg-background font-cairo text-right" dir="rtl">
       {uploadProgress.show && (
         <UploadProgressLoader
           totalItems={uploadProgress.total}
@@ -901,10 +901,11 @@ const CreateTrip = () => {
             <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
               {/* Detailed Trip Card */}
               <button 
+                id="type-detailed-trip"
                 onClick={() => { setPostType('detailed'); setCurrentStep(1); }}
                 className="group text-right animate-in fade-in slide-in-from-bottom-6 duration-700"
               >
-                <Card className="border-0 shadow-2xl rounded-[3rem] overflow-hidden bg-white hover:shadow-[0_30px_80px_-20px_rgba(234,88,12,0.3)] transition-all duration-500 hover:scale-[1.02] h-full relative">
+                <Card className="border-0 shadow-2xl rounded-[3rem] overflow-hidden bg-card hover:shadow-[0_30px_80px_-20px_rgba(234,88,12,0.3)] transition-all duration-500 hover:scale-[1.02] h-full relative">
                   <div className="absolute top-6 left-6 z-10">
                     <div className="bg-gradient-to-r from-orange-500 to-amber-500 text-white px-5 py-2 rounded-full text-sm font-black flex items-center gap-2 shadow-lg">
                       <Trophy className="w-4 h-4" />
@@ -922,12 +923,12 @@ const CreateTrip = () => {
                   </div>
                   <CardContent className="p-10 space-y-6 text-center">
                     <div>
-                      <h3 className="text-3xl font-black text-gray-900 mb-3 text-center">رحلة بالتفاصيل الكاملة</h3>
-                      <p className="text-gray-500 text-base leading-relaxed text-center">شارك رحلتك مع كل التفاصيل: المواقع على الخريطة، جدول الأيام، المطاعم، الفنادق والأنشطة</p>
+                      <h3 className="text-3xl font-black text-foreground mb-3 text-center">رحلة بالتفاصيل الكاملة</h3>
+                      <p className="text-muted-foreground text-base leading-relaxed text-center">شارك رحلتك مع كل التفاصيل: المواقع على الخريطة، جدول الأيام، المطاعم، الفنادق والأنشطة</p>
                     </div>
                     <div className="space-y-3">
                       {["تحديد المواقع على الخريطة", "تنظيم جدول الأيام", "إضافة المطاعم والفنادق", "صور وفيديوهات لكل موقع"].map((feat, i) => (
-                        <div key={i} className="flex items-center gap-3 text-gray-600">
+                        <div key={i} className="flex items-center gap-3 text-muted-foreground">
                           <div className="w-6 h-6 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
                             <Check className="w-3 h-3 text-orange-600" />
                           </div>
@@ -947,10 +948,11 @@ const CreateTrip = () => {
 
               {/* Quick Trip Card */}
               <button 
+                id="type-quick-post"
                 onClick={() => { setPostType('quick'); setCurrentStep(1); }}
                 className="group text-right animate-in fade-in slide-in-from-bottom-6 duration-700 delay-150"
               >
-                <Card className="border-0 shadow-2xl rounded-[3rem] overflow-hidden bg-white hover:shadow-[0_30px_80px_-20px_rgba(99,102,241,0.3)] transition-all duration-500 hover:scale-[1.02] h-full relative">
+                <Card className="border-0 shadow-2xl rounded-[3rem] overflow-hidden bg-card hover:shadow-[0_30px_80px_-20px_rgba(99,102,241,0.3)] transition-all duration-500 hover:scale-[1.02] h-full relative">
                   <div className="absolute top-6 left-6 z-10">
                     <div className="bg-gradient-to-r from-indigo-500 to-violet-500 text-white px-5 py-2 rounded-full text-sm font-black flex items-center gap-2 shadow-lg">
                       <Zap className="w-4 h-4" />
@@ -968,12 +970,12 @@ const CreateTrip = () => {
                   </div>
                   <CardContent className="p-10 space-y-6 text-center">
                     <div>
-                      <h3 className="text-3xl font-black text-gray-900 mb-3 text-center">بوست سريع</h3>
-                      <p className="text-gray-500 text-base leading-relaxed text-center">شارك صورك وفيديوهاتك مع وصف بسيط — زي أي بوست عادي بس مخصص للسفر</p>
+                      <h3 className="text-3xl font-black text-foreground mb-3 text-center">بوست سريع</h3>
+                      <p className="text-muted-foreground text-base leading-relaxed text-center">شارك صورك وفيديوهاتك مع وصف بسيط — زي أي بوست عادي بس مخصص للسفر</p>
                     </div>
                     <div className="space-y-3">
                       {["اختيار المدينة", "إضافة صور وفيديوهات", "كتابة وصف الرحلة", "نشر فوري وسريع"].map((feat, i) => (
-                        <div key={i} className="flex items-center gap-3 text-gray-600">
+                        <div key={i} className="flex items-center gap-3 text-muted-foreground">
                           <div className="w-6 h-6 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
                             <Check className="w-3 h-3 text-indigo-600" />
                           </div>
@@ -993,10 +995,11 @@ const CreateTrip = () => {
 
               {/* Ask / Question Card - no points */}
               <button 
+                id="type-ask-question"
                 onClick={() => { setPostType('ask'); setCurrentStep(1); }}
                 className="group text-right animate-in fade-in slide-in-from-bottom-6 duration-700 delay-300"
               >
-                <Card className="border-0 shadow-2xl rounded-[3rem] overflow-hidden bg-white hover:shadow-[0_30px_80px_-20px_rgba(34,197,94,0.3)] transition-all duration-500 hover:scale-[1.01] h-full relative text-center">
+                <Card className="border-0 shadow-2xl rounded-[3rem] overflow-hidden bg-card hover:shadow-[0_30px_80px_-20px_rgba(34,197,94,0.3)] transition-all duration-500 hover:scale-[1.01] h-full relative text-center">
                   <div className="h-48 bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 flex items-center justify-center relative overflow-hidden">
                     <div className="absolute inset-0 opacity-20">
                       <div className="absolute w-40 h-40 bg-white/10 rounded-full -top-10 -right-10 group-hover:scale-150 transition-transform duration-700" />
@@ -1007,8 +1010,8 @@ const CreateTrip = () => {
                   </div>
                   <CardContent className="p-10 space-y-6">
                     <div className="text-center">
-                      <h3 className="text-3xl font-black text-gray-900 mb-3 text-center">سؤال أو استفسار </h3>
-                      <p className="text-gray-500 text-base leading-relaxed text-center">اسأل المسافرين عن أفضل الأماكن، المدن، أو أي نصيحة سفر — نص + صورة اختيارية. لا يمنح نقاط.</p>
+                      <h3 className="text-3xl font-black text-foreground mb-3 text-center">سؤال أو استفسار </h3>
+                      <p className="text-muted-foreground text-base leading-relaxed text-center">اسأل المسافرين عن أفضل الأماكن، المدن، أو أي نصيحة سفر — نص + صورة اختيارية. لا يمنح نقاط.</p>
                     </div>
                     <div className="space-y-3">
                       {[
@@ -1016,7 +1019,7 @@ const CreateTrip = () => {
                         { text: "استفسار عن مدن وأماكن ", icon: "" },
                         { text: "بدون نقاط — للمشاركة فقط ", icon: "" }
                       ].map((feat, i) => (
-                        <div key={i} className="flex items-center gap-3 text-gray-600">
+                        <div key={i} className="flex items-center gap-3 text-muted-foreground">
                           <div className="w-6 h-6 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
                             <Check className="w-3 h-3 text-emerald-600" />
                           </div>
@@ -1037,9 +1040,9 @@ const CreateTrip = () => {
 
             {/* Points info note */}
             <div className="max-w-3xl mx-auto mt-10 text-center">
-              <div className="inline-flex items-center gap-3 bg-white/80 backdrop-blur-sm px-8 py-4 rounded-2xl shadow-lg border border-gray-100">
+              <div className="inline-flex items-center gap-3 bg-card/80 backdrop-blur-sm px-8 py-4 rounded-2xl shadow-lg border border-border">
                 <Trophy className="w-5 h-5 text-amber-500" />
-                <span className="text-gray-600 font-bold text-sm">البوست التفصيلي يمنحك نقاط أكثر لرفع مستوى حسابك وشارتك</span>
+                <span className="text-muted-foreground font-bold text-sm">البوست التفصيلي يمنحك نقاط أكثر لرفع مستوى حسابك وشارتك</span>
               </div>
             </div>
           </div>
@@ -1050,10 +1053,10 @@ const CreateTrip = () => {
           <div className="container mx-auto px-4 -mt-20 relative z-20">
             <div className="max-w-7xl mx-auto">
               <div className="animate-in fade-in slide-in-from-bottom-6 duration-700">
-                <Card className="border-0 shadow-2xl rounded-[3rem] overflow-hidden bg-white">
+                <Card className="border-0 shadow-2xl rounded-[3rem] overflow-hidden bg-card">
                   <CardHeader className="bg-indigo-50/50 p-10 border-b border-indigo-100/50">
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-3xl font-black text-gray-900 flex items-center gap-4">
+                      <CardTitle className="text-3xl font-black text-foreground flex items-center gap-4">
                         <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white">
                           <Zap className="w-6 h-6" />
                         </div>
@@ -1070,7 +1073,7 @@ const CreateTrip = () => {
                       {/* Row 1: Title (Full) */}
                       <div className="col-span-12 space-y-2">
                         <div className="flex items-center justify-between">
-                          <Label className="text-lg font-black text-gray-800">عنوان البوست</Label>
+                          <Label className="text-lg font-black text-foreground">عنوان البوست</Label>
                           <Popover>
                             <PopoverTrigger asChild>
                               <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors">
@@ -1094,15 +1097,15 @@ const CreateTrip = () => {
                           placeholder="مثال: يوم جميل في الإسكندرية 🌊"
                           value={tripData.title}
                           onChange={e => setTripData({ ...tripData, title: e.target.value })}
-                          className="h-14 rounded-2xl border-gray-100 bg-gray-50/30 focus:bg-white text-lg font-bold px-4 border-2 transition-all"
+                          className="h-14 rounded-2xl border-border bg-muted/30 focus:bg-card text-lg font-bold px-4 border-2 transition-all text-foreground placeholder:text-muted-foreground/50"
                         />
                       </div>
 
                       {/* Row 2: Destination & Season (Half) */}
                       <div className="col-span-12 md:col-span-6 space-y-2">
-                        <Label className="text-base font-black text-gray-800">المدينة</Label>
+                        <Label className="text-base font-black text-foreground">المدينة</Label>
                         <Select value={tripData.destination} onValueChange={val => setTripData({ ...tripData, destination: val })}>
-                          <SelectTrigger className="h-14 rounded-2xl border-gray-100 bg-gray-50/30 text-base font-bold border-2">
+                          <SelectTrigger className="h-14 rounded-2xl border-border bg-muted/30 text-base font-bold border-2">
                             <SelectValue placeholder="اختر المدينة" />
                           </SelectTrigger>
                           <SelectContent className="font-cairo font-bold max-h-[300px]">
@@ -1114,19 +1117,19 @@ const CreateTrip = () => {
                       </div>
 
                       <div className="col-span-12 md:col-span-6 space-y-2">
-                        <Label className="text-base font-black text-gray-800">إحداثيات المدينة (تلقائي)</Label>
+                        <Label className="text-base font-black text-foreground">إحداثيات المدينة (تلقائي)</Label>
                          <div className="relative">
                             <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                             <Input 
                               readOnly 
                               value={tripData.destination ? `${getCity(tripData.destination)?.lat}, ${getCity(tripData.destination)?.lng}` : "اختر المدينة..."} 
-                              className="h-14 rounded-2xl border-gray-100 bg-gray-50 text-base font-bold pr-10 text-gray-500" 
+                              className="h-14 rounded-2xl border-border bg-muted text-base font-bold pr-10 text-muted-foreground" 
                             />
                          </div>
                       </div>
 
                       <div className="col-span-12 md:col-span-6 space-y-2">
-                        <Label className="text-base font-black text-gray-800">الموسم</Label>
+                        <Label className="text-base font-black text-foreground">الموسم</Label>
                         <div className="flex gap-2 h-14">
                           {['winter', 'summer', 'fall', 'spring'].map((s) => (
                             <button
@@ -1134,7 +1137,7 @@ const CreateTrip = () => {
                               onClick={() => setTripData({ ...tripData, season: s })}
                               className={cn(
                                 "flex-1 rounded-xl font-bold flex flex-col items-center justify-center gap-0.5 transition-all border-2",
-                                tripData.season === s ? "bg-indigo-600 border-indigo-600 text-white shadow-md" : "bg-white border-gray-50 text-gray-400 hover:border-indigo-100 hover:text-indigo-400"
+                                tripData.season === s ? "bg-indigo-600 border-indigo-600 text-white shadow-md" : "bg-card border-border text-gray-400 hover:border-indigo-100 hover:text-indigo-400"
                               )}
                             >
                               <span className="text-lg">{s === 'winter' ? '❄️' : s === 'summer' ? '☀️' : s === 'fall' ? '🍂' : '🌸'}</span>
@@ -1147,7 +1150,7 @@ const CreateTrip = () => {
                        {/* Row 3: Description (Left) and Visuals (Right) */}
                       <div className="col-span-12 lg:col-span-6 space-y-2 h-full flex flex-col">
                          <div className="flex items-center justify-between">
-                            <Label className="text-base font-black text-gray-800">وصف الرحلة</Label>
+                            <Label className="text-base font-black text-foreground">وصف الرحلة</Label>
                             <Popover>
                               <PopoverTrigger asChild>
                                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors">
@@ -1171,14 +1174,14 @@ const CreateTrip = () => {
                             placeholder="وصف سريع..."
                             value={tripData.description}
                             onChange={e => setTripData({ ...tripData, description: e.target.value })}
-                            className="flex-1 rounded-2xl border-gray-100 bg-gray-50/30 text-base font-medium p-6 border-2 focus:bg-white transition-all leading-relaxed resize-none min-h-[300px]"
+                            className="flex-1 rounded-2xl border-border bg-muted/30 text-base font-medium p-6 border-2 focus:bg-card transition-all leading-relaxed resize-none min-h-[300px] text-foreground placeholder:text-muted-foreground/50"
                           />
                       </div>
 
                       <div className="col-span-12 lg:col-span-6 space-y-4 flex flex-col">
                         {/* Cover Image */}
                          <div className="flex-1">
-                           <Label className="text-base font-black text-gray-800 mb-2 block">صورة الغلاف (اختياري)</Label>
+                           <Label className="text-base font-black text-foreground mb-2 block">صورة الغلاف (اختياري)</Label>
                            {tripData.coverImageUrl ? (
                              <div className="relative h-48 w-full rounded-2xl overflow-hidden group shadow-lg border-2 border-white cursor-pointer" onClick={() => (document.getElementById('cover-upload') as HTMLInputElement)?.click()}>
                                 <img src={tripData.coverImageUrl} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700" />
@@ -1189,8 +1192,8 @@ const CreateTrip = () => {
                                 </div>
                              </div>
                            ) : (
-                             <label className="flex flex-col items-center justify-center h-48 w-full rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 hover:bg-indigo-50 transition-all cursor-pointer group">
-                                <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                             <label className="flex flex-col items-center justify-center h-48 w-full rounded-2xl border-2 border-dashed border-border bg-muted hover:bg-indigo-50 transition-all cursor-pointer group">
+                                <div className="w-12 h-12 bg-card rounded-xl shadow-sm flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                                    <ImageIcon className="w-6 h-6 text-gray-300 group-hover:text-indigo-400 transition-colors" />
                                 </div>
                                 <span className="text-sm font-black text-gray-400 group-hover:text-indigo-500 transition-colors">صورة الغلاف</span>
@@ -1201,7 +1204,7 @@ const CreateTrip = () => {
 
                          {/* Quick Media Upload */}
                          <div className="flex-1 space-y-2">
-                            <Label className="text-sm font-black text-gray-800">الصور والفيديوهات</Label>
+                            <Label className="text-sm font-black text-foreground">الصور والفيديوهات</Label>
                             <label className="flex items-center justify-center w-full h-16 rounded-xl border-2 border-dashed border-indigo-200 bg-indigo-50/30 hover:bg-indigo-50 transition-all cursor-pointer gap-2">
                                <Plus className="w-5 h-5 text-indigo-400" />
                                <span className="text-xs font-black text-indigo-500">أضف ملفات إضافية</span>
@@ -1212,7 +1215,7 @@ const CreateTrip = () => {
                              {quickMedia.files.length > 0 && (
                                 <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar h-20 pt-2">
                                   {quickMedia.previews.map((preview, idx) => (
-                                    <div key={idx} className="relative aspect-square h-full rounded-lg overflow-hidden shrink-0 group border border-gray-100 bg-gray-50">
+                                    <div key={idx} className="relative aspect-square h-full rounded-lg overflow-hidden shrink-0 group border border-border bg-muted">
                                       {quickMedia.files[idx]?.type.startsWith('video/') ? (
                                         <video src={preview} className="w-full h-full object-cover" />
                                       ) : (
@@ -1228,9 +1231,9 @@ const CreateTrip = () => {
                          </div>
 
                         {/* Tag Friends Mini Section */}
-                        <div className="flex-1 relative border-t border-gray-100 pt-3 mt-auto">
+                        <div className="flex-1 relative border-t border-border pt-3 mt-auto">
                            <div className="flex items-center justify-between mb-2">
-                              <Label className="text-base font-black text-gray-900 flex items-center gap-2">
+                              <Label className="text-base font-black text-foreground flex items-center gap-2">
                                  <Users className="w-4 h-4 text-indigo-600" />
                                  أصدقاء معك
                               </Label>
@@ -1240,11 +1243,11 @@ const CreateTrip = () => {
                                    placeholder="بحث..."
                                    value={userSearchQuery}
                                    onChange={(e) => setUserSearchQuery(e.target.value)}
-                                   className="h-8 w-40 rounded-lg border-gray-100 bg-gray-50 pr-8 text-xs focus:w-60 transition-all font-bold"
+                                   className="h-8 w-40 rounded-lg border-border bg-muted pr-8 text-xs focus:w-60 transition-all font-bold"
                                  />
                                  
                                   {userSearchResults.length > 0 && (
-                                   <div className="absolute top-full right-0 w-60 mt-1 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-[100]">
+                                   <div className="absolute top-full right-0 w-60 mt-1 bg-card rounded-xl shadow-xl border border-border overflow-hidden z-[100]">
                                       <div className="max-h-[200px] overflow-y-auto custom-scrollbar">
                                          {userSearchResults.map((u) => {
                                            const isAlreadyTagged = taggedUsers.some(t => t.userId === u.clerkId);
@@ -1257,7 +1260,7 @@ const CreateTrip = () => {
                                                  setUserSearchQuery("");
                                                  setUserSearchResults([]);
                                                }}
-                                               className="w-full p-2 flex items-center gap-3 hover:bg-gray-50 text-right"
+                                               className="w-full p-2 flex items-center gap-3 hover:bg-muted text-right"
                                              >
                                                 <img src={u.imageUrl} className="w-8 h-8 rounded-full" />
                                                 <div className="flex-1 overflow-hidden">
@@ -1289,9 +1292,9 @@ const CreateTrip = () => {
 
                     {/* Actions */}
                     <div className="pt-6 space-y-4">
-                      <div className="flex items-start gap-3 p-4 rounded-2xl bg-gray-50 border border-gray-100">
+                      <div className="flex items-start gap-3 p-4 rounded-2xl bg-muted border border-border">
                         <Checkbox id="terms-quick" checked={termsAccepted} onCheckedChange={(v) => setTermsAccepted(!!v)} className="mt-0.5 rounded border-gray-300 data-[state=checked]:bg-indigo-600" />
-                        <label htmlFor="terms-quick" className="text-sm font-medium text-gray-700 cursor-pointer leading-relaxed">
+                        <label htmlFor="terms-quick" className="text-sm font-medium text-foreground cursor-pointer leading-relaxed">
                           أوافق على <Link to="/terms" target="_blank" className="text-indigo-600 hover:underline font-bold">شروط الاستخدام</Link> و <Link to="/privacy" target="_blank" className="text-indigo-600 hover:underline font-bold">سياسة الخصوصية</Link> لمشاركة رحلتي
                         </label>
                       </div>
@@ -1299,7 +1302,7 @@ const CreateTrip = () => {
                         <Button onClick={handleQuickSubmit} disabled={!termsAccepted} className="h-16 flex-[2] rounded-[1.5rem] bg-indigo-600 hover:bg-indigo-700 text-white text-xl font-black shadow-2xl shadow-indigo-100 transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100">
                           انشر البوست 🚀
                         </Button>
-                        <Button variant="outline" onClick={() => setPostType(null)} className="h-16 flex-1 rounded-[1.5rem] border-gray-100 text-gray-500 font-bold hover:bg-gray-50">
+                        <Button variant="outline" onClick={() => setPostType(null)} className="h-16 flex-1 rounded-[1.5rem] border-border text-muted-foreground font-bold hover:bg-muted">
                           <ArrowRight className="ml-2 w-5 h-5" />
                           رجوع
                         </Button>
@@ -1316,20 +1319,20 @@ const CreateTrip = () => {
         {postType === 'ask' && (
           <div className="container mx-auto px-4 -mt-20 relative z-20">
             <div className="max-w-2xl mx-auto">
-              <Card className="border-0 shadow-2xl rounded-[3rem] overflow-hidden bg-white">
+              <Card className="border-0 shadow-2xl rounded-[3rem] overflow-hidden bg-card">
                 <CardHeader className="bg-emerald-50/50 p-10 border-b border-emerald-100/50">
-                  <CardTitle className="text-3xl font-black text-gray-900 flex items-center gap-4">
+                  <CardTitle className="text-3xl font-black text-foreground flex items-center gap-4">
                     <div className="w-12 h-12 bg-emerald-600 rounded-2xl flex items-center justify-center text-white">
                       <MessageCircle className="w-6 h-6" />
                     </div>
                     سؤال أو استفسار
                   </CardTitle>
-                  <p className="text-gray-500 mt-2">اسأل عن أفضل الأماكن، المدن، أو أي نصيحة سفر. لا يمنح نقاط.</p>
+                  <p className="text-muted-foreground mt-2">اسأل عن أفضل الأماكن، المدن، أو أي نصيحة سفر. لا يمنح نقاط.</p>
                 </CardHeader>
                 <CardContent className="p-10 space-y-6">
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <Label className="text-sm font-black text-gray-700">المحتوى *</Label>
+                      <Label className="text-sm font-black text-foreground">المحتوى *</Label>
                       <Popover>
                         <PopoverTrigger asChild>
                           <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-colors">
@@ -1353,11 +1356,11 @@ const CreateTrip = () => {
                       value={askContent}
                       onChange={(e) => setAskContent(e.target.value)}
                       placeholder="مثال: ما أفضل مدينة للاسترخاء في مصر؟ أو أين أنصح بزيارته في الأقصر؟"
-                      className="min-h-[160px] rounded-2xl border-gray-200 resize-none font-medium text-gray-700 p-4"
+                      className="min-h-[160px] rounded-2xl border-border resize-none font-medium text-foreground p-4"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-black text-gray-700">صورة اختيارية</Label>
+                    <Label className="text-sm font-black text-foreground">صورة اختيارية</Label>
                     <div className="flex items-center gap-4">
                       <input
                         id="ask-image"
@@ -1385,9 +1388,9 @@ const CreateTrip = () => {
                       )}
                     </div>
                   </div>
-                  <div className="flex items-start gap-3 p-4 rounded-2xl bg-gray-50 border border-gray-100">
+                  <div className="flex items-start gap-3 p-4 rounded-2xl bg-muted border border-border">
                     <Checkbox id="terms-ask" checked={termsAccepted} onCheckedChange={(v) => setTermsAccepted(!!v)} className="mt-0.5 rounded border-gray-300 data-[state=checked]:bg-emerald-600" />
-                    <label htmlFor="terms-ask" className="text-sm font-medium text-gray-700 cursor-pointer leading-relaxed">
+                    <label htmlFor="terms-ask" className="text-sm font-medium text-foreground cursor-pointer leading-relaxed">
                       أوافق على <Link to="/terms" target="_blank" className="text-emerald-600 hover:underline font-bold">شروط الاستخدام</Link> و <Link to="/privacy" target="_blank" className="text-emerald-600 hover:underline font-bold">سياسة الخصوصية</Link>
                     </label>
                   </div>
@@ -1424,13 +1427,13 @@ const CreateTrip = () => {
                                 className={cn(
                                    "w-full flex items-center gap-4 px-4 py-4 rounded-2xl transition-all font-bold text-right group relative overflow-hidden",
                                    isActive ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200 scale-105" : 
-                                   isCompleted ? "bg-indigo-50 text-indigo-700 hover:bg-indigo-100" : "text-gray-400 hover:bg-gray-50 hover:text-gray-600"
+                                   isCompleted ? "bg-indigo-50 text-indigo-700 hover:bg-indigo-100" : "text-gray-400 hover:bg-muted hover:text-muted-foreground"
                                 )}
                              >
                                 <div className={cn(
                                    "w-10 h-10 rounded-full flex items-center justify-center text-sm border-[3px] shrink-0 transition-colors z-10",
                                    isActive ? "border-white/30 bg-white/20 text-white" : 
-                                   isCompleted ? "border-indigo-200 bg-indigo-100 text-indigo-600" : "border-gray-200 bg-gray-50 text-gray-400"
+                                   isCompleted ? "border-indigo-200 bg-indigo-100 text-indigo-600" : "border-border bg-muted text-gray-400"
                                 )}>
                                    {isCompleted ? <Check className="w-5 h-5" /> : step.number}
                                 </div>
@@ -1449,7 +1452,7 @@ const CreateTrip = () => {
                       <div className="relative z-10">
                          <h4 className="font-black text-lg mb-2">مكتمل: {Math.round(((currentStep - 1) / 6) * 100)}%</h4>
                          <div className="h-2 bg-black/20 rounded-full overflow-hidden">
-                            <div className="h-full bg-white transition-all duration-500" style={{ width: `${((currentStep - 1) / 6) * 100}%` }} />
+                            <div className="h-full bg-card transition-all duration-500" style={{ width: `${((currentStep - 1) / 6) * 100}%` }} />
                          </div>
                       </div>
                   </Card>
@@ -1466,10 +1469,10 @@ const CreateTrip = () => {
                               onClick={() => setCurrentStep(step.number)}
                               className={cn(
                                  "flex items-center gap-2 px-4 py-2 rounded-full font-bold whitespace-nowrap transition-all border-2",
-                                 isActive ? "bg-indigo-600 border-indigo-600 text-white shadow-lg" : "bg-white border-gray-100 text-gray-500"
+                                 isActive ? "bg-indigo-600 border-indigo-600 text-white shadow-lg" : "bg-card border-border text-muted-foreground"
                               )}
                            >
-                              <span className={cn("w-6 h-6 rounded-full flex items-center justify-center text-xs bg-white text-indigo-600", !isActive && "bg-gray-100 text-gray-500")}>{step.number}</span>
+                              <span className={cn("w-6 h-6 rounded-full flex items-center justify-center text-xs bg-card text-indigo-600", !isActive && "bg-accent text-muted-foreground")}>{step.number}</span>
                               {step.title}
                            </button>
                         )
@@ -1482,9 +1485,9 @@ const CreateTrip = () => {
               {/* Step 1: Basic Info */}
               {currentStep === 1 && (
                 <div className="animate-in fade-in slide-in-from-bottom-6 duration-700">
-                  <Card className="border-0 shadow-2xl rounded-[3rem] overflow-hidden bg-white">
+                  <Card className="border-0 shadow-2xl rounded-[3rem] overflow-hidden bg-card">
                      <CardHeader className="bg-orange-50/50 p-10 border-b border-orange-100/50">
-                        <CardTitle className="text-3xl font-black text-gray-900 flex items-center gap-4">
+                        <CardTitle className="text-3xl font-black text-foreground flex items-center gap-4">
                            المعلومات الأساسية
                         </CardTitle>
                      </CardHeader>
@@ -1493,7 +1496,7 @@ const CreateTrip = () => {
                            {/* Row 1: Title (Full Width) */}
                            <div className="col-span-12 space-y-2">
                               <div className="flex items-center justify-between">
-                                  <Label className="text-lg font-black text-gray-800">عنوان الرحلة</Label>
+                                  <Label className="text-lg font-black text-foreground">عنوان الرحلة</Label>
                                   <Popover>
                                     <PopoverTrigger asChild>
                                       <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-xl transition-colors">
@@ -1517,15 +1520,15 @@ const CreateTrip = () => {
                                 placeholder="مثال: استكشاف واحة سيوة بالدراجات.." 
                                 value={tripData.title}
                                 onChange={e => setTripData({...tripData, title: e.target.value})}
-                                className="h-12 md:h-14 rounded-2xl border-gray-100 bg-gray-50/30 focus:bg-white text-lg font-bold px-4 border-2 transition-all"
+                                className="h-12 md:h-14 rounded-2xl border-border bg-muted/30 focus:bg-card text-lg font-bold px-4 border-2 transition-all text-foreground placeholder:text-muted-foreground/50"
                               />
                            </div>
 
                            {/* Row 2: 4 Columns for Details */}
                            <div className="col-span-12 md:col-span-6 lg:col-span-3 space-y-2">
-                              <Label className="text-base font-black text-gray-800">الوجهة</Label>
+                              <Label className="text-base font-black text-foreground">الوجهة</Label>
                               <Select value={tripData.destination} onValueChange={val => setTripData({...tripData, destination: val})}>
-                                 <SelectTrigger className="h-12 md:h-14 rounded-2xl border-gray-100 bg-gray-50/30 text-base font-bold border-2">
+                                 <SelectTrigger className="h-12 md:h-14 rounded-2xl border-border bg-muted/30 text-base font-bold border-2">
                                     <SelectValue placeholder="اختر المدينة" />
                                  </SelectTrigger>
                                  <SelectContent className="font-cairo font-bold max-h-[300px]">
@@ -1537,7 +1540,7 @@ const CreateTrip = () => {
                            </div>
 
                            <div className="col-span-12 md:col-span-6 lg:col-span-3 space-y-2">
-                              <Label className="text-base font-black text-gray-800">الموسم</Label>
+                              <Label className="text-base font-black text-foreground">الموسم</Label>
                               <div className="flex gap-1 h-12 md:h-14">
                                  {['winter', 'summer', 'fall', 'spring'].map((s) => (
                                    <button
@@ -1545,7 +1548,7 @@ const CreateTrip = () => {
                                      onClick={() => setTripData({...tripData, season: s})}
                                      className={cn(
                                        "flex-1 rounded-xl font-bold flex items-center justify-center transition-all border-2",
-                                       tripData.season === s ? "bg-orange-600 border-orange-600 text-white shadow-md" : "bg-white border-gray-50 text-gray-400 hover:border-orange-100 hover:text-orange-400"
+                                       tripData.season === s ? "bg-orange-600 border-orange-600 text-white shadow-md" : "bg-card border-border text-gray-400 hover:border-orange-100 hover:text-orange-400"
                                      )}
                                      title={s}
                                    >
@@ -1556,19 +1559,19 @@ const CreateTrip = () => {
                            </div>
 
                            <div className="col-span-12 md:col-span-6 lg:col-span-3 space-y-2">
-                              <Label className="text-base font-black text-gray-800 flex items-center gap-2"><Calendar className="w-4 h-4 text-orange-600" /> مدة الرحلة</Label>
-                              <Input placeholder="مثال: ٤ أيام" value={tripData.duration} onChange={e => setTripData({...tripData, duration: e.target.value})} className="h-12 md:h-14 rounded-2xl border-gray-100 text-base font-bold border-2" />
+                              <Label className="text-base font-black text-foreground flex items-center gap-2"><Calendar className="w-4 h-4 text-orange-600" /> مدة الرحلة</Label>
+                              <Input placeholder="مثال: ٤ أيام" value={tripData.duration} onChange={e => setTripData({...tripData, duration: e.target.value})} className="h-12 md:h-14 rounded-2xl border-border text-base font-bold border-2" />
                            </div>
 
                            <div className="col-span-12 md:col-span-6 lg:col-span-3 space-y-2">
-                              <Label className="text-base font-black text-gray-800 flex items-center gap-2"><DollarSign className="w-4 h-4 text-emerald-600" /> الميزانية</Label>
-                              <Input placeholder="مثال: ٣٠٠٠ جنيه" value={tripData.budget} onChange={e => setTripData({...tripData, budget: e.target.value})} className="h-12 md:h-14 rounded-2xl border-gray-100 text-base font-bold border-2" />
+                              <Label className="text-base font-black text-foreground flex items-center gap-2"><DollarSign className="w-4 h-4 text-emerald-600" /> الميزانية</Label>
+                              <Input placeholder="مثال: ٣٠٠٠ جنيه" value={tripData.budget} onChange={e => setTripData({...tripData, budget: e.target.value})} className="h-12 md:h-14 rounded-2xl border-border text-base font-bold border-2" />
                            </div>
 
                            {/* Row 3: Description (Left) and Visuals (Right) */}
                            <div className="col-span-12 lg:col-span-6 space-y-2 h-full flex flex-col">
                               <div className="flex items-center justify-between">
-                                <Label className="text-lg font-black text-gray-800">وصف الرحلة</Label>
+                                <Label className="text-lg font-black text-foreground">وصف الرحلة</Label>
                                 <Popover>
                                   <PopoverTrigger asChild>
                                     <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-xl transition-colors">
@@ -1592,14 +1595,14 @@ const CreateTrip = () => {
                                 placeholder="احكِ لنا قصة الرحلة، ما الذي جعلها مميزة؟" 
                                 value={tripData.description}
                                 onChange={e => setTripData({...tripData, description: e.target.value})}
-                                className="flex-1 min-h-[150px] rounded-2xl border-gray-100 bg-gray-50/30 text-base font-medium p-6 border-2 focus:bg-white transition-all leading-relaxed resize-none"
+                                className="flex-1 min-h-[150px] rounded-2xl border-border bg-muted/30 text-base font-medium p-6 border-2 focus:bg-card transition-all leading-relaxed resize-none text-foreground placeholder:text-muted-foreground/50"
                               />
                            </div>
 
                            <div className="col-span-12 lg:col-span-6 space-y-4 flex flex-col">
                               {/* Cover Image */}
                                <div className="flex-1">
-                                 <Label className="text-base font-black text-gray-800 mb-2 block">صورة الغلاف</Label>
+                                 <Label className="text-base font-black text-foreground mb-2 block">صورة الغلاف</Label>
                                  {tripData.coverImageUrl ? (
                                    <div className="relative h-40 w-full rounded-2xl overflow-hidden group shadow-lg border-2 border-white">
                                       <img src={tripData.coverImageUrl} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700" />
@@ -1610,20 +1613,20 @@ const CreateTrip = () => {
                                       </div>
                                    </div>
                                  ) : (
-                                   <label className="flex flex-col items-center justify-center h-40 w-full rounded-2xl border-2 border-dashed border-gray-100 bg-gray-50/50 cursor-pointer hover:bg-orange-50 transition-all group">
-                                      <div className="w-10 h-10 bg-white rounded-xl shadow-md flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                                   <label className="flex flex-col items-center justify-center h-40 w-full rounded-2xl border-2 border-dashed border-border bg-muted/50 cursor-pointer hover:bg-orange-50 transition-all group">
+                                      <div className="w-10 h-10 bg-card rounded-xl shadow-md flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
                                          <ImageIcon className="w-5 h-5 text-orange-200" />
                                       </div>
-                                      <span className="text-sm font-black text-gray-900">اختر صورة الغلاف</span>
+                                      <span className="text-sm font-black text-foreground">اختر صورة الغلاف</span>
                                       <input type="file" accept="image/*" onChange={(e) => handleCoverImageUpload(e.target.files)} className="hidden" />
                                    </label>
                                  )}
                                </div>
 
                               {/* Tag Friends Mini Section */}
-                              <div className="flex-1 relative border-t border-gray-100 pt-3">
+                              <div className="flex-1 relative border-t border-border pt-3">
                                  <div className="flex items-center justify-between mb-2">
-                                    <Label className="text-base font-black text-gray-900 flex items-center gap-2">
+                                    <Label className="text-base font-black text-foreground flex items-center gap-2">
                                        <Users className="w-4 h-4 text-indigo-600" />
                                        أصدقاء معك
                                     </Label>
@@ -1633,11 +1636,11 @@ const CreateTrip = () => {
                                          placeholder="بحث..."
                                          value={userSearchQuery}
                                          onChange={(e) => setUserSearchQuery(e.target.value)}
-                                         className="h-8 w-40 rounded-lg border-gray-100 bg-gray-50 pr-8 text-xs focus:w-60 transition-all"
+                                         className="h-8 w-40 rounded-lg border-border bg-muted pr-8 text-xs focus:w-60 transition-all"
                                        />
                                        
                                         {userSearchResults.length > 0 && (
-                                         <div className="absolute top-full right-0 w-60 mt-1 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-[100]">
+                                         <div className="absolute top-full right-0 w-60 mt-1 bg-card rounded-xl shadow-xl border border-border overflow-hidden z-[100]">
                                             <div className="max-h-[200px] overflow-y-auto custom-scrollbar">
                                                {userSearchResults.map((u) => {
                                                  const isAlreadyTagged = taggedUsers.some(t => t.userId === u.clerkId);
@@ -1650,7 +1653,7 @@ const CreateTrip = () => {
                                                        setUserSearchQuery("");
                                                        setUserSearchResults([]);
                                                      }}
-                                                     className="w-full p-2 flex items-center gap-3 hover:bg-gray-50 text-right"
+                                                     className="w-full p-2 flex items-center gap-3 hover:bg-muted text-right"
                                                    >
                                                       <img src={u.imageUrl} className="w-8 h-8 rounded-full" />
                                                       <div className="flex-1 overflow-hidden">
@@ -1680,15 +1683,15 @@ const CreateTrip = () => {
                            </div>
                         </div>
 
-                        <div className="pt-6 border-t border-gray-100 mt-6 space-y-4">
-                           <div className="flex items-start gap-3 p-4 rounded-2xl bg-gray-50 border border-gray-100">
+                        <div className="pt-6 border-t border-border mt-6 space-y-4">
+                           <div className="flex items-start gap-3 p-4 rounded-2xl bg-muted border border-border">
                               <Checkbox id="terms-step1" checked={termsAccepted} onCheckedChange={(v) => setTermsAccepted(!!v)} className="mt-0.5 rounded border-gray-300 data-[state=checked]:bg-indigo-600" />
-                              <label htmlFor="terms-step1" className="text-sm font-medium text-gray-700 cursor-pointer leading-relaxed">
+                              <label htmlFor="terms-step1" className="text-sm font-medium text-foreground cursor-pointer leading-relaxed">
                                  أوافق على <Link to="/terms" target="_blank" className="text-indigo-600 hover:underline font-bold">شروط الاستخدام</Link> و <Link to="/privacy" target="_blank" className="text-indigo-600 hover:underline font-bold">سياسة الخصوصية</Link> لمشاركة رحلتي
                               </label>
                            </div>
                            <div className="flex flex-col sm:flex-row gap-4">
-                              <Button variant="outline" onClick={prevStep} className="h-14 px-8 rounded-[1.5rem] border-gray-200 font-bold text-gray-500 hover:text-gray-900">
+                              <Button variant="outline" onClick={prevStep} className="h-14 px-8 rounded-[1.5rem] border-border font-bold text-muted-foreground hover:text-foreground">
                                  السابق
                               </Button>
                               <Button onClick={nextStep} className="h-14 flex-[2] rounded-[1.5rem] bg-orange-600 hover:bg-orange-700 text-white text-lg font-black shadow-lg shadow-orange-100 transition-all hover:scale-[1.01]">
@@ -1708,9 +1711,9 @@ const CreateTrip = () => {
               {/* Step 2: Activities & Map */}
               {currentStep === 2 && (
                 <div className="animate-in fade-in slide-in-from-bottom-6 duration-700">
-                  <Card className="border-0 shadow-2xl rounded-[3rem] overflow-hidden bg-white">
+                  <Card className="border-0 shadow-2xl rounded-[3rem] overflow-hidden bg-card">
                      <CardHeader className="bg-indigo-50/50 p-10 border-b border-indigo-100/50">
-                        <CardTitle className="text-3xl font-black text-gray-900 flex items-center gap-4">
+                        <CardTitle className="text-3xl font-black text-foreground flex items-center gap-4">
                            <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white">
                               <MapPin className="w-6 h-6" />
                            </div>
@@ -1720,7 +1723,7 @@ const CreateTrip = () => {
                       <CardContent className="p-6 h-[calc(100vh-200px)]">
                         <div className="grid grid-cols-12 gap-6 h-full">
                            {/* Map Section - takes 8 columns */}
-                           <div className="col-span-12 lg:col-span-8 h-full rounded-3xl overflow-hidden border-2 border-indigo-50 shadow-inner bg-indigo-50/10">
+                           <div className="col-span-12 lg:col-span-8 h-full rounded-3xl overflow-hidden border-2 border-border shadow-inner bg-indigo-50/10">
                               <TripMapEditor
                                 locations={locations}
                                 route={[] as [number, number][]}
@@ -1734,21 +1737,21 @@ const CreateTrip = () => {
 
                            {/* Sidebar Section - takes 4 columns */}
                            <div className="col-span-12 lg:col-span-4 h-full flex flex-col space-y-4">
-                              <div className="flex items-center justify-between pb-2 border-b border-gray-100">
-                                <h3 className="text-xl font-black text-gray-900">المواقع <span className="text-indigo-600">({locations.length})</span></h3>
+                              <div className="flex items-center justify-between pb-2 border-b border-border">
+                                <h3 className="text-xl font-black text-foreground">المواقع <span className="text-indigo-600">({locations.length})</span></h3>
                                 <p className="text-xs text-gray-400 font-bold">اضغط على الخريطة لإضافة موقع</p>
                               </div>
 
                               <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
                                 {locations.length === 0 ? (
-                                  <div className="h-full flex flex-col items-center justify-center text-center p-6 text-gray-400 space-y-4 border-2 border-dashed border-gray-100 rounded-2xl">
+                                  <div className="h-full flex flex-col items-center justify-center text-center p-6 text-gray-400 space-y-4 border-2 border-dashed border-border rounded-2xl">
                                     <MapPin className="w-12 h-12 text-gray-200" />
                                     <p className="font-bold">لا توجد مواقع محددة بعد.</p>
                                     <p className="text-sm">استخدم البحث أو اضغط على الخريطة لإضافة الأماكن التي زرتها.</p>
                                   </div>
                                 ) : (
                                   locations.map((loc, idx) => (
-                                    <div key={loc.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-4 group hover:border-indigo-200 transition-all">
+                                    <div key={loc.id} className="bg-card rounded-2xl border border-border shadow-sm p-4 space-y-4 group hover:border-indigo-200 transition-all">
                                        <div className="flex items-start justify-between gap-3">
                                           <div className="flex-1 space-y-2">
                                              <Input 
@@ -1759,7 +1762,7 @@ const CreateTrip = () => {
                                                  setLocations(newLocs);
                                                }}
                                                placeholder={`موقع ${idx + 1}`}
-                                               className="h-9 font-bold border-gray-100 bg-gray-50 focus:bg-white transition-all"
+                                               className="h-9 font-bold border-border bg-muted focus:bg-card transition-all"
                                              />
                                              <div className="flex items-center gap-2 text-[10px] text-gray-400 font-mono">
                                                 <span>{loc.coordinates[0].toFixed(4)}, {loc.coordinates[1].toFixed(4)}</span>
@@ -1774,7 +1777,7 @@ const CreateTrip = () => {
                                        <div className="space-y-2">
                                           <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
                                              {/* Add Button */}
-                                             <label className="flex-shrink-0 w-16 h-16 rounded-xl border-2 border-dashed border-gray-200 hover:border-indigo-400 hover:bg-indigo-50 flex items-center justify-center cursor-pointer transition-all">
+                                             <label className="flex-shrink-0 w-16 h-16 rounded-xl border-2 border-dashed border-border hover:border-indigo-400 hover:bg-indigo-50 flex items-center justify-center cursor-pointer transition-all">
                                                 <Plus className="w-5 h-5 text-gray-400" />
                                                 <input 
                                                   type="file" 
@@ -1798,7 +1801,7 @@ const CreateTrip = () => {
                                                 const url = file instanceof File ? URL.createObjectURL(file) : file as string;
                                                 const isVideo = file instanceof File ? file.type.startsWith('video/') : typeof file === 'string' ? (file.includes('video') || file.endsWith('.mp4')) : false;
                                                 return (
-                                                   <div key={i} className="flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden relative group/img border border-gray-100 bg-gray-50">
+                                                   <div key={i} className="flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden relative group/img border border-border bg-muted">
                                                       {isVideo ? (
                                                         <video src={url} className="w-full h-full object-cover" />
                                                       ) : (
@@ -1832,8 +1835,8 @@ const CreateTrip = () => {
                               </div>
 
                               {/* Navigation Buttons */}
-                              <div className="flex gap-3 pt-2 mt-auto border-t border-gray-100">
-                                 <Button variant="outline" onClick={prevStep} className="h-12 w-12 rounded-xl p-0 border-gray-200"><ArrowRight className="w-5 h-5 text-gray-500" /></Button>
+                              <div className="flex gap-3 pt-2 mt-auto border-t border-border">
+                                 <Button variant="outline" onClick={prevStep} className="h-12 w-12 rounded-xl p-0 border-border"><ArrowRight className="w-5 h-5 text-muted-foreground" /></Button>
                                  <Button onClick={nextStep} className="flex-1 h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-lg shadow-indigo-100">
                                     التالي: تنظيم الأيام
                                     <ArrowLeft className="mr-2 w-5 h-5" />
@@ -1849,17 +1852,17 @@ const CreateTrip = () => {
               {/* Step 3: Organize Days */}
               {currentStep === 3 && (
                 <div className="animate-in fade-in slide-in-from-bottom-6 duration-700">
-                  <Card className="border-0 shadow-2xl rounded-[3rem] overflow-hidden bg-white">
+                  <Card className="border-0 shadow-2xl rounded-[3rem] overflow-hidden bg-card">
                      <CardHeader className="bg-emerald-50/50 p-10">
-                        <CardTitle className="text-3xl font-black text-gray-900">جدولة الرحلة</CardTitle>
-                        <p className="text-gray-500 font-bold mt-2">قم بزيادة جودة رحلتك بتنظيم المواقع حسب الأيام.</p>
+                        <CardTitle className="text-3xl font-black text-foreground">جدولة الرحلة</CardTitle>
+                        <p className="text-muted-foreground font-bold mt-2">قم بزيادة جودة رحلتك بتنظيم المواقع حسب الأيام.</p>
                      </CardHeader>
                       <CardContent className="p-6 h-[calc(100vh-200px)]">
                         <div className="grid grid-cols-12 gap-6 h-full">
                            {/* Days Sidebar - Col 3 */}
-                           <div className="col-span-3 h-full flex flex-col space-y-4 border-l border-gray-100 pl-4">
+                           <div className="col-span-3 h-full flex flex-col space-y-4 border-l border-border pl-4">
                               <div className="flex items-center justify-between">
-                                 <h3 className="text-xl font-black text-gray-900">الأيام</h3>
+                                 <h3 className="text-xl font-black text-foreground">الأيام</h3>
                                  <Button onClick={addDay} variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-full border border-dashed border-gray-300 hover:border-emerald-500 hover:text-emerald-500"><Plus className="w-4 h-4" /></Button>
                               </div>
                               <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
@@ -1868,16 +1871,16 @@ const CreateTrip = () => {
                                       key={dIdx} 
                                       className={cn(
                                         "w-full p-1 rounded-xl transition-all flex items-center justify-between group relative", 
-                                        currentDay === dIdx + 1 ? "bg-emerald-600 shadow-lg shadow-emerald-100" : "bg-gray-50 hover:bg-emerald-50"
+                                        currentDay === dIdx + 1 ? "bg-emerald-600 shadow-lg shadow-emerald-100" : "bg-muted hover:bg-emerald-50"
                                       )}
                                     >
                                       <button
                                         onClick={() => setCurrentDay(dIdx + 1)}
-                                        className={cn("flex-1 text-right p-3 font-bold flex items-center justify-between", currentDay === dIdx + 1 ? "text-white" : "text-gray-500 hover:text-emerald-600")}
+                                        className={cn("flex-1 text-right p-3 font-bold flex items-center justify-between", currentDay === dIdx + 1 ? "text-white" : "text-muted-foreground hover:text-emerald-600")}
                                       >
                                          <span>{day.title}</span>
                                          {day.activities.length > 0 && (
-                                           <Badge className={cn("text-[10px]", currentDay === dIdx + 1 ? "bg-white/20 text-white" : "bg-gray-200 text-gray-500")}>
+                                           <Badge className={cn("text-[10px]", currentDay === dIdx + 1 ? "bg-white/20 text-white" : "bg-gray-200 text-muted-foreground")}>
                                              {day.activities.length}
                                            </Badge>
                                          )}
@@ -1901,7 +1904,7 @@ const CreateTrip = () => {
                            {/* Activities Canvas - Col 9 */}
                            <div className="col-span-9 h-full grid grid-rows-2 gap-6">
                               {/* Top: Unassigned Activities */}
-                              <div className="bg-gray-50/50 rounded-3xl p-6 border-2 border-dashed border-gray-100 flex flex-col min-h-0">
+                              <div className="bg-muted/50 rounded-3xl p-6 border-2 border-dashed border-border flex flex-col min-h-0">
                                  <h4 className="text-lg font-black text-gray-400 mb-4 flex items-center gap-2">
                                     <MapPin className="w-5 h-5" />
                                     أنشطة غير محددة
@@ -1913,16 +1916,16 @@ const CreateTrip = () => {
                                           const isAssigned = days.some(d => d.activities.includes(idx));
                                           if (isAssigned) return null;
                                           return (
-                                             <div key={idx} className="group relative bg-white rounded-2xl p-3 shadow-sm border border-gray-100 hover:shadow-md transition-all cursor-pointer" onClick={() => toggleActivityInDay(currentDay-1, idx)}>
-                                                <div className="aspect-video rounded-xl bg-gray-100 mb-3 overflow-hidden">
+                                             <div key={idx} className="group relative bg-card rounded-2xl p-3 shadow-sm border border-border hover:shadow-md transition-all cursor-pointer" onClick={() => toggleActivityInDay(currentDay-1, idx)}>
+                                                <div className="aspect-video rounded-xl bg-accent mb-3 overflow-hidden">
                                                    {act.images?.[0] ? (
                                                       <img src={typeof act.images[0] === 'string' ? act.images[0] : URL.createObjectURL(act.images[0])} className="w-full h-full object-cover" />
                                                    ) : (
                                                       <div className="w-full h-full flex items-center justify-center text-gray-300"><ImageIcon className="w-8 h-8" /></div>
                                                    )}
                                                 </div>
-                                                <h5 className="font-bold text-sm text-gray-800 line-clamp-1">{act.name}</h5>
-                                                <Button size="sm" variant="ghost" className="absolute top-2 left-2 h-8 w-8 p-0 rounded-full bg-white/80 opacity-0 group-hover:opacity-100 transition-opacity text-emerald-600 hover:bg-emerald-50">
+                                                <h5 className="font-bold text-sm text-foreground line-clamp-1">{act.name}</h5>
+                                                <Button size="sm" variant="ghost" className="absolute top-2 left-2 h-8 w-8 p-0 rounded-full bg-card/80 opacity-0 group-hover:opacity-100 transition-opacity text-emerald-600 hover:bg-emerald-50">
                                                    <Plus className="w-5 h-5" />
                                                 </Button>
                                              </div>
@@ -1950,13 +1953,13 @@ const CreateTrip = () => {
                                        days[currentDay-1]?.activities.map((actIdx) => {
                                           const act = activities[actIdx];
                                           return (
-                                             <div key={actIdx} className="bg-white rounded-2xl p-4 shadow-sm border border-emerald-100 flex items-center justify-between group">
+                                             <div key={actIdx} className="bg-card rounded-2xl p-4 shadow-sm border border-emerald-100 flex items-center justify-between group">
                                                 <div className="flex items-center gap-4">
                                                    <Badge variant="outline" className="h-8 w-8 rounded-full flex items-center justify-center p-0 border-emerald-200 text-emerald-600 bg-emerald-50 font-mono">
                                                       {days[currentDay-1]?.activities.indexOf(actIdx) + 1}
                                                    </Badge>
                                                    <div>
-                                                      <h5 className="font-bold text-gray-900">{act.name}</h5>
+                                                      <h5 className="font-bold text-foreground">{act.name}</h5>
                                                       <p className="text-xs text-gray-400 font-bold line-clamp-1">{act.description || "لا يوجد وصف"}</p>
                                                    </div>
                                                 </div>
@@ -1974,8 +1977,8 @@ const CreateTrip = () => {
 
                       </CardContent>
                               {/* Navigation Buttons */}
-                              <div className="flex gap-3 pt-2 mt-auto border-t border-gray-100">
-                                 <Button variant="outline" onClick={prevStep} className="h-12 w-12 rounded-xl p-0 border-gray-200"><ArrowRight className="w-5 h-5 text-gray-500" /></Button>
+                              <div className="flex gap-3 pt-2 mt-auto border-t border-border">
+                                 <Button variant="outline" onClick={prevStep} className="h-12 w-12 rounded-xl p-0 border-border"><ArrowRight className="w-5 h-5 text-muted-foreground" /></Button>
                                  <Button onClick={nextStep} className="flex-1 h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-lg shadow-indigo-100">
                                    التالي: المطاعم والأكلات
                                     <ArrowLeft className="mr-2 w-5 h-5" />
@@ -1988,9 +1991,9 @@ const CreateTrip = () => {
 
               {currentStep === 4 && (
                  <div className="animate-in fade-in slide-in-from-bottom-6 duration-700">
-                    <Card className="border-0 shadow-2xl rounded-[3rem] overflow-hidden bg-white">
+                    <Card className="border-0 shadow-2xl rounded-[3rem] overflow-hidden bg-card">
                        <CardHeader className="bg-amber-50/50 p-10 border-b border-amber-100/50">
-                          <CardTitle className="text-3xl font-black text-gray-900 flex items-center gap-4">
+                          <CardTitle className="text-3xl font-black text-foreground flex items-center gap-4">
                              <div className="w-12 h-12 bg-amber-500 rounded-2xl flex items-center justify-center text-white">
                                 <Utensils className="w-6 h-6" />
                              </div>
@@ -2000,16 +2003,16 @@ const CreateTrip = () => {
                        <CardContent className="p-6 h-[calc(100vh-200px)]">
                           <div className="grid grid-cols-12 gap-6 h-full">
                              {/* Form Section */}
-                             <div className="col-span-12 lg:col-span-4 h-full flex flex-col space-y-4 border-l border-gray-100 pl-4 overflow-y-auto custom-scrollbar">
-                                <h3 className="text-xl font-black text-gray-900 mb-2">أضف مطعم جديد</h3>
-                                <div className="space-y-4 bg-gray-50 p-6 rounded-3xl border border-gray-100">
+                             <div className="col-span-12 lg:col-span-4 h-full flex flex-col space-y-4 border-l border-border pl-4 overflow-y-auto custom-scrollbar">
+                                <h3 className="text-xl font-black text-foreground mb-2">أضف مطعم جديد</h3>
+                                <div className="space-y-4 bg-muted p-6 rounded-3xl border border-border">
                                    {/* Name */}
                                    <div className="space-y-2">
                                       <Label>الاسم</Label>
                                       <Input 
                                         value={newFoodPlace.name}
                                         onChange={e => setNewFoodPlace({...newFoodPlace, name: e.target.value})}
-                                        className="h-12 bg-white rounded-xl"
+                                        className="h-12 bg-card rounded-xl"
                                         placeholder="اسم المطعم"
                                       />
                                    </div>
@@ -2019,7 +2022,7 @@ const CreateTrip = () => {
                                       <Input 
                                         value={newFoodPlace.location}
                                         onChange={e => setNewFoodPlace({...newFoodPlace, location: e.target.value})}
-                                        className="h-12 bg-white rounded-xl"
+                                        className="h-12 bg-card rounded-xl"
                                         placeholder="رابط جوجل مابس أو العنوان"
                                       />
                                    </div>
@@ -2027,7 +2030,7 @@ const CreateTrip = () => {
                                    <div className="space-y-2">
                                       <Label>النوع</Label>
                                       <Select value={newFoodPlace.type} onValueChange={val => setNewFoodPlace({...newFoodPlace, type: val})}>
-                                        <SelectTrigger className="h-12 bg-white rounded-xl"><SelectValue /></SelectTrigger>
+                                        <SelectTrigger className="h-12 bg-card rounded-xl"><SelectValue /></SelectTrigger>
                                         <SelectContent>
                                           <SelectItem value="restaurant">مطعم</SelectItem>
                                           <SelectItem value="cafe">كافيه</SelectItem>
@@ -2041,7 +2044,7 @@ const CreateTrip = () => {
                                       <Textarea 
                                         value={newFoodPlace.description}
                                         onChange={e => setNewFoodPlace({...newFoodPlace, description: e.target.value})}
-                                        className="bg-white rounded-xl min-h-[100px]"
+                                        className="bg-card rounded-xl min-h-[100px]"
                                         placeholder="وصف التجربة..."
                                       />
                                    </div>
@@ -2050,10 +2053,10 @@ const CreateTrip = () => {
                                       <Label>صورة المطعم</Label>
                                       <div className="flex items-center gap-4">
                                          {(newFoodPlace as any).image && (
-                                            <img src={(newFoodPlace as any).image} className="w-12 h-12 rounded-lg object-cover border border-gray-200" />
+                                            <img src={(newFoodPlace as any).image} className="w-12 h-12 rounded-lg object-cover border border-border" />
                                          )}
                                          <label className="flex-1 cursor-pointer">
-                                            <div className="flex items-center justify-center w-full h-12 rounded-xl bg-white border border-dashed border-gray-300 hover:bg-gray-50 hover:border-amber-400 transition-all text-gray-400 text-sm font-bold gap-2">
+                                            <div className="flex items-center justify-center w-full h-12 rounded-xl bg-card border border-dashed border-gray-300 hover:bg-muted hover:border-amber-400 transition-all text-gray-400 text-sm font-bold gap-2">
                                                <ImageIcon className="w-4 h-4" />
                                                <span>{(newFoodPlace as any).image ? "تغيير الصورة" : "رفع صورة"}</span>
                                             </div>
@@ -2086,8 +2089,8 @@ const CreateTrip = () => {
                              <div className="col-span-12 lg:col-span-8 h-full overflow-y-auto custom-scrollbar">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                    {foodPlaces.map((item, idx) => (
-                                      <div key={idx} className="group relative bg-white border border-gray-100 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all flex gap-4">
-                                         <div className="w-24 h-24 bg-gray-100 rounded-xl flex-shrink-0 overflow-hidden">
+                                      <div key={idx} className="group relative bg-card border border-border rounded-2xl p-4 shadow-sm hover:shadow-md transition-all flex gap-4">
+                                         <div className="w-24 h-24 bg-accent rounded-xl flex-shrink-0 overflow-hidden">
                                             {(item as any).image ? <img src={(item as any).image} className="w-full h-full object-cover" /> : (
                                                <label className="w-full h-full flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors">
                                                  <ImageIcon className="w-6 h-6 text-gray-400" />
@@ -2104,8 +2107,8 @@ const CreateTrip = () => {
                                             )}
                                          </div>
                                          <div className="flex-1 min-w-0">
-                                            <h5 className="font-bold text-gray-900 truncate">{item.name}</h5>
-                                            <p className="text-gray-500 text-xs line-clamp-2 mt-1">{item.description}</p>
+                                            <h5 className="font-bold text-foreground truncate">{item.name}</h5>
+                                            <p className="text-muted-foreground text-xs line-clamp-2 mt-1">{item.description}</p>
                                             {(item as any).location && <div className="flex items-center gap-1 mt-2 text-xs text-blue-500"><MapPin className="w-3 h-3" /><a href={(item as any).location} target="_blank" rel="noreferrer" className="truncate hover:underline">الموقع</a></div>}
                                             <div className="flex items-center gap-1 mt-2 text-amber-500 text-xs font-bold"><Star className="w-3 h-3 fill-amber-500" /> {item.rating || 5}</div>
                                          </div>
@@ -2113,8 +2116,8 @@ const CreateTrip = () => {
                                       </div>
                                    ))}
                                    {foodPlaces.length === 0 && (
-                                     <div className="col-span-full flex flex-col items-center justify-center py-20 text-gray-300 border-2 border-dashed border-gray-100 rounded-3xl">
-                                        <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4"><Utensils className="w-8 h-8 text-gray-300" /></div>
+                                     <div className="col-span-full flex flex-col items-center justify-center py-20 text-gray-300 border-2 border-dashed border-border rounded-3xl">
+                                        <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4"><Utensils className="w-8 h-8 text-gray-300" /></div>
                                         <p className="font-bold">قائمة المطاعم فارغة.</p>
                                      </div>
                                    )}
@@ -2125,8 +2128,8 @@ const CreateTrip = () => {
 
                        </CardContent>
                        {/* Navigation Buttons */}
-                       <div className="flex gap-3 pt-2 mt-auto border-t border-gray-100">
-                          <Button variant="outline" onClick={prevStep} className="h-12 w-12 rounded-xl p-0 border-gray-200"><ArrowRight className="w-5 h-5 text-gray-500" /></Button>
+                       <div className="flex gap-3 pt-2 mt-auto border-t border-border">
+                          <Button variant="outline" onClick={prevStep} className="h-12 w-12 rounded-xl p-0 border-border"><ArrowRight className="w-5 h-5 text-muted-foreground" /></Button>
                           <Button onClick={nextStep} className="flex-1 h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-lg shadow-indigo-100">
                              التالي:  الفنادق والاقامة
                              <ArrowLeft className="mr-2 w-5 h-5" />
@@ -2139,9 +2142,9 @@ const CreateTrip = () => {
 
               {currentStep === 5 && (
                  <div className="animate-in fade-in slide-in-from-bottom-6 duration-700">
-                    <Card className="border-0 shadow-2xl rounded-[3rem] overflow-hidden bg-white">
+                    <Card className="border-0 shadow-2xl rounded-[3rem] overflow-hidden bg-card">
                        <CardHeader className="bg-blue-50/50 p-10 border-b border-blue-100/50">
-                          <CardTitle className="text-3xl font-black text-gray-900 flex items-center gap-4">
+                          <CardTitle className="text-3xl font-black text-foreground flex items-center gap-4">
                              <div className="w-12 h-12 bg-blue-500 rounded-2xl flex items-center justify-center text-white">
                                 <MapPin className="w-6 h-6" />
                              </div>
@@ -2151,15 +2154,15 @@ const CreateTrip = () => {
                        <CardContent className="p-6 h-[calc(100vh-200px)]">
                           <div className="grid grid-cols-12 gap-6 h-full">
                              {/* Form Section */}
-                             <div className="col-span-12 lg:col-span-4 h-full flex flex-col space-y-4 border-l border-gray-100 pl-4 overflow-y-auto custom-scrollbar">
-                                <h3 className="text-xl font-black text-gray-900 mb-2">أضف مكان إقامة</h3>
-                                <div className="space-y-4 bg-gray-50 p-6 rounded-3xl border border-gray-100">
+                             <div className="col-span-12 lg:col-span-4 h-full flex flex-col space-y-4 border-l border-border pl-4 overflow-y-auto custom-scrollbar">
+                                <h3 className="text-xl font-black text-foreground mb-2">أضف مكان إقامة</h3>
+                                <div className="space-y-4 bg-muted p-6 rounded-3xl border border-border">
                                    <div className="space-y-2">
                                       <Label>الاسم</Label>
                                       <Input 
                                         value={newHotel.name}
                                         onChange={e => setNewHotel({...newHotel, name: e.target.value})}
-                                        className="h-12 bg-white rounded-xl"
+                                        className="h-12 bg-card rounded-xl"
                                         placeholder="اسم الفندق/المكان"
                                       />
                                    </div>
@@ -2168,7 +2171,7 @@ const CreateTrip = () => {
                                       <Input 
                                         value={newHotel.location}
                                         onChange={e => setNewHotel({...newHotel, location: e.target.value})}
-                                        className="h-12 bg-white rounded-xl"
+                                        className="h-12 bg-card rounded-xl"
                                         placeholder="رابط جوجل مابس أو العنوان"
                                       />
                                    </div>
@@ -2177,7 +2180,7 @@ const CreateTrip = () => {
                                       <Textarea 
                                         value={newHotel.description}
                                         onChange={e => setNewHotel({...newHotel, description: e.target.value})}
-                                        className="bg-white rounded-xl min-h-[100px]"
+                                        className="bg-card rounded-xl min-h-[100px]"
                                         placeholder="وصف المكان..."
                                       />
                                    </div>
@@ -2186,7 +2189,7 @@ const CreateTrip = () => {
                                       <Input 
                                         value={newHotel.bookingUrl}
                                         onChange={e => setNewHotel({...newHotel, bookingUrl: e.target.value})}
-                                        className="h-12 bg-white rounded-xl" 
+                                        className="h-12 bg-card rounded-xl" 
                                         placeholder="Booking.com / Airbnb..."
                                       />
                                      </div>
@@ -2196,10 +2199,10 @@ const CreateTrip = () => {
                                       <Label>صورة الفندق</Label>
                                       <div className="flex items-center gap-4">
                                          {(newHotel as any).image && (
-                                            <img src={(newHotel as any).image} className="w-12 h-12 rounded-lg object-cover border border-gray-200" />
+                                            <img src={(newHotel as any).image} className="w-12 h-12 rounded-lg object-cover border border-border" />
                                          )}
                                          <label className="flex-1 cursor-pointer">
-                                            <div className="flex items-center justify-center w-full h-12 rounded-xl bg-white border border-dashed border-gray-300 hover:bg-gray-50 hover:border-blue-400 transition-all text-gray-400 text-sm font-bold gap-2">
+                                            <div className="flex items-center justify-center w-full h-12 rounded-xl bg-card border border-dashed border-gray-300 hover:bg-muted hover:border-blue-400 transition-all text-gray-400 text-sm font-bold gap-2">
                                                <ImageIcon className="w-4 h-4" />
                                                <span>{(newHotel as any).image ? "تغيير الصورة" : "رفع صورة"}</span>
                                             </div>
@@ -2232,8 +2235,8 @@ const CreateTrip = () => {
                              <div className="col-span-12 lg:col-span-8 h-full overflow-y-auto custom-scrollbar">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                    {hotels.map((item, idx) => (
-                                      <div key={idx} className="group relative bg-white border border-gray-100 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all flex gap-4">
-                                         <div className="w-24 h-24 bg-gray-100 rounded-xl flex-shrink-0 overflow-hidden">
+                                      <div key={idx} className="group relative bg-card border border-border rounded-2xl p-4 shadow-sm hover:shadow-md transition-all flex gap-4">
+                                         <div className="w-24 h-24 bg-accent rounded-xl flex-shrink-0 overflow-hidden">
                                             {(item as any).image ? <img src={(item as any).image} className="w-full h-full object-cover" /> : (
                                                <label className="w-full h-full flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors">
                                                  <ImageIcon className="w-6 h-6 text-gray-400" />
@@ -2250,8 +2253,8 @@ const CreateTrip = () => {
                                             )}
                                          </div>
                                          <div className="flex-1 min-w-0">
-                                            <h5 className="font-bold text-gray-900 truncate">{item.name}</h5>
-                                            <p className="text-gray-500 text-xs line-clamp-2 mt-1">{item.description}</p>
+                                            <h5 className="font-bold text-foreground truncate">{item.name}</h5>
+                                            <p className="text-muted-foreground text-xs line-clamp-2 mt-1">{item.description}</p>
                                             {(item as any).location && <div className="flex items-center gap-1 mt-2 text-xs text-blue-500"><MapPin className="w-3 h-3" /><a href={(item as any).location} target="_blank" rel="noreferrer" className="truncate hover:underline">الموقع</a></div>}
                                             <div className="flex items-center gap-1 mt-2 text-amber-500 text-xs font-bold"><Star className="w-3 h-3 fill-amber-500" /> {item.rating || 5}</div>
                                          </div>
@@ -2259,8 +2262,8 @@ const CreateTrip = () => {
                                       </div>
                                    ))}
                                    {hotels.length === 0 && (
-                                     <div className="col-span-full flex flex-col items-center justify-center py-20 text-gray-300 border-2 border-dashed border-gray-100 rounded-3xl">
-                                        <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4"><MapPin className="w-8 h-8 text-gray-300" /></div>
+                                     <div className="col-span-full flex flex-col items-center justify-center py-20 text-gray-300 border-2 border-dashed border-border rounded-3xl">
+                                        <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4"><MapPin className="w-8 h-8 text-gray-300" /></div>
                                         <p className="font-bold">قائمة الفنادق فارغة.</p>
                                      </div>
                                    )}
@@ -2271,8 +2274,8 @@ const CreateTrip = () => {
 
                        </CardContent>
                         {/* Navigation Buttons */}
-                       <div className="flex gap-3 pt-2 mt-auto border-t border-gray-100">
-                          <Button variant="outline" onClick={prevStep} className="h-12 w-12 rounded-xl p-0 border-gray-200"><ArrowRight className="w-5 h-5 text-gray-500" /></Button>
+                       <div className="flex gap-3 pt-2 mt-auto border-t border-border">
+                          <Button variant="outline" onClick={prevStep} className="h-12 w-12 rounded-xl p-0 border-border"><ArrowRight className="w-5 h-5 text-muted-foreground" /></Button>
                           <Button onClick={nextStep} className="flex-1 h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-lg shadow-indigo-100">
                              التالي:   مراحعة الرحلة 
                              <ArrowLeft className="mr-2 w-5 h-5" />
@@ -2287,11 +2290,11 @@ const CreateTrip = () => {
                 <div className="animate-in fade-in slide-in-from-bottom-10 duration-1000 pb-20">
                    {/* Celebration Banner */}
                    <div className="relative mb-8 text-center">
-                      <h2 className="text-4xl lg:text-5xl font-black text-gray-900 mb-2">رحلتك جاهزة! 🎉</h2>
-                      <p className="text-gray-500 text-lg font-bold">هذه نظرة أخيرة قبل أن يراها العالم.</p>
+                      <h2 className="text-4xl lg:text-5xl font-black text-foreground mb-2">رحلتك جاهزة! 🎉</h2>
+                      <p className="text-muted-foreground text-lg font-bold">هذه نظرة أخيرة قبل أن يراها العالم.</p>
                    </div>
 
-                   <Card className="border-0 shadow-2xl rounded-[3rem] overflow-hidden bg-white mb-8">
+                   <Card className="border-0 shadow-2xl rounded-[3rem] overflow-hidden bg-card mb-8">
                       {/* Hero Section */}
                       <div className="relative h-[400px] w-full">
                          <img src={tripData.coverImageUrl} className="w-full h-full object-cover" />
@@ -2314,35 +2317,35 @@ const CreateTrip = () => {
                         {/* Description & Stats */}
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                              <div id="trip-itinerary" className="lg:col-span-2 space-y-4">
-                                <h3 className="text-2xl font-black text-gray-900 flex items-center gap-2">
+                                <h3 className="text-2xl font-black text-foreground flex items-center gap-2">
                                    <div className="w-2 h-8 bg-orange-500 rounded-full" />
                                    عن الرحلة
                                 </h3>
-                                <p className="text-gray-600 text-lg leading-relaxed font-medium bg-gray-50 p-6 rounded-3xl border border-gray-100">
+                                <p className="text-muted-foreground text-lg leading-relaxed font-medium bg-muted p-6 rounded-3xl border border-border">
                                    "{tripData.description}"
                                 </p>
                              </div>
                              <div className="space-y-4">
-                                <h3 className="text-2xl font-black text-gray-900 flex items-center gap-2">
+                                <h3 className="text-2xl font-black text-foreground flex items-center gap-2">
                                    <div className="w-2 h-8 bg-indigo-500 rounded-full" />
                                    ملخص
                                 </h3>
                                 <div className="grid grid-cols-2 gap-3">
                                    <div className="bg-orange-50 p-4 rounded-2xl text-center border border-orange-100">
                                       <div className="text-3xl font-black text-orange-600">{days.length}</div>
-                                      <div className="text-xs font-bold text-gray-500">أيام</div>
+                                      <div className="text-xs font-bold text-muted-foreground">أيام</div>
                                    </div>
                                    <div className="bg-emerald-50 p-4 rounded-2xl text-center border border-emerald-100">
                                       <div className="text-3xl font-black text-emerald-600">{activities.length}</div>
-                                      <div className="text-xs font-bold text-gray-500">نشاط</div>
+                                      <div className="text-xs font-bold text-muted-foreground">نشاط</div>
                                    </div>
                                    <div className="bg-amber-50 p-4 rounded-2xl text-center border border-amber-100">
                                       <div className="text-3xl font-black text-amber-600">{foodPlaces.length}</div>
-                                      <div className="text-xs font-bold text-gray-500">مطعم</div>
+                                      <div className="text-xs font-bold text-muted-foreground">مطعم</div>
                                    </div>
                                    <div className="bg-blue-50 p-4 rounded-2xl text-center border border-blue-100">
                                       <div className="text-3xl font-black text-blue-600">{hotels.length}</div>
-                                      <div className="text-xs font-bold text-gray-500">سكن</div>
+                                      <div className="text-xs font-bold text-muted-foreground">سكن</div>
                                    </div>
                                 </div>
                              </div>
@@ -2350,26 +2353,26 @@ const CreateTrip = () => {
 
                         {/* Itinerary Timeline */}
                         <div className="space-y-6">
-                           <h3 className="text-2xl font-black text-gray-900 flex items-center gap-2">
+                           <h3 className="text-2xl font-black text-foreground flex items-center gap-2">
                                <div className="w-2 h-8 bg-purple-500 rounded-full" />
                                جدول الرحلة
                            </h3>
-                           <div className="space-y-6 relative border-r-2 border-gray-100 pr-6 mr-3">
+                           <div className="space-y-6 relative border-r-2 border-border pr-6 mr-3">
                               {days.map((day, i) => (
                                  <div key={i} className="relative">
                                     <div className="absolute -right-[33px] top-0 w-4 h-4 rounded-full bg-purple-500 ring-4 ring-white" />
-                                    <h4 className="text-xl font-bold text-gray-900 mb-4">{day.title}</h4>
+                                    <h4 className="text-xl font-bold text-foreground mb-4">{day.title}</h4>
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                        {day.activities.length > 0 ? day.activities.map(actIdx => {
                                           const act = activities[actIdx];
                                           return (
-                                             <div key={actIdx} className="bg-white border border-gray-100 rounded-2xl p-3 flex gap-3 shadow-sm hover:shadow-md transition-all">
-                                                <div className="w-16 h-16 rounded-xl bg-gray-100 shrink-0 overflow-hidden">
-                                                   {act.images?.[0] ? <img src={typeof act.images[0] === 'string' ? act.images[0] : ''} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center bg-gray-50"><MapPin className="w-6 h-6 text-gray-300" /></div>}
+                                             <div key={actIdx} className="bg-card border border-border rounded-2xl p-3 flex gap-3 shadow-sm hover:shadow-md transition-all">
+                                                <div className="w-16 h-16 rounded-xl bg-accent shrink-0 overflow-hidden">
+                                                   {act.images?.[0] ? <img src={typeof act.images[0] === 'string' ? act.images[0] : ''} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center bg-muted"><MapPin className="w-6 h-6 text-gray-300" /></div>}
                                                 </div>
                                                 <div className="overflow-hidden">
-                                                   <div className="font-bold text-gray-900 truncate">{act.name}</div>
-                                                   <div className="text-xs text-gray-500 line-clamp-2">{act.description || "استكشاف المكان"}</div>
+                                                   <div className="font-bold text-foreground truncate">{act.name}</div>
+                                                   <div className="text-xs text-muted-foreground line-clamp-2">{act.description || "استكشاف المكان"}</div>
                                                 </div>
                                              </div>
                                           )
@@ -2386,19 +2389,19 @@ const CreateTrip = () => {
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
                              {/* Restaurants */}
                              <div className="space-y-4">
-                                <h3 className="text-2xl font-black text-gray-900 flex items-center gap-2">
+                                <h3 className="text-2xl font-black text-foreground flex items-center gap-2">
                                    <div className="w-2 h-8 bg-amber-500 rounded-full" />
                                    المطاعم
                                 </h3>
                                 <div className="space-y-3">
                                    {foodPlaces.length > 0 ? foodPlaces.map((place, idx) => (
-                                      <div key={idx} className="flex items-center gap-4 bg-gray-50 p-3 rounded-2xl border border-gray-100">
-                                          <div className="w-16 h-16 rounded-xl bg-white shrink-0 overflow-hidden border border-gray-200">
+                                      <div key={idx} className="flex items-center gap-4 bg-muted p-3 rounded-2xl border border-border">
+                                          <div className="w-16 h-16 rounded-xl bg-card shrink-0 overflow-hidden border border-border">
                                              {(place as any).image ? <img src={(place as any).image} className="w-full h-full object-cover" /> : <div className="flex items-center justify-center w-full h-full"><Utensils className="text-gray-300" /></div>}
                                           </div>
                                           <div>
-                                             <div className="font-bold text-gray-900">{place.name}</div>
-                                             <div className="text-xs text-gray-500">{place.type === 'restaurant' ? 'مطعم' : place.type === 'cafe' ? 'كافيه' : 'أكل شوارع'} • {place.rating} ⭐</div>
+                                             <div className="font-bold text-foreground">{place.name}</div>
+                                             <div className="text-xs text-muted-foreground">{place.type === 'restaurant' ? 'مطعم' : place.type === 'cafe' ? 'كافيه' : 'أكل شوارع'} • {place.rating} ⭐</div>
                                           </div>
                                       </div>
                                    )) : <p className="text-gray-400 font-medium">لم يتم إضافة مطاعم</p>}
@@ -2407,19 +2410,19 @@ const CreateTrip = () => {
 
                              {/* Hotels */}
                              <div className="space-y-4">
-                                <h3 className="text-2xl font-black text-gray-900 flex items-center gap-2">
+                                <h3 className="text-2xl font-black text-foreground flex items-center gap-2">
                                    <div className="w-2 h-8 bg-blue-500 rounded-full" />
                                    الفنادق
                                 </h3>
                                 <div className="space-y-3">
                                    {hotels.length > 0 ? hotels.map((place, idx) => (
-                                      <div key={idx} className="flex items-center gap-4 bg-gray-50 p-3 rounded-2xl border border-gray-100">
-                                          <div className="w-16 h-16 rounded-xl bg-white shrink-0 overflow-hidden border border-gray-200">
+                                      <div key={idx} className="flex items-center gap-4 bg-muted p-3 rounded-2xl border border-border">
+                                          <div className="w-16 h-16 rounded-xl bg-card shrink-0 overflow-hidden border border-border">
                                              {(place as any).image ? <img src={(place as any).image} className="w-full h-full object-cover" /> : <div className="flex items-center justify-center w-full h-full"><MapPin className="text-gray-300" /></div>}
                                           </div>
                                           <div>
-                                             <div className="font-bold text-gray-900">{place.name}</div>
-                                             <div className="text-xs text-gray-500 truncate max-w-[200px]">{place.location || "بدون عنوان"}</div>
+                                             <div className="font-bold text-foreground">{place.name}</div>
+                                             <div className="text-xs text-muted-foreground truncate max-w-[200px]">{place.location || "بدون عنوان"}</div>
                                           </div>
                                       </div>
                                    )) : <p className="text-gray-400 font-medium">لم يتم إضافة فنادق</p>}
@@ -2429,10 +2432,10 @@ const CreateTrip = () => {
 
                       </CardContent>
                       
-                       <div className="p-8 lg:p-12 bg-gray-50 border-t border-gray-100 flex flex-col gap-6">
-                           <div className="flex items-start gap-3 p-4 rounded-2xl bg-white border border-gray-200 shadow-sm">
+                       <div className="p-8 lg:p-12 bg-muted border-t border-border flex flex-col gap-6">
+                           <div className="flex items-start gap-3 p-4 rounded-2xl bg-card border border-border shadow-sm">
                               <Checkbox id="terms-final" checked={termsAccepted} onCheckedChange={(v) => setTermsAccepted(!!v)} className="mt-0.5 rounded border-gray-300 data-[state=checked]:bg-indigo-600" />
-                              <label htmlFor="terms-final" className="text-sm font-medium text-gray-700 cursor-pointer leading-relaxed">
+                              <label htmlFor="terms-final" className="text-sm font-medium text-foreground cursor-pointer leading-relaxed">
                                  أوافق على <Link to="/terms" target="_blank" className="text-indigo-600 hover:underline font-bold">شروط الاستخدام</Link> و <Link to="/privacy" target="_blank" className="text-indigo-600 hover:underline font-bold">سياسة الخصوصية</Link> لمشاركة رحلتي على المنصة
                               </label>
                            </div>
@@ -2441,7 +2444,7 @@ const CreateTrip = () => {
                                  نشر الرحلة الآن 🚀
                                  <Check className="w-6 h-6" />
                               </Button>
-                              <Button variant="outline" onClick={prevStep} className="h-16 flex-1 rounded-[1.5rem] border-gray-200 bg-white text-gray-500 font-black text-lg hover:border-indigo-200 hover:text-indigo-600">
+                              <Button variant="outline" onClick={prevStep} className="h-16 flex-1 rounded-[1.5rem] border-border bg-card text-muted-foreground font-black text-lg hover:border-indigo-200 hover:text-indigo-600">
                                  تعديل البيانات
                               </Button>
                            </div>

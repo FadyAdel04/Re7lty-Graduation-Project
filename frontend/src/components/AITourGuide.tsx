@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, X, ChevronRight, PlayCircle, Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const AITourGuide = () => {
   const [run, setRun] = useState(false);
@@ -13,6 +14,7 @@ const AITourGuide = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useUser();
+  const { theme } = useTheme();
 
   useEffect(() => {
     const handleOpenTour = () => setShowAssistant(true);
@@ -65,32 +67,32 @@ const AITourGuide = () => {
       data: { page: "/trips/new" }
     },
     {
-        target: "#nav-templates",
-        title: "احجز رحلات احترافية",
-        content: "استكشف رحلات مختارة من وكالات وشركات سفر محترفة. استمتع بسفر خالٍ من القلق مع رحلات مخططة مسبقاً وحجوزات آمنة.",
-        placement: "bottom",
-        data: { page: "/agency" }
+      target: "#nav-templates",
+      title: "احجز رحلات احترافية",
+      content: "استكشف رحلات مختارة من وكالات وشركات سفر محترفة. استمتع بسفر خالٍ من القلق مع رحلات مخططة مسبقاً وحجوزات آمنة.",
+      placement: "bottom",
+      data: { page: "/agency" }
     },
     {
-        target: "#trip-itinerary",
-        title: "تفاصيل الرحلة",
-        content: "اطلع على تفاصيل أي رحلة لمشاهدة المسار الكامل والخريطة والتوصيات. كل التفاصيل التي تحتاجها لمغامرتك التالية.",
-        placement: "top",
-        data: { page: "/trips/6998e227415440ca3e34b215" } 
+      target: "#trip-itinerary",
+      title: "تفاصيل الرحلة",
+      content: "اطلع على تفاصيل أي رحلة لمشاهدة المسار الكامل والخريطة والتوصيات. كل التفاصيل التي تحتاجها لمغامرتك التالية.",
+      placement: "top",
+      data: { page: "/trips/6998e227415440ca3e34b215" } 
     },
     {
-        target: "#nav-profile",
-        title: "بروفايلك ورسائلك",
-        content: "من هنا يمكنك الوصول لرسائلك الخاصة، وإدارة ملفك الشخصي، وتغيير مظهر الموقع، أو بدء هذه الجولة مرة أخرى في أي وقت.",
-        placement: "bottom",
-        data: { page: "/" }
+      target: "#nav-profile",
+      title: "بروفايلك ورسائلك",
+      content: "من هنا يمكنك الوصول لرسائلك الخاصة، وإدارة ملفك الشخصي، وتغيير مظهر الموقع، أو بدء هذه الجولة مرة أخرى في أي وقت.",
+      placement: "bottom",
+      data: { page: "/" }
     },
     {
-        target: "#group-chat-announcements",
-        title: "دردشة مجموعة الرحلة",
-        content: "بمجرد حجز رحلة، ستنضم إلى دردشة جماعية مع المشاركين الآخرين والشركة للحصول على تحديثات وإعلانات فورية.",
-        placement: "top",
-        data: { page: "/trip-groups" }
+      target: "#group-chat-announcements",
+      title: "دردشة مجموعة الرحلة",
+      content: "بمجرد حجز رحلة، ستنضم إلى دردشة جماعية مع المشاركين الآخرين والشركة للحصول على تحديثات وإعلانات فورية.",
+      placement: "top",
+      data: { page: "/trip-groups" }
     },
     {
       target: "#ai-chat-input",
@@ -100,31 +102,31 @@ const AITourGuide = () => {
       data: { page: "/trip-assistant" }
     },
     {
-        target: "#ai-trip-plan-preview",
-        title: "راجع خطة الذكاء الاصطناعي",
-        content: "يقوم الذكاء الاصطناعي بإنشاء مسار رحلة مخصص لك. يمكنك مراجعته هنا ثم تصديره إلى قائمة رحلاتك الخاصة.",
-        placement: "top",
-        data: { page: "/trip-assistant" }
+      target: "#ai-trip-plan-preview",
+      title: "راجع خطة الذكاء الاصطناعي",
+      content: "يقوم الذكاء الاصطناعي بإنشاء مسار رحلة مخصص لك. يمكنك مراجعته هنا ثم تصديره إلى قائمة رحلاتك الخاصة.",
+      placement: "top",
+      data: { page: "/trip-assistant" }
     },
     {
-        target: "#trip-ai-widget",
-        title: "دائماً هنا للمساعدة",
-        content: "مساعدنا الذكي متاح من أي صفحة للإجابة على أسئلتك السريعة. اضغط على الأيقونة العائمة في أي وقت تحتاجه.",
-        placement: "top",
+      target: "#trip-ai-widget",
+      title: "دائماً هنا للمساعدة",
+      content: "مساعدنا الذكي متاح من أي صفحة للإجابة على أسئلتك السريعة. اضغط على الأيقونة العائمة في أي وقت تحتاجه.",
+      placement: "top",
     },
     {
-        target: "#user-stats",
-        title: "ملفك الشخصي للسفر",
-        content: "تتبع رحلاتك ومتابعيك وأوسمة السفر الخاصة بك. ملفك الشخصي هو جواز سفرك الرقمي في عالم رحلتي.",
-        placement: "top",
-        data: { page: "/user/me" }
+      target: "#user-stats",
+      title: "ملفك الشخصي للسفر",
+      content: "تتبع رحلاتك ومتابعيك وأوسمة السفر الخاصة بك. ملفك الشخصي هو جواز سفرك الرقمي في عالم رحلتي.",
+      placement: "top",
+      data: { page: "/user/me" }
     },
     {
-        target: "#create-memories-btn",
-        title: "احفظ ذكرياتك",
-        content: "أنشئ عروضاً وقصصاً جميلة من رحلاتك. شاركها مع المجتمع أو قم بتصديرها كمقاطع فيديو.",
-        placement: "top",
-        data: { page: "/user/me" }
+      target: "#create-memories-btn",
+      title: "احفظ ذكرياتك",
+      content: "أنشئ عروضاً وقصصاً جميلة من رحلاتك. شاركها مع المجتمع أو قم بتصديرها كمقاطع فيديو.",
+      placement: "top",
+      data: { page: "/user/me" }
     },
   ];
 
@@ -148,8 +150,7 @@ const AITourGuide = () => {
               if (user?.id) {
                 nextPage = `/user/${user.id}`;
               } else {
-                // If no user, skip user-related steps or go home
-                setStepIndex(nextIndex + 2); // Skip stats and memories
+                setStepIndex(nextIndex + 2);
                 return;
               }
             }
@@ -190,79 +191,79 @@ const AITourGuide = () => {
     }
   };
 
+  const isDark = theme === "dark";
+
   return (
     <>
-
-<AnimatePresence>
-  {showAssistant && (
-    <div className="fixed inset-0 z-[101] flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-md" dir="rtl">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.8, y: 30 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.8, y: 30 }}
-        className="bg-white/95 backdrop-blur-xl rounded-[2rem] sm:rounded-[3rem] shadow-[0_40px_120px_rgba(0,0,0,0.3)] w-full max-w-lg overflow-hidden border border-white/50 font-cairo max-h-[90vh] flex flex-col"
-      >
-        <div className="p-5 sm:p-8 md:p-10 relative overflow-y-auto custom-scrollbar">
-          <button 
-            onClick={() => setShowAssistant(false)}
-            className="absolute top-3 left-3 sm:top-5 sm:left-5 p-2 sm:p-3 hover:bg-rose-50 rounded-xl sm:rounded-2xl transition-all z-10"
-          >
-            <X className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 hover:text-rose-500" />
-          </button>
-
-          <div className="flex flex-col items-center">
-            <motion.div 
-              animate={{ scale: [1, 1.1, 1] }} 
-              transition={{ duration: 4, repeat: Infinity }}
-              className="w-16 h-16 sm:w-20 md:w-24 sm:h-20 md:h-24 bg-indigo-50 rounded-[1.5rem] sm:rounded-[2rem] md:rounded-[2.5rem] flex items-center justify-center mx-auto mb-4 sm:mb-6 md:mb-8"
+      <AnimatePresence>
+        {showAssistant && (
+          <div className="fixed inset-0 z-[101] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-xl" dir="rtl">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8, y: 30 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.8, y: 30 }}
+              className="bg-card/95 backdrop-blur-2xl rounded-[3rem] shadow-[0_40px_120px_rgba(0,0,0,0.5)] w-full max-w-lg overflow-hidden border border-border font-cairo max-h-[90vh] flex flex-col"
             >
-              <Bot className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-indigo-600" />
-            </motion.div>
+              <div className="p-8 sm:p-10 md:p-12 relative overflow-y-auto custom-scrollbar">
+                <button 
+                  onClick={() => setShowAssistant(false)}
+                  className="absolute top-6 left-6 p-3 hover:bg-rose-500/10 rounded-2xl transition-all z-10 group"
+                >
+                  <X className="w-5 h-5 text-muted-foreground group-hover:text-rose-500" />
+                </button>
 
-            <h3 className="text-xl sm:text-2xl md:text-3xl font-black text-gray-900 mb-2 sm:mb-3 md:mb-4 text-center">أهلاً بك يا رحالة! 👋</h3>
-            <p className="text-gray-500 font-bold mb-4 sm:mb-6 md:mb-8 leading-relaxed px-2 sm:px-4 text-sm sm:text-base text-center">
-              أنا مساعدك الذكي، سآخذك في جولة ممتعة لاكتشاف خبايا منصة رحلتي وتسهيل مغامرتك القادمة.
-            </p>
+                <div className="flex flex-col items-center">
+                  <motion.div 
+                    animate={{ scale: [1, 1.1, 1], rotate: [0, 5, -5, 0] }} 
+                    transition={{ duration: 6, repeat: Infinity }}
+                    className="w-24 h-24 bg-primary/10 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-primary/20"
+                  >
+                    <Bot className="w-12 h-12 text-primary" />
+                  </motion.div>
 
-            <div className="space-y-2 sm:space-y-3 md:space-y-4 w-full mb-5 sm:mb-6 md:mb-8 text-right bg-gray-50/80 p-4 sm:p-5 md:p-6 lg:p-8 rounded-[1.5rem] sm:rounded-[2rem] md:rounded-[2.5rem] border border-gray-100 shadow-inner">
-              {[
-                { text: "مشاركة تجارب السفر الفريدة", icon: "🌍" },
-                { text: "استكشاف رحلات المبدعين الآخرين", icon: "✨" },
-                { text: "تخطيط رحلاتك بالذكاء الاصطناعي", icon: "🤖" },
-                { text: "حجز أفضل العروض من الشركات", icon: "🎫" },
-              ].map((item, i) => (
-                <div key={i} className="flex items-center gap-2 sm:gap-3 md:gap-4 text-gray-800">
-                  <div className="h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 rounded-xl sm:rounded-[1rem] md:rounded-2xl bg-white shadow-sm flex items-center justify-center text-base sm:text-lg shrink-0">
-                    {item.icon}
+                  <h3 className="text-3xl font-black text-foreground mb-4 text-center tracking-tighter">أهلاً بك يا رحالة! 👋</h3>
+                  <p className="text-muted-foreground font-bold mb-8 leading-relaxed px-4 text-base text-center">
+                    أنا مساعدك الذكي، سآخذك في جولة ممتعة لاكتشاف خبايا منصة رحلتي وتسهيل مغامرتك القادمة.
+                  </p>
+
+                  <div className="space-y-4 w-full mb-10 text-right bg-muted/50 p-8 rounded-[2.5rem] border border-border shadow-inner">
+                    {[
+                      { text: "مشاركة تجارب السفر الفريدة", icon: "🌍" },
+                      { text: "استكشاف رحلات المبدعين الآخرين", icon: "✨" },
+                      { text: "تخطيط رحلاتك بالذكاء الاصطناعي", icon: "🤖" },
+                      { text: "حجز أفضل العروض من الشركات", icon: "🎫" },
+                    ].map((item, i) => (
+                      <div key={i} className="flex items-center gap-4 text-foreground">
+                        <div className="h-10 w-10 rounded-2xl bg-background shadow-lg flex items-center justify-center text-xl shrink-0 border border-border">
+                          {item.icon}
+                        </div>
+                        <span className="font-black text-base break-words">{item.text}</span>
+                      </div>
+                    ))}
                   </div>
-                  <span className="font-black text-xs sm:text-sm md:text-base break-words">{item.text}</span>
+
+                  <div className="flex flex-col w-full gap-4 px-4 sticky bottom-0 bg-transparent pt-2">
+                    <Button 
+                      onClick={startTour}
+                      className="w-full h-16 rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-black text-lg gap-4 shadow-2xl shadow-primary/30 active:scale-95 transition-all"
+                    >
+                      <PlayCircle className="w-6 h-6" />
+                      ابدأ مغامرتي الآن
+                    </Button>
+                    <Button 
+                      variant="ghost"
+                      onClick={() => setShowAssistant(false)}
+                      className="w-full h-12 rounded-2xl font-black text-sm text-muted-foreground hover:text-primary hover:bg-primary/10"
+                    >
+                      سأتجول بمفردي شكراً
+                    </Button>
+                  </div>
                 </div>
-              ))}
-            </div>
-
-            <div className="flex flex-col w-full gap-2 sm:gap-3 md:gap-4 px-0 sm:px-2 md:px-4 sticky bottom-0 bg-white/95 pt-2">
-              <Button 
-                onClick={startTour}
-                className="w-full h-12 sm:h-14 md:h-16 rounded-xl sm:rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm sm:text-base md:text-lg gap-2 sm:gap-3 md:gap-4 shadow-xl"
-              >
-                <PlayCircle className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
-                ابدأ مغامرتي الآن
-              </Button>
-              <Button 
-                variant="ghost"
-                onClick={() => setShowAssistant(false)}
-                className="w-full h-10 sm:h-11 md:h-12 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm text-gray-400 hover:text-indigo-600"
-              >
-                سأتجول بمفردي شكراً
-              </Button>
-            </div>
+              </div>
+            </motion.div>
           </div>
-        </div>
-      </motion.div>
-    </div>
-  )}
-</AnimatePresence>
-
+        )}
+      </AnimatePresence>
 
       <Joyride
         steps={steps}
@@ -277,10 +278,10 @@ const AITourGuide = () => {
         callback={handleJoyrideCallback}
         styles={{
           options: {
-            primaryColor: "#4f46e5",
-            textColor: "#1f2937",
-            backgroundColor: "#ffffff",
-            overlayColor: "rgba(0, 0, 0, 0.75)",
+            primaryColor: "hsl(var(--primary))",
+            textColor: isDark ? "#ffffff" : "#1f2937",
+            backgroundColor: isDark ? "#1f2937" : "#ffffff",
+            overlayColor: "rgba(0, 0, 0, 0.8)",
             zIndex: 1000,
           },
           tooltipContainer: {
@@ -293,47 +294,51 @@ const AITourGuide = () => {
           },
           tooltip: {
             borderRadius: "32px",
-            padding: "20px",
-            boxShadow: "0 20px 50px rgba(0,0,0,0.15)",
-            width: "320px",
+            padding: "24px",
+            boxShadow: "0 25px 60px rgba(0,0,0,0.5)",
+            width: "360px",
             maxWidth: "100%",
+            backgroundColor: isDark ? "#1f2937" : "#ffffff",
+            border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(0,0,0,0.05)",
           },
           tooltipTitle: {
-            fontSize: "20px",
+            fontSize: "22px",
             fontWeight: "900",
-            marginBottom: "12px",
-            color: "#1f2937",
+            marginBottom: "16px",
+            color: isDark ? "#ffffff" : "#1f2937",
+            letterSpacing: "-0.02em",
           },
           tooltipContent: {
-            fontSize: "16px",
+            fontSize: "17px",
             fontWeight: "700",
-            lineHeight: "1.7",
-            color: "#4b5563",
+            lineHeight: "1.8",
+            color: isDark ? "#cbd5e1" : "#4b5563",
           },
           buttonNext: {
-            borderRadius: "16px",
-            backgroundColor: "#4f46e5",
-            padding: "12px 28px",
+            borderRadius: "18px",
+            backgroundColor: "hsl(var(--primary))",
+            padding: "14px 32px",
             fontWeight: "900",
-            fontSize: "13px",
+            fontSize: "14px",
             marginLeft: "0",
             marginRight: "auto",
-            boxShadow: "0 10px 20px rgba(79,70,229,0.2)",
+            boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
+            color: "hsl(var(--primary-foreground))",
           },
           buttonBack: {
             marginLeft: "0",
-            marginRight: "10px",
+            marginRight: "15px",
             fontWeight: "900",
             color: "#9ca3af",
-            fontSize: "13px",
+            fontSize: "14px",
           },
           buttonSkip: {
             color: "#f43f5e",
             fontWeight: "900",
-            fontSize: "13px",
+            fontSize: "14px",
           },
           spotlight: {
-            borderRadius: "20px",
+            borderRadius: "24px",
           }
         }}
         locale={{

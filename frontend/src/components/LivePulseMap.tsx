@@ -5,6 +5,7 @@ import { listTrips } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { MapPin, Users, Flame, Sparkles, Eye, EyeOff, Navigation } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface LivePulseMapProps {
   className?: string;
@@ -118,8 +119,10 @@ const LivePulseMap: React.FC<LivePulseMapProps> = ({
   const [stats, setStats] = useState({ activeUsers: 142, totalTrips: 0, hotspots: 12 });
   const [showMarkers, setShowMarkers] = useState(true);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
-  const [selectedCity, setSelectedCity] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [selectedCity, setSelectedCity] = useState<string | null>(null);
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
 
   // Check if mobile on resize
   useEffect(() => {
@@ -173,7 +176,7 @@ const LivePulseMap: React.FC<LivePulseMapProps> = ({
 
     const map = new mapboxgl.Map({
       container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/outdoors-v12',
+      style: isDark ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/outdoors-v12',
       center: [30.8025, 26.8206],
       zoom: isMobile ? 5.2 : 5.8,
       maxBounds: EGYPT_BOUNDS,
@@ -375,7 +378,7 @@ const LivePulseMap: React.FC<LivePulseMapProps> = ({
       if (mapRef.current) mapRef.current.remove();
       markersRef.current.forEach(m => m.remove());
     };
-  }, [isMobile]);
+  }, [isMobile, isDark]);
 
 // Create marker element with enhanced hover design
 const createMarker = (trip: any, cityName: string, lng: number, lat: number, isClustered: boolean) => {

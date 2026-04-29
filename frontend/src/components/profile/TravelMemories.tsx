@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@clerk/clerk-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { API_BASE_URL } from '@/config/api';
 
 // Local Music Imports
 import track1 from '@/assets/travel music/1.mp3';
@@ -82,7 +83,7 @@ export default function TravelMemories({ trips, isOwner, userId }: TravelMemorie
   const fetchMemories = async () => {
     if (!userId) return;
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/memories/${userId}`);
+      const res = await fetch(`${API_BASE_URL}/api/memories/${userId}`);
       const data = await res.json();
       if (Array.isArray(data)) {
         setBackendMemories(data);
@@ -105,7 +106,7 @@ export default function TravelMemories({ trips, isOwner, userId }: TravelMemorie
     setIsDeletingId(id);
     try {
       const token = await getToken();
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/memories/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/memories/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -163,7 +164,7 @@ export default function TravelMemories({ trips, isOwner, userId }: TravelMemorie
       // Final items for the reel
       const items = allMedia.sort(() => 0.5 - Math.random()).slice(0, 10);
       
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/memories`, {
+      const res = await fetch(`${API_BASE_URL}/api/memories`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',

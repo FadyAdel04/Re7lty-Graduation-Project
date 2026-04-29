@@ -110,19 +110,19 @@ const ReportsPage = () => {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
            <div>
-              <h1 className="text-3xl font-black text-gray-900 mb-2 font-cairo">تحليلات <span className="text-indigo-600">الأداء</span></h1>
-              <p className="text-gray-500 font-bold text-sm">تقارير بيانية مفصلة عن نمو وتفاعل المستخدمين والشركات.</p>
+              <h1 className="text-3xl font-black text-foreground mb-2 font-cairo">تحليلات <span className="text-indigo-600">الأداء</span></h1>
+              <p className="text-muted-foreground font-bold text-sm">تقارير بيانية مفصلة عن نمو وتفاعل المستخدمين والشركات.</p>
            </div>
            
            <div className="flex gap-3">
-              <div className="bg-white border border-gray-100 rounded-2xl p-1.5 flex gap-1">
+              <div className="bg-card border border-border rounded-2xl p-1.5 flex gap-1">
                  {['daily', 'weekly', 'monthly'].map((p) => (
                     <button
                       key={p}
                       onClick={() => setPeriod(p)}
                       className={cn(
                         "px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all",
-                        period === p ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100" : "text-gray-400 hover:bg-gray-50 hover:text-gray-600"
+                        period === p ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100" : "text-gray-400 hover:bg-muted hover:text-muted-foreground"
                       )}
                     >
                        {p === 'daily' ? 'يومي' : p === 'weekly' ? 'أسبوعي' : 'شهري'}
@@ -133,7 +133,7 @@ const ReportsPage = () => {
               <Button 
                 onClick={handleExportPDF} 
                 disabled={exporting}
-                className="h-14 px-8 rounded-2xl bg-white border border-gray-100 text-gray-600 hover:bg-gray-50 font-black text-sm gap-2 shadow-sm"
+                className="h-14 px-8 rounded-2xl bg-card border border-border text-muted-foreground hover:bg-muted font-black text-sm gap-2 shadow-sm"
               >
                 {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4 text-orange-500" />}
                 تصدير PDF
@@ -160,14 +160,14 @@ const ReportsPage = () => {
                       )}>
                          <stat.icon className="w-6 h-6" />
                       </div>
-                      <div className="h-8 px-2.5 rounded-xl bg-gray-50 flex items-center gap-1.5 text-[10px] font-black text-gray-400">
+                      <div className="h-8 px-2.5 rounded-xl bg-muted flex items-center gap-1.5 text-[10px] font-black text-gray-400">
                          <Zap className="w-3 h-3 text-orange-500 fill-orange-500" />
                          نشط اليوم
                       </div>
                    </div>
                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{stat.title}</h4>
                    <div className="flex items-baseline gap-2">
-                      <p className="text-2xl font-black text-gray-900 leading-none">{stat.value?.toLocaleString('ar-EG')}</p>
+                      <p className="text-2xl font-black text-foreground leading-none">{stat.value?.toLocaleString('ar-EG')}</p>
                       <p className="text-[10px] font-black text-emerald-500">+{stat.change?.toLocaleString('ar-EG')}</p>
                    </div>
                 </CardContent>
@@ -259,7 +259,7 @@ const ReportsPage = () => {
            {/* Top Trips */}
            <Card className="border-0 shadow-2xl shadow-gray-200/40 rounded-[2.5rem] p-8">
               <div className="flex items-center justify-between mb-8">
-                 <h3 className="text-xl font-black text-gray-900 flex items-center gap-3">
+                 <h3 className="text-xl font-black text-foreground flex items-center gap-3">
                     <div className="w-10 h-10 rounded-2xl bg-orange-50 flex items-center justify-center text-orange-600">
                        <Zap className="h-5 w-5 fill-current" />
                     </div>
@@ -268,8 +268,8 @@ const ReportsPage = () => {
               </div>
               <div className="space-y-4">
                  {reportData?.topContent?.trips?.slice(0, 5).map((trip: any, idx: number) => (
-                    <div key={idx} className="flex items-center gap-4 p-4 rounded-3xl bg-gray-50/50 hover:bg-white hover:shadow-lg hover:shadow-indigo-500/5 transition-all group">
-                       <div className="w-14 h-14 rounded-2xl overflow-hidden shrink-0 shadow-sm bg-gray-100">
+                    <div key={idx} className="flex items-center gap-4 p-4 rounded-3xl bg-muted/50 hover:bg-card hover:shadow-lg hover:shadow-indigo-500/5 transition-all group">
+                       <div className="w-14 h-14 rounded-2xl overflow-hidden shrink-0 shadow-sm bg-muted">
                           <img 
                             src={
                               (trip.images && trip.images[0]) || 
@@ -282,7 +282,7 @@ const ReportsPage = () => {
                           />
                        </div>
                        <div className="flex-1 min-w-0">
-                          <h4 className="font-black text-sm text-gray-900 truncate">{trip.title}</h4>
+                          <h4 className="font-black text-sm text-foreground truncate">{trip.title}</h4>
                           <p className="text-[10px] font-bold text-gray-400">{trip.destination}</p>
                        </div>
                        <div className="flex items-center gap-4">
@@ -303,7 +303,7 @@ const ReportsPage = () => {
            {/* Top Companies */}
            <Card className="border-0 shadow-2xl shadow-gray-200/40 rounded-[2.5rem] p-8">
               <div className="flex items-center justify-between mb-8">
-                 <h3 className="text-xl font-black text-gray-900 flex items-center gap-3">
+                 <h3 className="text-xl font-black text-foreground flex items-center gap-3">
                     <div className="w-10 h-10 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600">
                        <Building2 className="h-5 w-5 fill-current" />
                     </div>
@@ -312,12 +312,12 @@ const ReportsPage = () => {
               </div>
               <div className="space-y-4">
                  {reportData?.topContent?.companies?.slice(0, 5).map((c: any, idx: number) => (
-                    <div key={idx} className="flex items-center gap-4 p-4 rounded-3xl bg-gray-50/50 hover:bg-white hover:shadow-lg hover:shadow-indigo-500/5 transition-all group">
-                       <div className="w-14 h-14 rounded-2xl bg-white flex items-center justify-center shrink-0 shadow-sm text-indigo-600 font-black text-xl">
+                    <div key={idx} className="flex items-center gap-4 p-4 rounded-3xl bg-muted/50 hover:bg-card hover:shadow-lg hover:shadow-indigo-500/5 transition-all group">
+                       <div className="w-14 h-14 rounded-2xl bg-card flex items-center justify-center shrink-0 shadow-sm text-indigo-600 font-black text-xl">
                           {c.logo ? <img src={c.logo} className="w-full h-full object-cover rounded-2xl" /> : c.name[0]}
                        </div>
                        <div className="flex-1 min-w-0">
-                          <h4 className="font-black text-sm text-gray-900 truncate">{c.name}</h4>
+                          <h4 className="font-black text-sm text-foreground truncate">{c.name}</h4>
                           <p className="text-[10px] font-bold text-gray-400">{c.email}</p>
                        </div>
                        <div className="bg-indigo-600 text-white px-5 py-2 rounded-2xl shadow-lg shadow-indigo-100/50">
@@ -335,7 +335,7 @@ const ReportsPage = () => {
         <Card className="border-0 shadow-2xl shadow-gray-200/40 rounded-[2.5rem] overflow-hidden">
            <CardContent className="p-8">
               <div className="flex items-center justify-between mb-8">
-                 <h3 className="text-xl font-black text-gray-900 flex items-center gap-3">
+                 <h3 className="text-xl font-black text-foreground flex items-center gap-3">
                     <div className="w-10 h-10 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600">
                        <Activity className="h-5 w-5" />
                     </div>
@@ -345,7 +345,7 @@ const ReportsPage = () => {
               <div className="overflow-x-auto">
                  <table className="w-full min-w-[700px]">
                     <thead>
-                       <tr className="border-b border-gray-100">
+                       <tr className="border-b border-border">
                           <th className="px-6 py-4 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">التاريخ</th>
                           <th className="px-6 py-4 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">المستخدمين</th>
                           <th className="px-6 py-4 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">الرحلات</th>
@@ -356,9 +356,9 @@ const ReportsPage = () => {
                     </thead>
                     <tbody className="divide-y divide-gray-50">
                        {reportData?.dailyBreakdown?.map((day: any, idx: number) => (
-                          <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
+                          <tr key={idx} className="hover:bg-muted/50 transition-colors">
                              <td className="px-6 py-4">
-                                <span className="font-bold text-gray-900 text-sm">{day.dayName}</span>
+                                <span className="font-bold text-foreground text-sm">{day.dayName}</span>
                              </td>
                              <td className="px-6 py-4 text-center">
                                 <span className="inline-flex h-8 px-3 rounded-lg bg-indigo-50 text-indigo-600 font-black text-xs items-center">{day.users}</span>

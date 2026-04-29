@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@400..800&family=Cairo:wght@200..1000&family=Lalezar&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@400..800&family=Cairo:wght@200..1000&family=Lalezar&family=Outfit:wght@100..900&family=Inter:wght@100..900&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -43,7 +43,7 @@ All colors MUST be HSL.
     --input: 0 0% 92%;
     --ring: 39 100% 50%;
 
-    --radius: 1rem;
+    --radius: 1.25rem;
     
     /* Gradients */
     --gradient-hero: linear-gradient(135deg, hsl(39 100% 50%) 0%, hsl(193 100% 47%) 100%);
@@ -56,60 +56,65 @@ All colors MUST be HSL.
     --shadow-orange: 0 4px 16px hsl(39 100% 50% / 0.15);
     --shadow-blue: 0 4px 16px hsl(193 100% 47% / 0.15);
 
-    --radius: 1rem;
-
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
   .dark {
-    --background: 0 0% 10%;
-    --foreground: 0 0% 95%;
-
-    --card: 0 0% 15%;
-    --card-foreground: 0 0% 95%;
-
-    --popover: 0 0% 15%;
-    --popover-foreground: 0 0% 95%;
-
+    /* Deep, Premium Dark Palette */
+    --background: 222 47% 6%;
+    --foreground: 210 40% 98%;
+ 
+    --muted: 217 33% 12%;
+    --muted-foreground: 215 20% 65%;
+ 
+    --accent: 217 33% 17%;
+    --accent-foreground: 210 40% 98%;
+ 
+    --popover: 222 47% 4%;
+    --popover-foreground: 215 20% 65%;
+ 
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+ 
+    --card: 222 47% 8%;
+    --card-foreground: 210 40% 98%;
+ 
+    /* Vibrant Primary for Dark Mode */
     --primary: 38 100% 55%;
-    --primary-foreground: 0 0% 100%;
-    --primary-hover: 38 100% 65%;
+    --primary-foreground: 222 47% 6%;
+ 
+    --secondary: 193 100% 50%;
+    --secondary-foreground: 222 47% 6%;
+    --secondary-light: 193 67% 12%;
+ 
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 210 40% 98%;
+ 
+    --ring: 193 100% 50%;
 
-    --secondary: 193 100% 47%;
-    --secondary-foreground: 0 0% 100%;
-    --secondary-hover: 193 100% 57%;
-    --secondary-light: 193 67% 20%;
-
-    --muted: 0 0% 20%;
-    --muted-foreground: 0 0% 60%;
-
-    --accent: 193 100% 47%;
-    --accent-foreground: 0 0% 100%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 0 0% 25%;
-    --input: 0 0% 25%;
-    --ring: 38 100% 55%;
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.5);
     
-    --shadow-sm: 0 2px 8px hsl(0 0% 0% / 0.3);
-    --shadow-md: 0 4px 16px hsl(0 0% 0% / 0.4);
-    --shadow-lg: 0 8px 24px hsl(0 0% 0% / 0.5);
+    /* Dark Mode Specific Gradients */
+    --gradient-hero: linear-gradient(135deg, hsl(222 47% 6%) 0%, hsl(217 33% 12%) 100%);
+  }
+}
+
+@layer base {
+  .glass {
+    @apply backdrop-blur-md bg-white/70 dark:bg-slate-900/60 border border-white/20 dark:border-white/10;
+  }
+  
+  .glass-dark {
+    @apply backdrop-blur-xl bg-slate-950/70 border border-white/10 shadow-2xl;
   }
 }
 
@@ -117,17 +122,18 @@ All colors MUST be HSL.
   * {
     @apply border-border;
   }
-
+ 
   body {
-    @apply bg-background text-foreground;
-    font-family: 'Cairo', sans-serif;
+    @apply bg-background text-foreground transition-colors duration-500;
+    font-family: 'Cairo', 'Inter', sans-serif;
   }
-
+ 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Cairo', sans-serif;
+    @apply font-bold tracking-tight;
+    font-family: 'Outfit', 'Cairo', sans-serif;
   }
 }
-
+ 
 @layer utilities {
   .text-gradient {
     @apply bg-clip-text text-transparent;
@@ -142,6 +148,15 @@ All colors MUST be HSL.
     transform: translateY(-4px);
     box-shadow: var(--shadow-lg);
   }
+ 
+  .card-premium {
+    @apply bg-white dark:bg-slate-900/50 border border-gray-100 dark:border-white/5 shadow-sm hover:shadow-xl transition-all duration-300;
+  }
+  
+  .bg-glass {
+    @apply backdrop-blur-lg bg-white/70 dark:bg-slate-900/80;
+  }
+}
   
   .bg-gradient-hero {
     background-image: var(--gradient-hero);
@@ -244,7 +259,7 @@ All colors MUST be HSL.
   .animate-slide-up {
     animation: slide-up 0.5s ease-out;
   }
-}
+
 
 @keyframes glowPulse {
   0% {
@@ -268,11 +283,11 @@ All colors MUST be HSL.
   border-radius: 9999px;
   background: linear-gradient(
     90deg,
-    rgba(249, 115, 22, 0.6),
-    rgba(255, 159, 67, 0.6),
-    rgba(249, 115, 22, 0.6)
+    rgba(249, 115, 22, 0.4),
+    rgba(255, 159, 67, 0.4),
+    rgba(249, 115, 22, 0.4)
   );
-  filter: blur(14px);
+  /* filter: blur(14px); - Removed as requested */
   animation: glowPulse 2.8s ease-in-out infinite;
   z-index: 0;
 }

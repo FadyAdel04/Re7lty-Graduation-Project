@@ -87,15 +87,15 @@ const UserConnectionsPage = () => {
         <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-center py-20 bg-white/50 backdrop-blur-md rounded-[2.5rem] border border-gray-100 shadow-xl shadow-gray-200/50"
+            className="text-center py-20 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md rounded-[2.5rem] border border-gray-100 dark:border-slate-800 shadow-xl shadow-gray-200/50 dark:shadow-none"
         >
             <div className="bg-orange-600/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-glow">
                 {icon}
             </div>
-            <h3 className="text-2xl font-black text-gray-900 mb-4 tracking-tight">
+            <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-4 tracking-tight">
                 {emptyMessage}
             </h3>
-            <p className="text-gray-500 max-w-xs mx-auto font-medium">
+            <p className="text-gray-500 dark:text-slate-400 max-w-xs mx-auto font-medium">
                ابدأ بتوسيع شبكتك واكتشف مسافرين جدد يشاركونك نفس الشغف!
             </p>
         </motion.div>
@@ -136,7 +136,7 @@ const UserConnectionsPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#FDFEFF] font-cairo flex flex-col items-center" dir="rtl">
+    <div className="min-h-screen bg-[#FDFEFF] dark:bg-slate-950 font-cairo flex flex-col items-center text-gray-900 dark:text-slate-100" dir="rtl">
       <Header />
       
       {/* Dynamic Background Elements */}
@@ -153,19 +153,19 @@ const UserConnectionsPage = () => {
                     variant="outline" 
                     size="icon" 
                     onClick={() => navigate(`/user/${id}`)}
-                    className="h-14 w-14 rounded-2xl border-gray-200 bg-white shadow-xl shadow-gray-100 hover:scale-110 transition-transform active:scale-95"
+                    className="h-14 w-14 rounded-2xl border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl shadow-gray-100 dark:shadow-none hover:scale-110 transition-transform active:scale-95"
                 >
-                    <ArrowRight className="h-6 w-6 text-gray-700" />
+                    <ArrowRight className="h-6 w-6 text-gray-700 dark:text-slate-300" />
                 </Button>
                 <div>
                     <div className="flex items-center gap-3 mb-1">
                         <Users className="h-5 w-5 text-orange-600" />
-                        <span className="text-xs font-black text-gray-400 uppercase tracking-[0.2em]">شبكة التواصل</span>
+                        <span className="text-xs font-black text-gray-400 dark:text-slate-500 uppercase tracking-[0.2em]">شبكة التواصل</span>
                     </div>
                     {isLoading ? (
-                        <div className="h-8 w-48 bg-gray-200 animate-pulse rounded-lg" />
+                        <div className="h-8 w-48 bg-gray-200 dark:bg-slate-800 animate-pulse rounded-lg" />
                     ) : (
-                        <h1 className="text-4xl font-black text-gray-900 tracking-tight">
+                        <h1 className="text-4xl font-black text-gray-900 dark:text-white tracking-tight">
                             {profileUser?.fullName || profileUser?.username}
                         </h1>
                     )}
@@ -175,13 +175,13 @@ const UserConnectionsPage = () => {
             {/* Optional Stats Summary */}
             {!isLoading && (
               <div className="flex gap-4">
-                 <div className="bg-white/60 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/50 shadow-sm">
-                    <span className="block text-2xl font-black text-gray-900 leading-none">{followers.length}</span>
-                    <span className="text-xs font-bold text-gray-400 uppercase">متابع</span>
+                 <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/50 dark:border-slate-800 shadow-sm">
+                    <span className="block text-2xl font-black text-gray-900 dark:text-white leading-none">{followers.length}</span>
+                    <span className="text-xs font-bold text-gray-400 dark:text-slate-500 uppercase">متابع</span>
                  </div>
-                 <div className="bg-white/60 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/50 shadow-sm">
-                    <span className="block text-2xl font-black text-gray-900 leading-none">{following.length}</span>
-                    <span className="text-xs font-bold text-gray-400 uppercase">يتابع</span>
+                 <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/50 dark:border-slate-800 shadow-sm">
+                    <span className="block text-2xl font-black text-gray-900 dark:text-white leading-none">{following.length}</span>
+                    <span className="text-xs font-bold text-gray-400 dark:text-slate-500 uppercase">يتابع</span>
                  </div>
               </div>
             )}
@@ -189,16 +189,16 @@ const UserConnectionsPage = () => {
 
         {/* Custom Tabs Design */}
         <Tabs defaultValue={type} value={type} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="w-full relative h-[72px] grid grid-cols-2 p-1.5 bg-gray-100/50 backdrop-blur-sm border border-gray-200/50 rounded-[2rem] gap-2 mb-12">
+            <TabsList className="w-full relative h-[72px] grid grid-cols-2 p-1.5 bg-gray-100/50 dark:bg-slate-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-slate-700/50 rounded-[2rem] gap-2 mb-12">
                 <TabsTrigger 
                   value="followers" 
-                  className="rounded-[1.6rem] text-lg font-black data-[state=active]:bg-white data-[state=active]:text-orange-600 data-[state=active]:shadow-2xl transition-all duration-300"
+                  className="rounded-[1.6rem] text-lg font-black data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-orange-600 data-[state=active]:shadow-2xl dark:data-[state=active]:shadow-none transition-all duration-300"
                 >
                     المتابعون
                 </TabsTrigger>
                 <TabsTrigger 
                   value="following" 
-                  className="rounded-[1.6rem] text-lg font-black data-[state=active]:bg-white data-[state=active]:text-orange-600 data-[state=active]:shadow-2xl transition-all duration-300"
+                  className="rounded-[1.6rem] text-lg font-black data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-orange-600 data-[state=active]:shadow-2xl dark:data-[state=active]:shadow-none transition-all duration-300"
                 >
                     يتابع
                 </TabsTrigger>
@@ -218,7 +218,7 @@ const UserConnectionsPage = () => {
                                 <div className="absolute inset-0 rounded-full border-4 border-orange-100" />
                                 <div className="absolute inset-0 rounded-full border-4 border-orange-600 border-t-transparent animate-spin" />
                             </div>
-                            <p className="text-gray-400 font-bold animate-pulse">جاري جلب القائمة...</p>
+                            <p className="text-gray-400 dark:text-slate-500 font-bold animate-pulse">جاري جلب القائمة...</p>
                         </motion.div>
                     ) : (
                         <>

@@ -118,14 +118,14 @@ const CompaniesManagementPage = () => {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
            <div>
-              <h1 className="text-3xl font-black text-gray-900 mb-2 font-cairo">إدارة <span className="text-indigo-600">الشركات</span></h1>
-              <p className="text-gray-500 font-bold text-sm">إدارة الشركاء السياحيين، مراجعة الطلبات، وتعديل البيانات.</p>
+              <h1 className="text-3xl font-black text-foreground mb-2 font-cairo">إدارة <span className="text-indigo-600">الشركات</span></h1>
+              <p className="text-muted-foreground font-bold text-sm">إدارة الشركاء السياحيين، مراجعة الطلبات، وتعديل البيانات.</p>
            </div>
            
            <div className="flex gap-3">
               <Button 
                 variant="ghost" 
-                className="h-14 px-6 rounded-2xl bg-white border border-gray-100 font-black text-sm text-gray-600 hover:bg-gray-50 transition-all shadow-sm group"
+                className="h-14 px-6 rounded-2xl bg-card border border-border font-black text-sm text-muted-foreground hover:bg-muted transition-all shadow-sm group"
                 onClick={() => setIsSubmissionsOpen(true)}
               >
                 <div className="relative ml-2">
@@ -156,7 +156,7 @@ const CompaniesManagementPage = () => {
               </div>
               <div className="flex -space-x-4 space-x-reverse">
                  {recentSubmissions.map((s, i) => (
-                    <div key={i} className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center font-black text-xs">
+                    <div key={i} className="w-12 h-12 rounded-2xl bg-card/10 backdrop-blur-md border border-white/20 flex items-center justify-center font-black text-xs">
                        {s.companyName[0]}
                     </div>
                  ))}
@@ -176,12 +176,12 @@ const CompaniesManagementPage = () => {
            
            {loading ? (
              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {[1,2,3].map(i => <div key={i} className="h-64 bg-white rounded-[2.5rem] animate-pulse" />)}
+                {[1,2,3].map(i => <div key={i} className="h-64 bg-card rounded-[2.5rem] animate-pulse" />)}
              </div>
            ) : companies.length === 0 ? (
-             <div className="text-center py-20 bg-white rounded-[2.5rem] border border-gray-50 shadow-sm">
+             <div className="text-center py-20 bg-card rounded-[2.5rem] border border-gray-50 shadow-sm">
                 <Building2 className="w-16 h-16 text-gray-200 mx-auto mb-4" />
-                <h3 className="text-xl font-black text-gray-900">لا توجد شركات مسجلة حالياً</h3>
+                <h3 className="text-xl font-black text-foreground">لا توجد شركات مسجلة حالياً</h3>
                 <p className="text-gray-400 font-bold">ابدأ بإضافة أول شريك سياحي للمنصة.</p>
              </div>
            ) : (
@@ -211,25 +211,25 @@ const CompaniesManagementPage = () => {
                                 <div className="flex flex-col items-end gap-2">
                                    <Badge className={cn(
                                       "px-3 py-1 rounded-full border-0 font-black text-[10px] uppercase tracking-widest",
-                                      company.isActive ? "bg-emerald-50 text-emerald-600" : "bg-gray-100 text-gray-500"
+                                      company.isActive ? "bg-emerald-50 text-emerald-600" : "bg-muted text-muted-foreground"
                                    )}>
                                       {company.isActive ? "نشط" : "معطل"}
                                    </Badge>
                                 </div>
                              </div>
 
-                             <h4 className="text-xl font-black text-gray-900 mb-2 truncate group-hover:text-indigo-600 transition-colors">{company.name}</h4>
+                             <h4 className="text-xl font-black text-foreground mb-2 truncate group-hover:text-indigo-600 transition-colors">{company.name}</h4>
                              <p className="text-xs font-bold text-gray-400 line-clamp-2 mb-6 h-8">{company.description}</p>
 
                              <div className="grid grid-cols-2 gap-4 mb-8">
-                                <div className="bg-gray-50/50 rounded-2xl p-3 flex flex-col items-center">
+                                <div className="bg-muted/50 rounded-2xl p-3 flex flex-col items-center">
                                    <Star className="w-4 h-4 text-orange-500 fill-orange-500 mb-1" />
-                                   <span className="text-sm font-black text-gray-900 leading-none">{company.rating}</span>
+                                   <span className="text-sm font-black text-foreground leading-none">{company.rating}</span>
                                    <span className="text-[10px] font-bold text-gray-400">التقييم</span>
                                 </div>
                                 <div className="bg-indigo-50/50 rounded-2xl p-3 flex flex-col items-center">
                                    <Layers className="w-4 h-4 text-indigo-600 mb-1" />
-                                   <span className="text-sm font-black text-gray-900 leading-none">{company.tripsCount}</span>
+                                   <span className="text-sm font-black text-foreground leading-none">{company.tripsCount}</span>
                                    <span className="text-[10px] font-bold text-gray-400">رحلة</span>
                                 </div>
                              </div>
@@ -237,7 +237,7 @@ const CompaniesManagementPage = () => {
                              <div className="flex items-center gap-3">
                                 <Button 
                                   size="sm" 
-                                  className="flex-1 h-11 rounded-xl bg-gray-50 text-gray-500 hover:bg-gray-100 border-0"
+                                  className="flex-1 h-11 rounded-xl bg-muted text-muted-foreground hover:bg-muted border-0"
                                   onClick={() => handleToggleActive(company._id)}
                                 >
                                   {company.isActive ? <ToggleRight className="h-5 w-5 text-indigo-600" /> : <ToggleLeft className="h-5 w-5" />}
@@ -283,18 +283,18 @@ const CompaniesManagementPage = () => {
 
         {/* Company Deletion Confirmation Modal */}
         <AlertDialog open={!!companyToDelete} onOpenChange={(open) => !open && setCompanyToDelete(null)}>
-          <AlertDialogContent className="rounded-[2.5rem] border-0 shadow-2xl p-0 overflow-hidden max-w-md bg-white">
+          <AlertDialogContent className="rounded-[2.5rem] border-0 shadow-2xl p-0 overflow-hidden max-w-md bg-card">
             <div className="bg-rose-500 h-2 w-full" />
             <div className="p-8">
               <AlertDialogHeader>
                 <div className="w-20 h-20 bg-rose-50 rounded-3xl flex items-center justify-center text-rose-600 mb-6 mx-auto animate-bounce">
                   <Building2 className="w-10 h-10" />
                 </div>
-                <AlertDialogTitle className="text-2xl font-black text-gray-900 text-center font-cairo">
+                <AlertDialogTitle className="text-2xl font-black text-foreground text-center font-cairo">
                   حذف الشركة نهائياً؟
                 </AlertDialogTitle>
-                <AlertDialogDescription className="text-gray-500 font-bold text-center mt-2 leading-relaxed">
-                  أنت على وشك حذف شركة <span className="text-gray-900">{companyToDelete?.name}</span>. 
+                <AlertDialogDescription className="text-muted-foreground font-bold text-center mt-2 leading-relaxed">
+                  أنت على وشك حذف شركة <span className="text-foreground">{companyToDelete?.name}</span>. 
                   هذا الإجراء سيؤدي لإيقاف كافة رحلاتها وإزالة بياناتها من النظام.
                   <br />
                   <span className="text-rose-600 font-black mt-2 block italic text-xs">احذر: هذا الإجراء سيؤثر على الرحلات المرتبطة!</span>
@@ -310,7 +310,7 @@ const CompaniesManagementPage = () => {
                 <AlertDialogCancel asChild>
                   <Button 
                     variant="ghost"
-                    className="h-14 flex-1 rounded-2xl bg-gray-50 text-gray-500 font-black hover:bg-gray-100 transition-all"
+                    className="h-14 flex-1 rounded-2xl bg-muted text-muted-foreground font-black hover:bg-muted transition-all"
                   >
                     إلغاء
                   </Button>

@@ -69,6 +69,7 @@ export interface Trip {
         bookingId?: string;
         userId?: string;
     }[];
+    comments?: any[];
 }
 
 export interface TripFilters {

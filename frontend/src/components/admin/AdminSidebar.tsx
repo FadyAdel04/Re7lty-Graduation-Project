@@ -123,7 +123,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
         initial={false}
         animate={{ width: isOpen ? 280 : 88 }}
         className={cn(
-          "fixed lg:fixed top-0 right-0 h-screen bg-white/80 backdrop-blur-2xl border-l border-gray-100 shadow-2xl transition-all duration-300 z-[80]",
+          "fixed lg:fixed top-0 right-0 h-screen bg-card/80 backdrop-blur-2xl border-l border-border shadow-2xl transition-all duration-300 z-[80]",
           isMobile && !isOpen && "translate-x-full"
         )}
       >
@@ -132,7 +132,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
           {/* Collapse/Expand Toggle (Desktop Only) */}
           <button 
              onClick={toggleSidebar}
-             className="absolute -left-3 top-24 w-6 h-12 bg-white border border-gray-100 rounded-full hidden lg:flex items-center justify-center text-gray-400 hover:text-indigo-600 hover:shadow-lg transition-all z-[90]"
+             className="absolute -left-3 top-24 w-6 h-12 bg-card border border-border rounded-full hidden lg:flex items-center justify-center text-gray-400 hover:text-indigo-600 hover:shadow-lg transition-all z-[90]"
           >
              {isOpen ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
           </button>
@@ -145,7 +145,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
                   {isMobile && <X size={20} className="text-gray-400" onClick={closeMobileSidebar} />}
                </div>
              ) : (
-                <div className="w-8 h-1 bg-gray-100 rounded-full" />
+                <div className="w-8 h-1 bg-muted rounded-full" />
              )}
           </div>
           
@@ -163,7 +163,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
                     "flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 group relative",
                     active 
                       ? `${item.bgColor} ${item.color} font-black shadow-sm` 
-                      : "text-gray-500 font-bold hover:bg-gray-50 hover:text-gray-900",
+                      : "text-muted-foreground font-bold hover:bg-muted hover:text-foreground",
                     !isOpen && "justify-center px-0"
                   )}
                 >
@@ -194,10 +194,10 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
           {isOpen && (
             <div className="p-6">
                <div className="bg-indigo-600 rounded-3xl p-5 text-white relative overflow-hidden group">
-                  <div className="absolute -top-4 -left-4 w-20 h-20 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700" />
+                  <div className="absolute -top-4 -left-4 w-20 h-20 bg-card/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700" />
                   <p className="text-[10px] font-black text-indigo-100 uppercase mb-1">مرحبا بك يمكنك الان </p>
                   <h4 className="text-sm font-black mb-3 text-white"> التحكم كامل فى منصه Re7lty</h4>
-                  <button className="w-full py-2 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-black transition-colors">
+                  <button className="w-full py-2 bg-card/10 hover:bg-card/20 rounded-xl text-xs font-black transition-colors">
                      افتح الدليل
                   </button>
                </div>
@@ -205,7 +205,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
           )}
 
           {/* Sign Out Button */}
-          <div className="p-4 border-t border-gray-100 mt-auto">
+          <div className="p-4 border-t border-border mt-auto">
              <button
                 onClick={handleSignOut}
                 className={cn(

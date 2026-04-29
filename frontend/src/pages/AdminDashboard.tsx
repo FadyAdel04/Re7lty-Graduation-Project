@@ -193,13 +193,13 @@ const AdminDashboard = () => {
         {/* Hero Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
            <div>
-              <h1 className="text-3xl font-black text-gray-900 mb-2 font-cairo">نظرة عامة على <span className="text-indigo-600">الأداء</span></h1>
-              <p className="text-gray-500 font-bold">مرحباً بك مجدداً، إليك ملخص لأهم مؤشرات المنصة اليوم.</p>
+              <h1 className="text-3xl font-black text-foreground mb-2 font-cairo">نظرة عامة على <span className="text-indigo-600">الأداء</span></h1>
+              <p className="text-muted-foreground font-bold">مرحباً بك مجدداً، إليك ملخص لأهم مؤشرات المنصة اليوم.</p>
            </div>
            <div className="flex items-center gap-3">
               <button 
                 onClick={() => fetchData()}
-                className="h-12 px-6 rounded-2xl bg-white border border-gray-100 flex items-center gap-3 font-black text-sm text-gray-600 hover:bg-gray-50 transition-all shadow-sm active:scale-95"
+                className="h-12 px-6 rounded-2xl bg-card border border-border flex items-center gap-3 font-black text-sm text-muted-foreground hover:bg-muted transition-all shadow-sm active:scale-95"
               >
                  <Zap className="w-4 h-4 text-orange-500 fill-orange-500" />
                  تحديث البيانات
@@ -228,14 +228,14 @@ const AdminDashboard = () => {
           <div className="lg:col-span-8 space-y-10">
              
              {/* 0. Platform Revenue Section (New) */}
-             <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-xl shadow-gray-200/20 p-8 space-y-6">
+             <div className="bg-card rounded-[2.5rem] border border-border shadow-xl shadow-gray-200/20 p-8 space-y-6">
                 <div className="flex items-center justify-between">
                    <div className="flex items-center gap-3">
                       <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600">
                          <DollarSign className="w-6 h-6" />
                       </div>
                       <div>
-                         <h3 className="text-xl font-black text-gray-900 font-cairo">تحليلات الأرباح (عمولة المبيعات)</h3>
+                         <h3 className="text-xl font-black text-foreground font-cairo">تحليلات الأرباح (عمولة المبيعات)</h3>
                          <p className="text-xs font-bold text-gray-400">تتبع عمولة المنصة (5%) المحصلة من كل حجز فردي خلال الـ 30 يوم الماضية</p>
                       </div>
                    </div>
@@ -284,10 +284,10 @@ const AdminDashboard = () => {
                    </ResponsiveContainer>
                 </div>
                 
-                <div className="flex items-center justify-around p-4 bg-gray-50 rounded-3xl border border-gray-100">
+                <div className="flex items-center justify-around p-4 bg-muted rounded-3xl border border-border">
                    <div className="text-center">
                       <p className="text-[10px] font-black text-gray-400 uppercase mb-1">متوسط الربح اليومي</p>
-                      <p className="font-black text-gray-900 text-sm">
+                      <p className="font-black text-foreground text-sm">
                         {bookingStats?.dailyTrends?.length > 0 
                            ? Math.round(stats.totalCommission / bookingStats.dailyTrends.length).toLocaleString() 
                            : 0} ج.م
@@ -304,14 +304,14 @@ const AdminDashboard = () => {
              </div>
 
               {/* Leaderboard Management Section (New) */}
-              <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-xl shadow-gray-200/20 p-8 space-y-8">
+              <div className="bg-card rounded-[2.5rem] border border-border shadow-xl shadow-gray-200/20 p-8 space-y-8">
                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
                        <div className="w-12 h-12 rounded-2xl bg-yellow-50 flex items-center justify-center text-yellow-600">
                           <Trophy className="w-6 h-6" />
                        </div>
                        <div>
-                          <h3 className="text-xl font-black text-gray-900 font-cairo">إدارة قائمة المتصدرين</h3>
+                          <h3 className="text-xl font-black text-foreground font-cairo">إدارة قائمة المتصدرين</h3>
                           <p className="text-xs font-bold text-gray-400">تتبع أرشيف الفائزين وإغلاق الأسابيع الحالية</p>
                        </div>
                     </div>
@@ -326,8 +326,8 @@ const AdminDashboard = () => {
 
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Weekly History List */}
-                    <div className="space-y-4 border rounded-3xl p-6 bg-gray-50/50 max-h-[400px] overflow-y-auto custom-scrollbar">
-                       <h4 className="text-sm font-black text-gray-500 mb-4 px-2">أرشيف الأسابيع الموصدة</h4>
+                    <div className="space-y-4 border rounded-3xl p-6 bg-muted/50 max-h-[400px] overflow-y-auto custom-scrollbar">
+                       <h4 className="text-sm font-black text-muted-foreground mb-4 px-2">أرشيف الأسابيع الموصدة</h4>
                        {leaderboardHistory.length === 0 ? (
                          <div className="text-center py-10 text-gray-400 font-bold">لا يوجد أرشيف حالياً</div>
                        ) : leaderboardHistory.map((week) => (
@@ -338,11 +338,11 @@ const AdminDashboard = () => {
                              "p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between",
                              selectedLeaderboardWeek?._id === week._id 
                                ? "bg-indigo-600 text-white border-indigo-600 shadow-lg" 
-                               : "bg-white border-gray-100 hover:border-indigo-200 text-gray-900"
+                               : "bg-card border-border hover:border-indigo-200 text-foreground"
                            )}
                          >
                             <div className="flex items-center gap-3">
-                               <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", selectedLeaderboardWeek?._id === week._id ? "bg-white/20" : "bg-indigo-50 text-indigo-600")}>
+                               <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", selectedLeaderboardWeek?._id === week._id ? "bg-card/20" : "bg-indigo-50 text-indigo-600")}>
                                   <Calendar className="w-5 h-5" />
                                </div>
                                <div>
@@ -352,7 +352,7 @@ const AdminDashboard = () => {
                                   </p>
                                </div>
                             </div>
-                            <Badge className={cn("border-0", selectedLeaderboardWeek?._id === week._id ? "bg-white/20 text-white" : "bg-gray-100 text-gray-500")}>
+                            <Badge className={cn("border-0", selectedLeaderboardWeek?._id === week._id ? "bg-card/20 text-white" : "bg-muted text-muted-foreground")}>
                                {week.winners?.length || 0} فائزين
                             </Badge>
                          </div>
@@ -360,8 +360,8 @@ const AdminDashboard = () => {
                     </div>
 
                     {/* Detailed Trips for selected week */}
-                    <div className="border rounded-3xl p-6 bg-white space-y-4 overflow-y-auto max-h-[400px] custom-scrollbar">
-                       <h4 className="text-sm font-black text-gray-500 mb-4 px-2">رحلات الأسبوع المحددة</h4>
+                    <div className="border rounded-3xl p-6 bg-card space-y-4 overflow-y-auto max-h-[400px] custom-scrollbar">
+                       <h4 className="text-sm font-black text-muted-foreground mb-4 px-2">رحلات الأسبوع المحددة</h4>
                        {!selectedLeaderboardWeek ? (
                           <div className="h-full flex flex-col items-center justify-center py-10 opacity-30 text-center space-y-3">
                              <Plane className="w-12 h-12" />
@@ -370,11 +370,11 @@ const AdminDashboard = () => {
                        ) : (
                           <div className="space-y-3">
                              {(selectedLeaderboardWeek.allTrips || selectedLeaderboardWeek.winners || []).map((trip: any, i: number) => (
-                               <div key={trip._id || trip.tripId || i} className="flex items-center gap-3 p-3 rounded-2xl border border-gray-50 hover:bg-gray-50 transition-colors">
+                               <div key={trip._id || trip.tripId || i} className="flex items-center gap-3 p-3 rounded-2xl border border-gray-50 hover:bg-muted transition-colors">
                                   <div className="w-8 h-8 rounded-lg bg-gray-900 text-white flex items-center justify-center font-black text-xs">
                                      #{trip.rank || i + 1}
                                   </div>
-                                  <div className="w-10 h-10 rounded-xl overflow-hidden bg-gray-100">
+                                  <div className="w-10 h-10 rounded-xl overflow-hidden bg-muted">
                                      <img src={trip.image || trip.tripImage || '/placeholder-trip.jpg'} className="w-full h-full object-cover" />
                                   </div>
                                   <div className="flex-1 min-w-0">
@@ -390,23 +390,23 @@ const AdminDashboard = () => {
               </div>
 
              {/* 1. Top Performing Trips */}
-             <div className="bg-white rounded-[2.5rem] border border-gray-50 shadow-xl shadow-gray-200/20 p-8">
+             <div className="bg-card rounded-[2.5rem] border border-gray-50 shadow-xl shadow-gray-200/20 p-8">
                 <div className="flex items-center justify-between mb-8">
                    <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-2xl bg-orange-50 flex items-center justify-center text-orange-600">
                          <Star className="w-5 h-5 fill-current" />
                       </div>
-                      <h3 className="text-xl font-black text-gray-900 font-cairo">أفضل الرحلات أداءً</h3>
+                      <h3 className="text-xl font-black text-foreground font-cairo">أفضل الرحلات أداءً</h3>
                    </div>
                    <button className="text-indigo-600 font-black text-xs hover:underline">عرض الكل</button>
                 </div>
 
                 <div className="space-y-4">
                    {loading ? (
-                      [1,2,3].map(i => <div key={i} className="h-20 bg-gray-50 rounded-3xl animate-pulse" />)
+                      [1,2,3].map(i => <div key={i} className="h-20 bg-muted rounded-3xl animate-pulse" />)
                    ) : topTrips.map((trip: any, idx: number) => (
-                      <div key={trip._id} className="flex items-center gap-4 p-4 rounded-3xl bg-gray-50/50 hover:bg-white hover:shadow-lg hover:shadow-indigo-500/5 transition-all group border border-transparent hover:border-indigo-100">
-                         <div className="w-14 h-14 rounded-2xl overflow-hidden bg-gray-100 shadow-inner shrink-0">
+                      <div key={trip._id} className="flex items-center gap-4 p-4 rounded-3xl bg-muted/50 hover:bg-card hover:shadow-lg hover:shadow-indigo-500/5 transition-all group border border-transparent hover:border-indigo-100">
+                         <div className="w-14 h-14 rounded-2xl overflow-hidden bg-muted shadow-inner shrink-0">
                             <img 
                               src={
                                 trip.image || 
@@ -419,7 +419,7 @@ const AdminDashboard = () => {
                             />
                          </div>
                          <div className="flex-1 min-w-0 text-right">
-                            <h4 className="font-black text-gray-900 truncate">{trip.title}</h4>
+                            <h4 className="font-black text-foreground truncate">{trip.title}</h4>
                             <p className="text-xs font-bold text-gray-400">{trip.destination}</p>
                          </div>
                          <div className="flex items-center gap-6">
@@ -447,7 +447,7 @@ const AdminDashboard = () => {
              <div className="bg-indigo-900 rounded-[2.5rem] p-10 text-white relative overflow-hidden shadow-2xl shadow-indigo-200">
                 <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.1),transparent)]" />
                 <div className="flex items-center gap-4 mb-8 relative z-10">
-                   <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-white border border-white/10 backdrop-blur-md">
+                   <div className="w-12 h-12 rounded-2xl bg-card/10 flex items-center justify-center text-white border border-white/10 backdrop-blur-md">
                       <Zap className="w-6 h-6 fill-white" />
                    </div>
                    <h3 className="text-2xl font-black font-cairo">نشاط المنصة الأسبوعي</h3>
@@ -455,7 +455,7 @@ const AdminDashboard = () => {
                 
                 <div className="space-y-4 relative z-10">
                    {weeklyActivity.map((day, idx) => (
-                     <div key={idx} className="flex items-center gap-6 p-5 rounded-[2rem] bg-white/5 backdrop-blur-sm border border-white/5 hover:bg-white/10 hover:scale-[1.01] transition-all">
+                     <div key={idx} className="flex items-center gap-6 p-5 rounded-[2rem] bg-card/5 backdrop-blur-sm border border-white/5 hover:bg-card/10 hover:scale-[1.01] transition-all">
                         <span className="w-20 font-black text-indigo-100 text-lg">{day.dayName}</span>
                         <div className="flex-1 flex gap-10 text-sm">
                            <div className="flex flex-col items-center gap-2">
@@ -488,9 +488,9 @@ const AdminDashboard = () => {
           <div className="lg:col-span-4 space-y-10">
              
              {/* 1. Detailed Financial Sidebar (Platform Earnings 5%) */}
-             <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-2xl shadow-gray-200/40 overflow-hidden">
+             <div className="bg-card rounded-[2.5rem] border border-border shadow-2xl shadow-gray-200/40 overflow-hidden">
                 <div className="p-8 bg-gradient-to-br from-indigo-600 to-indigo-800 text-white relative">
-                   <div className="absolute top-0 left-0 w-32 h-32 bg-white/10 rounded-full -ml-16 -mt-16 blur-2xl" />
+                   <div className="absolute top-0 left-0 w-32 h-32 bg-card/10 rounded-full -ml-16 -mt-16 blur-2xl" />
                    <h3 className="text-xl font-black font-cairo mb-1 relative z-10">أرباح المنصة المباشرة</h3>
                    <p className="text-indigo-100 text-xs font-bold opacity-80 relative z-10">عمولة 5% من جميع الحجوزات</p>
                    
@@ -505,11 +505,11 @@ const AdminDashboard = () => {
 
                 <div className="p-6 space-y-6">
                    <div className="grid grid-cols-2 gap-4">
-                      <div className="p-4 rounded-3xl bg-gray-50 border border-gray-100">
+                      <div className="p-4 rounded-3xl bg-muted border border-border">
                          <span className="block text-[10px] text-gray-400 font-black uppercase mb-1">إجمالي المبيعات</span>
-                         <span className="font-black text-gray-900 text-lg">{(stats.totalGrossValue || 0).toLocaleString()}</span>
+                         <span className="font-black text-foreground text-lg">{(stats.totalGrossValue || 0).toLocaleString()}</span>
                       </div>
-                      <div className="p-4 rounded-3xl bg-gray-50 border border-gray-100">
+                      <div className="p-4 rounded-3xl bg-muted border border-border">
                          <span className="block text-[10px] text-gray-400 font-black uppercase mb-1">صافي الشركات</span>
                          <span className="font-black text-indigo-600 text-lg">{(stats.totalNetValue || 0).toLocaleString()}</span>
                       </div>
@@ -521,11 +521,11 @@ const AdminDashboard = () => {
                       <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">الأرباح حسب الشركة</h4>
                       <div className="space-y-3 max-h-[300px] overflow-y-auto custom-scrollbar pr-1">
                          {loading ? (
-                            [1,2,3].map(i => <div key={i} className="h-14 bg-gray-50 rounded-2xl animate-pulse" />)
+                            [1,2,3].map(i => <div key={i} className="h-14 bg-muted rounded-2xl animate-pulse" />)
                          ) : (bookingStats?.companies || []).map((company: any) => (
-                           <div key={company._id} className="flex items-center justify-between p-3 rounded-2xl hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-100">
+                           <div key={company._id} className="flex items-center justify-between p-3 rounded-2xl hover:bg-muted transition-colors border border-transparent hover:border-border">
                               <div className="min-w-0">
-                                 <p className="font-black text-gray-800 text-sm truncate">{company.companyName}</p>
+                                 <p className="font-black text-foreground text-sm truncate">{company.companyName}</p>
                                  <p className="text-[10px] font-bold text-gray-400">{company.bookingCount} حجز</p>
                               </div>
                               <div className="text-left">
@@ -549,21 +549,21 @@ const AdminDashboard = () => {
                 <div className="grid grid-cols-1 gap-4 px-2">
                    {[
                      { title: "إدارة الشركات", desc: "تفعيل وتوثيق حسابات الشركات", icon: Building2, color: "bg-purple-600", path: "/admin/companies" },
-                     { title: "رحلات الشركات", desc: "مراجعة العروض السياحية المضافة", icon: Plane, color: "bg-emerald-600", path: "/admin/trips" },
+                     { title: "إدارة الرحلات", desc: "مراجعة كافة الرحلات المضافة للمنصة", icon: Plane, color: "bg-indigo-600", path: "/admin/trips" },
+                     { title: "بلاغات المحتوى", desc: "مراجعة البلاغات وحذف المحتوى غير اللائق", icon: FileText, color: "bg-rose-600", path: "/admin/content-moderation" },
                      { title: "قاعدة المستخدمين", desc: "إدارة وحظر الحسابات المخالفة", icon: UsersIcon, color: "bg-blue-600", path: "/admin/users" },
-                     { title: "التقارير المالية", desc: "تصدير فواتير وتقارير PDF", icon: FileText, color: "bg-orange-600", path: "/admin/reports" },
                    ].map((item, i) => (
                      <motion.div
                        key={i}
                        whileHover={{ x: -8 }}
                        onClick={() => navigate(item.path)}
-                       className="p-5 rounded-3xl bg-white border border-gray-50 shadow-sm hover:shadow-md transition-all cursor-pointer group flex items-center gap-4"
+                       className="p-5 rounded-3xl bg-card border border-gray-50 shadow-sm hover:shadow-md transition-all cursor-pointer group flex items-center gap-4"
                      >
                         <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center text-white", item.color)}>
                            <item.icon className="w-6 h-6" />
                         </div>
                         <div className="flex-1 text-right">
-                           <h4 className="font-black text-gray-900 text-sm group-hover:text-indigo-600 transition-colors font-cairo">{item.title}</h4>
+                           <h4 className="font-black text-foreground text-sm group-hover:text-indigo-600 transition-colors font-cairo">{item.title}</h4>
                            <p className="text-[10px] font-bold text-gray-400">{item.desc}</p>
                         </div>
                         <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-indigo-600 rotate-180 transition-all" />
@@ -573,9 +573,9 @@ const AdminDashboard = () => {
              </div>
 
              {/* 3. Recent Users List */}
-             <div className="bg-white rounded-[2.5rem] p-8 border border-gray-50 shadow-xl shadow-gray-200/20">
+             <div className="bg-card rounded-[2.5rem] p-8 border border-gray-50 shadow-xl shadow-gray-200/20">
                 <div className="flex items-center justify-between mb-8">
-                   <h3 className="text-xl font-black text-gray-900 font-cairo">أحدث الأعضاء</h3>
+                   <h3 className="text-xl font-black text-foreground font-cairo">أحدث الأعضاء</h3>
                    <UsersIcon className="w-5 h-5 text-indigo-400" />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -585,14 +585,14 @@ const AdminDashboard = () => {
                        initial={{ opacity: 0, scale: 0.9 }}
                        animate={{ opacity: 1, scale: 1 }}
                        transition={{ delay: i * 0.05 }}
-                       className="flex flex-col items-center gap-3 p-4 rounded-3xl bg-gray-50 border border-gray-100/50 hover:bg-indigo-50 transition-colors cursor-pointer group"
+                       className="flex flex-col items-center gap-3 p-4 rounded-3xl bg-muted border border-border/50 hover:bg-indigo-50 transition-colors cursor-pointer group"
                        onClick={() => navigate(`/user/${u.clerkId}`)}
                      >
                         <div className="w-14 h-14 rounded-2xl overflow-hidden shadow-sm group-hover:scale-105 transition-transform ring-4 ring-white">
                            <img src={u.imageUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`} className="w-full h-full object-cover" />
                         </div>
                         <div className="text-center overflow-hidden w-full">
-                           <p className="text-xs font-black text-gray-900 truncate">{u.fullName}</p>
+                           <p className="text-xs font-black text-foreground truncate">{u.fullName}</p>
                            <p className="text-[10px] font-bold text-gray-400">{new Date(u.createdAt).toLocaleDateString('ar-EG')}</p>
                         </div>
                      </motion.div>

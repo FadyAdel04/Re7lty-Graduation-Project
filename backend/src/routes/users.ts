@@ -309,7 +309,7 @@ router.get('/me/ai-trips-quota', requireAuthStrict, async (req, res) => {
       userId,
       createdAt: { $gte: weekAgo },
     });
-    const limit = 20;
+    const limit = 3;
     let nextRestoreTime = null;
     if (count >= limit) {
       const oldestUsage = await AIPlanUsage.findOne({
@@ -348,11 +348,11 @@ router.post('/me/ai-plan-usage', requireAuthStrict, async (req, res) => {
       userId,
       createdAt: { $gte: weekAgo },
     });
-    const limit = 20;
+    const limit = 3;
     if (count >= limit) {
       return res.status(429).json({
         error: 'AI trip quota exceeded',
-        message: 'لقد استخدمت الحد الأسبوعي لخطط الرحلات بالذكاء الاصطناعي (20 خطة). يرجى المحاولة الأسبوع المقبل.',
+        message: 'لقد استخدمت الحد الأسبوعي لخطط الرحلات بالذكاء الاصطناعي (3 خطط). يرجى المحاولة الأسبوع المقبل.',
       });
     }
     await AIPlanUsage.create({ userId });

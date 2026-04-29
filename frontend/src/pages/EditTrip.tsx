@@ -643,7 +643,7 @@ const EditTrip = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] font-cairo text-right" dir="rtl">
+    <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950 font-cairo text-right" dir="rtl">
       {uploadProgress.show && (
         <UploadProgressLoader
           totalItems={uploadProgress.total}
@@ -675,7 +675,7 @@ const EditTrip = () => {
            <div className="flex flex-col lg:flex-row gap-8 items-start">
                {/* Sidebar Navigation */}
                <aside className="hidden lg:block w-72 shrink-0 sticky top-24 space-y-4 animate-in fade-in slide-in-from-left-6 duration-700">
-                  <Card className="border-0 shadow-xl rounded-[2.5rem] overflow-hidden bg-white/90 backdrop-blur-xl p-5">
+                  <Card className="border-0 shadow-xl rounded-[2.5rem] overflow-hidden bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl p-5">
                     <div className="space-y-2">
                        {steps.map((step) => {
                           const isActive = currentStep === step.number;
@@ -687,13 +687,13 @@ const EditTrip = () => {
                                 className={cn(
                                    "w-full flex items-center gap-4 px-4 py-4 rounded-2xl transition-all font-bold text-right group relative overflow-hidden",
                                    isActive ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200 scale-105" : 
-                                   isCompleted ? "bg-indigo-50 text-indigo-700 hover:bg-indigo-100" : "text-gray-400 hover:bg-gray-50 hover:text-gray-600"
+                                   isCompleted ? "bg-indigo-50 text-indigo-700 hover:bg-indigo-100" : "text-gray-400 dark:text-slate-500 hover:bg-gray-50 dark:bg-slate-800 hover:text-gray-600 dark:text-slate-300"
                                 )}
                              >
                                 <div className={cn(
                                    "w-10 h-10 rounded-full flex items-center justify-center text-sm border-[3px] shrink-0 transition-colors z-10",
                                    isActive ? "border-white/30 bg-white/20 text-white" : 
-                                   isCompleted ? "border-indigo-200 bg-indigo-100 text-indigo-600" : "border-gray-200 bg-gray-50 text-gray-400"
+                                   isCompleted ? "border-indigo-200 bg-indigo-100 text-indigo-600" : "border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-400 dark:text-slate-500"
                                 )}>
                                    {isCompleted ? <Check className="w-5 h-5" /> : step.number}
                                 </div>
@@ -712,7 +712,7 @@ const EditTrip = () => {
                       <div className="relative z-10">
                          <h4 className="font-black text-lg mb-2">مكتمل: {Math.round(((currentStep - 1) / 6) * 100)}%</h4>
                          <div className="h-2 bg-black/20 rounded-full overflow-hidden">
-                            <div className="h-full bg-white transition-all duration-500" style={{ width: `${((currentStep - 1) / 6) * 100}%` }} />
+                            <div className="h-full bg-white dark:bg-slate-900 transition-all duration-500" style={{ width: `${((currentStep - 1) / 6) * 100}%` }} />
                          </div>
                       </div>
                   </Card>
@@ -729,10 +729,10 @@ const EditTrip = () => {
                               onClick={() => setCurrentStep(step.number)}
                               className={cn(
                                  "flex items-center gap-2 px-4 py-2 rounded-full font-bold whitespace-nowrap transition-all border-2",
-                                 isActive ? "bg-indigo-600 border-indigo-600 text-white shadow-lg" : "bg-white border-gray-100 text-gray-500"
+                                 isActive ? "bg-indigo-600 border-indigo-600 text-white shadow-lg" : "bg-white dark:bg-slate-900 border-gray-100 dark:border-slate-700 text-gray-500 dark:text-slate-400"
                               )}
                            >
-                              <span className={cn("w-6 h-6 rounded-full flex items-center justify-center text-xs bg-white text-indigo-600", !isActive && "bg-gray-100 text-gray-500")}>{step.number}</span>
+                              <span className={cn("w-6 h-6 rounded-full flex items-center justify-center text-xs bg-white dark:bg-slate-900 text-indigo-600", !isActive && "bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400")}>{step.number}</span>
                               {step.title}
                            </button>
                         )
@@ -745,12 +745,12 @@ const EditTrip = () => {
 
            {/* Step 1: Basic Information */}
            {currentStep === 1 && (
-              <Card className="border-0 shadow-2xl rounded-[3rem] overflow-hidden bg-white animate-in fade-in slide-in-from-bottom-5 duration-700">
+              <Card className="border-0 shadow-2xl rounded-[3rem] overflow-hidden bg-white dark:bg-slate-900 animate-in fade-in slide-in-from-bottom-5 duration-700">
                  <div className="p-10 space-y-8">
                     <div className="space-y-4">
-                       <Label className="text-xl font-black text-gray-900 pr-2">عنوان الرحلة</Label>
+                       <Label className="text-xl font-black text-gray-900 dark:text-white pr-2">عنوان الرحلة</Label>
                        <Input 
-                         className="h-16 rounded-2xl bg-gray-50 border-gray-100 text-xl font-bold px-6 focus:bg-white transition-all"
+                         className="h-16 rounded-2xl bg-gray-50 dark:bg-slate-800 border-gray-100 dark:border-slate-700 text-xl font-bold px-6 focus:bg-white dark:bg-slate-900 transition-all text-foreground placeholder:text-muted-foreground/50"
                          placeholder="مثال: جولة تاريخية في معابد الأقصر"
                          value={tripData.title}
                          onChange={(e) => setTripData({ ...tripData, title: e.target.value })}
@@ -759,12 +759,12 @@ const EditTrip = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                        <div className="space-y-4">
-                          <Label className="text-xl font-black text-gray-900 pr-2">الوجهة</Label>
+                          <Label className="text-xl font-black text-gray-900 dark:text-white pr-2">الوجهة</Label>
                            <Select value={tripData.destination} onValueChange={(v) => {
                               const city = v;
                               setTripData({...tripData, destination: v, city});
                            }}>
-                              <SelectTrigger className="h-16 rounded-2xl bg-gray-50 border-gray-100 text-lg font-bold">
+                              <SelectTrigger className="h-16 rounded-2xl bg-gray-50 dark:bg-slate-800 border-gray-100 dark:border-slate-700 text-lg font-bold">
                                  <SelectValue placeholder="اختر المدينة" />
                               </SelectTrigger>
                               <SelectContent className="max-h-[300px]">
@@ -777,9 +777,9 @@ const EditTrip = () => {
                            </Select>
                        </div>
                        <div className="space-y-4">
-                          <Label className="text-xl font-black text-gray-900 pr-2">الموسم (اختياري)</Label>
+                          <Label className="text-xl font-black text-gray-900 dark:text-white pr-2">الموسم (اختياري)</Label>
                           <Select value={tripData.season} onValueChange={(v) => setTripData({...tripData, season: v})}>
-                             <SelectTrigger className="h-16 rounded-2xl bg-gray-50 border-gray-100 text-lg font-bold">
+                             <SelectTrigger className="h-16 rounded-2xl bg-gray-50 dark:bg-slate-800 border-gray-100 dark:border-slate-700 text-lg font-bold">
                                 <SelectValue placeholder="أي وقت في السنة؟" />
                              </SelectTrigger>
                              <SelectContent>
@@ -794,25 +794,25 @@ const EditTrip = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                        <div className="space-y-4">
-                          <Label className="text-xl font-black text-gray-900 pr-2">المدة</Label>
+                          <Label className="text-xl font-black text-gray-900 dark:text-white pr-2">المدة</Label>
                           <div className="relative">
-                             <Clock className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 w-6 h-6" />
-                             <Input className="h-16 rounded-2xl bg-gray-50 border-gray-100 pr-14 text-lg font-bold" placeholder="مثال: ٣ أيام" value={tripData.duration} onChange={(e) => setTripData({...tripData, duration: e.target.value})} />
+                             <Clock className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 w-6 h-6" />
+                             <Input className="h-16 rounded-2xl bg-gray-50 dark:bg-slate-800 border-gray-100 dark:border-slate-700 pr-14 text-lg font-bold text-foreground placeholder:text-muted-foreground/50" placeholder="مثال: ٣ أيام" value={tripData.duration} onChange={(e) => setTripData({...tripData, duration: e.target.value})} />
                           </div>
                        </div>
                        <div className="space-y-4">
-                          <Label className="text-xl font-black text-gray-900 pr-2">الميزانية</Label>
+                          <Label className="text-xl font-black text-gray-900 dark:text-white pr-2">الميزانية</Label>
                           <div className="relative">
-                             <DollarSign className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 w-6 h-6" />
-                             <Input className="h-16 rounded-2xl bg-gray-50 border-gray-100 pr-14 text-lg font-bold" placeholder="مثال: ٢٠٠٠ ج.م" value={tripData.budget} onChange={(e) => setTripData({...tripData, budget: e.target.value})} />
+                             <DollarSign className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 w-6 h-6" />
+                             <Input className="h-16 rounded-2xl bg-gray-50 dark:bg-slate-800 border-gray-100 dark:border-slate-700 pr-14 text-lg font-bold text-foreground placeholder:text-muted-foreground/50" placeholder="مثال: ٢٠٠٠ ج.م" value={tripData.budget} onChange={(e) => setTripData({...tripData, budget: e.target.value})} />
                           </div>
                        </div>
                     </div>
 
                     <div className="space-y-4">
-                       <Label className="text-xl font-black text-gray-900 pr-2">ما قصتك في هذه الرحلة؟</Label>
+                       <Label className="text-xl font-black text-gray-900 dark:text-white pr-2">ما قصتك في هذه الرحلة؟</Label>
                        <Textarea 
-                         className="rounded-[2rem] bg-gray-50 border-gray-100 text-lg font-medium p-8 min-h-[200px] focus:bg-white transition-all"
+                         className="rounded-[2rem] bg-gray-50 dark:bg-slate-800 border-gray-100 dark:border-slate-700 text-lg font-medium p-8 min-h-[200px] focus:bg-white dark:bg-slate-900 transition-all text-foreground placeholder:text-muted-foreground/50"
                          placeholder="صِف تجاربك، مشاعرك، والنصائح التي تود مشاركتها..."
                          value={tripData.description}
                          onChange={(e) => setTripData({ ...tripData, description: e.target.value })}
@@ -820,22 +820,22 @@ const EditTrip = () => {
                     </div>
 
                     <div className="space-y-4">
-                       <Label className="text-xl font-black text-gray-900 pr-2">صورة الغلاف</Label>
+                       <Label className="text-xl font-black text-gray-900 dark:text-white pr-2">صورة الغلاف</Label>
                        <div className="relative group">
                           {tripData.coverImageUrl ? (
                              <div className="relative h-64 rounded-[2.5rem] overflow-hidden">
                                 <img src={tripData.coverImageUrl} className="w-full h-full object-cover" />
                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                   <label className="bg-white text-indigo-600 px-8 py-3 rounded-2xl font-black cursor-pointer hover:scale-105 transition-transform">
+                                   <label className="bg-white dark:bg-slate-900 text-indigo-600 px-8 py-3 rounded-2xl font-black cursor-pointer hover:scale-105 transition-transform">
                                       تغيير الصورة
                                       <input type="file" className="hidden" accept="image/*" onChange={(e) => handleCoverImageUpload(e.target.files)} />
                                    </label>
                                 </div>
                              </div>
                           ) : (
-                             <label className="flex flex-col items-center justify-center h-64 border-2 border-dashed border-gray-200 rounded-[2.5rem] bg-gray-50 hover:bg-white hover:border-indigo-400 transition-all cursor-pointer">
+                             <label className="flex flex-col items-center justify-center h-64 border-2 border-dashed border-gray-200 dark:border-slate-700 rounded-[2.5rem] bg-gray-50 dark:bg-slate-800 hover:bg-white dark:bg-slate-900 hover:border-indigo-400 transition-all cursor-pointer">
                                 <ImageIcon className="w-12 h-12 text-gray-300 mb-4" />
-                                <span className="text-gray-400 font-bold">اختر صورة ملهمة لرحلتك</span>
+                                <span className="text-gray-400 dark:text-slate-500 font-bold">اختر صورة ملهمة لرحلتك</span>
                                 <input type="file" className="hidden" accept="image/*" onChange={(e) => handleCoverImageUpload(e.target.files)} />
                              </label>
                           )}
@@ -843,7 +843,7 @@ const EditTrip = () => {
                     </div>
 
                     <div className="flex gap-4 pt-8">
-                       <Button onClick={() => navigate(`/trips/${id}`)} variant="outline" className="h-20 flex-1 rounded-[2rem] font-black text-xl border-gray-100">إلغاء</Button>
+                       <Button onClick={() => navigate(`/trips/${id}`)} variant="outline" className="h-20 flex-1 rounded-[2rem] font-black text-xl border-gray-100 dark:border-slate-700">إلغاء</Button>
                        <Button onClick={nextStep} className="h-20 flex-1 rounded-[2rem] bg-indigo-600 text-white font-black text-xl shadow-xl shadow-indigo-100 hover:scale-[1.02] transition-transform">
                           التالي: الأنشطة
                           <ArrowLeft className="h-5 w-5 mr-3" />
@@ -856,9 +856,9 @@ const EditTrip = () => {
            {/* Step 2: Activities & Map */}
            {currentStep === 2 && (
              <div className="animate-in fade-in slide-in-from-bottom-6 duration-700">
-               <Card className="border-0 shadow-2xl rounded-[3rem] overflow-hidden bg-white">
+               <Card className="border-0 shadow-2xl rounded-[3rem] overflow-hidden bg-white dark:bg-slate-900">
                   <CardHeader className="bg-indigo-50/50 p-10 border-b border-indigo-100/50">
-                     <CardTitle className="text-3xl font-black text-gray-900 flex items-center gap-4">
+                     <CardTitle className="text-3xl font-black text-gray-900 dark:text-white flex items-center gap-4">
                         <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white">
                            <MapPin className="w-6 h-6" />
                         </div>
@@ -881,21 +881,21 @@ const EditTrip = () => {
 
                         {/* Sidebar Section - takes 4 columns */}
                         <div className="col-span-12 lg:col-span-4 h-full flex flex-col space-y-4">
-                           <div className="flex items-center justify-between pb-2 border-b border-gray-100">
-                             <h3 className="text-xl font-black text-gray-900">المواقع <span className="text-indigo-600">({locations.length})</span></h3>
-                             <p className="text-xs text-gray-400 font-bold">اضغط على الخريطة لإضافة موقع</p>
+                           <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-slate-700">
+                             <h3 className="text-xl font-black text-gray-900 dark:text-white">المواقع <span className="text-indigo-600">({locations.length})</span></h3>
+                             <p className="text-xs text-gray-400 dark:text-slate-500 font-bold">اضغط على الخريطة لإضافة موقع</p>
                            </div>
 
                            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
                              {locations.length === 0 ? (
-                               <div className="h-full flex flex-col items-center justify-center text-center p-6 text-gray-400 space-y-4 border-2 border-dashed border-gray-100 rounded-2xl">
+                               <div className="h-full flex flex-col items-center justify-center text-center p-6 text-gray-400 dark:text-slate-500 space-y-4 border-2 border-dashed border-gray-100 dark:border-slate-700 rounded-2xl">
                                  <MapPin className="w-12 h-12 text-gray-200" />
                                  <p className="font-bold">لا توجد مواقع محددة بعد.</p>
                                  <p className="text-sm">استخدم البحث أو اضغط على الخريطة لإضافة الأماكن التي زرتها.</p>
                                </div>
                              ) : (
                                locations.map((loc, idx) => (
-                                 <div key={loc.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-4 group hover:border-indigo-200 transition-all">
+                                 <div key={loc.id} className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm p-4 space-y-4 group hover:border-indigo-200 transition-all">
                                     <div className="flex items-start justify-between gap-3">
                                        <div className="flex-1 space-y-2">
                                           <Input 
@@ -906,7 +906,7 @@ const EditTrip = () => {
                                               setLocations(newLocs);
                                             }}
                                             placeholder={`اسم الموقع (مثال: قلعة قايتباي)`}
-                                            className="h-9 font-bold border-gray-100 bg-gray-50 focus:bg-white transition-all mb-2"
+                                            className="h-9 font-bold border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 focus:bg-white dark:bg-slate-900 transition-all mb-2"
                                           />
                                           <Textarea 
                                             value={loc.description} 
@@ -916,9 +916,9 @@ const EditTrip = () => {
                                               setLocations(newLocs);
                                             }}
                                             placeholder="وصف مختصر للنشاط..."
-                                            className="min-h-[60px] text-xs border-gray-100 bg-gray-50/50 focus:bg-white transition-all resize-none"
+                                            className="min-h-[60px] text-xs border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50 focus:bg-white dark:bg-slate-900 transition-all resize-none"
                                           />
-                                          <div className="flex items-center gap-2 text-[10px] text-gray-400 font-mono mt-1">
+                                          <div className="flex items-center gap-2 text-[10px] text-gray-400 dark:text-slate-500 font-mono mt-1">
                                              <span>{loc.coordinates[0].toFixed(4)}, {loc.coordinates[1].toFixed(4)}</span>
                                           </div>
                                        </div>
@@ -931,8 +931,8 @@ const EditTrip = () => {
                                     <div className="space-y-2">
                                        <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
                                           {/* Add Button */}
-                                          <label className="flex-shrink-0 w-16 h-16 rounded-xl border-2 border-dashed border-gray-200 hover:border-indigo-400 hover:bg-indigo-50 flex items-center justify-center cursor-pointer transition-all">
-                                             <Plus className="w-5 h-5 text-gray-400" />
+                                          <label className="flex-shrink-0 w-16 h-16 rounded-xl border-2 border-dashed border-gray-200 dark:border-slate-700 hover:border-indigo-400 hover:bg-indigo-50 flex items-center justify-center cursor-pointer transition-all">
+                                             <Plus className="w-5 h-5 text-gray-400 dark:text-slate-500" />
                                              <input 
                                                type="file" 
                                                multiple 
@@ -955,7 +955,7 @@ const EditTrip = () => {
                                              const url = file instanceof File ? URL.createObjectURL(file) : file as string;
                                              const isVideo = file instanceof File ? file.type.startsWith('video/') : typeof file === 'string' ? (file.includes('video') || file.endsWith('.mp4')) : false;
                                              return (
-                                                <div key={i} className="flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden relative group/img border border-gray-100 bg-gray-50">
+                                                <div key={i} className="flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden relative group/img border border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-800">
                                                    {isVideo ? (
                                                      <video src={url} className="w-full h-full object-cover" />
                                                    ) : (
@@ -986,8 +986,8 @@ const EditTrip = () => {
                            </div>
 
                            {/* Navigation Buttons */}
-                           <div className="flex gap-3 pt-2 mt-auto border-t border-gray-100">
-                              <Button variant="outline" onClick={prevStep} className="h-12 w-12 rounded-xl p-0 border-gray-200"><ArrowRight className="w-5 h-5 text-gray-500" /></Button>
+                           <div className="flex gap-3 pt-2 mt-auto border-t border-gray-100 dark:border-slate-700">
+                              <Button variant="outline" onClick={prevStep} className="h-12 w-12 rounded-xl p-0 border-gray-200 dark:border-slate-700"><ArrowRight className="w-5 h-5 text-gray-500 dark:text-slate-400" /></Button>
                               <Button onClick={nextStep} className="flex-1 h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-lg shadow-indigo-100">
                                  التالي: تنظيم الأيام
                                  <ArrowLeft className="mr-2 w-5 h-5" />
@@ -1003,17 +1003,17 @@ const EditTrip = () => {
            {/* Step 3: Organize Days */}
            {currentStep === 3 && (
              <div className="animate-in fade-in slide-in-from-bottom-6 duration-700">
-               <Card className="border-0 shadow-2xl rounded-[3rem] overflow-hidden bg-white">
+               <Card className="border-0 shadow-2xl rounded-[3rem] overflow-hidden bg-white dark:bg-slate-900">
                   <CardHeader className="bg-emerald-50/50 p-10">
-                     <CardTitle className="text-3xl font-black text-gray-900">جدولة الرحلة</CardTitle>
-                     <p className="text-gray-500 font-bold mt-2">قم بزيادة جودة رحلتك بتنظيم المواقع حسب الأيام.</p>
+                     <CardTitle className="text-3xl font-black text-gray-900 dark:text-white">جدولة الرحلة</CardTitle>
+                     <p className="text-gray-500 dark:text-slate-400 font-bold mt-2">قم بزيادة جودة رحلتك بتنظيم المواقع حسب الأيام.</p>
                   </CardHeader>
                    <CardContent className="p-6 h-[calc(100vh-250px)] lg:h-[700px] min-h-[500px]">
                      <div className="grid grid-cols-12 gap-6 h-full">
                         {/* Days Sidebar - Col 3 */}
-                        <div className="col-span-3 h-full flex flex-col space-y-4 border-l border-gray-100 pl-4">
+                        <div className="col-span-3 h-full flex flex-col space-y-4 border-l border-gray-100 dark:border-slate-700 pl-4">
                            <div className="flex items-center justify-between">
-                              <h3 className="text-xl font-black text-gray-900">الأيام</h3>
+                              <h3 className="text-xl font-black text-gray-900 dark:text-white">الأيام</h3>
                               <Button onClick={addDay} variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-full border border-dashed border-gray-300 hover:border-emerald-500 hover:text-emerald-500"><Plus className="w-4 h-4" /></Button>
                            </div>
                            <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
@@ -1022,16 +1022,16 @@ const EditTrip = () => {
                                    key={dIdx} 
                                    className={cn(
                                      "w-full p-1 rounded-xl transition-all flex items-center justify-between group relative", 
-                                     currentDay === dIdx + 1 ? "bg-emerald-600 shadow-lg shadow-emerald-100" : "bg-gray-50 hover:bg-emerald-50"
+                                     currentDay === dIdx + 1 ? "bg-emerald-600 shadow-lg shadow-emerald-100" : "bg-gray-50 dark:bg-slate-800 hover:bg-emerald-50"
                                    )}
                                  >
                                    <button
                                      onClick={() => setCurrentDay(dIdx + 1)}
-                                     className={cn("flex-1 text-right p-3 font-bold flex items-center justify-between", currentDay === dIdx + 1 ? "text-white" : "text-gray-500 hover:text-emerald-600")}
+                                     className={cn("flex-1 text-right p-3 font-bold flex items-center justify-between", currentDay === dIdx + 1 ? "text-white" : "text-gray-500 dark:text-slate-400 hover:text-emerald-600")}
                                    >
                                       <span>{day.title}</span>
                                       {day.activities.length > 0 && (
-                                        <Badge className={cn("text-[10px]", currentDay === dIdx + 1 ? "bg-white/20 text-white" : "bg-gray-200 text-gray-500")}>
+                                        <Badge className={cn("text-[10px]", currentDay === dIdx + 1 ? "bg-white/20 text-white" : "bg-gray-200 text-gray-500 dark:text-slate-400")}>
                                           {day.activities.length}
                                         </Badge>
                                       )}
@@ -1055,8 +1055,8 @@ const EditTrip = () => {
                         {/* Activities Canvas - Col 9 */}
                         <div className="col-span-9 h-full grid grid-rows-2 gap-6">
                            {/* Top: Unassigned Activities */}
-                           <div className="bg-gray-50/50 rounded-3xl p-6 border-2 border-dashed border-gray-100 flex flex-col min-h-0">
-                              <h4 className="text-lg font-black text-gray-400 mb-4 flex items-center gap-2">
+                           <div className="bg-gray-50 dark:bg-slate-800/50 rounded-3xl p-6 border-2 border-dashed border-gray-100 dark:border-slate-700 flex flex-col min-h-0">
+                              <h4 className="text-lg font-black text-gray-400 dark:text-slate-500 mb-4 flex items-center gap-2">
                                  <MapPin className="w-5 h-5" />
                                  أنشطة غير محددة
                                  <Badge variant="outline" className="mr-auto">{activities.filter((_, idx) => !days.some(d => d.activities.includes(idx))).length}</Badge>
@@ -1067,15 +1067,15 @@ const EditTrip = () => {
                                        const isAssigned = days.some(d => d.activities.includes(idx));
                                        if (isAssigned) return null;
                                        return (
-                                          <div key={idx} className="group relative bg-white rounded-2xl p-3 shadow-sm border border-gray-100 hover:shadow-md transition-all cursor-pointer" onClick={() => toggleActivityInDay(currentDay-1, idx)}>
-                                             <div className="aspect-video rounded-xl bg-gray-100 mb-3 overflow-hidden">
+                                          <div key={idx} className="group relative bg-white dark:bg-slate-900 rounded-2xl p-3 shadow-sm border border-gray-100 dark:border-slate-700 hover:shadow-md transition-all cursor-pointer" onClick={() => toggleActivityInDay(currentDay-1, idx)}>
+                                             <div className="aspect-video rounded-xl bg-gray-100 dark:bg-slate-800 mb-3 overflow-hidden">
                                                 {act.images?.[0] ? (
                                                    <img src={typeof act.images[0] === 'string' ? act.images[0] : URL.createObjectURL(act.images[0])} className="w-full h-full object-cover" />
                                                 ) : (
                                                    <div className="w-full h-full flex items-center justify-center text-gray-300"><ImageIcon className="w-8 h-8" /></div>
                                                 )}
                                              </div>
-                                             <h5 className="font-bold text-sm text-gray-800 line-clamp-1">{act.name}</h5>
+                                             <h5 className="font-bold text-sm text-gray-800 dark:text-slate-200 line-clamp-1">{act.name}</h5>
                                              <Button size="sm" variant="ghost" className="absolute top-2 left-2 h-8 w-8 p-0 rounded-full bg-white/80 opacity-0 group-hover:opacity-100 transition-opacity text-emerald-600 hover:bg-emerald-50">
                                                 <Plus className="w-5 h-5" />
                                              </Button>
@@ -1105,14 +1105,14 @@ const EditTrip = () => {
                                        const act = activities[actIdx];
                                        if (!act) return null;
                                        return (
-                                          <div key={`act-${actIdx}-${Math.random()}`} className="bg-white rounded-2xl p-4 shadow-sm border border-emerald-100 flex items-center justify-between group">
+                                          <div key={`act-${actIdx}-${Math.random()}`} className="bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-sm border border-emerald-100 flex items-center justify-between group">
                                              <div className="flex items-center gap-4">
                                                 <Badge variant="outline" className="h-8 w-8 rounded-full flex items-center justify-center p-0 border-emerald-200 text-emerald-600 bg-emerald-50 font-mono">
                                                    {days[currentDay-1]?.activities.indexOf(actIdx) + 1}
                                                 </Badge>
                                                 <div>
-                                                   <h5 className="font-bold text-gray-900">{act.name}</h5>
-                                                   <p className="text-xs text-gray-400 font-bold line-clamp-1">{act.description || "لا يوجد وصف"}</p>
+                                                   <h5 className="font-bold text-gray-900 dark:text-white">{act.name}</h5>
+                                                   <p className="text-xs text-gray-400 dark:text-slate-500 font-bold line-clamp-1">{act.description || "لا يوجد وصف"}</p>
                                                 </div>
                                              </div>
                                              <Button variant="ghost" size="sm" onClick={() => toggleActivityInDay(currentDay-1, actIdx)} className="text-red-300 hover:text-red-500 hover:bg-red-50 rounded-xl">
@@ -1129,8 +1129,8 @@ const EditTrip = () => {
 
                    </CardContent>
                            {/* Navigation Buttons */}
-                           <div className="flex gap-3 pt-2 mt-auto border-t border-gray-100">
-                              <Button variant="outline" onClick={prevStep} className="h-12 w-12 rounded-xl p-0 border-gray-200"><ArrowRight className="w-5 h-5 text-gray-500" /></Button>
+                           <div className="flex gap-3 pt-2 mt-auto border-t border-gray-100 dark:border-slate-700">
+                              <Button variant="outline" onClick={prevStep} className="h-12 w-12 rounded-xl p-0 border-gray-200 dark:border-slate-700"><ArrowRight className="w-5 h-5 text-gray-500 dark:text-slate-400" /></Button>
                               <Button onClick={nextStep} className="flex-1 h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-lg shadow-indigo-100">
                                  التالي: المطاعم والأكلات
                                  <ArrowLeft className="mr-2 w-5 h-5" />
@@ -1144,9 +1144,9 @@ const EditTrip = () => {
            {/* Step 4: Food & Restaurants */}
            {currentStep === 4 && (
               <div className="animate-in fade-in slide-in-from-bottom-6 duration-700">
-                 <Card className="border-0 shadow-2xl rounded-[3rem] overflow-hidden bg-white">
+                 <Card className="border-0 shadow-2xl rounded-[3rem] overflow-hidden bg-white dark:bg-slate-900">
                     <CardHeader className="bg-amber-50/50 p-10 border-b border-amber-100/50">
-                       <CardTitle className="text-3xl font-black text-gray-900 flex items-center gap-4">
+                       <CardTitle className="text-3xl font-black text-gray-900 dark:text-white flex items-center gap-4">
                           <div className="w-12 h-12 bg-amber-500 rounded-2xl flex items-center justify-center text-white">
                              <Utensils className="w-6 h-6" />
                           </div>
@@ -1156,16 +1156,16 @@ const EditTrip = () => {
                     <CardContent className="p-6 h-[calc(100vh-250px)] lg:h-[700px] min-h-[500px]">
                        <div className="grid grid-cols-12 gap-6 h-full">
                           {/* Form Section */}
-                          <div className="col-span-12 lg:col-span-4 h-full flex flex-col space-y-4 border-l border-gray-100 pl-4 overflow-y-auto custom-scrollbar">
-                             <h3 className="text-xl font-black text-gray-900 mb-2">أضف مطعم جديد</h3>
-                             <div className="space-y-4 bg-gray-50 p-6 rounded-3xl border border-gray-100">
+                          <div className="col-span-12 lg:col-span-4 h-full flex flex-col space-y-4 border-l border-gray-100 dark:border-slate-700 pl-4 overflow-y-auto custom-scrollbar">
+                             <h3 className="text-xl font-black text-gray-900 dark:text-white mb-2">أضف مطعم جديد</h3>
+                             <div className="space-y-4 bg-gray-50 dark:bg-slate-800 p-6 rounded-3xl border border-gray-100 dark:border-slate-700">
                                 {/* Name */}
                                 <div className="space-y-2">
                                    <Label>الاسم</Label>
                                    <Input 
                                      value={newFoodPlace.name}
                                      onChange={e => setNewFoodPlace({...newFoodPlace, name: e.target.value})}
-                                     className="h-12 bg-white rounded-xl"
+                                     className="h-12 bg-white dark:bg-slate-900 rounded-xl"
                                      placeholder="اسم المطعم"
                                    />
                                 </div>
@@ -1175,7 +1175,7 @@ const EditTrip = () => {
                                    <Input 
                                      value={newFoodPlace.location}
                                      onChange={e => setNewFoodPlace({...newFoodPlace, location: e.target.value})}
-                                     className="h-12 bg-white rounded-xl"
+                                     className="h-12 bg-white dark:bg-slate-900 rounded-xl"
                                      placeholder="رابط جوجل مابس أو العنوان"
                                    />
                                 </div>
@@ -1183,7 +1183,7 @@ const EditTrip = () => {
                                 <div className="space-y-2">
                                    <Label>النوع</Label>
                                    <Select value={newFoodPlace.type} onValueChange={val => setNewFoodPlace({...newFoodPlace, type: val})}>
-                                     <SelectTrigger className="h-12 bg-white rounded-xl"><SelectValue /></SelectTrigger>
+                                     <SelectTrigger className="h-12 bg-white dark:bg-slate-900 rounded-xl"><SelectValue /></SelectTrigger>
                                      <SelectContent>
                                        <SelectItem value="restaurant">مطعم</SelectItem>
                                        <SelectItem value="cafe">كافيه</SelectItem>
@@ -1197,7 +1197,7 @@ const EditTrip = () => {
                                    <Textarea 
                                      value={newFoodPlace.description}
                                      onChange={e => setNewFoodPlace({...newFoodPlace, description: e.target.value})}
-                                     className="bg-white rounded-xl min-h-[100px]"
+                                     className="bg-white dark:bg-slate-900 rounded-xl min-h-[100px]"
                                      placeholder="وصف التجربة..."
                                    />
                                 </div>
@@ -1206,10 +1206,10 @@ const EditTrip = () => {
                                    <Label>صورة المطعم</Label>
                                    <div className="flex items-center gap-4">
                                       {(newFoodPlace as any).image && (
-                                         <img src={(newFoodPlace as any).image} className="w-12 h-12 rounded-lg object-cover border border-gray-200" />
+                                         <img src={(newFoodPlace as any).image} className="w-12 h-12 rounded-lg object-cover border border-gray-200 dark:border-slate-700" />
                                       )}
                                       <label className="flex-1 cursor-pointer">
-                                         <div className="flex items-center justify-center w-full h-12 rounded-xl bg-white border border-dashed border-gray-300 hover:bg-gray-50 hover:border-amber-400 transition-all text-gray-400 text-sm font-bold gap-2">
+                                         <div className="flex items-center justify-center w-full h-12 rounded-xl bg-white dark:bg-slate-900 border border-dashed border-gray-300 hover:bg-gray-50 dark:bg-slate-800 hover:border-amber-400 transition-all text-gray-400 dark:text-slate-500 text-sm font-bold gap-2">
                                             <ImageIcon className="w-4 h-4" />
                                             <span>{(newFoodPlace as any).image ? "تغيير الصورة" : "رفع صورة"}</span>
                                          </div>
@@ -1242,11 +1242,11 @@ const EditTrip = () => {
                           <div className="col-span-12 lg:col-span-8 h-full overflow-y-auto custom-scrollbar">
                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {foodPlaces.map((item, idx) => (
-                                   <div key={idx} className="group relative bg-white border border-gray-100 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all flex gap-4">
-                                      <div className="w-24 h-24 bg-gray-100 rounded-xl flex-shrink-0 overflow-hidden">
+                                   <div key={idx} className="group relative bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-700 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all flex gap-4">
+                                      <div className="w-24 h-24 bg-gray-100 dark:bg-slate-800 rounded-xl flex-shrink-0 overflow-hidden">
                                          {(item as any).image ? <img src={(item as any).image} className="w-full h-full object-cover" /> : (
                                             <label className="w-full h-full flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors">
-                                              <ImageIcon className="w-6 h-6 text-gray-400" />
+                                              <ImageIcon className="w-6 h-6 text-gray-400 dark:text-slate-500" />
                                               <input type="file" className="hidden" accept="image/*" onChange={(e) => {
                                                  if (e.target.files?.[0]) {
                                                     const file = e.target.files[0];
@@ -1260,8 +1260,8 @@ const EditTrip = () => {
                                          )}
                                       </div>
                                       <div className="flex-1 min-w-0">
-                                         <h5 className="font-bold text-gray-900 truncate">{item.name}</h5>
-                                         <p className="text-gray-500 text-xs line-clamp-2 mt-1">{item.description}</p>
+                                         <h5 className="font-bold text-gray-900 dark:text-white truncate">{item.name}</h5>
+                                         <p className="text-gray-500 dark:text-slate-400 text-xs line-clamp-2 mt-1">{item.description}</p>
                                          {(item as any).location && <div className="flex items-center gap-1 mt-2 text-xs text-blue-500"><MapPin className="w-3 h-3" /><a href={(item as any).location} target="_blank" rel="noreferrer" className="truncate hover:underline">الموقع</a></div>}
                                          <div className="flex items-center gap-1 mt-2 text-amber-500 text-xs font-bold"><Star className="w-3 h-3 fill-amber-500" /> {item.rating || 5}</div>
                                       </div>
@@ -1269,8 +1269,8 @@ const EditTrip = () => {
                                    </div>
                                 ))}
                                 {foodPlaces.length === 0 && (
-                                  <div className="col-span-full flex flex-col items-center justify-center py-20 text-gray-300 border-2 border-dashed border-gray-100 rounded-3xl">
-                                     <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4"><Utensils className="w-8 h-8 text-gray-300" /></div>
+                                  <div className="col-span-full flex flex-col items-center justify-center py-20 text-gray-300 border-2 border-dashed border-gray-100 dark:border-slate-700 rounded-3xl">
+                                     <div className="w-16 h-16 bg-gray-50 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4"><Utensils className="w-8 h-8 text-gray-300" /></div>
                                      <p className="font-bold">قائمة المطاعم فارغة.</p>
                                   </div>
                                 )}
@@ -1281,8 +1281,8 @@ const EditTrip = () => {
 
                     </CardContent>
                     {/* Navigation Buttons */}
-                    <div className="flex gap-3 pt-2 mt-auto border-t border-gray-100">
-                       <Button variant="outline" onClick={prevStep} className="h-12 w-12 rounded-xl p-0 border-gray-200"><ArrowRight className="w-5 h-5 text-gray-500" /></Button>
+                    <div className="flex gap-3 pt-2 mt-auto border-t border-gray-100 dark:border-slate-700">
+                       <Button variant="outline" onClick={prevStep} className="h-12 w-12 rounded-xl p-0 border-gray-200 dark:border-slate-700"><ArrowRight className="w-5 h-5 text-gray-500 dark:text-slate-400" /></Button>
                        <Button onClick={nextStep} className="flex-1 h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-lg shadow-indigo-100">
                           التالي:  الفنادق والاقامة
                           <ArrowLeft className="mr-2 w-5 h-5" />
@@ -1296,9 +1296,9 @@ const EditTrip = () => {
            {/* Step 5: Hotels & Stay */}
            {currentStep === 5 && (
               <div className="animate-in fade-in slide-in-from-bottom-6 duration-700">
-                 <Card className="border-0 shadow-2xl rounded-[3rem] overflow-hidden bg-white">
+                 <Card className="border-0 shadow-2xl rounded-[3rem] overflow-hidden bg-white dark:bg-slate-900">
                     <CardHeader className="bg-blue-50/50 p-10 border-b border-blue-100/50">
-                       <CardTitle className="text-3xl font-black text-gray-900 flex items-center gap-4">
+                       <CardTitle className="text-3xl font-black text-gray-900 dark:text-white flex items-center gap-4">
                           <div className="w-12 h-12 bg-blue-500 rounded-2xl flex items-center justify-center text-white">
                              <MapPin className="w-6 h-6" />
                           </div>
@@ -1308,15 +1308,15 @@ const EditTrip = () => {
                     <CardContent className="p-6 h-[calc(100vh-250px)] lg:h-[700px] min-h-[500px]">
                        <div className="grid grid-cols-12 gap-6 h-full">
                           {/* Form Section */}
-                          <div className="col-span-12 lg:col-span-4 h-full flex flex-col space-y-4 border-l border-gray-100 pl-4 overflow-y-auto custom-scrollbar">
-                             <h3 className="text-xl font-black text-gray-900 mb-2">أضف مكان إقامة</h3>
-                             <div className="space-y-4 bg-gray-50 p-6 rounded-3xl border border-gray-100">
+                          <div className="col-span-12 lg:col-span-4 h-full flex flex-col space-y-4 border-l border-gray-100 dark:border-slate-700 pl-4 overflow-y-auto custom-scrollbar">
+                             <h3 className="text-xl font-black text-gray-900 dark:text-white mb-2">أضف مكان إقامة</h3>
+                             <div className="space-y-4 bg-gray-50 dark:bg-slate-800 p-6 rounded-3xl border border-gray-100 dark:border-slate-700">
                                 <div className="space-y-2">
                                    <Label>الاسم</Label>
                                    <Input 
                                      value={newHotel.name}
                                      onChange={e => setNewHotel({...newHotel, name: e.target.value})}
-                                     className="h-12 bg-white rounded-xl"
+                                     className="h-12 bg-white dark:bg-slate-900 rounded-xl"
                                      placeholder="اسم الفندق/المكان"
                                    />
                                 </div>
@@ -1325,7 +1325,7 @@ const EditTrip = () => {
                                    <Input 
                                      value={newHotel.location}
                                      onChange={e => setNewHotel({...newHotel, location: e.target.value})}
-                                     className="h-12 bg-white rounded-xl"
+                                     className="h-12 bg-white dark:bg-slate-900 rounded-xl"
                                      placeholder="رابط جوجل مابس أو العنوان"
                                    />
                                 </div>
@@ -1334,7 +1334,7 @@ const EditTrip = () => {
                                    <Textarea 
                                      value={newHotel.description}
                                      onChange={e => setNewHotel({...newHotel, description: e.target.value})}
-                                     className="bg-white rounded-xl min-h-[100px]"
+                                     className="bg-white dark:bg-slate-900 rounded-xl min-h-[100px]"
                                      placeholder="وصف المكان..."
                                    />
                                 </div>
@@ -1343,7 +1343,7 @@ const EditTrip = () => {
                                    <Input 
                                      value={newHotel.bookingUrl}
                                      onChange={e => setNewHotel({...newHotel, bookingUrl: e.target.value})}
-                                     className="h-12 bg-white rounded-xl" 
+                                     className="h-12 bg-white dark:bg-slate-900 rounded-xl" 
                                      placeholder="Booking.com / Airbnb..."
                                    />
                                   </div>
@@ -1353,10 +1353,10 @@ const EditTrip = () => {
                                    <Label>صورة الفندق</Label>
                                    <div className="flex items-center gap-4">
                                       {(newHotel as any).image && (
-                                         <img src={(newHotel as any).image} className="w-12 h-12 rounded-lg object-cover border border-gray-200" />
+                                         <img src={(newHotel as any).image} className="w-12 h-12 rounded-lg object-cover border border-gray-200 dark:border-slate-700" />
                                       )}
                                       <label className="flex-1 cursor-pointer">
-                                         <div className="flex items-center justify-center w-full h-12 rounded-xl bg-white border border-dashed border-gray-300 hover:bg-gray-50 hover:border-blue-400 transition-all text-gray-400 text-sm font-bold gap-2">
+                                         <div className="flex items-center justify-center w-full h-12 rounded-xl bg-white dark:bg-slate-900 border border-dashed border-gray-300 hover:bg-gray-50 dark:bg-slate-800 hover:border-blue-400 transition-all text-gray-400 dark:text-slate-500 text-sm font-bold gap-2">
                                             <ImageIcon className="w-4 h-4" />
                                             <span>{(newHotel as any).image ? "تغيير الصورة" : "رفع صورة"}</span>
                                          </div>
@@ -1389,11 +1389,11 @@ const EditTrip = () => {
                           <div className="col-span-12 lg:col-span-8 h-full overflow-y-auto custom-scrollbar">
                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {hotels.map((item, idx) => (
-                                   <div key={idx} className="group relative bg-white border border-gray-100 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all flex gap-4">
-                                      <div className="w-24 h-24 bg-gray-100 rounded-xl flex-shrink-0 overflow-hidden">
+                                   <div key={idx} className="group relative bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-700 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all flex gap-4">
+                                      <div className="w-24 h-24 bg-gray-100 dark:bg-slate-800 rounded-xl flex-shrink-0 overflow-hidden">
                                          {(item as any).image ? <img src={(item as any).image} className="w-full h-full object-cover" /> : (
                                             <label className="w-full h-full flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors">
-                                              <ImageIcon className="w-6 h-6 text-gray-400" />
+                                              <ImageIcon className="w-6 h-6 text-gray-400 dark:text-slate-500" />
                                               <input type="file" className="hidden" accept="image/*" onChange={(e) => {
                                                  if (e.target.files?.[0]) {
                                                     const file = e.target.files[0];
@@ -1407,8 +1407,8 @@ const EditTrip = () => {
                                          )}
                                       </div>
                                       <div className="flex-1 min-w-0">
-                                         <h5 className="font-bold text-gray-900 truncate">{item.name}</h5>
-                                         <p className="text-gray-500 text-xs line-clamp-2 mt-1">{item.description}</p>
+                                         <h5 className="font-bold text-gray-900 dark:text-white truncate">{item.name}</h5>
+                                         <p className="text-gray-500 dark:text-slate-400 text-xs line-clamp-2 mt-1">{item.description}</p>
                                          {(item as any).location && <div className="flex items-center gap-1 mt-2 text-xs text-blue-500"><MapPin className="w-3 h-3" /><a href={(item as any).location} target="_blank" rel="noreferrer" className="truncate hover:underline">الموقع</a></div>}
                                          <div className="flex items-center gap-1 mt-2 text-amber-500 text-xs font-bold"><Star className="w-3 h-3 fill-amber-500" /> {item.rating || 5}</div>
                                       </div>
@@ -1416,8 +1416,8 @@ const EditTrip = () => {
                                    </div>
                                 ))}
                                 {hotels.length === 0 && (
-                                  <div className="col-span-full flex flex-col items-center justify-center py-20 text-gray-300 border-2 border-dashed border-gray-100 rounded-3xl">
-                                     <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4"><MapPin className="w-8 h-8 text-gray-300" /></div>
+                                  <div className="col-span-full flex flex-col items-center justify-center py-20 text-gray-300 border-2 border-dashed border-gray-100 dark:border-slate-700 rounded-3xl">
+                                     <div className="w-16 h-16 bg-gray-50 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4"><MapPin className="w-8 h-8 text-gray-300" /></div>
                                      <p className="font-bold">قائمة الفنادق فارغة.</p>
                                   </div>
                                 )}
@@ -1428,8 +1428,8 @@ const EditTrip = () => {
 
                     </CardContent>
                      {/* Navigation Buttons */}
-                    <div className="flex gap-3 pt-2 mt-auto border-t border-gray-100">
-                       <Button variant="outline" onClick={prevStep} className="h-12 w-12 rounded-xl p-0 border-gray-200"><ArrowRight className="w-5 h-5 text-gray-500" /></Button>
+                    <div className="flex gap-3 pt-2 mt-auto border-t border-gray-100 dark:border-slate-700">
+                       <Button variant="outline" onClick={prevStep} className="h-12 w-12 rounded-xl p-0 border-gray-200 dark:border-slate-700"><ArrowRight className="w-5 h-5 text-gray-500 dark:text-slate-400" /></Button>
                        <Button onClick={nextStep} className="flex-1 h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-lg shadow-indigo-100">
                           التالي:   مراحعة الرحلة 
                           <ArrowLeft className="mr-2 w-5 h-5" />
@@ -1444,11 +1444,11 @@ const EditTrip = () => {
              <div className="animate-in fade-in slide-in-from-bottom-10 duration-1000 pb-20">
                 {/* Celebration Banner */}
                 <div className="relative mb-8 text-center">
-                   <h2 className="text-4xl lg:text-5xl font-black text-gray-900 mb-2">رحلتك جاهزة للتحديث! 🎉</h2>
-                   <p className="text-gray-500 text-lg font-bold">هذه نظرة أخيرة قبل حفظ التعديلات.</p>
+                   <h2 className="text-4xl lg:text-5xl font-black text-gray-900 dark:text-white mb-2">رحلتك جاهزة للتحديث! 🎉</h2>
+                   <p className="text-gray-500 dark:text-slate-400 text-lg font-bold">هذه نظرة أخيرة قبل حفظ التعديلات.</p>
                 </div>
 
-                <Card className="border-0 shadow-2xl rounded-[3rem] overflow-hidden bg-white mb-8">
+                <Card className="border-0 shadow-2xl rounded-[3rem] overflow-hidden bg-white dark:bg-slate-900 mb-8">
                    {/* Hero Section */}
                    <div className="relative h-[400px] w-full">
                       <img src={tripData.coverImageUrl} className="w-full h-full object-cover" />
@@ -1470,16 +1470,16 @@ const EditTrip = () => {
                      {/* Description & Stats */}
                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                           <div className="lg:col-span-2 space-y-4">
-                             <h3 className="text-2xl font-black text-gray-900 flex items-center gap-2">
+                             <h3 className="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-2">
                                 <div className="w-2 h-8 bg-orange-500 rounded-full" />
                                 عن الرحلة
                              </h3>
-                             <p className="text-gray-600 text-lg leading-relaxed font-medium bg-gray-50 p-6 rounded-3xl border border-gray-100">
+                             <p className="text-gray-600 dark:text-slate-300 text-lg leading-relaxed font-medium bg-gray-50 dark:bg-slate-800 p-6 rounded-3xl border border-gray-100 dark:border-slate-700">
                                 "{tripData.description}"
                              </p>
                           </div>
                           <div className="space-y-4">
-                             <h3 className="text-2xl font-black text-gray-900 flex items-center gap-2">
+                             <h3 className="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-2">
                                 <div className="w-2 h-8 bg-indigo-500 rounded-full" />
                                 إحصائيات
                              </h3>
@@ -1506,32 +1506,32 @@ const EditTrip = () => {
                      
                      {/* Itinerary Timeline Preview */}
                      <div className="space-y-6">
-                        <h3 className="text-2xl font-black text-gray-900 flex items-center gap-2">
+                        <h3 className="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-2">
                            <div className="w-2 h-8 bg-purple-500 rounded-full" />
                            جدول الرحلة
                         </h3>
-                        <div className="space-y-6 relative border-r-2 border-gray-100 pr-6 mr-3">
+                        <div className="space-y-6 relative border-r-2 border-gray-100 dark:border-slate-700 pr-6 mr-3">
                            {days.map((day, i) => (
                               <div key={i} className="relative">
                                  <div className="absolute -right-[33px] top-0 w-4 h-4 rounded-full bg-purple-500 ring-4 ring-white" />
-                                 <h4 className="text-xl font-bold text-gray-900 mb-4">{day.title}</h4>
+                                 <h4 className="text-xl font-bold text-gray-900 dark:text-white mb-4">{day.title}</h4>
                                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                     {day.activities.length > 0 ? day.activities.map(actIdx => {
                                        const act = activities[actIdx];
                                        if (!act) return null;
                                        return (
-                                          <div key={`act-${actIdx}-${Math.random()}`} className="bg-white border border-gray-100 rounded-2xl p-3 flex gap-3 shadow-sm hover:shadow-md transition-all">
-                                             <div className="w-16 h-16 rounded-xl bg-gray-100 shrink-0 overflow-hidden">
-                                                {act.images?.[0] ? <img src={typeof act.images[0] === 'string' ? act.images[0] : ''} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center bg-gray-50"><MapPin className="w-6 h-6 text-gray-300" /></div>}
+                                          <div key={`act-${actIdx}-${Math.random()}`} className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-700 rounded-2xl p-3 flex gap-3 shadow-sm hover:shadow-md transition-all">
+                                             <div className="w-16 h-16 rounded-xl bg-gray-100 dark:bg-slate-800 shrink-0 overflow-hidden">
+                                                {act.images?.[0] ? <img src={typeof act.images[0] === 'string' ? act.images[0] : ''} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center bg-gray-50 dark:bg-slate-800"><MapPin className="w-6 h-6 text-gray-300" /></div>}
                                              </div>
                                              <div className="overflow-hidden">
-                                                <div className="font-bold text-gray-900 truncate">{act.name}</div>
-                                                <div className="text-xs text-gray-500 line-clamp-2">{act.name}</div>
+                                                <div className="font-bold text-gray-900 dark:text-white truncate">{act.name}</div>
+                                                <div className="text-xs text-gray-500 dark:text-slate-400 line-clamp-2">{act.name}</div>
                                              </div>
                                           </div>
                                        )
                                     }) : (
-                                       <div className="col-span-full text-gray-400 italic font-medium">لا توجد أنشطة لهذا اليوم</div>
+                                       <div className="col-span-full text-gray-400 dark:text-slate-500 italic font-medium">لا توجد أنشطة لهذا اليوم</div>
                                     )}
                                  </div>
                               </div>
@@ -1543,43 +1543,43 @@ const EditTrip = () => {
                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
                           {/* Restaurants */}
                           <div className="space-y-4">
-                             <h3 className="text-2xl font-black text-gray-900 flex items-center gap-2">
+                             <h3 className="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-2">
                                 <div className="w-2 h-8 bg-amber-500 rounded-full" />
                                 المطاعم
                              </h3>
                              <div className="space-y-3">
                                 {foodPlaces.length > 0 ? foodPlaces.map((place, idx) => (
-                                   <div key={idx} className="flex items-center gap-4 bg-gray-50 p-3 rounded-2xl border border-gray-100">
-                                       <div className="w-16 h-16 rounded-xl bg-white shrink-0 overflow-hidden border border-gray-200">
+                                   <div key={idx} className="flex items-center gap-4 bg-gray-50 dark:bg-slate-800 p-3 rounded-2xl border border-gray-100 dark:border-slate-700">
+                                       <div className="w-16 h-16 rounded-xl bg-white dark:bg-slate-900 shrink-0 overflow-hidden border border-gray-200 dark:border-slate-700">
                                           {(place as any).image ? <img src={(place as any).image} className="w-full h-full object-cover" /> : <div className="flex items-center justify-center w-full h-full"><Utensils className="text-gray-300" /></div>}
                                        </div>
                                        <div>
-                                          <div className="font-bold text-gray-900">{place.name}</div>
-                                          <div className="text-xs text-gray-500">{place.rating} ⭐</div>
+                                          <div className="font-bold text-gray-900 dark:text-white">{place.name}</div>
+                                          <div className="text-xs text-gray-500 dark:text-slate-400">{place.rating} ⭐</div>
                                        </div>
                                    </div>
-                                )) : <p className="text-gray-400 font-medium">لم يتم إضافة مطاعم</p>}
+                                )) : <p className="text-gray-400 dark:text-slate-500 font-medium">لم يتم إضافة مطاعم</p>}
                              </div>
                           </div>
 
                           {/* Hotels */}
                           <div className="space-y-4">
-                             <h3 className="text-2xl font-black text-gray-900 flex items-center gap-2">
+                             <h3 className="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-2">
                                 <div className="w-2 h-8 bg-blue-500 rounded-full" />
                                 الفنادق
                              </h3>
                              <div className="space-y-3">
                                 {hotels.length > 0 ? hotels.map((hotel, idx) => (
-                                   <div key={idx} className="flex items-center gap-4 bg-gray-50 p-3 rounded-2xl border border-gray-100">
-                                       <div className="w-16 h-16 rounded-xl bg-white shrink-0 overflow-hidden border border-gray-200">
+                                   <div key={idx} className="flex items-center gap-4 bg-gray-50 dark:bg-slate-800 p-3 rounded-2xl border border-gray-100 dark:border-slate-700">
+                                       <div className="w-16 h-16 rounded-xl bg-white dark:bg-slate-900 shrink-0 overflow-hidden border border-gray-200 dark:border-slate-700">
                                           {(hotel as any).image ? <img src={(hotel as any).image} className="w-full h-full object-cover" /> : <div className="flex items-center justify-center w-full h-full"><Sparkles className="text-gray-300" /></div>}
                                        </div>
                                        <div>
-                                          <div className="font-bold text-gray-900">{hotel.name}</div>
-                                          <div className="text-xs text-gray-500">{hotel.rating} ⭐ • {hotel.priceRange}</div>
+                                          <div className="font-bold text-gray-900 dark:text-white">{hotel.name}</div>
+                                          <div className="text-xs text-gray-500 dark:text-slate-400">{hotel.rating} ⭐ • {hotel.priceRange}</div>
                                        </div>
                                    </div>
-                                )) : <p className="text-gray-400 font-medium">لم يتم إضافة فنادق</p>}
+                                )) : <p className="text-gray-400 dark:text-slate-500 font-medium">لم يتم إضافة فنادق</p>}
                              </div>
                           </div>
                      </div>
@@ -1602,7 +1602,7 @@ const EditTrip = () => {
                              </span>
                           )}
                         </Button>
-                        <Button variant="outline" onClick={prevStep} className="h-20 flex-1 rounded-[1.5rem] border-gray-200 bg-white text-gray-500 font-black text-lg hover:border-indigo-200 hover:text-indigo-600">
+                        <Button variant="outline" onClick={prevStep} className="h-20 flex-1 rounded-[1.5rem] border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-500 dark:text-slate-400 font-black text-lg hover:border-indigo-200 hover:text-indigo-600">
                            تعديل البيانات
                         </Button>
                      </div>

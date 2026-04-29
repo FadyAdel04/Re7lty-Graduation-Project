@@ -16,32 +16,56 @@ const router = express.Router();
 router.post('/start', ClerkExpressRequireAuth(), async (req, res) => {
     try {
         const userId = req.auth?.userId;
-        const { companyId, tripId } = req.body;
+        let { companyId, tripId } = req.body;
 
         if (!userId || !companyId) {
             return res.status(400).json({ error: 'Missing required fields' });
         }
 
+        // Validate ObjectId formats to prevent 500 casting errors
+        const mongoose = await import('mongoose');
+        if (!mongoose.Types.ObjectId.isValid(companyId)) {
+            return res.status(400).json({ error: 'Invalid company ID format' });
+        }
+
+        if (tripId && !mongoose.Types.ObjectId.isValid(tripId)) {
+            console.warn(`[Chat] Invalid tripId format received: ${tripId}. Ignoring trip context.`);
+            tripId = undefined; // Don't crash, just ignore invalid trip context
+        }
+
         // Find existing conversation
         let conversation = await Conversation.findOne({
             userId,
-            companyId
+            companyId,
+            tripId: tripId || { $exists: false } // Only match if trip context matches
         });
+
+        if (!conversation) {
+            // Check if we have one without trip context if this one fails? 
+            // Or maybe we want a unique conversation per user-company regardless of trip?
+            // Usually, one conversation per user-company is better unless trips are very distinct.
+            // Let's stick to one conversation per user-company for now to keep history together.
+            conversation = await Conversation.findOne({ userId, companyId });
+        }
 
         if (!conversation) {
             conversation = await Conversation.create({
                 userId,
                 companyId,
-                tripId, // Optional context
-                participants: [userId, companyId], // Simply storing IDs involved
+                tripId: tripId || undefined,
+                participants: [userId, companyId],
                 lastMessageAt: new Date()
             });
+        } else if (tripId && !conversation.tripId) {
+            // Update conversation with trip context if it was missing
+            conversation.tripId = tripId as any;
+            await conversation.save();
         }
 
         res.json(conversation);
     } catch (error) {
         console.error('Error starting chat:', error);
-        res.status(500).json({ error: 'Failed to start chat' });
+        res.status(500).json({ error: 'Failed to start chat', message: error instanceof Error ? error.message : 'Unknown error' });
     }
 });
 

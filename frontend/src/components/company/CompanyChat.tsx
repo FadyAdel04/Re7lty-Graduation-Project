@@ -481,17 +481,17 @@ export const CompanyChat = ({ onUnreadChange }: CompanyChatProps) => {
     );
 
 return (
-    <div className="h-[750px] md:h-[650px] flex flex-col md:flex-row bg-white rounded-2xl md:rounded-[2rem] overflow-hidden border border-gray-100 shadow-xl font-cairo" dir="rtl">
+    <div className="h-[750px] md:h-[650px] flex flex-col md:flex-row bg-card rounded-2xl md:rounded-[2rem] overflow-hidden border border-border shadow-xl font-cairo" dir="rtl">
         {/* Sidebar: hidden when a chat is selected (full-width chat); shown when no selection */}
         <div className={cn(
-            "w-full md:w-80 border-b md:border-b-0 md:border-l border-gray-100 flex flex-col bg-gray-50/30 shrink-0",
+            "w-full md:w-80 border-b md:border-b-0 md:border-l border-border flex flex-col bg-muted/30 shrink-0",
             "transition-all duration-300",
             (selectedConversation || selectedGroup) ? "hidden" : "flex"
         )}>
             {/* Header */}
-            <div className="p-4 md:p-6 border-b border-gray-100 bg-white space-y-4">
+            <div className="p-4 md:p-6 border-b border-border bg-card space-y-4">
                 <div className="flex items-center justify-between">
-                    <h2 className="text-lg md:text-xl font-black text-gray-900">الرسائل</h2>
+                    <h2 className="text-lg md:text-xl font-black text-foreground">الرسائل</h2>
                     <div className="flex items-center gap-1">
                         <Button 
                             variant="ghost" 
@@ -506,7 +506,7 @@ return (
                 </div>
 
                 {/* Sub-Tabs Selector */}
-                <div className="grid grid-cols-2 gap-2 bg-gray-100/80 p-1 rounded-xl">
+                <div className="grid grid-cols-2 gap-2 bg-muted/80 p-1 rounded-xl">
                     <button 
                         onClick={() => {
                             setActiveSubTab('direct');
@@ -515,8 +515,8 @@ return (
                         className={cn(
                             "flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-black transition-all",
                             activeSubTab === 'direct' 
-                                ? "bg-white shadow-sm text-indigo-600" 
-                                : "text-gray-400 hover:bg-white/50 hover:text-gray-600"
+                                ? "bg-card shadow-sm text-indigo-600" 
+                                : "text-gray-400 hover:bg-card/50 hover:text-muted-foreground"
                         )}
                     >
                         <User className="w-3.5 h-3.5" />
@@ -531,8 +531,8 @@ return (
                         className={cn(
                             "flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-black transition-all",
                             activeSubTab === 'groups' 
-                                ? "bg-white shadow-sm text-indigo-600" 
-                                : "text-gray-400 hover:bg-white/50 hover:text-gray-600"
+                                ? "bg-card shadow-sm text-indigo-600" 
+                                : "text-gray-400 hover:bg-card/50 hover:text-muted-foreground"
                         )}
                     >
                         <Users className="w-3.5 h-3.5" />
@@ -545,7 +545,7 @@ return (
                     <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <Input 
                         placeholder={activeSubTab === 'direct' ? 'بحث عن مسافر...' : 'بحث في المجموعات...'}
-                        className="pr-10 h-11 rounded-xl bg-gray-50 border-transparent focus:bg-white focus:border-indigo-200 transition-all text-sm"
+                        className="pr-10 h-11 rounded-xl bg-muted border-transparent focus:bg-card focus:border-indigo-200 transition-all text-sm"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
@@ -563,13 +563,13 @@ return (
                                     <div className="h-12 w-12 rounded-full bg-gray-200" />
                                     <div className="flex-1 space-y-2">
                                         <div className="h-4 bg-gray-200 rounded w-1/2" />
-                                        <div className="h-3 bg-gray-100 rounded w-3/4" />
+                                        <div className="h-3 bg-muted rounded w-3/4" />
                                     </div>
                                 </div>
                             ))
                         ) : filteredConversations.length === 0 ? (
                             <div className="text-center py-16 px-4">
-                                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
                                     <MessageCircle className="h-8 w-8 text-gray-300" />
                                 </div>
                                 <p className="text-sm font-bold text-gray-400">لا توجد محادثات نشطة</p>
@@ -584,7 +584,7 @@ return (
                                         "w-full flex items-center gap-3 p-3 rounded-xl transition-all group",
                                         selectedConversation?._id === conv._id 
                                             ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100" 
-                                            : "hover:bg-indigo-50 text-gray-600"
+                                            : "hover:bg-indigo-50 text-muted-foreground"
                                     )}
                                 >
                                     <Avatar className="h-12 w-12 border-2 border-white/20 shrink-0">
@@ -600,7 +600,7 @@ return (
                                         <div className="flex justify-between items-start mb-1">
                                             <h4 className={cn(
                                                 "font-black text-sm truncate",
-                                                selectedConversation?._id === conv._id ? "text-white" : "text-gray-900"
+                                                selectedConversation?._id === conv._id ? "text-white" : "text-foreground"
                                             )}>
                                                 {conv.user?.fullName || 'مسافر'}
                                             </h4>
@@ -613,7 +613,7 @@ return (
                                         </div>
                                         <p className={cn(
                                             "text-xs truncate font-medium",
-                                            selectedConversation?._id === conv._id ? "text-indigo-100" : "text-gray-500"
+                                            selectedConversation?._id === conv._id ? "text-indigo-100" : "text-muted-foreground"
                                         )}>
                                             {conv.lastMessage || 'بدء محادثة جديدة'}
                                         </p>
@@ -634,13 +634,13 @@ return (
                                     <div className="h-12 w-12 rounded-2xl bg-gray-200" />
                                     <div className="flex-1 space-y-2">
                                         <div className="h-4 bg-gray-200 rounded w-1/2" />
-                                        <div className="h-3 bg-gray-100 rounded w-3/4" />
+                                        <div className="h-3 bg-muted rounded w-3/4" />
                                     </div>
                                 </div>
                             ))
                         ) : filteredGroups.length === 0 ? (
                             <div className="text-center py-16 px-4">
-                                <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                <div className="w-16 h-16 bg-muted rounded-2xl flex items-center justify-center mx-auto mb-4">
                                     <Users className="h-8 w-8 text-gray-300" />
                                 </div>
                                 <p className="text-sm font-bold text-gray-400">لا توجد مجموعات رحلات</p>
@@ -655,7 +655,7 @@ return (
                                         "w-full flex items-center gap-3 p-3 rounded-xl transition-all group",
                                         selectedGroup?._id === group._id 
                                             ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100" 
-                                            : "hover:bg-indigo-50 text-gray-600"
+                                            : "hover:bg-indigo-50 text-muted-foreground"
                                     )}
                                 >
                                     <Avatar className="h-12 w-12 border-2 border-white/20 rounded-xl shrink-0">
@@ -671,7 +671,7 @@ return (
                                         <div className="flex justify-between items-start mb-1">
                                             <h4 className={cn(
                                                 "font-black text-sm truncate",
-                                                selectedGroup?._id === group._id ? "text-white" : "text-gray-900"
+                                                selectedGroup?._id === group._id ? "text-white" : "text-foreground"
                                             )}>
                                                 {group.name}
                                             </h4>
@@ -684,7 +684,7 @@ return (
                                         </div>
                                         <p className={cn(
                                             "text-xs truncate font-medium",
-                                            selectedGroup?._id === group._id ? "text-indigo-100" : "text-gray-500"
+                                            selectedGroup?._id === group._id ? "text-indigo-100" : "text-muted-foreground"
                                         )}>
                                             {group.lastMessage || 'مجموعة الرحلة'}
                                         </p>
@@ -704,19 +704,19 @@ return (
 
         {/* Chat Area - full width when a chat is selected */}
         <div className={cn(
-            "flex-1 flex flex-col bg-white min-w-0",
+            "flex-1 flex flex-col bg-card min-w-0",
             (!selectedConversation && !selectedGroup) ? "hidden md:flex md:items-center md:justify-center" : "flex"
         )}>
             {(activeSubTab === 'direct' ? selectedConversation : selectedGroup) ? (
                 <>
                     {/* Chat Header - back button closes chat and shows sidebar again */}
-                    <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-white shrink-0">
+                    <div className="p-4 border-b border-border flex items-center justify-between bg-card shrink-0">
                         <button 
                             onClick={() => {
                                 setSelectedConversation(null);
                                 setSelectedGroup(null);
                             }}
-                            className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-xl transition-colors text-gray-600 hover:text-indigo-600"
+                            className="flex items-center gap-2 p-2 hover:bg-muted rounded-xl transition-colors text-muted-foreground hover:text-indigo-600"
                             title="إغلاق المحادثة والعودة للقائمة"
                         >
                             <ArrowRight className="h-5 w-5" />
@@ -726,14 +726,14 @@ return (
                         <div className="flex items-center gap-3 flex-1">
                             {activeSubTab === 'direct' ? (
                                 <>
-                                    <Avatar className="h-10 w-10 shrink-0 border-2 border-gray-100">
+                                    <Avatar className="h-10 w-10 shrink-0 border-2 border-border">
                                         <AvatarImage src={selectedConversation?.user?.imageUrl} />
                                         <AvatarFallback className="bg-indigo-100 text-indigo-600 font-black">
                                             {selectedConversation?.user?.fullName?.charAt(0) || <User className="h-5 w-5" />}
                                         </AvatarFallback>
                                     </Avatar>
                                     <div className="flex-1 min-w-0">
-                                        <h3 className="font-black text-gray-900 text-sm truncate">
+                                        <h3 className="font-black text-foreground text-sm truncate">
                                             {selectedConversation?.user?.fullName || 'مسافر'}
                                         </h3>
                                         <div className="flex items-center gap-1.5">
@@ -744,14 +744,14 @@ return (
                                 </>
                             ) : (
                                 <>
-                                    <Avatar className="h-10 w-10 rounded-xl shrink-0 border-2 border-gray-100">
+                                    <Avatar className="h-10 w-10 rounded-xl shrink-0 border-2 border-border">
                                         <AvatarImage src={selectedGroup?.tripImage} className="object-cover" />
                                         <AvatarFallback className="bg-indigo-600 text-white font-black text-sm rounded-xl">
                                             {selectedGroup?.name?.charAt(0)}
                                         </AvatarFallback>
                                     </Avatar>
                                     <div className="flex-1 min-w-0">
-                                        <h3 className="font-black text-gray-900 text-sm truncate">{selectedGroup?.name}</h3>
+                                        <h3 className="font-black text-foreground text-sm truncate">{selectedGroup?.name}</h3>
                                         <div className="flex items-center gap-3">
                                             <div className="flex items-center gap-1.5 text-[10px] font-bold text-indigo-600">
                                                 <Calendar className="w-3 h-3" />
@@ -788,13 +788,13 @@ return (
                                         </Button>
                                     </SheetTrigger>
                                     <SheetContent className="w-full sm:w-[420px] p-0 border-none overflow-hidden flex flex-col">
-                                        <div className="h-full flex flex-col bg-white">
+                                        <div className="h-full flex flex-col bg-card">
                                             {/* Header */}
                                             <div className="p-6 bg-gradient-to-br from-indigo-600 to-indigo-700 text-white relative flex-shrink-0">
                                                 <div className="flex items-center gap-4">
                                                     <Avatar className="h-16 w-16 border-4 border-white/20 rounded-2xl shadow-lg shrink-0">
                                                         <AvatarImage src={selectedGroup.tripImage} className="object-cover" />
-                                                        <AvatarFallback className="bg-white/20 text-white font-black text-2xl">
+                                                        <AvatarFallback className="bg-card/20 text-white font-black text-2xl">
                                                             {selectedGroup.name?.charAt(0)}
                                                         </AvatarFallback>
                                                     </Avatar>
@@ -805,15 +805,15 @@ return (
                                                         </p>
                                                     </div>
                                                 </div>
-                                                <SheetClose className="absolute left-4 top-4 rounded-full bg-white/10 p-2 hover:bg-white/20 transition-colors">
+                                                <SheetClose className="absolute left-4 top-4 rounded-full bg-card/10 p-2 hover:bg-card/20 transition-colors">
                                                     <X className="h-4 w-4" />
                                                 </SheetClose>
                                             </div>
 
                                             {/* Participants Header */}
-                                            <div className="px-6 py-4 border-b border-gray-100 flex-shrink-0">
+                                            <div className="px-6 py-4 border-b border-border flex-shrink-0">
                                                 <div className="flex items-center justify-between">
-                                                    <h4 className="font-black text-gray-900 flex items-center gap-2">
+                                                    <h4 className="font-black text-foreground flex items-center gap-2">
                                                         <Users className="w-5 h-5 text-indigo-600" />
                                                         المشاركون
                                                     </h4>
@@ -830,16 +830,16 @@ return (
                                                         {loadingParticipants ? (
                                                             [...Array(4)].map((_, i) => (
                                                                 <div key={i} className="flex items-center gap-3 animate-pulse">
-                                                                    <div className="h-12 w-12 rounded-xl bg-gray-100 flex-shrink-0" />
+                                                                    <div className="h-12 w-12 rounded-xl bg-muted flex-shrink-0" />
                                                                     <div className="flex-1 space-y-2">
-                                                                        <div className="h-3 bg-gray-100 rounded w-2/3" />
-                                                                        <div className="h-2 bg-gray-50 rounded w-1/2" />
+                                                                        <div className="h-3 bg-muted rounded w-2/3" />
+                                                                        <div className="h-2 bg-muted rounded w-1/2" />
                                                                     </div>
                                                                 </div>
                                                             ))
                                                         ) : participants.length === 0 ? (
                                                             <div className="text-center py-8">
-                                                                <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                                                                <div className="w-16 h-16 bg-muted rounded-2xl flex items-center justify-center mx-auto mb-3">
                                                                     <Users className="w-8 h-8 text-gray-300" />
                                                                 </div>
                                                                 <p className="text-sm font-bold text-gray-400">لا يوجد مشاركون</p>
@@ -847,8 +847,8 @@ return (
                                                             </div>
                                                         ) : (
                                                             participants.map((p) => (
-                                                                <div key={p.clerkId} className="flex items-center gap-3 group hover:bg-gray-50 p-2 rounded-xl transition-colors">
-                                                                    <Avatar className="h-12 w-12 rounded-xl border-2 border-gray-100 flex-shrink-0">
+                                                                <div key={p.clerkId} className="flex items-center gap-3 group hover:bg-muted p-2 rounded-xl transition-colors">
+                                                                    <Avatar className="h-12 w-12 rounded-xl border-2 border-border flex-shrink-0">
                                                                         <AvatarImage src={p.imageUrl} className="object-cover" />
                                                                         <AvatarFallback className="bg-indigo-100 text-indigo-600 font-black">
                                                                             {p.fullName?.charAt(0)}
@@ -856,7 +856,7 @@ return (
                                                                     </Avatar>
                                                                     <div className="flex-1 min-w-0">
                                                                         <div className="flex items-center gap-2 flex-wrap">
-                                                                            <span className="font-black text-gray-900 text-sm truncate">
+                                                                            <span className="font-black text-foreground text-sm truncate">
                                                                                 {p.fullName}
                                                                             </span>
                                                                             {p.clerkId === selectedGroup.companyId && (
@@ -877,8 +877,8 @@ return (
                                             </div>
 
                                             {/* Footer */}
-                                            <div className="p-6 flex-shrink-0 border-t border-gray-100 bg-gray-50/50">
-                                                <div className="bg-white rounded-xl p-3 border border-indigo-100 shadow-sm">
+                                            <div className="p-6 flex-shrink-0 border-t border-border bg-muted/50">
+                                                <div className="bg-card rounded-xl p-3 border border-indigo-100 shadow-sm">
                                                     <p className="text-xs font-medium text-indigo-700 leading-relaxed text-center">
                                                         تظهر هذه القائمة جميع المشتركين المنضمين لمجموعة المحادثة حالياً.
                                                     </p>
@@ -892,7 +892,7 @@ return (
                             <Button 
                                 variant="ghost" 
                                 size="icon" 
-                                className="h-9 w-9 text-gray-400 hover:text-indigo-600 rounded-xl bg-gray-50 hover:bg-indigo-50 transition-all"
+                                className="h-9 w-9 text-gray-400 hover:text-indigo-600 rounded-xl bg-muted hover:bg-indigo-50 transition-all"
                                 onClick={handleManualRefreshMessages}
                                 disabled={messagesLoading}
                             >
@@ -902,7 +902,7 @@ return (
                     </div>
 
                     {/* Messages Area */}
-                    <ScrollArea ref={scrollAreaRef} className="flex-1 p-4 md:p-6 bg-gray-50/50">
+                    <ScrollArea ref={scrollAreaRef} className="flex-1 p-4 md:p-6 bg-muted/50">
                         <div className="space-y-4">
                             {messagesLoading ? (
                                 <div className="flex justify-center py-10">
@@ -915,7 +915,7 @@ return (
                                 activeSubTab === 'direct' ? (
                                     messages.length === 0 ? (
                                         <div className="text-center py-16">
-                                            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
+                                            <div className="w-16 h-16 bg-card rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
                                                 <MessageCircle className="h-8 w-8 text-gray-300" />
                                             </div>
                                             <p className="text-sm font-bold text-gray-400">لا توجد رسائل بعد</p>
@@ -941,7 +941,7 @@ return (
                                                                 "p-3 md:p-4 rounded-2xl text-sm font-medium shadow-sm overflow-hidden",
                                                                 isMe 
                                                                     ? "bg-indigo-600 text-white rounded-tr-none" 
-                                                                    : "bg-white text-gray-900 border border-gray-100 rounded-tl-none"
+                                                                    : "bg-card text-foreground border border-border rounded-tl-none"
                                                             )}>
                                                                 {msg.type === 'image' && (
                                                                     msg.mediaUrl && !String(msg.mediaUrl).startsWith('__') ? (
@@ -953,7 +953,7 @@ return (
                                                                         referrerPolicy="no-referrer"
                                                                     />
                                                                     ) : (
-                                                                    <div className="rounded-xl mb-2 p-6 bg-gray-100 flex items-center justify-center gap-2 text-gray-500">
+                                                                    <div className="rounded-xl mb-2 p-6 bg-muted flex items-center justify-center gap-2 text-muted-foreground">
                                                                         <ImageIcon className="h-8 w-8" />
                                                                         <span className="text-xs font-bold">صورة</span>
                                                                     </div>
@@ -963,26 +963,26 @@ return (
                                                                     <div 
                                                                         className={cn(
                                                                             "flex items-center gap-3 p-3 rounded-xl border mb-2 cursor-pointer transition-all",
-                                                                            isMe ? "bg-white/10 border-white/20 hover:bg-white/20" : "bg-gray-50 border-gray-100 hover:bg-gray-100"
+                                                                            isMe ? "bg-card/10 border-white/20 hover:bg-card/20" : "bg-muted border-border hover:bg-muted"
                                                                         )}
                                                                         onClick={() => window.open(msg.mediaUrl, '_blank')}
                                                                     >
                                                                         <div className={cn(
                                                                             "h-10 w-10 md:h-12 md:w-12 rounded-lg flex items-center justify-center shrink-0",
-                                                                            isMe ? "bg-white/20 text-white" : "bg-indigo-100 text-indigo-600"
+                                                                            isMe ? "bg-card/20 text-white" : "bg-indigo-100 text-indigo-600"
                                                                         )}>
                                                                             <FileText className="h-5 w-5 md:h-6 md:w-6" />
                                                                         </div>
                                                                         <div className="min-w-0 flex-1">
                                                                             <p className={cn(
                                                                                 "text-xs md:text-sm font-black truncate",
-                                                                                isMe ? "text-white" : "text-gray-900"
+                                                                                isMe ? "text-white" : "text-foreground"
                                                                             )}>
                                                                                 ملف PDF (عرض التفاصيل)
                                                                             </p>
                                                                             <p className={cn(
                                                                                 "text-[10px] md:text-[11px] font-bold opacity-60",
-                                                                                isMe ? "text-white" : "text-gray-500"
+                                                                                isMe ? "text-white" : "text-muted-foreground"
                                                                             )}>
                                                                                 انقر للفتح أو التحميل
                                                                             </p>
@@ -998,7 +998,7 @@ return (
                                                                         controlsList="nodownload"
                                                                     />
                                                                     ) : (
-                                                                    <div className="rounded-xl mb-2 p-6 bg-gray-100 flex items-center justify-center gap-2 text-gray-500">
+                                                                    <div className="rounded-xl mb-2 p-6 bg-muted flex items-center justify-center gap-2 text-muted-foreground">
                                                                         <Video className="h-8 w-8" />
                                                                         <span className="text-xs font-bold">فيديو</span>
                                                                     </div>
@@ -1013,7 +1013,7 @@ return (
                                                                         controlsList="nodownload"
                                                                     />
                                                                     ) : (
-                                                                    <div className="rounded-xl mb-2 p-4 bg-gray-100 flex items-center justify-center gap-2 text-gray-500">
+                                                                    <div className="rounded-xl mb-2 p-4 bg-muted flex items-center justify-center gap-2 text-muted-foreground">
                                                                         <Mic className="h-6 w-6" />
                                                                         <span className="text-xs font-bold">تسجيل صوتي</span>
                                                                     </div>
@@ -1039,7 +1039,7 @@ return (
                                                                         <button 
                                                                             key={emoji}
                                                                             onClick={() => handleToggleReaction(msg._id, emoji)}
-                                                                            className="bg-white border border-gray-100 rounded-full px-2 py-1 shadow-sm flex items-center gap-1 hover:bg-gray-50 transition-colors"
+                                                                            className="bg-card border border-border rounded-full px-2 py-1 shadow-sm flex items-center gap-1 hover:bg-muted transition-colors"
                                                                         >
                                                                             <span className="text-xs">{emoji}</span>
                                                                             {count > 1 && (
@@ -1059,7 +1059,7 @@ return (
     isMe ? "left-0" : "right-0" /* Adjust positioning to be predictable */
   )}
 >
-  <div className="flex items-center gap-1.5 bg-white/95 backdrop-blur-sm rounded-full shadow-2xl border border-gray-100 px-2 py-1.5">
+  <div className="flex items-center gap-1.5 bg-card/95 backdrop-blur-sm rounded-full shadow-2xl border border-border px-2 py-1.5">
     {REACTION_EMOJIS.map((emoji) => (
       <button
         key={emoji}
@@ -1093,7 +1093,7 @@ return (
                                 ) : (
                                     groupMessages.length === 0 ? (
                                         <div className="text-center py-16">
-                                            <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
+                                            <div className="w-16 h-16 bg-card rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
                                                 <MessageCircle className="h-8 w-8 text-gray-300" />
                                             </div>
                                             <p className="text-sm font-bold text-gray-400">لا توجد رسائل في المجموعة</p>
@@ -1107,7 +1107,7 @@ return (
                                             if (isSystem) {
                                                 return (
                                                     <div key={msg._id || idx} className="flex justify-center">
-                                                        <span className="px-4 py-1.5 bg-gray-200/80 text-[10px] font-bold text-gray-600 rounded-full">
+                                                        <span className="px-4 py-1.5 bg-gray-200/80 text-[10px] font-bold text-muted-foreground rounded-full">
                                                             {msg.content}
                                                         </span>
                                                     </div>
@@ -1136,7 +1136,7 @@ return (
                                                                 "p-3 md:p-4 rounded-2xl text-sm font-medium shadow-sm overflow-hidden",
                                                                 isMe 
                                                                     ? "bg-indigo-600 text-white rounded-tr-none" 
-                                                                    : "bg-white text-gray-900 border border-gray-100 rounded-tl-none",
+                                                                    : "bg-card text-foreground border border-border rounded-tl-none",
                                                                 msg.isAnnouncement && "ring-2 ring-amber-400 ring-offset-2"
                                                             )}>
                                                                 {msg.type === 'image' && (
@@ -1149,7 +1149,7 @@ return (
                                                                         referrerPolicy="no-referrer"
                                                                     />
                                                                     ) : (
-                                                                    <div className="rounded-xl mb-2 p-6 bg-gray-100 flex items-center justify-center gap-2 text-gray-500">
+                                                                    <div className="rounded-xl mb-2 p-6 bg-muted flex items-center justify-center gap-2 text-muted-foreground">
                                                                         <ImageIcon className="h-8 w-8" />
                                                                         <span className="text-xs font-bold">صورة</span>
                                                                     </div>
@@ -1159,26 +1159,26 @@ return (
                                                                     <div 
                                                                         className={cn(
                                                                             "flex items-center gap-3 p-3 rounded-xl border mb-2 cursor-pointer transition-all",
-                                                                            isMe ? "bg-white/10 border-white/20 hover:bg-white/20" : "bg-gray-50 border-gray-100 hover:bg-gray-100"
+                                                                            isMe ? "bg-card/10 border-white/20 hover:bg-card/20" : "bg-muted border-border hover:bg-muted"
                                                                         )}
                                                                         onClick={() => window.open(msg.mediaUrl, '_blank')}
                                                                     >
                                                                         <div className={cn(
                                                                             "h-10 w-10 md:h-12 md:w-12 rounded-lg flex items-center justify-center shrink-0",
-                                                                            isMe ? "bg-white/20 text-white" : "bg-indigo-100 text-indigo-600"
+                                                                            isMe ? "bg-card/20 text-white" : "bg-indigo-100 text-indigo-600"
                                                                         )}>
                                                                             <FileText className="h-5 w-5 md:h-6 md:w-6" />
                                                                         </div>
                                                                         <div className="min-w-0 flex-1">
                                                                             <p className={cn(
                                                                                 "text-xs md:text-sm font-black truncate",
-                                                                                isMe ? "text-white" : "text-gray-900"
+                                                                                isMe ? "text-white" : "text-foreground"
                                                                             )}>
                                                                                 ملف PDF (عرض التفاصيل)
                                                                             </p>
                                                                             <p className={cn(
                                                                                 "text-[10px] md:text-[11px] font-bold opacity-60",
-                                                                                isMe ? "text-white" : "text-gray-500"
+                                                                                isMe ? "text-white" : "text-muted-foreground"
                                                                             )}>
                                                                                 انقر للفتح أو التحميل
                                                                             </p>
@@ -1194,7 +1194,7 @@ return (
                                                                         controlsList="nodownload"
                                                                     />
                                                                     ) : (
-                                                                    <div className="rounded-xl mb-2 p-6 bg-gray-100 flex items-center justify-center gap-2 text-gray-500">
+                                                                    <div className="rounded-xl mb-2 p-6 bg-muted flex items-center justify-center gap-2 text-muted-foreground">
                                                                         <Video className="h-8 w-8" />
                                                                         <span className="text-xs font-bold">فيديو</span>
                                                                     </div>
@@ -1209,7 +1209,7 @@ return (
                                                                         controlsList="nodownload"
                                                                     />
                                                                     ) : (
-                                                                    <div className="rounded-xl mb-2 p-4 bg-gray-100 flex items-center justify-center gap-2 text-gray-500">
+                                                                    <div className="rounded-xl mb-2 p-4 bg-muted flex items-center justify-center gap-2 text-muted-foreground">
                                                                         <Mic className="h-6 w-6" />
                                                                         <span className="text-xs font-bold">تسجيل صوتي</span>
                                                                     </div>
@@ -1235,7 +1235,7 @@ return (
                                                                         <button 
                                                                             key={emoji}
                                                                             onClick={() => handleToggleReaction(msg._id, emoji)}
-                                                                            className="bg-white border border-gray-100 rounded-full px-2 py-1 shadow-sm flex items-center gap-1 hover:bg-gray-50 transition-colors"
+                                                                            className="bg-card border border-border rounded-full px-2 py-1 shadow-sm flex items-center gap-1 hover:bg-muted transition-colors"
                                                                         >
                                                                             <span className="text-xs">{emoji}</span>
                                                                             {count > 1 && (
@@ -1253,7 +1253,7 @@ return (
                                                                 "absolute -top-14 scale-95 opacity-0 group-hover/msg:opacity-100 group-hover/msg:scale-100 transition-all duration-300 z-[9999]",
                                                                 isMe ? "left-0" : "right-0"
                                                             )}>
-                                                                <div className="flex items-center gap-1.5 bg-white/95 backdrop-blur-sm rounded-full shadow-2xl border border-gray-100 px-2 py-1.5">
+                                                                <div className="flex items-center gap-1.5 bg-card/95 backdrop-blur-sm rounded-full shadow-2xl border border-border px-2 py-1.5">
                                                                     {REACTION_EMOJIS.map(emoji => (
                                                                         <button
                                                                             key={emoji}
@@ -1289,10 +1289,10 @@ return (
                     </ScrollArea>
 
                     {/* Input Area */}
-                    <div className="p-4 md:p-6 bg-white border-t border-gray-100">
+                    <div className="p-4 md:p-6 bg-card border-t border-border">
                         {/* Attachment Preview */}
                         {attachment && (
-                            <div className="mb-4 flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100 animate-in fade-in slide-in-from-bottom-2">
+                            <div className="mb-4 flex items-center gap-3 p-3 bg-muted rounded-xl border border-border animate-in fade-in slide-in-from-bottom-2">
                                 {attachment.type === 'image' ? (
                                     <img 
                                         src={attachment.preview} 
@@ -1311,7 +1311,7 @@ return (
                                     </div>
                                 )}
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-xs font-black text-gray-900 truncate">{attachment.file.name}</p>
+                                    <p className="text-xs font-black text-foreground truncate">{attachment.file.name}</p>
                                     <p className="text-[9px] font-bold text-gray-400 uppercase mt-1">
                                         {attachment.type === 'image' ? 'صورة' : attachment.type === 'video' ? 'فيديو' : attachment.type === 'pdf' ? 'ملف PDF' : 'تسجيل صوتي'}
                                     </p>
@@ -1373,7 +1373,7 @@ return (
                             </div>
 
                             <Input 
-                                className="flex-1 h-10 md:h-14 rounded-xl bg-gray-50 border-transparent focus-visible:ring-indigo-600 text-sm font-bold"
+                                className="flex-1 h-10 md:h-14 rounded-xl bg-muted border-transparent focus-visible:ring-indigo-600 text-sm font-bold"
                                 placeholder="اكتب رسالتك هنا..."
                                 value={newMessage}
                                 onChange={(e) => setNewMessage(e.target.value)}
@@ -1403,7 +1403,7 @@ return (
                     <div className="h-20 w-20 md:h-24 md:w-24 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-200 mb-4">
                         <MessageCircle className="h-10 w-10 md:h-12 md:w-12" />
                     </div>
-                    <h3 className="text-lg md:text-xl font-black text-gray-900 mb-2">اختر محادثة للبدء</h3>
+                    <h3 className="text-lg md:text-xl font-black text-foreground mb-2">اختر محادثة للبدء</h3>
                     <p className="text-gray-400 max-w-xs mx-auto text-sm font-medium">
                         سجل المحادثات مع المسافرين سيظهر هنا للرد على استفساراتهم ومساعدتهم.
                     </p>

@@ -17,10 +17,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
+import { MapboxTripMap } from "@/components/MapboxTripMap";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const Help = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeSection, setActiveSection] = useState("getting-started");
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const observerRef = useRef<IntersectionObserver | null>(null);
 
   const sections = [
@@ -110,7 +114,7 @@ const Help = () => {
   }).filter(section => section.items.length > 0 || section.title.toLowerCase().includes(searchQuery.toLowerCase()));
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] font-cairo text-right flex flex-col" dir="rtl">
+    <div className="min-h-screen bg-background font-cairo text-right flex flex-col transition-colors duration-500" dir="rtl">
       <Header />
       
       <main className="flex-1 pb-24">
@@ -147,7 +151,7 @@ const Help = () => {
                       <Search className="w-6 h-6 text-gray-400" />
                    </div>
                    <Input 
-                      className="h-16 pr-16 rounded-[2rem] bg-white border-0 shadow-2xl text-xl font-bold focus-visible:ring-orange-500 transition-all text-right"
+                      className="h-16 pr-16 rounded-[2rem] bg-card text-card-foreground border-0 shadow-2xl text-xl font-bold focus-visible:ring-orange-500 transition-all text-right"
                       placeholder="كيف يمكنني..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
@@ -171,8 +175,8 @@ const Help = () => {
                      className={cn(
                        "flex items-center gap-3 px-4 py-3 rounded-2xl font-bold transition-all group",
                        activeSection === s.id 
-                         ? "bg-white text-indigo-600 shadow-md translate-x-1" 
-                         : "text-gray-600 hover:bg-white hover:text-indigo-600 hover:shadow-md"
+                         ? "bg-card text-indigo-600 shadow-md translate-x-1" 
+                         : "text-muted-foreground hover:bg-card hover:text-indigo-600 hover:shadow-md"
                      )}
                    >
                      <s.icon className={cn("w-5 h-5", s.color)} />
@@ -199,7 +203,7 @@ const Help = () => {
                          <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg", section.bg, section.color)}>
                             <section.icon className="w-7 h-7" />
                          </div>
-                         <h2 className="text-2xl font-black text-gray-900">{section.title}</h2>
+                         <h2 className="text-2xl font-black text-foreground">{section.title}</h2>
                       </div>
 
                       <div className="grid grid-cols-1 gap-4">
@@ -208,17 +212,17 @@ const Help = () => {
                               <CardContent className="p-0">
                                  <details className="w-full group" open={searchQuery.length > 0}>
                                     <summary className="list-none cursor-pointer p-8 flex items-center justify-between gap-4">
-                                       <h4 className="text-lg font-black text-gray-800 group-open:text-indigo-600 transition-colors">{item.q}</h4>
-                                       <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-indigo-50 transition-colors">
-                                          <ChevronDown className="w-5 h-5 text-gray-400 group-open:rotate-180 transition-transform" />
+                                       <h4 className="text-lg font-black text-foreground group-open:text-indigo-600 transition-colors">{item.q}</h4>
+                                       <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center group-hover:bg-indigo-50/50 transition-colors">
+                                          <ChevronDown className="w-5 h-5 text-muted-foreground group-open:rotate-180 transition-transform" />
                                        </div>
                                     </summary>
-                                    <div className="px-8 pb-8 pt-0 border-t border-gray-50">
-                                       <p className="text-gray-500 font-bold leading-relaxed mt-6">
+                                    <div className="px-8 pb-8 pt-0 border-t border-border">
+                                       <p className="text-muted-foreground font-bold leading-relaxed mt-6">
                                           {item.a}
                                        </p>
                                        <div className="mt-8 flex gap-4">
-                                          <button className="text-xs font-black text-gray-400 hover:text-emerald-500 flex items-center gap-1 transition-colors">
+                                          <button className="text-xs font-black text-muted-foreground hover:text-emerald-500 flex items-center gap-1 transition-colors">
                                              <span className="text-lg">👍</span> هل كان ذلك مفيداً؟
                                           </button>
                                        </div>
@@ -232,8 +236,8 @@ const Help = () => {
                  )) : (
                    <div className="text-center py-20">
                      <HelpCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                     <h3 className="text-xl font-black text-gray-900">لا توجد نتائج بحث تطابق استفسارك</h3>
-                     <p className="text-gray-500 font-bold">حاول استخدام كلمات مفتاحية أخرى أو تصفح الأقسام.</p>
+                     <h3 className="text-xl font-black text-foreground">لا توجد نتائج بحث تطابق استفسارك</h3>
+                     <p className="text-muted-foreground font-bold">حاول استخدام كلمات مفتاحية أخرى أو تصفح الأقسام.</p>
                    </div>
                  )}
 
@@ -260,9 +264,26 @@ const Help = () => {
                       </div>
                    </div>
                  )}
-              </div>
-           </div>
-        </section>
+
+                  {/* Decorative Map Section */}
+                  <div className="pt-12">
+                     <div className="rounded-[3rem] overflow-hidden border border-border shadow-2xl relative bg-card h-[400px]">
+                        <div className="absolute inset-0 z-0">
+                           <MapboxTripMap 
+                             positions={[{ lat: 30.0444, lng: 31.2357 }, { lat: 31.2001, lng: 29.9187 }, { lat: 27.2579, lng: 33.8116 }]} 
+                             height="400px"
+                           />
+                        </div>
+                        <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent pointer-events-none" />
+                        <div className="absolute bottom-10 inset-x-0 text-center z-10">
+                           <h3 className="text-2xl font-black text-foreground mb-2">نحن نغطي كل شبر في مصر</h3>
+                           <p className="text-muted-foreground font-bold italic">استكشف مئات الوجهات والرحلات الموثقة</p>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </section>
       </main>
 
       <Footer />

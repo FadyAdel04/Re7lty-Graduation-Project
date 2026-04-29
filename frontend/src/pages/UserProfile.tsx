@@ -190,6 +190,12 @@ const UserProfile = () => {
     description: "",
   });
 
+  // Image preview and removal states
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isOptionsOpen, setIsOptionsOpen] = useState(false);
+  const [removeStep, setRemoveStep] = useState(0); // 0: none, 1: confirmed once
+  const [isRemoving, setIsRemoving] = useState(false);
+
   const handleOpenFollowers = () => {
     const targetId = id || clerkUser?.id;
     if (targetId) navigate(`/user/${targetId}/network?type=followers`);
@@ -472,10 +478,8 @@ const UserProfile = () => {
 
     try {
       // Ensure valid image mime type for Clerk
-      // Sometimes browsers set empty type or octet-stream for images
       let mimeType = file.type;
       if (!mimeType || !mimeType.startsWith('image/') || mimeType === 'application/octet-stream') {
-         console.log('Original file type:', file.type);
          const ext = file.name.split('.').pop()?.toLowerCase();
          mimeType = 'image/jpeg';
          if (ext === 'png') mimeType = 'image/png';
@@ -483,19 +487,41 @@ const UserProfile = () => {
          if (ext === 'gif') mimeType = 'image/gif';
       }
 
-      // Recreate file from buffer to completely strip original metadata/type
       const buffer = await file.arrayBuffer();
       file = new File([buffer], file.name, { type: mimeType });
 
-      // Show loading state
-      toast({
-        title: "جاري رفع الصورة...",
-        description: "يرجى الانتظار",
-      });
+      toast({ title: "جاري رفع الصورة...", description: "يرجى الانتظار" });
 
-      // 1. Update Clerk Profile Image
       await clerkUser.setProfileImage({ file });
-      await clerkUser.reload(); // Get fresh data
+      await clerkUser.reload();
+      const newImageUrl = clerkUser.imageUrl;
+
+      setProfileImage(newImageUrl);
+
+      const token = await getToken();
+      const updatedUser = await updateUserProfile({ imageUrl: newImageUrl }, token || undefined);
+
+      if (updatedUser) {
+        window.dispatchEvent(new CustomEvent('userProfileUpdated', { detail: updatedUser }));
+      }
+
+      toast({ title: "تم الحفظ", description: "تم حفظ صورة الملف الشخصي بنجاح" });
+    } catch (error: any) {
+      console.error("Error uploading profile image:", error);
+      toast({ title: "خطأ", description: error.message || "فشل رفع صورة الملف الشخصي", variant: "destructive" });
+    }
+  };
+
+  const handleRemoveProfileImage = async () => {
+    if (!clerkUser || !isOwnProfile) return;
+
+    try {
+      setIsRemoving(true);
+      
+      // 1. Update Clerk Profile Image (set to null to remove)
+      // Clerk's setProfileImage with file: null removes the custom image
+      await clerkUser.setProfileImage({ file: null });
+      await clerkUser.reload();
       const newImageUrl = clerkUser.imageUrl;
 
       // Update local state immediately
@@ -511,32 +537,23 @@ const UserProfile = () => {
       );
 
       if (updatedUser) {
-        // Notify other components with the updated user data
         window.dispatchEvent(new CustomEvent('userProfileUpdated', { detail: updatedUser }));
       }
 
       toast({
-        title: "تم الحفظ",
-        description: "تم حفظ صورة الملف الشخصي بنجاح",
+        title: "تم الحذف",
+        description: "تم حذف صورة الملف الشخصي بنجاح",
       });
+      setRemoveStep(0);
     } catch (error: any) {
-      console.error("Error uploading profile image:", error);
+      console.error("Error removing profile image:", error);
       toast({
         title: "خطأ",
-        description: error.message || "فشل رفع صورة الملف الشخصي",
+        description: error.message || "فشل حذف صورة الملف الشخصي",
         variant: "destructive",
       });
-      // Revert to previous profile image on error
-      if (isOwnProfile && id) {
-        try {
-          const userData = await getUserById(id).catch(() => null);
-          if (userData?.imageUrl) {
-            setProfileImage(userData.imageUrl);
-          }
-        } catch (err) {
-          console.error("Error reverting profile image:", err);
-        }
-      }
+    } finally {
+      setIsRemoving(false);
     }
   };
 
@@ -1031,7 +1048,7 @@ const UserProfile = () => {
 
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] font-cairo text-right" dir="rtl">
+    <div className="min-h-screen bg-background font-cairo text-right" dir="rtl">
       <Header />
       
       <main className="pb-20">
@@ -1044,7 +1061,7 @@ const UserProfile = () => {
               ) : (
                 <div className="w-full h-full bg-gradient-to-br from-indigo-900 via-indigo-800 to-purple-900" />
               )}
-              <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-[#F8FAFC]" />
+              <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-background" />
            </div>
 
            {/* Change Cover Trigger (Own Profile) */}
@@ -1065,24 +1082,27 @@ const UserProfile = () => {
               
               {/* LEFT SIDE: Identity Card (4 cols) */}
               <div className="lg:col-span-3 space-y-6">
-                 <Card className="border-0 shadow-2xl rounded-[2.5rem] overflow-hidden bg-white/80 backdrop-blur-xl">
+                 <Card className="border-0 shadow-2xl rounded-[2.5rem] overflow-hidden bg-card/80 backdrop-blur-xl">
                     <CardContent className="p-8 flex flex-col items-center text-center">
                        {/* Avatar with Ring */}
                        <div className="relative mb-6">
-                          <div className="p-1 rounded-full bg-gradient-to-tr from-orange-400 to-yellow-500 shadow-xl">
-                             <Avatar className="h-32 w-32 sm:h-40 sm:w-40 border-4 border-white">
-                                <AvatarImage src={profileImage || undefined} />
+                          <div className="p-1 rounded-full bg-gradient-to-tr from-orange-400 to-yellow-500 shadow-xl group/avatar cursor-pointer relative">
+                             <Avatar 
+                               className="h-32 w-32 sm:h-40 sm:w-40 border-4 border-white overflow-hidden" 
+                               onClick={() => isOwnProfile ? setIsOptionsOpen(true) : setIsPreviewOpen(true)}
+                             >
+                                <AvatarImage src={profileImage || undefined} className="object-cover hover:scale-110 transition-transform duration-500" />
                                 <AvatarFallback className="text-4xl bg-orange-50 text-orange-600 font-black">
                                   {fullName?.charAt(0) || "?"}
                                 </AvatarFallback>
                              </Avatar>
+                             
+                             {isOwnProfile && (
+                               <div className="absolute inset-0 bg-black/20 rounded-full opacity-0 group-hover/avatar:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                                 <Camera className="w-8 h-8 text-white drop-shadow-lg" />
+                               </div>
+                             )}
                           </div>
-                          {isOwnProfile && (
-                            <label htmlFor="profile-upload" className="absolute bottom-2 right-2 p-3 bg-indigo-600 rounded-full text-white shadow-xl cursor-pointer hover:bg-orange-600 transition-all z-20 group">
-                               <Camera className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                               <input id="profile-upload" type="file" accept="image/*" onChange={handleProfileImageChange} className="hidden" />
-                            </label>
-                          )}
                        </div>
 
                        {/* User Identity */}
@@ -1099,7 +1119,7 @@ const UserProfile = () => {
                                />
                              ) : (
                                <>
-                                 <h1 className="text-3xl font-black text-gray-900">{fullName || "بدون اسم"}</h1>
+                                 <h1 className="text-3xl font-black text-foreground">{fullName || "بدون اسم"}</h1>
                                  {isOwnProfile && (
                                    <button onClick={() => setEditingField('fullName')} className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-indigo-600 transition-all">
                                      <Edit2 className="w-4 h-4" />
@@ -1134,10 +1154,10 @@ const UserProfile = () => {
                            </div>
 
                            {/* Tier Progress Summary */}
-                           <div className="w-full max-w-[220px] mx-auto space-y-3 py-4 border-t border-gray-50/50 mt-4">
+                           <div className="w-full max-w-[220px] mx-auto space-y-3 py-4 border-t border-border/50 mt-4">
                                <div className="flex flex-col items-center gap-2">
                                   <UserBadge tier={userBadgeData.tier} size="lg" progression={userBadgeData.progression} showLabel={true} />
-                                  <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden mt-1">
+                                  <div className="w-full h-1.5 bg-accent rounded-full overflow-hidden mt-1">
                                      <div 
                                        className="h-full bg-gradient-to-r from-orange-400 to-orange-600 rounded-full transition-all duration-1000" 
                                        style={{ width: `${userBadgeData.progress}%` }} 
@@ -1164,15 +1184,15 @@ const UserProfile = () => {
                               value={bio} 
                               onChange={e => setBio(e.target.value)}
                               onBlur={() => handleUpdateField('bio', bio)}
-                              className="text-center text-gray-500 bg-transparent border-2 border-indigo-100 rounded-2xl min-h-[100px] focus:ring-0 resize-none w-full"
+                              className="text-center text-muted-foreground bg-transparent border-2 border-indigo-100 rounded-2xl min-h-[100px] focus:ring-0 resize-none w-full"
                             />
                           ) : (
                             <div className="relative inline-block w-full">
-                              <p className="text-gray-500 leading-relaxed font-light italic px-4">
+                              <p className="text-muted-foreground leading-relaxed font-light italic px-4">
                                  "{bio || "لا يوجد وصف حالياً.. هذا الرحالة مشغول باستكشاف العالم."}"
                               </p>
                               {isOwnProfile && (
-                                <button onClick={() => setEditingField('bio')} className="absolute -top-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 bg-white shadow-md rounded-full p-1.5 text-indigo-600 hover:scale-110 transition-all">
+                                <button onClick={() => setEditingField('bio')} className="absolute -top-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 bg-card shadow-md rounded-full p-1.5 text-indigo-600 hover:scale-110 transition-all">
                                   <Edit2 className="w-4 h-4" />
                                 </button>
                               )}
@@ -1200,7 +1220,7 @@ const UserProfile = () => {
                                   disabled={isFollowLoading}
                                   className={cn(
                                     "h-14 rounded-2xl text-lg font-black gap-3 transition-all",
-                                    isFollowingUser ? "bg-white border-2 border-indigo-100 text-indigo-600 hover:bg-indigo-50" : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl shadow-indigo-100"
+                                    isFollowingUser ? "bg-card border-2 border-indigo-100 text-indigo-600 hover:bg-indigo-50" : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl shadow-indigo-100"
                                   )}
                                 >
                                    <Users className="w-6 h-6" />
@@ -1233,14 +1253,14 @@ const UserProfile = () => {
                          onClick={stat.click || undefined}
                          disabled={!stat.click}
                          className={cn(
-                           "p-5 rounded-[1.8rem] bg-white border border-gray-50 shadow-sm flex flex-col items-center gap-2 transition-all group",
+                           "p-5 rounded-[1.8rem] bg-card border border-border shadow-sm flex flex-col items-center gap-2 transition-all group",
                            stat.click ? "hover:shadow-lg hover:border-indigo-100 cursor-pointer" : "cursor-default"
                          )}
                        >
                           <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center mb-1", stat.bg, stat.color)}>
                              {stat.icon}
                           </div>
-                          <span className="text-2xl font-black text-gray-900">{stat.val}</span>
+                          <span className="text-2xl font-black text-foreground">{stat.val}</span>
                           <span className="text-xs text-gray-400 font-bold uppercase tracking-widest">{stat.label}</span>
                        </button>
                     ))}
@@ -1250,9 +1270,9 @@ const UserProfile = () => {
               {/* RIGHT SIDE: Content Sections (8 cols) */}
               <div className="lg:col-span-9 space-y-8">
                  <TravelMemories trips={userTrips} isOwner={isOwnProfile} userId={id} />
-                 <Card className="border-0 shadow-lg rounded-[2.5rem] bg-white p-2">
+                 <Card className="border-0 shadow-lg rounded-[2.5rem] bg-card p-2">
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                       <TabsList className="w-full justify-start gap-4 bg-transparent p-4 h-auto border-b border-gray-50 flex-wrap">
+                       <TabsList className="w-full justify-start gap-4 bg-transparent p-4 h-auto border-b border-border flex-wrap">
                           {[
                             { id: "trips", label: "الرحلات العامة", icon: <LayoutGrid className="w-4 h-4" /> },
                             { id: "stories", label: "قصصي", icon: <ImageIcon className="w-4 h-4" />, hide: !isOwnProfile },
@@ -1314,7 +1334,7 @@ const UserProfile = () => {
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-6 pt-4 text-right">
-                   <div className="aspect-[9/16] max-h-[400px] w-full bg-gray-50 rounded-[2rem] border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden relative group">
+                   <div className="aspect-[9/16] max-h-[400px] w-full bg-muted rounded-[2rem] border-2 border-dashed border-border flex items-center justify-center overflow-hidden relative group">
                       {storyMedia ? (
                          <>
                             {storyMediaType === 'video' ? <video src={storyMedia} className="h-full w-full object-cover" /> : <img src={storyMedia} className="h-full w-full object-cover" />}
@@ -1328,7 +1348,7 @@ const UserProfile = () => {
                          </div>
                       )}
                    </div>
-                   <Textarea placeholder="أضف وصفاً جذاباً لقصتك..." value={storyCaption} onChange={e => setStoryCaption(e.target.value)} className="rounded-2xl border-gray-100 min-h-[100px]" />
+                   <Textarea placeholder="أضف وصفاً جذاباً لقصتك..." value={storyCaption} onChange={e => setStoryCaption(e.target.value)} className="rounded-2xl border-border min-h-[100px]" />
                    <Button onClick={handlePublishStory} disabled={isPublishingStory || !storyMedia} className="w-full h-14 rounded-2xl bg-orange-600 hover:bg-orange-700 text-white text-lg font-black shadow-xl shadow-orange-100">
                       {isPublishingStory ? "جاري النشر..." : "نشر الستوري الآن"}
                    </Button>
@@ -1355,52 +1375,52 @@ const UserProfile = () => {
                 <div className="p-8 space-y-8 max-h-[60vh] overflow-y-auto">
                    <div className="grid grid-cols-2 gap-6">
                       <div className="space-y-2">
-                         <Label className="text-sm font-black text-gray-700">الاسم الأول</Label>
+                         <Label className="text-sm font-black text-foreground">الاسم الأول</Label>
                          <Input 
                            value={editBookingData.firstName} 
                            onChange={e => setEditBookingData({...editBookingData, firstName: e.target.value})}
-                           className="h-12 rounded-xl border-gray-100 bg-gray-50/50"
+                           className="h-12 rounded-xl border-border bg-muted/50"
                          />
                       </div>
                       <div className="space-y-2">
-                         <Label className="text-sm font-black text-gray-700">اسم العائلة</Label>
+                         <Label className="text-sm font-black text-foreground">اسم العائلة</Label>
                          <Input 
                            value={editBookingData.lastName} 
                            onChange={e => setEditBookingData({...editBookingData, lastName: e.target.value})}
-                           className="h-12 rounded-xl border-gray-100 bg-gray-50/50"
+                           className="h-12 rounded-xl border-border bg-muted/50"
                          />
                       </div>
                    </div>
 
                    <div className="grid grid-cols-2 gap-6">
                       <div className="space-y-2">
-                         <Label className="text-sm font-black text-gray-700">رقم الهاتف</Label>
+                         <Label className="text-sm font-black text-foreground">رقم الهاتف</Label>
                          <Input 
                            value={editBookingData.userPhone} 
                            onChange={e => setEditBookingData({...editBookingData, userPhone: e.target.value})}
-                           className="h-12 rounded-xl border-gray-100 bg-gray-50/50"
+                           className="h-12 rounded-xl border-border bg-muted/50"
                          />
                       </div>
                       <div className="space-y-2">
-                         <Label className="text-sm font-black text-gray-700">عدد الأفراد</Label>
+                         <Label className="text-sm font-black text-foreground">عدد الأفراد</Label>
                          <Input 
                            type="number"
                            min={1}
                            value={editBookingData.numberOfPeople} 
                            onChange={e => setEditBookingData({...editBookingData, numberOfPeople: parseInt(e.target.value) || 1})}
-                           className="h-12 rounded-xl border-gray-100 bg-gray-50/50"
+                           className="h-12 rounded-xl border-border bg-muted/50"
                          />
                       </div>
                    </div>
 
                    <div className="space-y-4">
-                      <Label className="text-sm font-black text-gray-700 flex items-center justify-between">
+                      <Label className="text-sm font-black text-foreground flex items-center justify-between">
                          <span>تعديل المقاعد</span>
                          <UI_Badge className="bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border-indigo-100">
                              {editBookingData.selectedSeats.length} / {editBookingData.numberOfPeople} مقاعد مختارة
                          </UI_Badge>
                       </Label>
-                      <div className="p-6 bg-gray-50 rounded-[2rem] border border-gray-100 flex flex-col items-center">
+                      <div className="p-6 bg-muted rounded-[2rem] border border-border flex flex-col items-center">
                          <BusSeatLayout 
                            type={(editingBooking.transportationType as any) || 'bus-48'}
                            bookedSeats={[]} 
@@ -1413,11 +1433,11 @@ const UserProfile = () => {
                    </div>
 
                    <div className="space-y-2">
-                      <Label className="text-sm font-black text-gray-700">طلبات خاصة</Label>
+                      <Label className="text-sm font-black text-foreground">طلبات خاصة</Label>
                       <Textarea 
                         value={editBookingData.specialRequests} 
                         onChange={e => setEditBookingData({...editBookingData, specialRequests: e.target.value})}
-                        className="rounded-xl border-gray-100 min-h-[100px] bg-gray-50/50"
+                        className="rounded-xl border-border min-h-[100px] bg-muted/50"
                       />
                    </div>
                 </div>
@@ -1425,7 +1445,7 @@ const UserProfile = () => {
                 <div className="p-8 pt-0 flex gap-4 mt-6">
                    <Button 
                      variant="outline" 
-                     className="flex-1 h-14 rounded-2xl font-black border-gray-200"
+                     className="flex-1 h-14 rounded-2xl font-black border-border"
                      onClick={() => setIsEditBookingOpen(false)}
                    >
                      إلغاء
@@ -1458,25 +1478,25 @@ const UserProfile = () => {
                 </div>
                 <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+                    <div className="p-3 rounded-xl bg-muted border border-border">
                       <p className="text-[10px] font-bold text-gray-400 uppercase mb-0.5">الرحلة</p>
-                      <p className="font-black text-gray-900">{selectedBookingDetails.tripTitle}</p>
+                      <p className="font-black text-foreground">{selectedBookingDetails.tripTitle}</p>
                     </div>
-                    <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+                    <div className="p-3 rounded-xl bg-muted border border-border">
                       <p className="text-[10px] font-bold text-gray-400 uppercase mb-0.5">الوجهة</p>
-                      <p className="font-black text-gray-900">{selectedBookingDetails.tripDestination}</p>
+                      <p className="font-black text-foreground">{selectedBookingDetails.tripDestination}</p>
                     </div>
-                    <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+                    <div className="p-3 rounded-xl bg-muted border border-border">
                       <p className="text-[10px] font-bold text-gray-400 uppercase mb-0.5">الشركة</p>
-                      <p className="font-black text-gray-900">{selectedBookingDetails.companyName}</p>
+                      <p className="font-black text-foreground">{selectedBookingDetails.companyName}</p>
                     </div>
-                    <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+                    <div className="p-3 rounded-xl bg-muted border border-border">
                       <p className="text-[10px] font-bold text-gray-400 uppercase mb-0.5">الحالة</p>
                       <p className={cn(
                         "font-black",
                         selectedBookingDetails.status === 'accepted' ? "text-emerald-600" :
                         selectedBookingDetails.status === 'pending' ? "text-amber-600" :
-                        selectedBookingDetails.status === 'rejected' ? "text-red-600" : "text-gray-600"
+                        selectedBookingDetails.status === 'rejected' ? "text-red-600" : "text-muted-foreground"
                       )}>
                         {selectedBookingDetails.status === 'pending' ? 'جاري المراجعة' :
                          selectedBookingDetails.status === 'accepted' ? 'تم القبول' :
@@ -1485,21 +1505,21 @@ const UserProfile = () => {
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+                    <div className="p-3 rounded-xl bg-muted border border-border">
                       <p className="text-[10px] font-bold text-gray-400 uppercase mb-0.5">الاسم</p>
-                      <p className="font-black text-gray-900">{selectedBookingDetails.userName}</p>
+                      <p className="font-black text-foreground">{selectedBookingDetails.userName}</p>
                     </div>
-                    <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+                    <div className="p-3 rounded-xl bg-muted border border-border">
                       <p className="text-[10px] font-bold text-gray-400 uppercase mb-0.5">الهاتف</p>
-                      <p className="font-black text-gray-900" dir="ltr">{selectedBookingDetails.userPhone}</p>
+                      <p className="font-black text-foreground" dir="ltr">{selectedBookingDetails.userPhone}</p>
                     </div>
-                    <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+                    <div className="p-3 rounded-xl bg-muted border border-border">
                       <p className="text-[10px] font-bold text-gray-400 uppercase mb-0.5">البريد</p>
-                      <p className="font-black text-gray-900 text-sm truncate" dir="ltr">{selectedBookingDetails.userEmail}</p>
+                      <p className="font-black text-foreground text-sm truncate" dir="ltr">{selectedBookingDetails.userEmail}</p>
                     </div>
-                    <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+                    <div className="p-3 rounded-xl bg-muted border border-border">
                       <p className="text-[10px] font-bold text-gray-400 uppercase mb-0.5">عدد الأفراد</p>
-                      <p className="font-black text-gray-900">{selectedBookingDetails.numberOfPeople}</p>
+                      <p className="font-black text-foreground">{selectedBookingDetails.numberOfPeople}</p>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
@@ -1509,9 +1529,9 @@ const UserProfile = () => {
                         <p className="text-xl font-black text-emerald-700">{selectedBookingDetails.totalPrice} ج.م</p>
                       </div>
                     )}
-                    <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+                    <div className="p-3 rounded-xl bg-muted border border-border">
                       <p className="text-[10px] font-bold text-gray-400 uppercase mb-0.5">تاريخ الحجز</p>
-                      <p className="font-black text-gray-900">{new Date(selectedBookingDetails.createdAt).toLocaleDateString('ar-EG', { dateStyle: 'long' })}</p>
+                      <p className="font-black text-foreground">{new Date(selectedBookingDetails.createdAt).toLocaleDateString('ar-EG', { dateStyle: 'long' })}</p>
                     </div>
                   </div>
                   {selectedBookingDetails.status !== "cancelled" && (selectedBookingDetails.selectedSeats?.length || selectedBookingDetails.seatNumber) && (
@@ -1528,15 +1548,15 @@ const UserProfile = () => {
                     </div>
                   )}
                   {selectedBookingDetails.status === "cancelled" && (selectedBookingDetails.cancellationReason || selectedBookingDetails.rejectionReason) && (
-                    <div className="p-3 rounded-xl bg-gray-100 border border-gray-200">
-                      <p className="text-[10px] font-bold text-gray-600 uppercase mb-0.5">سبب الإلغاء</p>
-                      <p className="font-medium text-gray-700">{selectedBookingDetails.cancellationReason || selectedBookingDetails.rejectionReason}</p>
+                    <div className="p-3 rounded-xl bg-accent border border-border">
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase mb-0.5">سبب الإلغاء</p>
+                      <p className="font-medium text-foreground">{selectedBookingDetails.cancellationReason || selectedBookingDetails.rejectionReason}</p>
                     </div>
                   )}
                   {selectedBookingDetails.specialRequests && (
-                    <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+                    <div className="p-3 rounded-xl bg-muted border border-border">
                       <p className="text-[10px] font-bold text-gray-400 uppercase mb-0.5">طلبات خاصة</p>
-                      <p className="font-medium text-gray-700">{selectedBookingDetails.specialRequests}</p>
+                      <p className="font-medium text-foreground">{selectedBookingDetails.specialRequests}</p>
                     </div>
                   )}
                   {selectedBookingDetails.status === 'rejected' && selectedBookingDetails.rejectionReason && (
@@ -1546,16 +1566,16 @@ const UserProfile = () => {
                     </div>
                   )}
                   {selectedBookingDetails.status === "accepted" && (
-                    <div className="p-4 rounded-xl bg-white border-2 border-indigo-100 flex flex-col items-center gap-3">
+                    <div className="p-4 rounded-xl bg-card border-2 border-indigo-100 flex flex-col items-center gap-3">
                       <p className="text-[10px] font-bold text-indigo-600 uppercase">رمز الرحلة — اعرضه عند الصعود للحافلة</p>
-                      <div className="p-2 bg-white rounded-xl border border-gray-200 shadow-sm">
+                      <div className="p-2 bg-card rounded-xl border border-border shadow-sm">
                         <img
                           src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(`${window.location.origin}/verify-booking/${selectedBookingDetails.bookingReference}`)}`}
                           alt="QR للحجز"
                           className="w-40 h-40 rounded-lg"
                         />
                       </div>
-                      <p className="text-xs font-bold text-gray-500">المرجع: {selectedBookingDetails.bookingReference}</p>
+                      <p className="text-xs font-bold text-muted-foreground">المرجع: {selectedBookingDetails.bookingReference}</p>
                     </div>
                   )}
                 </div>
@@ -1603,6 +1623,167 @@ const UserProfile = () => {
           </AlertDialogContent>
         </AlertDialog>
 
+        {/* Profile Picture Options Dialog */}
+        <Dialog open={isOptionsOpen} onOpenChange={setIsOptionsOpen}>
+          <DialogContent className="max-w-sm font-cairo rounded-[2.5rem] p-0 overflow-hidden border-0 shadow-2xl bg-white/95 backdrop-blur-xl" dir="rtl">
+            <div className="bg-indigo-600 p-8 text-white relative overflow-hidden">
+               <div className="absolute top-0 left-0 w-32 h-32 bg-white/10 rounded-full -ml-16 -mt-16 blur-2xl" />
+               <div className="absolute bottom-0 right-0 w-24 h-24 bg-orange-400/20 rounded-full -mr-12 -mb-12 blur-xl" />
+               
+               <DialogHeader className="relative z-10">
+                 <DialogTitle className="text-2xl font-black text-right">الصورة الشخصية</DialogTitle>
+                 <DialogDescription className="text-indigo-100 text-right font-medium">تحكم في مظهرك على الرحلة</DialogDescription>
+               </DialogHeader>
+            </div>
+
+            <div className="p-6 space-y-3">
+               <Button 
+                 variant="outline" 
+                 className="w-full h-14 rounded-2xl border-border hover:bg-indigo-50 hover:text-indigo-600 font-bold justify-start gap-4 transition-all group"
+                 onClick={() => {
+                   setIsOptionsOpen(false);
+                   setIsPreviewOpen(true);
+                 }}
+               >
+                  <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center group-hover:bg-card transition-colors">
+                    <ImageIcon className="w-5 h-5 text-indigo-600" />
+                  </div>
+                  عرض الصورة بالحجم الكبير
+               </Button>
+
+               <label className="block cursor-pointer">
+                 <div className="w-full h-14 rounded-2xl border border-orange-100 hover:bg-orange-50 text-orange-600 font-bold flex items-center gap-4 px-4 transition-all group">
+                    <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center group-hover:bg-card transition-colors">
+                      <Camera className="w-5 h-5" />
+                    </div>
+                    تغيير الصورة الشخصية
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      className="hidden" 
+                      onChange={(e) => {
+                        setIsOptionsOpen(false);
+                        handleProfileImageChange(e);
+                      }} 
+                    />
+                 </div>
+               </label>
+
+               {profileImage && !profileImage.includes('ui-avatars.com') && !profileImage.includes('gravatar.com') && (
+                 <Button 
+                   variant="outline" 
+                   className="w-full h-14 rounded-2xl border-red-50 hover:bg-red-50 text-red-500 font-bold justify-start gap-4 transition-all group"
+                   onClick={() => {
+                     setIsOptionsOpen(false);
+                     setRemoveStep(1);
+                   }}
+                 >
+                    <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center group-hover:bg-card transition-colors">
+                      <Trash2 className="w-5 h-5" />
+                    </div>
+                    حذف الصورة الحالية
+                 </Button>
+               )}
+
+               <Button 
+                 variant="ghost" 
+                 className="w-full h-12 rounded-2xl text-gray-400 font-bold"
+                 onClick={() => setIsOptionsOpen(false)}
+               >
+                 إغلاق
+               </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Profile Image Preview Dialog */}
+        <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+          <DialogContent className="max-w-[95vw] sm:max-w-3xl p-0 overflow-hidden bg-black/95 border-0 font-cairo rounded-[2rem]">
+            <div className="relative w-full aspect-square sm:aspect-auto sm:h-[80vh] flex items-center justify-center group">
+              {profileImage ? (
+                <img 
+                  src={profileImage.replace('s=160', 's=1000').replace('width=160', 'width=1000')} 
+                  alt={fullName} 
+                  className="max-w-full max-h-full object-contain shadow-2xl animate-in zoom-in-95 duration-300" 
+                />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center text-white/40 gap-4">
+                  <ImageIcon className="w-20 h-20" />
+                  <p className="text-xl font-bold">لا توجد صورة شخصية</p>
+                </div>
+              )}
+              
+              <button 
+                onClick={() => setIsPreviewOpen(false)}
+                className="absolute top-6 left-6 p-3 bg-white/10 backdrop-blur-md rounded-full text-white hover:bg-white/20 transition-all z-50"
+              >
+                <X className="w-6 h-6" />
+              </button>
+
+              <div className="absolute bottom-0 inset-x-0 p-8 bg-gradient-to-t from-black/80 to-transparent flex flex-col items-center gap-2">
+                <h3 className="text-white text-2xl font-black">{fullName}</h3>
+                {location && <p className="text-white/60 font-bold flex items-center gap-2"><MapPin className="w-4 h-4" /> {location}</p>}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Profile Image Removal Confirmation (Double Confirmation) */}
+        <AlertDialog open={removeStep > 0} onOpenChange={(open) => !open && setRemoveStep(0)}>
+          <AlertDialogContent className="font-cairo rounded-[2.5rem] border-0 shadow-2xl overflow-hidden p-0" dir="rtl">
+            <div className="bg-red-500 p-8 text-white relative">
+              <div className="absolute top-0 left-0 w-32 h-32 bg-white/10 rounded-full -ml-16 -mt-16 blur-2xl" />
+              <AlertDialogTitle className="text-3xl font-black mb-2 flex items-center gap-3">
+                <Trash2 className="w-8 h-8" />
+                حذف الصورة الشخصية
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-red-50 text-lg">
+                {removeStep === 1 
+                  ? "هل أنت متأكد من رغبتك في حذف صورتك الشخصية الحالية؟" 
+                  : "هذا هو التأكيد الأخير.. هل تريد بالتأكيد إزالة الصورة تماماً؟"}
+              </AlertDialogDescription>
+            </div>
+            
+            <div className="p-8 flex flex-col gap-4">
+              <div className="flex gap-4">
+                <AlertDialogCancel className="flex-1 h-14 rounded-2xl font-black border-border hover:bg-muted m-0">
+                  تراجع
+                </AlertDialogCancel>
+                <Button 
+                  disabled={isRemoving}
+                  onClick={() => {
+                    if (removeStep === 1) {
+                      setRemoveStep(2);
+                    } else {
+                      handleRemoveProfileImage();
+                    }
+                  }}
+                  className={cn(
+                    "flex-1 h-14 rounded-2xl font-black shadow-xl transition-all",
+                    removeStep === 1 
+                      ? "bg-red-500 hover:bg-red-600 text-white shadow-red-100" 
+                      : "bg-red-700 hover:bg-red-800 text-white shadow-red-200 animate-pulse"
+                  )}
+                >
+                  {isRemoving ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : removeStep === 1 ? (
+                    "تأكيد الحذف"
+                  ) : (
+                    "نعم، احذفها نهائياً"
+                  )}
+                </Button>
+              </div>
+              
+              {removeStep === 2 && (
+                <p className="text-center text-red-500 font-bold text-sm animate-bounce">
+                  * اضغط مرة أخرى للتأكيد النهائي
+                </p>
+              )}
+            </div>
+          </AlertDialogContent>
+        </AlertDialog>
+
         {/* Edit Post Dialog */}
         <Dialog open={isEditPostOpen} onOpenChange={setIsEditPostOpen}>
           <DialogContent className="max-w-xl font-cairo rounded-[2rem]">
@@ -1636,7 +1817,7 @@ const UserProfile = () => {
                 <Input 
                   value={editPostData.title} 
                   onChange={e => setEditPostData({...editPostData, title: e.target.value})}
-                  className="rounded-2xl border-gray-100 h-12 font-bold"
+                  className="rounded-2xl border-border h-12 font-bold"
                 />
               </div>
               <div className="space-y-2">
@@ -1664,7 +1845,7 @@ const UserProfile = () => {
                 <Textarea 
                   value={editPostData.description} 
                   onChange={e => setEditPostData({...editPostData, description: e.target.value})}
-                  className="rounded-2xl border-gray-100 min-h-[150px] font-medium"
+                  className="rounded-2xl border-border min-h-[150px] font-medium"
                 />
               </div>
               <div className="flex gap-3">
@@ -1691,11 +1872,11 @@ const UserProfile = () => {
     if (!data.length) {
       return (
         <div className="text-center py-20 flex flex-col items-center">
-           <div className="w-24 h-24 rounded-full bg-gray-50 flex items-center justify-center mb-6">
+           <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center mb-6">
               {tabId === 'trips' ? <LayoutGrid className="text-gray-200 w-12 h-12" /> : <Bookmark className="text-gray-200 w-12 h-12" />}
            </div>
-           <h3 className="text-xl font-bold text-gray-900 mb-2">لا يوجد محتوى هنا بعد</h3>
-           <p className="text-gray-500 font-light">استكشف الموقع واملأ صفحتك بأفضل التجارب والذكريات.</p>
+           <h3 className="text-xl font-bold text-foreground mb-2">لا يوجد محتوى هنا بعد</h3>
+           <p className="text-muted-foreground font-light">استكشف الموقع واملأ صفحتك بأفضل التجارب والذكريات.</p>
         </div>
       );
     }
@@ -1733,7 +1914,7 @@ const UserProfile = () => {
       return (
         <div className="grid grid-cols-1 gap-4">
           {bookings.map((booking) => (
-            <div key={booking._id} className="bg-white border border-gray-100 rounded-[1.5rem] p-6 shadow-sm hover:shadow-md transition-all">
+            <div key={booking._id} className="bg-card border border-border rounded-[1.5rem] p-6 shadow-sm hover:shadow-md transition-all">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="space-y-3 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
@@ -1760,7 +1941,7 @@ const UserProfile = () => {
                   </div>
                   
                   <div className="flex flex-col gap-1">
-                    <h4 className="text-xl font-black text-gray-900">{booking.tripTitle}</h4>
+                    <h4 className="text-xl font-black text-foreground">{booking.tripTitle}</h4>
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-bold text-indigo-600 flex items-center gap-1">
                         <Users className="w-3 h-3" />
@@ -1781,7 +1962,7 @@ const UserProfile = () => {
                     </div>
                   </div>
                   
-                  <div className="flex flex-wrap items-center gap-4 text-sm font-medium text-gray-500">
+                  <div className="flex flex-wrap items-center gap-4 text-sm font-medium text-muted-foreground">
                     <div className="flex items-center gap-1.5">
                       <MapPin className="w-4 h-4 text-orange-500" />
                       {booking.tripDestination}
@@ -1808,7 +1989,7 @@ const UserProfile = () => {
                         booking.status === 'pending' ? "bg-amber-50 text-amber-600" :
                         booking.status === 'accepted' ? "bg-emerald-50 text-emerald-600" :
                         booking.status === 'rejected' ? "bg-red-50 text-red-600" :
-                        "bg-gray-50 text-gray-600"
+                        "bg-muted text-muted-foreground"
                       )}>
                         <span className={cn(
                           "w-2 h-2 rounded-full",

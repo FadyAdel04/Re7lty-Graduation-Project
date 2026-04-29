@@ -47,6 +47,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { MapboxTripMap } from "@/components/MapboxTripMap";
+import { useTheme } from "@/contexts/ThemeContext";
 import { sendMessageToAI, generateItinerary, type AIResponse, type ItineraryDay, type GeneratedItineraryResponse } from "@/lib/openrouter-client";
 import { buildSmartItinerary, normalizePlaces, calculateTransportOptions } from "@/lib/itinerary-engine";
 import CityWeatherAdvisor from "@/components/CityWeatherAdvisor";
@@ -216,9 +218,11 @@ const CountdownTimer = ({ targetDate }: { targetDate: string }) => {
    ───────────────────────────────────────────── */
 
 const TripAIChat = () => {
+  const { theme } = useTheme();
   const { isSignedIn, getToken } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const isDark = theme === "dark";
 
   // ─── Wizard State ───
   const [mode, setMode] = useState<WizardMode>("idle");
@@ -272,6 +276,8 @@ const TripAIChat = () => {
   const [cityAttractions, setCityAttractions] = useState<any[]>([]);
   const [cityRestaurants, setCityRestaurants] = useState<any[]>([]);
   const [cityHotels, setCityHotels] = useState<any[]>([]);
+  const [stepHotels, setStepHotels] = useState<any[]>([]);
+  const [isFetchingStepHotels, setIsFetchingStepHotels] = useState(false);
   const [isFetchingCityData, setIsFetchingCityData] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -302,6 +308,13 @@ const TripAIChat = () => {
   }, [isSignedIn, getToken]);
 
   useEffect(() => { refreshQuota(); }, [refreshQuota]);
+
+  // ─── Auto-fetch hotels when dates are set ───
+  useEffect(() => {
+    if (trip.destination && trip.hotel.checkIn && trip.hotel.checkOut && step === 7) {
+      fetchStepHotels();
+    }
+  }, [trip.destination, trip.hotel.checkIn, trip.hotel.checkOut, step]);
 
   // ─── Auto-scroll ───
   useEffect(() => {
@@ -358,6 +371,35 @@ const TripAIChat = () => {
 
   const updateHotel = (patch: Partial<TripState["hotel"]>) => {
     setTrip(prev => ({ ...prev, hotel: { ...prev.hotel, ...patch } }));
+  };
+
+  const fetchStepHotels = async () => {
+    if (!trip.destination || !trip.hotel.checkIn || !trip.hotel.checkOut) return;
+    
+    setIsFetchingStepHotels(true);
+    try {
+      const coords = GOVERNORATES_COORDINATES[trip.destination];
+      if (coords) {
+        const res = await searchHotelsByLocation(
+          String(coords.lat),
+          String(coords.lng),
+          trip.hotel.checkIn,
+          trip.hotel.checkOut
+        );
+        if (res.data) {
+          setStepHotels(res.data);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch step hotels:", error);
+      toast({
+        title: "خطأ في جلب الفنادق",
+        description: "تعذر الحصول على توصيات الفنادق حالياً.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsFetchingStepHotels(false);
+    }
   };
 
   // ─── Auto-calculate transport when step 2 is completed ───
@@ -447,7 +489,6 @@ const TripAIChat = () => {
       );
 
       if (plan) {
-        if (!trip.hotelNeeded) plan.hotels = [];
         setTripPlan(plan);
         if (isSignedIn) {
           try {
@@ -460,7 +501,19 @@ const TripAIChat = () => {
         }
         setSelectedAttractions(new Set(plan.attractions.map((a, idx) => a.location_id || idx.toString())));
         setSelectedRestaurants(new Set(plan.restaurants.map((r, idx) => r.location_id || idx.toString())));
-        setSelectedHotels(new Set(plan.hotels.map((h, idx) => h.location_id || idx.toString())));
+        
+        // Handle selected hotel from wizard step
+        const hotelSet = new Set<string>();
+        if (trip.selectedHotel) {
+          hotelSet.add(trip.selectedHotel.location_id || "selected-hotel");
+          // If the selected hotel isn't in the plan's hotels, add it
+          if (!plan.hotels.find(h => h.location_id === trip.selectedHotel.location_id)) {
+            plan.hotels.unshift(trip.selectedHotel);
+          }
+        } else {
+          plan.hotels.forEach((h, idx) => hotelSet.add(h.location_id || idx.toString()));
+        }
+        setSelectedHotels(hotelSet);
       } else {
         toast({ title: "عذراً", description: "لم أتمكن من إيجاد معلومات كافية عن هذه الوجهة.", variant: "destructive" });
       }
@@ -472,22 +525,19 @@ const TripAIChat = () => {
     }
   };
 
-  // ─── Helper for jittered coords ───
-  const getJitteredCoords = (latStr: string | undefined, lngStr: string | undefined, baseLat: string, baseLng: string) => {
-    const jitter = () => (Math.random() - 0.5) * 0.015;
-    
-    // Get actual destination coordinates from our data to prevent defaulting to Cairo
+  // ─── Helper for coordinates ───
+  const getCoords = (latStr: string | undefined | null, lngStr: string | undefined | null) => {
     const destCoords = GOVERNORATES_COORDINATES[trip.destination];
-    const defaultLat = destCoords ? destCoords.lat.toString() : "30.0444";
-    const defaultLng = destCoords ? destCoords.lng.toString() : "31.2357";
+    const defaultLat = destCoords ? destCoords.lat : 30.0444;
+    const defaultLng = destCoords ? destCoords.lng : 31.2357;
     
-    // Use AI returned base location if available, otherwise use destination coordinates
-    const actualBaseLat = baseLat || defaultLat;
-    const actualBaseLng = baseLng || defaultLng;
-
-    const finalLat = isNaN(parseFloat(latStr || "")) ? parseFloat(actualBaseLat) + jitter() : parseFloat(latStr || "");
-    const finalLng = isNaN(parseFloat(lngStr || "")) ? parseFloat(actualBaseLng) + jitter() : parseFloat(lngStr || "");
-    return { lat: finalLat, lng: finalLng };
+    const lat = parseFloat(latStr || "");
+    const lng = parseFloat(lngStr || "");
+    
+    return { 
+      lat: isNaN(lat) ? defaultLat : lat, 
+      lng: isNaN(lng) ? defaultLng : lng 
+    };
   };
 
   // ─── Generate AI Itinerary ───
@@ -590,7 +640,7 @@ const TripAIChat = () => {
             const originalAttract = selectedAttractionsList.find(a => a.name === act.name);
             const originalRest = selectedRestaurantsList.find(r => r.name === act.name);
             const original = originalAttract || originalRest;
-            const coords = getJitteredCoords(act.coordinates?.lat?.toString(), act.coordinates?.lng?.toString(), tripPlan.location.latitude || "30.0444", tripPlan.location.longitude || "31.2357");
+            const coords = getCoords(act.coordinates?.lat?.toString(), act.coordinates?.lng?.toString());
             activities.push({
               name: act.name,
               images: original?.photo?.images?.large?.url ? [original.photo.images.large.url] : (original?.photo?.images?.medium?.url ? [original.photo.images.medium.url] : []),
@@ -607,7 +657,7 @@ const TripAIChat = () => {
           let hotelObj = undefined;
           if (trip.selectedHotel) {
             const h = trip.selectedHotel;
-            const hotelCoords = getJitteredCoords(h.latitude, h.longitude, tripPlan.location.latitude || "30.0444", tripPlan.location.longitude || "31.2357");
+            const hotelCoords = getCoords(h.latitude, h.longitude);
             hotelObj = { 
               name: h.name, 
               image: h.photo?.images?.medium?.url || "", 
@@ -618,7 +668,7 @@ const TripAIChat = () => {
             };
           } else if (selectedHotelsList.length > 0) {
             const h = selectedHotelsList[dayIdx % selectedHotelsList.length];
-            const hotelCoords = getJitteredCoords(h.latitude, h.longitude, tripPlan.location.latitude || "30.0444", tripPlan.location.longitude || "31.2357");
+            const hotelCoords = getCoords(h.latitude, h.longitude);
             hotelObj = { 
               name: h.name, 
               image: h.photo?.images?.medium?.url || "", 
@@ -637,7 +687,7 @@ const TripAIChat = () => {
       } else {
         // Fallback or Manual Construction
         selectedAttractionsList.forEach((attraction, idx) => {
-          const coords = getJitteredCoords(attraction.latitude, attraction.longitude, tripPlan.location.latitude || "30.0444", tripPlan.location.longitude || "31.2357");
+          const coords = getCoords(attraction.latitude, attraction.longitude);
           activities.push({ 
             name: attraction.name, 
             images: attraction.photo?.images?.large?.url ? [attraction.photo.images.large.url] : (attraction.photo?.images?.medium?.url ? [attraction.photo.images.medium.url] : []), 
@@ -650,7 +700,7 @@ const TripAIChat = () => {
         });
         
         selectedRestaurantsList.forEach((restaurant, idx) => {
-          const coords = getJitteredCoords(restaurant.latitude, restaurant.longitude, tripPlan.location.latitude || "30.0444", tripPlan.location.longitude || "31.2357");
+          const coords = getCoords(restaurant.latitude, restaurant.longitude);
           activities.push({ 
             name: restaurant.name, 
             images: restaurant.photo?.images?.large?.url ? [restaurant.photo.images.large.url] : (restaurant.photo?.images?.medium?.url ? [restaurant.photo.images.medium.url] : []), 
@@ -673,7 +723,7 @@ const TripAIChat = () => {
               time: "02:00 مساءً",
               description: "تجربة طعام محلية رائعة.",
               type: 'restaurant',
-              coordinates: getJitteredCoords(null, null, tripPlan.location.latitude || "30.0444", tripPlan.location.longitude || "31.2357")
+              coordinates: getCoords(null, null)
             });
           }
         }
@@ -682,11 +732,11 @@ const TripAIChat = () => {
           let hotelObj = undefined;
           if (trip.selectedHotel) {
             const h = trip.selectedHotel;
-            const hotelCoords = getJitteredCoords(h.latitude, h.longitude, tripPlan.location.latitude || "30.0444", tripPlan.location.longitude || "31.2357");
+            const hotelCoords = getCoords(h.latitude, h.longitude);
             hotelObj = { name: h.name, image: h.photo?.images?.medium?.url || "", rating: parseFloat(h.rating || "4.5"), address: h.address || "", priceRange: h.price || "متوسط", coordinates: hotelCoords };
           } else if (selectedHotelsList.length > 0) {
             const h = selectedHotelsList[i % selectedHotelsList.length];
-            const hotelCoords = getJitteredCoords(h.latitude, h.longitude, tripPlan.location.latitude || "30.0444", tripPlan.location.longitude || "31.2357");
+            const hotelCoords = getCoords(h.latitude, h.longitude);
             hotelObj = { name: h.name, image: h.photo?.images?.medium?.url || "", rating: parseFloat(h.rating || "4.5"), address: h.address || "", priceRange: h.price || "متوسط", coordinates: hotelCoords };
           }
           
@@ -718,8 +768,23 @@ const TripAIChat = () => {
         season: normalizedSeason, activities, days: finalDays,
         foodAndRestaurants: selectedRestaurantsList.slice(0, 5).map(r => ({ name: r.name, image: r.photo?.images?.large?.url || r.photo?.images?.medium?.url || "", rating: parseFloat(r.rating || "4.5"), description: r.cuisine?.[0]?.name ? `مطعم ${r.cuisine[0].name}` : "مطعم رائع" })),
         hotels: selectedHotelsList.slice(0, 3).map(h => {
-          const hotelCoords = getJitteredCoords(h.latitude, h.longitude, tripPlan.location.latitude || "30.0444", tripPlan.location.longitude || "31.2357");
-          return { name: h.name, image: h.photo?.images?.large?.url || h.photo?.images?.medium?.url || "", rating: parseFloat(h.rating || "4.5"), description: h.description || h.address || "فندق وإقامة مميزة", priceRange: h.price || "متوسط السعر", address: h.address || "", amenities: Array.isArray(h.amenities) && h.amenities.length > 0 ? h.amenities.map((a: any) => typeof a === 'string' ? a : a.name || a) : ["Wi-Fi", "موقف سيارات", "حمام سباحة", "إفطار"], coordinates: hotelCoords };
+          const hotelCoords = getCoords(h.latitude, h.longitude);
+          return { 
+            name: h.name, 
+            image: h.photo?.images?.large?.url || h.photo?.images?.medium?.url || "", 
+            rating: parseFloat(h.rating || "4.5"), 
+            description: h.description || h.address || "فندق وإقامة مميزة", 
+            priceRange: h.price || "متوسط السعر", 
+            address: h.address || "", 
+            amenities: Array.isArray(h.amenities) && h.amenities.length > 0 
+              ? h.amenities.map((a: any) => typeof a === 'string' ? a : a.name || a) 
+              : ["Wi-Fi", "موقف سيارات", "حمام سباحة", "إفطار"], 
+            coordinates: hotelCoords,
+            review_word: h.review_word,
+            star_rating: h.star_rating,
+            is_free_cancellable: h.is_free_cancellable,
+            distance_to_center: h.distance_to_center
+          };
         }),
         isAIGenerated: true, postType: 'detailed', startCity: trip.startCity,
         transportationPrice: trip.transportation?.price || (trip.transportOptions.length > 0 ? trip.transportOptions[0].price : 0),
@@ -790,15 +855,13 @@ const TripAIChat = () => {
         
         // Fetch everything in parallel
         const coords = GOVERNORATES_COORDINATES[cityName];
-        const [attractions, restaurants, hotels] = await Promise.all([
+        const [attractions, restaurants] = await Promise.all([
           getAttractions(locationId, 15).catch(() => []),
           getRestaurants(locationId, 10).catch(() => []),
-          getHotels(cityName, trip.budget || 'medium', undefined, undefined, coords?.lat, coords?.lng, locationId).catch(() => [])
         ]);
 
         setCityAttractions(attractions);
         setCityRestaurants(restaurants);
-        setCityHotels(hotels);
       }
     } catch (e) {
       console.error('fetchCityData error:', e);
@@ -860,8 +923,8 @@ const TripAIChat = () => {
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-5">
         <div className="text-center space-y-2">
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 mx-auto flex items-center justify-center text-3xl shadow-lg shadow-indigo-200">📍</div>
-          <h3 className="text-2xl font-black text-gray-900">عايز تسافر فين؟</h3>
-          <p className="text-sm text-gray-500 font-medium">ابحث أو اختر من قائمة المدن المصرية</p>
+          <h3 className="text-2xl font-black text-foreground">عايز تسافر فين؟</h3>
+          <p className="text-sm text-muted-foreground font-medium">ابحث أو اختر من قائمة المدن المصرية</p>
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -871,7 +934,7 @@ const TripAIChat = () => {
                 "flex items-center gap-2 px-3 py-2 rounded-xl border-2 font-bold text-sm transition-all duration-200",
                 trip.destination === city.name
                   ? "border-indigo-500 bg-indigo-50 text-indigo-700 shadow-md"
-                  : "border-gray-100 bg-white text-gray-600 hover:border-indigo-200"
+                  : "border-border bg-card text-muted-foreground hover:border-indigo-200"
               )}>
               <span>{city.emoji}</span><span>{city.name}</span>
             </button>
@@ -882,10 +945,11 @@ const TripAIChat = () => {
           <div className="relative">
             <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-indigo-500 z-10 transition-transform group-focus-within:scale-110" />
             <input
+              id="ai-chat-input"
               placeholder="ابحث عن أي مدينة..."
               className={cn(
-                "h-14 w-full rounded-2xl pr-12 pl-4 text-base font-bold border-2 transition-all duration-300 outline-none shadow-sm bg-white",
-                showDestList ? "border-indigo-400 ring-4 ring-indigo-50 shadow-indigo-100" : "border-gray-100 focus:border-indigo-400"
+                "h-14 w-full rounded-2xl pr-12 pl-4 text-base font-bold border-2 transition-all duration-300 outline-none shadow-sm bg-card text-foreground",
+                showDestList ? "border-indigo-400 ring-4 ring-indigo-50 shadow-indigo-100" : "border-border focus:border-indigo-400"
               )}
               value={destSearch || (trip.destination && !showDestList ? trip.destination : "")}
               onChange={e => { 
@@ -908,7 +972,7 @@ const TripAIChat = () => {
           </div>
 
           {showDestList && (
-            <div className="absolute top-[calc(100%+8px)] right-0 left-0 z-[100] bg-white/95 backdrop-blur-xl border border-gray-100 rounded-3xl shadow-[0_20px_50px_rgba(79,70,229,0.15)] overflow-hidden max-h-72 overflow-y-auto animate-in slide-in-from-top-2 duration-300">
+            <div className="absolute top-[calc(100%+8px)] right-0 left-0 z-[100] bg-white/95 backdrop-blur-xl border border-border rounded-3xl shadow-[0_20px_50px_rgba(79,70,229,0.15)] overflow-hidden max-h-72 overflow-y-auto animate-in slide-in-from-top-2 duration-300">
               {filteredDest.length === 0 ? (
                 <div className="px-4 py-6 text-center text-sm font-bold text-gray-400">لا توجد نتائج مطابقة</div>
               ) : (
@@ -928,7 +992,7 @@ const TripAIChat = () => {
                       city.category === 'beach' ? 'bg-sky-50 text-sky-500' :
                       city.category === 'historical' ? 'bg-amber-50 text-amber-600' :
                       city.category === 'desert' ? 'bg-orange-50 text-orange-500' :
-                      'bg-gray-50 text-gray-400'
+                      'bg-muted text-gray-400'
                     )}>
                       {city.category === 'beach' ? 'شواطئ' : city.category === 'historical' ? 'تاريخية' : city.category === 'desert' ? 'صحراء' : 'محافظة'}
                     </span>
@@ -969,8 +1033,8 @@ const TripAIChat = () => {
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-5">
         <div className="text-center space-y-2">
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 mx-auto flex items-center justify-center text-3xl shadow-lg shadow-emerald-200">🚌</div>
-          <h3 className="text-2xl font-black text-gray-900">هتتحرك منين؟</h3>
-          <p className="text-sm text-gray-500 font-medium">اختر مدينة الانطلاق لحساب المواصلات</p>
+          <h3 className="text-2xl font-black text-foreground">هتتحرك منين؟</h3>
+          <p className="text-sm text-muted-foreground font-medium">اختر مدينة الانطلاق لحساب المواصلات</p>
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -980,7 +1044,7 @@ const TripAIChat = () => {
                 "flex items-center gap-2 px-3 py-2 rounded-xl border-2 font-bold text-sm transition-all duration-200",
                 trip.startCity === city.name
                   ? "border-emerald-500 bg-emerald-50 text-emerald-700 shadow-md"
-                  : "border-gray-100 bg-white text-gray-600 hover:border-emerald-200"
+                  : "border-border bg-card text-muted-foreground hover:border-emerald-200"
               )}>
               <span>{city.emoji}</span><span>{city.name}</span>
             </button>
@@ -992,7 +1056,7 @@ const TripAIChat = () => {
             <MapPin className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
             <input
               placeholder="ابحث عن محافظتك..."
-              className="h-12 w-full rounded-2xl pr-11 pl-4 text-sm font-bold border-2 border-gray-200 focus:border-emerald-400 focus:outline-none transition-colors bg-white"
+              className="h-12 w-full rounded-2xl pr-11 pl-4 text-sm font-bold border-2 border-border focus:border-emerald-400 focus:outline-none transition-colors bg-card text-foreground"
               value={originSearch || (trip.startCity && !showOriginList ? trip.startCity : "")}
               onChange={e => { setOriginSearch(e.target.value); setShowOriginList(true); if (!e.target.value) updateTrip({ startCity: "" }); }}
               onFocus={() => { setShowOriginList(true); setOriginSearch(""); }}
@@ -1006,7 +1070,7 @@ const TripAIChat = () => {
           </div>
 
           {showOriginList && (
-            <div className="absolute top-[calc(100%+6px)] right-0 left-0 z-50 bg-white border border-gray-200 rounded-2xl shadow-2xl shadow-emerald-100/60 overflow-hidden max-h-64 overflow-y-auto">
+            <div className="absolute top-[calc(100%+6px)] right-0 left-0 z-50 bg-card border border-border rounded-2xl shadow-2xl shadow-emerald-100/60 overflow-hidden max-h-64 overflow-y-auto">
               {filteredOrigin.length === 0 ? (
                 <div className="px-4 py-6 text-center text-sm font-bold text-gray-400">لا توجد نتائج</div>
               ) : (
@@ -1021,7 +1085,7 @@ const TripAIChat = () => {
                   >
                     <span className="text-lg shrink-0">{city.emoji}</span>
                     <span className="flex-1">{city.name}</span>
-                    <span className="text-[9px] font-black px-2 py-0.5 rounded-md bg-gray-50 text-gray-400">
+                    <span className="text-[9px] font-black px-2 py-0.5 rounded-md bg-muted text-gray-400">
                       {city.category === 'beach' ? 'شواطئ' : city.category === 'historical' ? 'تاريخية' : city.category === 'desert' ? 'صحراء' : 'محافظة'}
                     </span>
                   </button>
@@ -1032,7 +1096,7 @@ const TripAIChat = () => {
         </div>
 
         <div className="flex gap-3">
-          <Button variant="outline" className="flex-1 h-14 rounded-2xl font-black text-gray-500 border-gray-200" onClick={goBack}>
+          <Button variant="outline" className="flex-1 h-14 rounded-2xl font-black text-muted-foreground border-border" onClick={goBack}>
             <ArrowRight className="w-5 h-5 ml-2" /> رجوع
           </Button>
           <Button className="flex-[2] h-14 rounded-2xl bg-gradient-to-r from-emerald-600 to-emerald-700 text-white font-black shadow-xl shadow-emerald-200 gap-3" disabled={!trip.startCity.trim()} onClick={handleOriginSelected}>
@@ -1047,8 +1111,8 @@ const TripAIChat = () => {
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-6">
       <div className="text-center space-y-2">
         <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-600 mx-auto flex items-center justify-center text-3xl shadow-lg shadow-orange-200">🚗</div>
-        <h3 className="text-2xl font-black text-gray-900">اختر وسيلة النقل</h3>
-        <p className="text-sm text-gray-500 font-medium">من {trip.startCity} إلى {trip.destination}</p>
+        <h3 className="text-2xl font-black text-foreground">اختر وسيلة النقل</h3>
+        <p className="text-sm text-muted-foreground font-medium">من {trip.startCity} إلى {trip.destination}</p>
       </div>
 
       {trip.transportOptions.length > 0 ? (
@@ -1059,17 +1123,17 @@ const TripAIChat = () => {
                 "w-full flex items-center gap-4 p-5 rounded-2xl border-2 transition-all duration-200 text-right",
                 trip.transportation?.type === opt.type
                   ? "border-orange-500 bg-orange-50 shadow-lg shadow-orange-100"
-                  : "border-gray-100 bg-white hover:border-orange-200 hover:bg-orange-50/30"
+                  : "border-border bg-card hover:border-orange-200 hover:bg-orange-50/30"
               )}>
               <div className={cn(
                 "w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shrink-0",
-                trip.transportation?.type === opt.type ? "bg-orange-500 shadow-md" : "bg-gray-50"
+                trip.transportation?.type === opt.type ? "bg-orange-500 shadow-md" : "bg-muted"
               )}>
                 {opt.icon}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="font-black text-gray-900 text-base">{opt.label}</div>
-                <div className="text-xs text-gray-500 font-medium mt-0.5 flex items-center gap-2">
+                <div className="font-black text-foreground text-base">{opt.label}</div>
+                <div className="text-xs text-muted-foreground font-medium mt-0.5 flex items-center gap-2">
                   <Clock className="w-3 h-3" /> {opt.duration}
                 </div>
               </div>
@@ -1089,7 +1153,7 @@ const TripAIChat = () => {
       )}
 
       <div className="flex gap-3">
-        <Button variant="outline" className="flex-1 h-14 rounded-2xl font-black text-gray-500 border-gray-200" onClick={goBack}>
+        <Button variant="outline" className="flex-1 h-14 rounded-2xl font-black text-muted-foreground border-border" onClick={goBack}>
           <ArrowRight className="w-5 h-5 ml-2" /> رجوع
         </Button>
         <Button className="flex-[2] h-14 rounded-2xl bg-gradient-to-r from-orange-600 to-amber-600 text-white font-black shadow-xl shadow-orange-200 gap-3" disabled={trip.transportOptions.length > 0 && !trip.transportation} onClick={goNext}>
@@ -1103,8 +1167,8 @@ const TripAIChat = () => {
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-6">
       <div className="text-center space-y-2">
         <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 mx-auto flex items-center justify-center text-3xl shadow-lg shadow-sky-200">📅</div>
-        <h3 className="text-2xl font-black text-gray-900">كام يوم رحلتك؟</h3>
-        <p className="text-sm text-gray-500 font-medium">اختر مدة الرحلة بالأيام</p>
+        <h3 className="text-2xl font-black text-foreground">كام يوم رحلتك؟</h3>
+        <p className="text-sm text-muted-foreground font-medium">اختر مدة الرحلة بالأيام</p>
       </div>
       <div className="grid grid-cols-3 gap-3">
         {[
@@ -1117,19 +1181,19 @@ const TripAIChat = () => {
               "flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all",
               trip.days === d.value
                 ? "border-sky-500 bg-sky-50 shadow-md shadow-sky-100"
-                : "border-gray-100 bg-white hover:border-sky-200"
+                : "border-border bg-card hover:border-sky-200"
             )}>
             <span className="text-2xl font-black text-sky-600">{d.value}</span>
-            <span className="text-[10px] font-bold text-gray-500 uppercase">{d.desc}</span>
+            <span className="text-[10px] font-bold text-muted-foreground uppercase">{d.desc}</span>
           </button>
         ))}
       </div>
       <div className="flex items-center gap-3">
         <span className="text-xs font-bold text-gray-400 shrink-0">عدد مخصص:</span>
-        <Input type="number" min="1" max="30" placeholder="..." className="h-12 rounded-2xl text-center font-black text-lg flex-1 border-gray-200 focus:border-sky-400" value={trip.days || ""} onChange={e => updateTrip({ days: parseInt(e.target.value) || null })} />
+        <Input type="number" min="1" max="30" placeholder="..." className="h-12 rounded-2xl text-center font-black text-lg flex-1 border-border focus:border-sky-400 bg-card text-foreground" value={trip.days || ""} onChange={e => updateTrip({ days: parseInt(e.target.value) || null })} />
       </div>
       <div className="flex gap-3">
-        <Button variant="outline" className="flex-1 h-14 rounded-2xl font-black text-gray-500 border-gray-200" onClick={goBack}>
+        <Button variant="outline" className="flex-1 h-14 rounded-2xl font-black text-muted-foreground border-border" onClick={goBack}>
           <ArrowRight className="w-5 h-5 ml-2" /> رجوع
         </Button>
         <Button className="flex-[2] h-14 rounded-2xl bg-gradient-to-r from-sky-600 to-blue-600 text-white font-black shadow-xl shadow-sky-200 gap-3" disabled={!trip.days || trip.days < 1} onClick={goNext}>
@@ -1142,26 +1206,19 @@ const TripAIChat = () => {
   const renderStep5 = () => {
     const handleBudgetSelect = (b: { key: "low" | "medium" | "high", val: number }) => {
       updateTrip({ budget: b.key, customBudget: b.val });
-      // Re-fetch hotels with the new budget if we have a locationId
-      if (destLocationId) {
-        fetchHotelsForBudget(b.key);
-      }
     };
 
     const handleCustomBudgetChange = (val: string) => {
       const num = parseInt(val);
       updateTrip({ customBudget: num || null, budget: null });
-      if (destLocationId) {
-        fetchHotelsForBudget('medium'); // Default to medium for custom budget
-      }
     };
 
     return (
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-6">
         <div className="text-center space-y-2">
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-green-600 mx-auto flex items-center justify-center text-3xl shadow-lg shadow-emerald-200">💰</div>
-          <h3 className="text-2xl font-black text-gray-900">ميزانيتك اليومية؟</h3>
-          <p className="text-sm text-gray-500 font-medium">اختر مستوى الإنفاق اليومي</p>
+          <h3 className="text-2xl font-black text-foreground">ميزانيتك اليومية؟</h3>
+          <p className="text-sm text-muted-foreground font-medium">اختر مستوى الإنفاق اليومي</p>
         </div>
         <div className="space-y-3">
           {[
@@ -1174,25 +1231,25 @@ const TripAIChat = () => {
                 "w-full flex items-center gap-4 p-5 rounded-2xl border-2 transition-all duration-200",
                 trip.budget === b.key
                   ? `border-${b.color}-500 bg-${b.color}-50 shadow-md`
-                  : "border-gray-100 bg-white hover:border-gray-200"
+                  : "border-border bg-card hover:border-border"
               )}
               style={trip.budget === b.key ? { borderColor: b.color === 'emerald' ? '#10b981' : b.color === 'blue' ? '#3b82f6' : '#8b5cf6', backgroundColor: b.color === 'emerald' ? '#ecfdf5' : b.color === 'blue' ? '#eff6ff' : '#f5f3ff' } : {}}>
               <span className="text-2xl">{b.emoji}</span>
               <div className="flex-1 text-right">
-                <div className="font-black text-gray-900">{b.label}</div>
-                <div className="text-xs text-gray-500 font-medium">{b.desc}</div>
+                <div className="font-black text-foreground">{b.label}</div>
+                <div className="text-xs text-muted-foreground font-medium">{b.desc}</div>
               </div>
             </button>
           ))}
         </div>
 
-        <div className="pt-4 border-t border-gray-100">
+        <div className="pt-4 border-t border-border">
           <label className="text-[10px] font-black text-gray-400 uppercase block mb-2">أو أدخل ميزانية يومية مخصصة</label>
           <div className="relative">
             <Input 
               type="number" 
               placeholder="مثلاً: ٢٠٠٠" 
-              className="h-14 rounded-2xl pr-12 text-lg font-black border-2 border-gray-100 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all"
+              className="h-14 rounded-2xl pr-12 text-lg font-black border-2 border-border focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all bg-card text-foreground"
               value={trip.customBudget || ""}
               onChange={e => handleCustomBudgetChange(e.target.value)}
             />
@@ -1201,7 +1258,7 @@ const TripAIChat = () => {
         </div>
 
         <div className="flex gap-3">
-          <Button variant="outline" className="flex-1 h-14 rounded-2xl font-black text-gray-500 border-gray-200" onClick={goBack}>
+          <Button variant="outline" className="flex-1 h-14 rounded-2xl font-black text-muted-foreground border-border" onClick={goBack}>
             <ArrowRight className="w-5 h-5 ml-2" /> رجوع
           </Button>
           <Button className="flex-[2] h-14 rounded-2xl bg-gradient-to-r from-emerald-600 to-green-600 text-white font-black shadow-xl shadow-emerald-200 gap-3" disabled={!trip.budget && !trip.customBudget} onClick={goNext}>
@@ -1216,8 +1273,8 @@ const TripAIChat = () => {
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-6">
       <div className="text-center space-y-2">
         <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 mx-auto flex items-center justify-center text-3xl shadow-lg shadow-violet-200">🏨</div>
-        <h3 className="text-2xl font-black text-gray-900">محتاج فندق؟</h3>
-        <p className="text-sm text-gray-500 font-medium">هل تريد البحث عن إقامة في {trip.destination}?</p>
+        <h3 className="text-2xl font-black text-foreground">محتاج فندق؟</h3>
+        <p className="text-sm text-muted-foreground font-medium">هل تريد البحث عن إقامة في {trip.destination}?</p>
       </div>
       <div className="grid grid-cols-2 gap-4">
         <button onClick={() => updateTrip({ hotelNeeded: true })}
@@ -1225,10 +1282,10 @@ const TripAIChat = () => {
             "flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all",
             trip.hotelNeeded === true
               ? "border-violet-500 bg-violet-50 shadow-lg shadow-violet-100"
-              : "border-gray-100 bg-white hover:border-violet-200"
+              : "border-border bg-card hover:border-violet-200"
           )}>
           <span className="text-4xl">👍</span>
-          <span className="font-black text-gray-900">نعم</span>
+          <span className="font-black text-foreground">نعم</span>
           <span className="text-[10px] font-bold text-gray-400">أدور لك على فنادق</span>
         </button>
         <button onClick={() => updateTrip({ hotelNeeded: false, hotel: { checkIn: "", checkOut: "", stars: "", roomType: "" } })}
@@ -1236,15 +1293,15 @@ const TripAIChat = () => {
             "flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all",
             trip.hotelNeeded === false
               ? "border-rose-500 bg-rose-50 shadow-lg shadow-rose-100"
-              : "border-gray-100 bg-white hover:border-rose-200"
+              : "border-border bg-card hover:border-rose-200"
           )}>
           <span className="text-4xl">👎</span>
-          <span className="font-black text-gray-900">لا شكراً</span>
+          <span className="font-black text-foreground">لا شكراً</span>
           <span className="text-[10px] font-bold text-gray-400">مش محتاج فنادق</span>
         </button>
       </div>
       <div className="flex gap-3">
-        <Button variant="outline" className="flex-1 h-14 rounded-2xl font-black text-gray-500 border-gray-200" onClick={goBack}>
+        <Button variant="outline" className="flex-1 h-14 rounded-2xl font-black text-muted-foreground border-border" onClick={goBack}>
           <ArrowRight className="w-5 h-5 ml-2" /> رجوع
         </Button>
         <Button className="flex-[2] h-14 rounded-2xl bg-gradient-to-r from-violet-600 to-purple-600 text-white font-black shadow-xl shadow-violet-200 gap-3" disabled={trip.hotelNeeded === null} onClick={goNext}>
@@ -1255,75 +1312,133 @@ const TripAIChat = () => {
   );
 
   const renderStep7 = () => (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-6">
-      <div className="text-center space-y-2">
-        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-600 mx-auto flex items-center justify-center text-3xl shadow-lg shadow-pink-200">🏨</div>
-        <h3 className="text-2xl font-black text-gray-900">اختر إقامتك المثالية</h3>
-        <p className="text-sm text-gray-500 font-medium">اختر من أفضل فنادق {trip.destination}</p>
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-8">
+      <div className="text-center space-y-3">
+        <div className="w-20 h-20 rounded-[2rem] bg-gradient-to-br from-pink-500 to-rose-600 mx-auto flex items-center justify-center text-4xl shadow-xl shadow-pink-200 ring-4 ring-white">🏨</div>
+        <h3 className="text-2xl font-black text-foreground">متى ستبدأ رحلتك؟</h3>
+        <p className="text-sm text-muted-foreground font-medium">حدد تاريخ الوصول وسنقوم بحساب تاريخ المغادرة تلقائياً بناءً على مدة الرحلة ({trip.days} أيام)</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <label className="text-[10px] font-black text-gray-400 uppercase block">📅 الوصول</label>
-          <Input type="date" className="h-11 rounded-xl font-bold border-gray-200 focus:border-pink-400" value={trip.hotel.checkIn} onChange={e => updateHotel({ checkIn: e.target.value })} />
-        </div>
-        <div className="space-y-2">
-          <label className="text-[10px] font-black text-gray-400 uppercase block">📅 المغادرة</label>
-          <Input type="date" className="h-11 rounded-xl font-bold border-gray-200 focus:border-pink-400" value={trip.hotel.checkOut} onChange={e => updateHotel({ checkOut: e.target.value })} />
-        </div>
-      </div>
-
-      <ScrollArea className="h-[350px] pr-4 -mr-4">
-        <div className="space-y-3">
-          {cityHotels.length > 0 ? (
-            cityHotels.map(h => (
-              <button key={h.location_id} onClick={() => updateTrip({ selectedHotel: h })}
-                className={cn(
-                  "w-full flex gap-4 p-4 rounded-2xl border-2 transition-all duration-200 text-right group",
-                  trip.selectedHotel?.location_id === h.location_id
-                    ? "border-pink-500 bg-pink-50 shadow-lg shadow-pink-100"
-                    : "border-gray-100 bg-white hover:border-pink-200"
-                )}>
-                <div className="w-24 h-24 rounded-xl overflow-hidden shrink-0 border border-gray-100 relative">
-                  <img src={h.photo?.images?.medium?.url || h.image} alt={h.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                  <div className="absolute top-1 right-1 bg-gradient-to-r from-indigo-500 to-violet-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded-lg shadow-sm">AI الموصى به</div>
-                </div>
-                <div className="flex-1 min-w-0 flex flex-col justify-between py-1">
-                  <div>
-                    <div className="font-black text-gray-900 text-sm leading-tight truncate">{h.name}</div>
-                    <div className="flex items-center gap-1 mt-1">
-                      <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
-                      <span className="text-[10px] font-black text-gray-600">{h.rating}</span>
-                      <span className="text-[9px] font-bold text-gray-400 mr-2 truncate">{h.address}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between mt-2">
-                    <div className="px-2 py-1 bg-white rounded-lg border border-gray-100 text-[10px] font-black text-pink-600 shadow-sm">
-                      {h.price}
-                    </div>
-                    {trip.selectedHotel?.location_id === h.location_id && (
-                      <div className="w-6 h-6 rounded-full bg-pink-500 flex items-center justify-center text-white text-xs">
-                        <CheckCircle2 className="w-4 h-4" />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </button>
-            ))
-          ) : (
-            <div className="text-center py-10">
-              <Loader2 className="w-8 h-8 animate-spin mx-auto text-pink-300 mb-2" />
-              <p className="text-xs font-bold text-gray-400">جاري تحميل الفنادق المتاحة...</p>
+      <div className="bg-card border-2 border-border rounded-[2.5rem] p-8 space-y-6 shadow-sm">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-3">
+            <label className="text-xs font-black text-gray-400 uppercase flex items-center gap-2 pr-1">
+              <Calendar className="w-4 h-4 text-pink-500" /> تاريخ الوصول
+            </label>
+            <Input 
+              type="date" 
+              className="h-14 rounded-2xl font-black text-lg border-2 border-border focus:border-pink-400 focus:ring-4 focus:ring-pink-50 transition-all bg-card text-foreground" 
+              value={trip.hotel.checkIn} 
+              onChange={e => {
+                const checkIn = e.target.value;
+                if (checkIn && trip.days) {
+                  const date = new Date(checkIn);
+                  date.setDate(date.getDate() + (trip.days - 1));
+                  const checkOut = date.toISOString().split('T')[0];
+                  updateHotel({ checkIn, checkOut });
+                } else {
+                  updateHotel({ checkIn });
+                }
+              }} 
+            />
+          </div>
+          <div className="space-y-3">
+            <label className="text-xs font-black text-gray-400 uppercase flex items-center gap-2 pr-1">
+              <Clock className="w-4 h-4 text-gray-400" /> تاريخ المغادرة (تلقائي)
+            </label>
+            <div className="relative">
+              <Input 
+                type="date" 
+                readOnly
+                className="h-14 rounded-2xl font-black text-lg border-2 border-border bg-accent/50 text-muted-foreground cursor-not-allowed pr-4" 
+                value={trip.hotel.checkOut} 
+              />
             </div>
-          )}
+          </div>
         </div>
-      </ScrollArea>
 
-      <div className="flex gap-3 pt-2">
-        <Button variant="outline" className="flex-1 h-14 rounded-2xl font-black text-gray-500 border-gray-200" onClick={goBack}>
+        {trip.hotel.checkIn && trip.hotel.checkOut && (
+          <div className="space-y-4 pt-4">
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-black text-foreground flex items-center gap-2">
+                <Hotel className="w-4 h-4 text-violet-500" /> فنادق مقترحة لك
+              </h4>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-[10px] font-black text-violet-600 hover:text-violet-700 h-7"
+                onClick={fetchStepHotels}
+                disabled={isFetchingStepHotels}
+              >
+                {isFetchingStepHotels ? <Loader2 className="w-3 h-3 animate-spin ml-1" /> : <Sparkles className="w-3 h-3 ml-1" />}
+                تحديث المقترحات
+              </Button>
+            </div>
+
+            {isFetchingStepHotels ? (
+              <div className="flex flex-col items-center justify-center py-10 bg-muted/50 rounded-3xl border-2 border-dashed border-border">
+                <Loader2 className="w-8 h-8 text-violet-400 animate-spin mb-3" />
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">جاري جلب أفضل العروض...</p>
+              </div>
+            ) : stepHotels.length > 0 ? (
+              <div className="grid grid-cols-1 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                {stepHotels.slice(0, 5).map((h, i) => (
+                  <div 
+                    key={h.location_id || i}
+                    onClick={() => updateTrip({ selectedHotel: h })}
+                    className={cn(
+                      "flex gap-4 p-3 rounded-2xl border-2 transition-all cursor-pointer group",
+                      trip.selectedHotel?.location_id === h.location_id 
+                        ? "border-violet-500 bg-violet-100 shadow-sm" 
+                        : "border-gray-50 bg-card hover:border-violet-200"
+                    )}
+                  >
+                    <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0 shadow-sm relative">
+                      <img src={h.photo?.images?.medium?.url} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={h.name} />
+                      {trip.selectedHotel?.location_id === h.location_id && (
+                        <div className="absolute inset-0 bg-violet-600/20 flex items-center justify-center">
+                          <CheckCircle2 className="w-6 h-6 text-white" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0 py-1">
+                      <h5 className="font-black text-xs text-foreground truncate mb-1">{h.name}</h5>
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="flex items-center gap-0.5">
+                          <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
+                          <span className="text-[10px] font-black text-muted-foreground">{h.rating}</span>
+                        </div>
+                        <span className="text-[10px] font-bold text-gray-400">•</span>
+                        <span className="text-[10px] font-black text-emerald-600">{h.price}</span>
+                      </div>
+                      <Badge variant="outline" className="text-[8px] px-2 py-0 border-border text-gray-400 font-black">
+                        {h.review_word}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-4 rounded-2xl bg-amber-50 border border-amber-100 flex items-start gap-4">
+                <Sparkles className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <p className="text-xs font-bold text-amber-800 leading-relaxed">
+                  سنقوم باقتراح أفضل الفنادق المتاحة لك بناءً على ميزانيتك ووجهتك فور انتهاء التخطيط.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="flex gap-4 pt-4">
+        <Button variant="outline" className="flex-1 h-14 rounded-2xl font-black text-muted-foreground border-border hover:bg-muted" onClick={goBack}>
           <ArrowRight className="w-5 h-5 ml-2" /> رجوع
         </Button>
-        <Button className="flex-[2] h-14 rounded-2xl bg-gradient-to-r from-pink-600 to-rose-600 text-white font-black shadow-xl shadow-pink-200 gap-3" disabled={!trip.hotel.checkIn || !trip.hotel.checkOut || !trip.selectedHotel} onClick={goNext}>
+        <Button 
+          className="flex-[2] h-14 rounded-2xl bg-gradient-to-r from-pink-600 to-rose-600 text-white font-black shadow-xl shadow-pink-200 gap-3 hover:shadow-2xl transition-all" 
+          disabled={!trip.hotel.checkIn || !trip.hotel.checkOut} 
+          onClick={goNext}
+        >
           المراجعة النهائية <ArrowLeft className="w-5 h-5" />
         </Button>
       </div>
@@ -1338,8 +1453,8 @@ const TripAIChat = () => {
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-6">
       <div className="text-center space-y-2">
         <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 mx-auto flex items-center justify-center text-3xl shadow-lg shadow-indigo-200">✅</div>
-        <h3 className="text-2xl font-black text-gray-900">مراجعة نهائية</h3>
-        <p className="text-sm text-gray-500 font-medium">راجع التفاصيل وأكّد رحلتك</p>
+        <h3 className="text-2xl font-black text-foreground">مراجعة نهائية</h3>
+        <p className="text-sm text-muted-foreground font-medium">راجع التفاصيل وأكّد رحلتك</p>
       </div>
 
       <div className="bg-gradient-to-br from-indigo-50 to-violet-50 border border-indigo-100 rounded-3xl p-6 space-y-4">
@@ -1353,7 +1468,7 @@ const TripAIChat = () => {
                 <span className="flex items-center gap-2 text-sm font-bold text-indigo-500">
                   <span>{item.icon}</span> {item.label}
                 </span>
-                <span className="font-black text-gray-900 text-base">{item.value}</span>
+                <span className="font-black text-foreground text-base">{item.value}</span>
               </div>
             ))}
           </>
@@ -1371,14 +1486,14 @@ const TripAIChat = () => {
                 <span className="flex items-center gap-2 text-sm font-bold text-indigo-500">
                   <span>{item.icon}</span> {item.label}
                 </span>
-                <span className="font-black text-gray-900 text-sm text-left max-w-[55%] truncate">{item.value}</span>
+                <span className="font-black text-foreground text-sm text-left max-w-[55%] truncate">{item.value}</span>
               </div>
             ))}
 
             {trip.hotelNeeded && trip.hotel.checkIn && (
               <div className="flex items-center justify-between py-2 border-b border-indigo-100/50">
                 <span className="flex items-center gap-2 text-sm font-bold text-indigo-500">📅 التواريخ</span>
-                <span className="font-black text-gray-900 text-sm">{trip.hotel.checkIn} ➔ {trip.hotel.checkOut}</span>
+                <span className="font-black text-foreground text-sm">{trip.hotel.checkIn} ➔ {trip.hotel.checkOut}</span>
               </div>
             )}
 
@@ -1394,7 +1509,7 @@ const TripAIChat = () => {
       </div>
 
       <div className="flex gap-3 pt-2">
-        <Button variant="outline" className="flex-1 h-14 rounded-2xl font-black text-gray-500 border-gray-200" onClick={goBack}>
+        <Button variant="outline" className="flex-1 h-14 rounded-2xl font-black text-muted-foreground border-border" onClick={goBack}>
           <ArrowRight className="w-5 h-5 ml-2" /> رجوع
         </Button>
         <Button 
@@ -1416,7 +1531,7 @@ const TripAIChat = () => {
   };
   if (mode === "idle") {
     return (
-      <div className="min-h-screen flex flex-col bg-[#FDFDFF] font-cairo overflow-x-hidden" dir="rtl">
+      <div className="min-h-screen flex flex-col bg-background transition-colors duration-500 font-cairo overflow-x-hidden" dir="rtl">
         <Header />
         
         {/* Animated Background Layers */}
@@ -1448,27 +1563,27 @@ const TripAIChat = () => {
                   <span>مستقبلك السياحي يبدأ هنا</span>
                 </motion.div>
                 
-                <h1 className="text-5xl md:text-7xl font-black text-gray-900 leading-[1.1] tracking-tight">
+                <h1 className="text-5xl md:text-7xl font-black text-foreground leading-[1.1] tracking-tight">
                   خطّط لرحلتك <br />
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-600">بذكاء استثنائي</span>
                 </h1>
                 
-                <p className="text-xl text-gray-500 font-medium leading-relaxed max-w-xl">
+                <p className="text-xl text-muted-foreground font-medium leading-relaxed max-w-xl">
                   سواء كنت تبحث عن رحلة جاهزة من تجارب الآخرين، أو تريد تصميم رحلة أحلامك من الصفر بذكائنا الاصطناعي، نحن هنا لنجعلها حقيقة.
                 </p>
               </div>
 
-              <div className="flex items-center gap-8 py-4 border-y border-gray-100">
+              <div className="flex items-center gap-8 py-4 border-y border-border">
                 <div className="flex flex-col">
                   <span className="text-3xl font-black text-indigo-600">+١٠٠٠</span>
                   <span className="text-xs font-bold text-gray-400">رحلة ناجحة</span>
                 </div>
-                <div className="w-px h-10 bg-gray-100" />
+                <div className="w-px h-10 bg-accent" />
                 <div className="flex flex-col">
                   <span className="text-3xl font-black text-violet-600">١٠٠٪</span>
                   <span className="text-xs font-bold text-gray-400">تخصيص كامل</span>
                 </div>
-                <div className="w-px h-10 bg-gray-100" />
+                <div className="w-px h-10 bg-accent" />
                 <div className="flex flex-col">
                   <span className="text-3xl font-black text-emerald-600">مجاني</span>
                   <span className="text-xs font-bold text-gray-400">للمستخدمين</span>
@@ -1502,7 +1617,7 @@ const TripAIChat = () => {
                 whileHover={{ scale: 1.02, y: -8 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => setMode("custom")}
-                className="group relative bg-white border border-gray-100 rounded-[2.5rem] p-10 text-right hover:border-violet-200 hover:shadow-[0_40px_80px_-20px_rgba(139,92,246,0.15)] transition-all duration-500 overflow-hidden text-right flex items-center gap-8"
+                className="group relative bg-card border border-border rounded-[2.5rem] p-10 text-right hover:border-violet-200 hover:shadow-[0_40px_80px_-20px_rgba(139,92,246,0.15)] transition-all duration-500 overflow-hidden text-right flex items-center gap-8"
               >
                 <div className="absolute top-0 left-0 w-2 h-full bg-gradient-to-b from-violet-500 to-pink-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                 
@@ -1511,11 +1626,11 @@ const TripAIChat = () => {
                 </div>
                 
                 <div className="flex-1">
-                  <h3 className="text-2xl font-black text-gray-900 mb-2 flex items-center justify-end gap-3">
+                  <h3 className="text-2xl font-black text-foreground mb-2 flex items-center justify-end gap-3">
                     <span>رحلة مخصصة</span>
                     <Badge className="bg-violet-600 text-white border-0 font-black text-[10px]">الأكثر تطوراً</Badge>
                   </h3>
-                  <p className="text-sm text-gray-500 font-medium leading-relaxed">
+                  <p className="text-sm text-muted-foreground font-medium leading-relaxed">
                     اصنع برنامجاً سياحياً فريداً من الصفر باستخدام أقوى محرك ذكاء اصطناعي.
                   </p>
                   <div className="flex items-center justify-end gap-2 mt-6 text-violet-600 font-black text-sm">
@@ -1530,7 +1645,7 @@ const TripAIChat = () => {
                 whileHover={{ scale: 1.02, y: -8 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => setMode("smart")}
-                className="group relative bg-white border border-gray-100 rounded-[2.5rem] p-10 text-right hover:border-indigo-200 hover:shadow-[0_40px_80px_-20px_rgba(79,70,229,0.15)] transition-all duration-500 overflow-hidden flex items-center gap-8"
+                className="group relative bg-card border border-border rounded-[2.5rem] p-10 text-right hover:border-indigo-200 hover:shadow-[0_40px_80px_-20px_rgba(79,70,229,0.15)] transition-all duration-500 overflow-hidden flex items-center gap-8"
               >
                 <div className="absolute top-0 left-0 w-2 h-full bg-gradient-to-b from-indigo-500 to-sky-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                 
@@ -1539,8 +1654,8 @@ const TripAIChat = () => {
                 </div>
                 
                 <div className="flex-1">
-                  <h3 className="text-2xl font-black text-gray-900 mb-2">بحث ذكي بالمنصة</h3>
-                  <p className="text-sm text-gray-500 font-medium leading-relaxed">
+                  <h3 className="text-2xl font-black text-foreground mb-2">بحث ذكي بالمنصة</h3>
+                  <p className="text-sm text-muted-foreground font-medium leading-relaxed">
                     أدخل وجهتك وميزانيتك وسيقوم الذكاء الاصطناعي باقتراح أفضل رحلة متاحة بالمنصة.
                   </p>
                   <div className="flex items-center justify-end gap-2 mt-6 text-indigo-600 font-black text-sm">
@@ -1599,19 +1714,21 @@ const TripAIChat = () => {
      ═════════════════════════════════════════════ */
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FDFDFF] font-cairo" dir="rtl">
+    <div className="min-h-screen flex flex-col bg-background font-cairo transition-colors duration-500" dir="rtl">
       <Header />
       <div className="fixed inset-0 pointer-events-none opacity-30 z-0">
-        <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-indigo-100 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-violet-100 rounded-full blur-[120px]" />
+        <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-indigo-500/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-violet-500/10 rounded-full blur-[120px]" />
       </div>
 
       <main className="flex-1 container mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-10 relative z-10">
         <div className="max-w-7xl mx-auto h-[calc(100vh-5.5rem)] sm:h-[calc(100vh-6rem)] min-h-[480px] flex flex-col lg:flex-row gap-4 lg:gap-6">
 
           {/* ════════════════ LEFT PANEL – Results / Preview ════════════════ */}
-          <div className={cn(
-            "flex-1 bg-white/70 backdrop-blur-2xl rounded-2xl lg:rounded-[2.5rem] border border-gray-100/50 shadow-xl flex flex-col overflow-hidden min-h-0",
+          <div 
+            id="ai-trip-plan-preview"
+            className={cn(
+            "flex-1 bg-card/70 backdrop-blur-2xl rounded-2xl lg:rounded-[2.5rem] border border-border shadow-xl flex flex-col overflow-hidden min-h-0",
             "lg:flex",
             !tripPlan && filteredTrips.length === 0 && !isGeneratingPlan ? "hidden lg:flex" : "",
             mobileView === 'results' ? "flex" : "hidden lg:flex"
@@ -1630,10 +1747,10 @@ const TripAIChat = () => {
                       </div>
                     </div>
                     <div className="text-center space-y-3">
-                      <h3 className="text-2xl font-black text-gray-900">
+                      <h3 className="text-2xl font-black text-foreground">
                         {isSearching ? "جاري البحث في المنصة..." : "جاري هندسة رحلتك..."}
                       </h3>
-                      <p className="text-sm text-gray-500 font-medium max-w-sm mx-auto leading-relaxed">
+                      <p className="text-sm text-muted-foreground font-medium max-w-sm mx-auto leading-relaxed">
                         {isSearching 
                           ? "ذكاؤنا الاصطناعي يحلل مئات الرحلات بالمنصة ليجد لك الأنسب لميزانيتك ووجهتك." 
                           : "نقوم الآن بالبحث عن أفضل المعالم، المطاعم، والفنادق لنبني لك تجربة لا تُنسى. ✨"}
@@ -1658,11 +1775,11 @@ const TripAIChat = () => {
                           <p className="text-indigo-100 font-bold text-sm opacity-90 mt-1">لقد قمنا بتحليل {availableTrips.length} رحلة ووجدنا {filteredTrips.length} نتائج تطابق ميزانيتك ووجهتك.</p>
                         </div>
                       </div>
-                      <Button variant="outline" className="rounded-2xl font-black text-xs bg-white/10 border-white/20 hover:bg-white text-white hover:text-indigo-600 transition-all px-6 h-12" onClick={resetWizard}>تعديل البحث</Button>
+                      <Button variant="outline" className="rounded-2xl font-black text-xs bg-white/10 border-white/20 hover:bg-card text-white hover:text-indigo-600 transition-all px-6 h-12" onClick={resetWizard}>تعديل البحث</Button>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {filteredTrips.map((t, idx) => (
-                        <div key={t.id || t._id} className="bg-white border-2 border-gray-100 rounded-[2rem] overflow-hidden shadow-sm hover:shadow-2xl hover:border-indigo-200 transition-all duration-500 group cursor-pointer" onClick={() => navigate(`/trips/${t.id || t._id}`)}>
+                        <div key={t.id || t._id} className="bg-card border-2 border-border rounded-[2rem] overflow-hidden shadow-sm hover:shadow-2xl hover:border-indigo-200 transition-all duration-500 group cursor-pointer" onClick={() => navigate(`/trips/${t.id || t._id}`)}>
                           <div className="relative h-56">
                             <img src={t.image || 'https://images.unsplash.com/photo-1572252009286-268acec5ca0a?w=800&q=80'} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" alt={t.title} />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
@@ -1675,23 +1792,23 @@ const TripAIChat = () => {
                               <h4 className="font-black text-xl mb-1 line-clamp-1 group-hover:text-sky-300 transition-colors">{t.title}</h4>
                             </div>
                           </div>
-                          <div className="p-6 flex items-center justify-between bg-white">
+                          <div className="p-6 flex items-center justify-between bg-card">
                             <div className="flex items-center gap-3">
                               <div className="w-10 h-10 rounded-2xl bg-indigo-50 overflow-hidden shadow-sm border border-indigo-100/50 p-0.5"><img src={t.authorImage || `https://api.dicebear.com/7.x/avataaars/svg?seed=${t.author}`} alt={t.author} className="w-full h-full object-cover rounded-xl" /></div>
                               <div>
                                 <span className="text-[10px] font-black text-gray-400 block uppercase mb-0.5">بواسطة</span>
-                                <span className="text-xs font-black text-gray-800">{t.author}</span>
+                                <span className="text-xs font-black text-foreground">{t.author}</span>
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
                               <div className="text-left">
-                                <span className="text-[10px] font-black text-gray-400 block text-left">التقييم</span>
+                                <span className="text-[10px] font-black text-muted-foreground block text-left">التقييم</span>
                                 <div className="flex items-center gap-1">
                                   <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
-                                  <span className="text-xs font-black text-gray-900">{t.rating || "4.8"}</span>
+                                  <span className="text-xs font-black text-foreground">{t.rating || "4.8"}</span>
                                 </div>
                               </div>
-                              <div className="w-10 h-10 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300 shadow-sm"><ArrowUpRight className="w-5 h-5" /></div>
+                              <div className="w-10 h-10 rounded-2xl bg-muted flex items-center justify-center text-gray-400 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300 shadow-sm"><ArrowUpRight className="w-5 h-5" /></div>
                             </div>
                           </div>
                         </div>
@@ -1701,20 +1818,28 @@ const TripAIChat = () => {
                 ) : tripPlan ? (
                   /* Custom Trip Results */
                   <div className="space-y-12 animate-in fade-in duration-500">
-                    <div className="relative rounded-xl lg:rounded-[2rem] overflow-hidden group">
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-10" />
-                      <img src={tripPlan.attractions?.[0]?.photo?.images?.large?.url || tripPlan.attractions?.[0]?.photo?.images?.medium?.url} alt="" className="w-full h-48 sm:h-64 lg:h-80 object-cover group-hover:scale-110 transition-transform duration-1000" />
+                    <div className="relative rounded-xl lg:rounded-[2rem] overflow-hidden group h-48 sm:h-64 lg:h-80">
+                      <div className="absolute inset-0 z-0">
+                        <MapboxTripMap 
+                          positions={generatedItinerary 
+                            ? generatedItinerary.days.flatMap(d => d.activities.map(a => a.coordinates)) 
+                            : tripPlan.attractions.map(a => ({ lat: parseFloat(a.latitude || "0"), lng: parseFloat(a.longitude || "0") }))
+                          }
+                          height="100%"
+                        />
+                      </div>
+                      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent z-10" />
                       <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 lg:bottom-10 lg:right-10 z-20">
                         <Badge className="bg-indigo-600 text-white border-0 mb-2 sm:mb-3 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full font-black uppercase text-[9px] sm:text-[10px] tracking-widest shadow-lg">وجهة مقترحة</Badge>
-                        <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-white mb-2 leading-tight">{tripPlan.location.name}</h1>
-                        <div className="flex items-center gap-4 text-white/80 font-bold">
-                          <span className="flex items-center gap-2 bg-black/20 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10"><Clock className="w-4 h-4 text-sky-400" /> {trip.days} أيام</span>
+                        <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-foreground mb-2 leading-tight">{tripPlan.location.name}</h1>
+                        <div className="flex items-center gap-4 text-muted-foreground font-bold">
+                          <span className="flex items-center gap-2 bg-background/50 backdrop-blur-md px-4 py-2 rounded-xl border border-border"><Clock className="w-4 h-4 text-sky-400" /> {trip.days} أيام</span>
                         </div>
                       </div>
                     </div>
 
-                    {/* SMART ITINERARY DISPLAY */}
-                    {generatedItinerary && (
+                    {generatedItinerary ? (
+                      /* SMART ITINERARY DISPLAY */
                       <section className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-1000">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-gradient-to-r from-indigo-50/50 to-white p-8 rounded-[3rem] border border-indigo-100/50 shadow-sm">
                           <div className="flex items-center gap-5">
@@ -1722,7 +1847,7 @@ const TripAIChat = () => {
                               <Calendar className="w-8 h-8" />
                             </div>
                             <div>
-                              <h3 className="text-3xl font-black text-gray-900 leading-tight">برنامجك اليومي</h3>
+                              <h3 className="text-3xl font-black text-foreground leading-tight">برنامجك اليومي</h3>
                               <p className="text-sm font-bold text-indigo-600/70 mt-1">تم تنظيم الأماكن المختارة ذكياً حسب الوقت والموقع</p>
                             </div>
                           </div>
@@ -1741,14 +1866,14 @@ const TripAIChat = () => {
 
                           {generatedItinerary.days.map((day, dIdx) => (
                             <motion.div key={dIdx} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: dIdx * 0.1 }} className="relative md:pr-16">
-                              <div className="absolute right-0 top-0 w-12 h-12 rounded-2xl bg-white border-4 shadow-xl z-10 hidden md:flex items-center justify-center" style={{ borderColor: day.color || '#6366f1' }}>
+                              <div className="absolute right-0 top-0 w-12 h-12 rounded-2xl bg-card border-4 shadow-xl z-10 hidden md:flex items-center justify-center" style={{ borderColor: day.color || '#6366f1' }}>
                                 <span className="text-sm font-black" style={{ color: day.color || '#6366f1' }}>{dIdx + 1}</span>
                               </div>
                               
                               <div className="mb-10 pt-2">
-                                <h4 className="text-2xl font-black text-gray-900 mb-2">{day.title}</h4>
+                                <h4 className="text-2xl font-black text-foreground mb-2">{day.title}</h4>
                                 <div className="flex items-center gap-3">
-                                  <Badge className="bg-gray-100 text-gray-500 border-none font-black text-[10px] px-3 py-1 rounded-lg">
+                                  <Badge className="bg-accent text-muted-foreground border-none font-black text-[10px] px-3 py-1 rounded-lg">
                                     {day.activities.length} أنشطة
                                   </Badge>
                                 </div>
@@ -1764,10 +1889,10 @@ const TripAIChat = () => {
                                     <motion.div 
                                       key={aIdx} 
                                       whileHover={{ y: -5 }}
-                                      className="bg-white rounded-[2.5rem] p-6 border border-gray-100 shadow-sm hover:shadow-2xl transition-all duration-500 group relative"
+                                      className="bg-card rounded-[2.5rem] p-6 border border-border shadow-sm hover:shadow-2xl transition-all duration-500 group relative"
                                     >
                                       <div className="flex flex-col md:flex-row gap-8">
-                                        <div className="w-full md:w-64 h-48 md:h-auto rounded-[2rem] overflow-hidden shrink-0 shadow-lg relative bg-gray-50">
+                                        <div className="w-full md:w-64 h-48 md:h-auto rounded-[2rem] overflow-hidden shrink-0 shadow-lg relative bg-muted">
                                           {imgUrl ? (
                                             <img src={imgUrl} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" alt={act.name} />
                                           ) : (
@@ -1783,7 +1908,7 @@ const TripAIChat = () => {
                                         </div>
                                         <div className="flex-1 py-2">
                                           <div className="flex items-center gap-3 mb-3">
-                                            <h5 className="font-black text-gray-900 text-xl">{act.name}</h5>
+                                            <h5 className="font-black text-foreground text-xl">{act.name}</h5>
                                             <Badge className={cn(
                                               "text-[9px] font-black h-5 px-2 rounded-lg border-none", 
                                               act.type === 'restaurant' ? "bg-orange-50 text-orange-600" : "bg-blue-50 text-blue-600"
@@ -1791,7 +1916,7 @@ const TripAIChat = () => {
                                               {act.type === 'restaurant' ? 'مطعم' : 'معلم'}
                                             </Badge>
                                           </div>
-                                          <p className="text-sm text-gray-500 font-bold leading-relaxed mb-6 line-clamp-3">
+                                          <p className="text-sm text-muted-foreground font-bold leading-relaxed mb-6 line-clamp-3">
                                             {act.note || original?.description || "استمتع بزيارة هذا المكان الرائع كجزء من برنامجك اليومي."}
                                           </p>
                                           <div className="flex items-center gap-6 pt-4 border-t border-gray-50">
@@ -1809,102 +1934,180 @@ const TripAIChat = () => {
                           ))}
                         </div>
                       </section>
-                    )}
-
-                    {!generatedItinerary && (
+                    ) : (
+                      /* Selection View */
                       <div className="space-y-12 animate-in fade-in duration-700">
                         {/* Attractions (Popular Places) */}
                         <section>
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-                        <div>
-                          <h3 className="text-2xl font-black text-gray-900 flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-[1.25rem] bg-indigo-50 flex items-center justify-center text-indigo-600">
-                              <Camera className="w-6 h-6" />
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+                            <div>
+                              <h3 className="text-2xl font-black text-foreground flex items-center gap-3">
+                                <div className="w-12 h-12 rounded-[1.25rem] bg-indigo-50 flex items-center justify-center text-indigo-600">
+                                  <Camera className="w-6 h-6" />
+                                </div>
+                                أماكن شهيرة في {tripPlan.location.name}
+                              </h3>
+                              <p className="text-sm font-medium text-gray-400 mt-1">اختر الأماكن التي تود زيارتها ليتم تنظيمها لك</p>
                             </div>
-                            أماكن شهيرة في {tripPlan.location.name}
-                          </h3>
-                          <p className="text-sm font-medium text-gray-400 mt-1">اختر الأماكن التي تود زيارتها ليتم تنظيمها لك</p>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">المحدد:</span>
-                          <Badge className="bg-indigo-600 text-white font-black text-xs px-3 py-1 rounded-lg shadow-lg shadow-indigo-100">{selectedAttractions.size}</Badge>
-                        </div>
-                      </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">المحدد:</span>
+                              <Badge className="bg-indigo-600 text-white font-black text-xs px-3 py-1 rounded-lg shadow-lg shadow-indigo-100">{selectedAttractions.size}</Badge>
+                            </div>
+                          </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        {tripPlan.attractions.map((item, idx) => {
-                          const isSelected = selectedAttractions.has(item.location_id || String(idx));
-                          return (
-                            <motion.div key={idx} whileHover={{ y: -4 }} className={cn("group bg-white border-2 rounded-[2.5rem] p-4 transition-all duration-300 cursor-pointer relative", isSelected ? "border-indigo-600 shadow-2xl shadow-indigo-100 ring-4 ring-indigo-50/50" : "border-gray-50 hover:border-indigo-200 hover:shadow-xl hover:shadow-gray-100/50")} onClick={() => { const newSet = new Set(selectedAttractions); if (newSet.has(item.location_id || String(idx))) newSet.delete(item.location_id || String(idx)); else newSet.add(item.location_id || String(idx)); setSelectedAttractions(newSet); }}>
-                              <div className="flex gap-5">
-                                <div className="w-24 h-24 rounded-[1.75rem] overflow-hidden shrink-0 shadow-inner bg-gray-50 relative group-hover:rotate-2 transition-transform">
-                                  {item.photo?.images?.medium?.url && <img src={item.photo.images.medium.url} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={item.name} />}
-                                  {isSelected && <div className="absolute inset-0 bg-indigo-600/20 flex items-center justify-center"><CheckCircle2 className="w-10 h-10 text-white drop-shadow-lg" /></div>}
-                                </div>
-                                <div className="flex-1 min-w-0 flex flex-col justify-center">
-                                  <div className="flex items-center gap-2 mb-1.5"><Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" /><span className="text-xs font-black text-gray-700">{item.rating || "4.5"}</span></div>
-                                  <h4 className="font-black text-gray-900 mb-1.5 truncate text-lg leading-tight group-hover:text-indigo-600 transition-colors">{item.name}</h4>
-                                  <p className="text-[10px] font-bold text-gray-400 line-clamp-2 leading-relaxed">{item.description || "استكشف جمال وتاريخ هذا المكان الرائع في " + tripPlan.location.name}</p>
-                                </div>
-                                <div className="absolute top-4 left-4"><Checkbox checked={isSelected} className="rounded-full h-6 w-6 border-2 data-[state=checked]:bg-indigo-600 data-[state=checked]:border-indigo-600" /></div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            {tripPlan.attractions.map((item, idx) => {
+                              const isSelected = selectedAttractions.has(item.location_id || String(idx));
+                              return (
+                                <motion.div key={idx} whileHover={{ y: -4 }} className={cn("group bg-card border-2 rounded-[2.5rem] p-4 transition-all duration-300 cursor-pointer relative", isSelected ? "border-indigo-600 shadow-2xl shadow-indigo-100 ring-4 ring-indigo-50/50" : "border-gray-50 hover:border-indigo-200 hover:shadow-xl hover:shadow-gray-100/50")} onClick={() => { const newSet = new Set(selectedAttractions); if (newSet.has(item.location_id || String(idx))) newSet.delete(item.location_id || String(idx)); else newSet.add(item.location_id || String(idx)); setSelectedAttractions(newSet); }}>
+                                  <div className="flex gap-5">
+                                    <div className="w-24 h-24 rounded-[1.75rem] overflow-hidden shrink-0 shadow-inner bg-muted relative group-hover:rotate-2 transition-transform">
+                                      {item.photo?.images?.medium?.url && <img src={item.photo.images.medium.url} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={item.name} />}
+                                      {isSelected && <div className="absolute inset-0 bg-indigo-600/20 flex items-center justify-center"><CheckCircle2 className="w-10 h-10 text-white drop-shadow-lg" /></div>}
+                                    </div>
+                                    <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                      <div className="flex items-center gap-2 mb-1.5"><Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" /><span className="text-xs font-black text-foreground">{item.rating || "4.5"}</span></div>
+                                      <h4 className="font-black text-foreground mb-1.5 truncate text-lg leading-tight group-hover:text-indigo-600 transition-colors">{item.name}</h4>
+                                      <p className="text-[10px] font-bold text-gray-400 line-clamp-2 leading-relaxed">{item.description || "استكشف جمال وتاريخ هذا المكان الرائع في " + tripPlan.location.name}</p>
+                                    </div>
+                                    <div className="absolute top-4 left-4"><Checkbox checked={isSelected} className="rounded-full h-6 w-6 border-2 data-[state=checked]:bg-indigo-600 data-[state=checked]:border-indigo-600" /></div>
+                                  </div>
+                                </motion.div>
+                              );
+                            })}
+                          </div>
+                        </section>
+
+                        {/* Restaurants */}
+                        <section>
+                          <div className="flex items-center justify-between mb-8">
+                            <h3 className="text-2xl font-black text-foreground flex items-center gap-3">
+                              <div className="w-12 h-12 rounded-[1.25rem] bg-orange-50 flex items-center justify-center text-orange-600">
+                                <Utensils className="w-6 h-6" />
                               </div>
-                            </motion.div>
-                          );
-                        })}
-                      </div>
-                    </section>
-
-                    {/* Restaurants */}
-                    <section>
-                      <div className="flex items-center justify-between mb-8">
-                        <h3 className="text-2xl font-black text-gray-900 flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-[1.25rem] bg-orange-50 flex items-center justify-center text-orange-600">
-                            <Utensils className="w-6 h-6" />
+                              المطاعم المقترحة
+                            </h3>
+                            <Badge className="bg-orange-600 text-white font-black text-xs px-3 py-1 rounded-lg shadow-lg shadow-orange-100">{selectedRestaurants.size} محدد</Badge>
                           </div>
-                          المطاعم المقترحة
-                        </h3>
-                        <Badge className="bg-orange-600 text-white font-black text-xs px-3 py-1 rounded-lg shadow-lg shadow-orange-100">{selectedRestaurants.size} محدد</Badge>
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                        {tripPlan.restaurants.slice(0, 6).map((item, idx) => (
-                          <div key={`res-${idx}`} className={cn("border-2 rounded-[2rem] p-4 transition-all hover:bg-white hover:shadow-xl cursor-pointer flex flex-col items-center text-center", selectedRestaurants.has(item.location_id || String(idx)) ? "bg-orange-50/30 border-orange-300 ring-4 ring-orange-50" : "bg-white border-gray-50")} onClick={() => { const newSet = new Set(selectedRestaurants); if (newSet.has(item.location_id || String(idx))) newSet.delete(item.location_id || String(idx)); else newSet.add(item.location_id || String(idx)); setSelectedRestaurants(newSet); }}>
-                            <div className="w-20 h-20 rounded-2xl overflow-hidden mb-3 shadow-sm relative"><img src={item.photo?.images?.medium?.url} className="w-full h-full object-cover" />{selectedRestaurants.has(item.location_id || String(idx)) && <div className="absolute inset-0 bg-orange-600/20 flex items-center justify-center"><CheckCircle2 className="w-8 h-8 text-white" /></div>}</div>
-                            <h4 className="font-black text-sm text-gray-900 truncate w-full mb-1">{item.name}</h4>
-                            <Badge variant="outline" className="text-[8px] px-2 py-0 border-orange-100 text-orange-500 font-black mb-2">{item.cuisine?.[0]?.name || "عالمي"}</Badge>
-                            <Checkbox checked={selectedRestaurants.has(item.location_id || String(idx))} className="rounded-full" />
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                            {tripPlan.restaurants.slice(0, 6).map((item, idx) => (
+                              <div key={`res-${idx}`} className={cn("border-2 rounded-[2rem] p-4 transition-all hover:bg-card hover:shadow-xl cursor-pointer flex flex-col items-center text-center", selectedRestaurants.has(item.location_id || String(idx)) ? "bg-orange-50/30 border-orange-300 ring-4 ring-orange-50" : "bg-card border-gray-50")} onClick={() => { const newSet = new Set(selectedRestaurants); if (newSet.has(item.location_id || String(idx))) newSet.delete(item.location_id || String(idx)); else newSet.add(item.location_id || String(idx)); setSelectedRestaurants(newSet); }}>
+                                <div className="w-20 h-20 rounded-2xl overflow-hidden mb-3 shadow-sm relative"><img src={item.photo?.images?.medium?.url} className="w-full h-full object-cover" />{selectedRestaurants.has(item.location_id || String(idx)) && <div className="absolute inset-0 bg-orange-600/20 flex items-center justify-center"><CheckCircle2 className="w-8 h-8 text-white" /></div>}</div>
+                                <h4 className="font-black text-sm text-foreground truncate w-full mb-1">{item.name}</h4>
+                                <Badge variant="outline" className="text-[8px] px-2 py-0 border-orange-100 text-orange-500 font-black mb-2">{item.cuisine?.[0]?.name || "عالمي"}</Badge>
+                                <Checkbox checked={selectedRestaurants.has(item.location_id || String(idx))} className="rounded-full" />
+                              </div>
+                            ))}
                           </div>
-                        ))}
+                        </section>
                       </div>
-                    </section>
+                    )}
 
-                    {/* Hotels */}
+                    {/* Hotels - Always show when tripPlan exists */}
                     {tripPlan.hotels && tripPlan.hotels.length > 0 && (
-                      <section className="border-t border-gray-100 pt-8">
-                        <div className="flex items-center justify-between mb-6">
-                          <h3 className="text-2xl font-black text-gray-900 flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600"><Hotel className="w-5 h-5" /></div>
-                            ترشيحات الإقامة
+                      <section className="border-t border-border pt-10">
+                        <div className="flex items-center justify-between mb-8">
+                          <h3 className="text-2xl font-black text-foreground flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-[1.25rem] bg-indigo-50 flex items-center justify-center text-indigo-600">
+                              <Hotel className="w-6 h-6" />
+                            </div>
+                            أفضل الفنادق المقترحة
                           </h3>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                           {tripPlan.hotels.map((item, idx) => {
                             const isSelected = selectedHotels.has(item.location_id || String(idx));
                             return (
-                              <div key={`hotel-${idx}`} className={cn("border border-gray-200 rounded-3xl p-4 transition-all hover:bg-white hover:shadow-lg cursor-pointer flex flex-col items-center text-center", isSelected && "bg-indigo-50 border-indigo-500 shadow-md ring-2 ring-indigo-200")} onClick={() => { const newSet = new Set<string>(); newSet.add(item.location_id || String(idx)); setSelectedHotels(newSet); }}>
-                                <div className="w-20 h-20 rounded-2xl overflow-hidden mb-3 shadow-sm relative"><img src={item.photo?.images?.medium?.url} className="w-full h-full object-cover" />{isSelected && <div className="absolute inset-0 bg-indigo-600/20 flex items-center justify-center"><CheckCircle2 className="w-8 h-8 text-white drop-shadow-md" /></div>}</div>
-                                <h4 className="font-black text-sm text-gray-900 line-clamp-2 w-full mb-1">{item.name}</h4>
-                                <div className="flex items-center gap-1.5 justify-center mb-2"><Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500" /><span className="text-xs font-black text-gray-600">{item.rating || "4.5"}</span></div>
-                                {item.price && item.price !== 'غير متوفر' && <Badge className="bg-emerald-50 text-emerald-600 border-none mb-2 font-bold">{item.price}</Badge>}
-                              </div>
+                              <motion.div 
+                                key={`hotel-${idx}`} 
+                                whileHover={{ y: -8 }}
+                                className={cn(
+                                  "group bg-card border-2 rounded-[2.5rem] p-5 transition-all duration-500 cursor-pointer relative overflow-hidden", 
+                                  isSelected ? "border-indigo-600 shadow-2xl shadow-indigo-100 ring-4 ring-indigo-50/50" : "border-gray-50 hover:border-indigo-200 hover:shadow-xl hover:shadow-gray-100/50"
+                                )} 
+                                onClick={() => { 
+                                  const newSet = new Set<string>(); 
+                                  newSet.add(item.location_id || String(idx)); 
+                                  setSelectedHotels(newSet); 
+                                  updateTrip({ selectedHotel: item });
+                                }}
+                              >
+                                <div className="relative h-48 rounded-[2rem] overflow-hidden mb-5 shadow-inner">
+                                  <img 
+                                    src={item.photo?.images?.large?.url || item.photo?.images?.medium?.url || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80'} 
+                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" 
+                                    alt={item.name}
+                                  />
+                                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60" />
+                                  
+                                  {isSelected && (
+                                    <div className="absolute inset-0 bg-indigo-600/30 flex items-center justify-center">
+                                      <CheckCircle2 className="w-12 h-12 text-white drop-shadow-lg" />
+                                    </div>
+                                  )}
+                                  
+                                  <div className="absolute top-4 right-4 flex flex-col gap-2">
+                                    {item.is_free_cancellable && (
+                                      <Badge className="bg-emerald-500 text-white border-none px-3 py-1 rounded-lg font-black text-[9px] shadow-lg shadow-emerald-500/20">
+                                        إلغاء مجاني
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  
+                                  <div className="absolute bottom-4 right-4 flex items-center gap-2">
+                                    <Badge className="bg-card text-indigo-600 border-none px-3 py-1 rounded-lg font-black text-[10px]">
+                                      {item.review_word || (parseFloat(item.rating || "0") >= 4.5 ? "ممتاز" : "جيد جداً")}
+                                    </Badge>
+                                  </div>
+                                </div>
+
+                                <div className="space-y-3">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <h4 className="font-black text-foreground truncate text-lg leading-tight flex-1">{item.name}</h4>
+                                    <div className="flex items-center gap-1 shrink-0">
+                                      <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                                      <span className="text-xs font-black text-foreground">{item.rating || "4.5"}</span>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex flex-wrap gap-2 text-[10px] font-bold text-gray-400">
+                                    <div className="flex items-center gap-1">
+                                      <MapPin className="w-3 h-3 text-indigo-400" />
+                                      <span className="line-clamp-1">{item.address || item.distance_to_center ? `${item.distance_to_center} عن المركز` : tripPlan.location.name}</span>
+                                    </div>
+                                    {item.amenities && item.amenities.length > 0 && (
+                                      <div className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100">
+                                        <CheckCircle2 className="w-2.5 h-2.5" />
+                                        <span>{typeof item.amenities[0] === 'string' ? item.amenities[0] : (item.amenities[0] as any)?.name}</span>
+                                      </div>
+                                    )}
+                                    <div className="flex items-center gap-1 text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-100">
+                                      <div className="flex gap-0.5">
+                                        {[...Array(Math.min(5, Math.round(item.star_rating || 4)))].map((_, i) => (
+                                          <Star key={i} className="w-2 h-2 fill-indigo-600 text-indigo-600" />
+                                        ))}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div className="pt-3 border-t border-gray-50 flex items-center justify-between">
+                                    <div className="flex flex-col">
+                                      <span className="text-[9px] font-black text-gray-400 uppercase tracking-wider">السعر التقديري</span>
+                                      <span className="text-base font-black text-indigo-600">
+                                        {item.price && item.price !== 'غير متوفر' ? item.price : "اطلب السعر"}
+                                      </span>
+                                    </div>
+                                    <Checkbox checked={isSelected} className="rounded-full h-6 w-6 border-2 data-[state=checked]:bg-indigo-600 data-[state=checked]:border-indigo-600" />
+                                  </div>
+                                </div>
+                              </motion.div>
                             );
                           })}
                         </div>
-                        </section>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ) : (
+                      </section>
+                    )}
+                  </div>
+                ) : (
                   /* Idle Preview */
                   <div className="flex flex-col items-center justify-center text-center py-24 space-y-6 h-full">
                     <div className="w-24 h-24 rounded-[2.5rem] bg-indigo-50 flex items-center justify-center shadow-inner relative">
@@ -1912,7 +2115,7 @@ const TripAIChat = () => {
                       <Globe className="h-10 w-10 text-indigo-600 relative z-10" />
                     </div>
                     <div className="max-w-md">
-                      <h2 className="text-2xl font-black text-gray-900 mb-3">أكمل الخطوات لعرض النتائج</h2>
+                      <h2 className="text-2xl font-black text-foreground mb-3">أكمل الخطوات لعرض النتائج</h2>
                       <p className="text-gray-400 font-bold leading-relaxed">اختر الوجهة والمدة والميزانية وسنعرض لك أفضل الخيارات هنا</p>
                     </div>
                   </div>
@@ -1923,10 +2126,10 @@ const TripAIChat = () => {
             {/* Bottom Action Bar when results visible */}
             <AnimatePresence>
               {tripPlan && (
-                <motion.div initial={{ y: 100 }} animate={{ y: 0 }} className="p-4 sm:p-6 border-t border-gray-100 bg-white shadow-[0_-10px_40px_rgba(0,0,0,0.02)] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+                <motion.div initial={{ y: 100 }} animate={{ y: 0 }} className="p-4 sm:p-6 border-t border-border bg-card shadow-[0_-10px_40px_rgba(0,0,0,0.02)] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 relative z-50">
                   <div>
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{generatedItinerary ? "البرنامج جاهز" : "الخطة المختارة"}</p>
-                    <h4 className="text-sm font-black text-gray-900">{generatedItinerary ? `${generatedItinerary.days.length} أيام منظمة ذكياً` : `${selectedAttractions.size + selectedRestaurants.size + selectedHotels.size} عناصر`}</h4>
+                    <h4 className="text-sm font-black text-foreground">{generatedItinerary ? `${generatedItinerary.days.length} أيام منظمة ذكياً` : `${selectedAttractions.size + selectedRestaurants.size + selectedHotels.size} عناصر`}</h4>
                   </div>
                   <div className="flex gap-3 w-full md:w-auto">
                     <Button variant="ghost" className="rounded-2xl font-black text-gray-400" onClick={resetWizard}>إعادة البدء</Button>
@@ -1940,7 +2143,7 @@ const TripAIChat = () => {
 
           {/* ════════════════ RIGHT PANEL – Wizard Stepper ════════════════ */}
           <div className={cn(
-            "w-full lg:w-[460px] bg-white rounded-2xl lg:rounded-[2.5rem] border border-gray-100 shadow-xl flex flex-col overflow-hidden min-h-0 shrink-0",
+            "w-full lg:w-[460px] bg-card rounded-2xl lg:rounded-[2.5rem] border border-border shadow-xl flex flex-col overflow-hidden min-h-0 shrink-0",
             "animate-in fade-in slide-in-from-left-4 duration-500",
             tripPlan && mobileView === 'results' ? "hidden lg:flex" : "flex"
           )}>
@@ -1948,11 +2151,11 @@ const TripAIChat = () => {
             <div className="p-4 sm:p-5 border-b border-gray-50 bg-gradient-to-br from-gray-50/80 to-white shrink-0">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <button onClick={resetWizard} className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors">
+                  <button onClick={resetWizard} className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center text-muted-foreground hover:bg-gray-200 transition-colors">
                     <ArrowRight className="w-5 h-5" />
                   </button>
                   <div>
-                    <h3 className="font-black text-gray-900 text-base leading-none">
+                    <h3 className="font-black text-foreground text-base leading-none">
                       {mode === 'smart' ? '🔍 بحث ذكي' : '✨ رحلة مخصصة'}
                     </h3>
                     <span className="text-[10px] font-bold text-gray-400 mt-0.5 block">
@@ -1978,7 +2181,7 @@ const TripAIChat = () => {
                     <div key={s.id} className="flex-1">
                       <div className={cn(
                         "h-1.5 rounded-full transition-all duration-500",
-                        isDone ? "bg-emerald-500" : isActive ? "bg-indigo-600" : "bg-gray-100"
+                        isDone ? "bg-emerald-500" : isActive ? "bg-indigo-600" : "bg-accent"
                       )} />
                     </div>
                   );
@@ -1987,8 +2190,8 @@ const TripAIChat = () => {
             </div>
 
             {/* Step Content */}
-            <ScrollArea className="flex-1 min-h-0">
-              <div className="p-5 sm:p-6 pb-10">
+            <ScrollArea className="flex-1 min-h-0 relative z-10">
+              <div className="p-5 sm:p-6 pb-32 lg:pb-10">
                 <AnimatePresence mode="wait">
                   {renderCurrentStep()}
                 </AnimatePresence>
@@ -1998,12 +2201,12 @@ const TripAIChat = () => {
 
             {/* Mobile Toggle */}
             {(tripPlan || filteredTrips.length > 0) && (
-              <div className="lg:hidden p-3 border-t border-gray-100 bg-gray-50/50">
-                <div className="flex bg-white p-1 rounded-xl border border-gray-100 shadow-inner">
-                  <button onClick={() => setMobileView('wizard')} className={cn("flex-1 py-2.5 rounded-lg font-black text-xs transition-all", mobileView === 'wizard' ? "bg-indigo-600 text-white shadow-md" : "text-gray-500")}>
+              <div className="lg:hidden p-3 border-t border-border bg-muted/50 relative z-50">
+                <div className="flex bg-card p-1 rounded-xl border border-border shadow-inner">
+                  <button onClick={() => setMobileView('wizard')} className={cn("flex-1 py-2.5 rounded-lg font-black text-xs transition-all", mobileView === 'wizard' ? "bg-indigo-600 text-white shadow-md" : "text-muted-foreground")}>
                     الخطوات
                   </button>
-                  <button onClick={() => setMobileView('results')} className={cn("flex-1 py-2.5 rounded-lg font-black text-xs transition-all", mobileView === 'results' ? "bg-indigo-600 text-white shadow-md" : "text-gray-500")}>
+                  <button onClick={() => setMobileView('results')} className={cn("flex-1 py-2.5 rounded-lg font-black text-xs transition-all", mobileView === 'results' ? "bg-indigo-600 text-white shadow-md" : "text-muted-foreground")}>
                     النتائج
                   </button>
                 </div>
@@ -2014,11 +2217,11 @@ const TripAIChat = () => {
 
         {/* Weather Widget */}
         {trip.destination && (
-          <div className="fixed bottom-6 right-6 md:right-10 z-[100] group">
+          <div className="fixed bottom-6 right-6 md:right-10 z-[40] lg:z-[100] group">
             <div className="absolute bottom-full right-0 mb-4 opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all duration-300 pointer-events-none group-hover:pointer-events-auto max-w-[calc(100vw-3rem)] origin-bottom-right">
-              <div className="relative w-[320px] sm:w-[500px] md:w-[650px] lg:w-[820px] bg-white rounded-[2.5rem] p-5 lg:p-8 shadow-[0_30px_100px_-20px_rgba(79,70,229,0.4)] border border-indigo-100 overflow-hidden ring-8 ring-indigo-50/50">
+              <div className="relative w-[320px] sm:w-[500px] md:w-[650px] lg:w-[820px] bg-card rounded-[2.5rem] p-5 lg:p-8 shadow-[0_30px_100px_-20px_rgba(79,70,229,0.4)] border border-indigo-100 overflow-hidden ring-8 ring-indigo-50/50">
                 <div className="flex flex-col sm:flex-row items-center justify-between mb-8 px-2 lg:px-4 gap-4">
-                  <div className="flex items-center gap-3"><div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600"><Cloud className="w-6 h-6" /></div><div><h3 className="text-xl font-black text-gray-900 leading-none">توقعات الطقس: {trip.destination}</h3><p className="text-xs font-bold text-gray-500 mt-2">خطة طقس لـ 7 أيام قادمة</p></div></div>
+                  <div className="flex items-center gap-3"><div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600"><Cloud className="w-6 h-6" /></div><div><h3 className="text-xl font-black text-foreground leading-none">توقعات الطقس: {trip.destination}</h3><p className="text-xs font-bold text-muted-foreground mt-2">خطة طقس لـ 7 أيام قادمة</p></div></div>
                   <Badge className="bg-indigo-600 text-white px-6 py-2 rounded-2xl font-black text-sm shadow-lg shadow-indigo-100">{trip.destination}</Badge>
                 </div>
                 <div className="w-full"><CityWeatherAdvisor cityName={trip.destination} layout="horizontal" /></div>

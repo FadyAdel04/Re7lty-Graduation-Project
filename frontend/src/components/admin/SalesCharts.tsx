@@ -20,7 +20,7 @@ const SalesCharts: React.FC<SalesChartsProps> = ({
     return (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="bg-white rounded-lg p-6 animate-pulse">
+          <div key={i} className="bg-card rounded-lg p-6 animate-pulse">
             <div className="h-64 bg-gray-200 rounded"></div>
           </div>
         ))}

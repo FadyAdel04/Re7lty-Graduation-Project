@@ -89,18 +89,23 @@ const AdminContentModeration = () => {
      setDeleteData({
         reportId: report._id,
         tripId: report.tripId._id,
-        tripTitle: report.tripId.title
-     });
+        tripTitle: report.tripId.title,
+        tripModel: report.tripModel || 'Trip'
+     } as any);
   };
 
   const confirmDelete = async () => {
      if (!deleteData) return;
      
      setIsDeleting(true);
-     try {
-        const token = await getToken();
-        // Call DELETE /api/trips/:id (which handles notification and report resolution)
-        await adminService.deleteUserTrip(deleteData.tripId, token || undefined);
+      try {
+         const token = await getToken();
+         // Call correct DELETE endpoint based on tripModel
+         if ((deleteData as any).tripModel === 'CorporateTrip') {
+            await adminService.deleteTrip(deleteData.tripId, token || undefined);
+         } else {
+            await adminService.deleteUserTrip(deleteData.tripId, token || undefined);
+         }
         
         toast({
            title: "تم الحذف",
@@ -128,14 +133,14 @@ const AdminContentModeration = () => {
           {/* Header */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
              <div>
-                <h1 className="text-3xl font-black text-gray-900 mb-2 font-cairo flex items-center gap-3">
+                <h1 className="text-3xl font-black text-foreground mb-2 font-cairo flex items-center gap-3">
                    <ShieldAlert className="w-8 h-8 text-rose-600" />
                    إدارة <span className="text-rose-600">المحتوى والبلاغات</span>
                 </h1>
-                <p className="text-gray-500 font-bold text-sm">مراجعة البلاغات واتخاذ الإجراءات اللازمة للحفاظ على جودة المنصة.</p>
+                <p className="text-muted-foreground font-bold text-sm">مراجعة البلاغات واتخاذ الإجراءات اللازمة للحفاظ على جودة المنصة.</p>
              </div>
              
-             <div className="flex gap-3 bg-white p-1.5 rounded-2xl border border-gray-100 shadow-sm">
+             <div className="flex gap-3 bg-card p-1.5 rounded-2xl border border-border shadow-sm">
                 {(['pending', 'resolved', 'dismissed'] as const).map((s) => (
                    <button
                      key={s}
@@ -145,8 +150,8 @@ const AdminContentModeration = () => {
                        statusFilter === s 
                          ? s === 'pending' ? "bg-rose-50 text-rose-600 ring-1 ring-rose-200" :
                            s === 'resolved' ? "bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200" :
-                           "bg-gray-100 text-gray-600"
-                         : "text-gray-400 hover:bg-gray-50 hover:text-gray-600"
+                           "bg-muted text-muted-foreground"
+                         : "text-gray-400 hover:bg-muted hover:text-muted-foreground"
                      )}
                    >
                       {s === 'pending' ? 'قيد الانتظار' : s === 'resolved' ? 'تم الحل' : 'تم التجاهل'}
@@ -166,7 +171,7 @@ const AdminContentModeration = () => {
                 ) : reports.length > 0 ? (
                    <div className="overflow-x-auto">
                       <table className="w-full text-right">
-                         <thead className="bg-gray-50/50 border-b border-gray-100">
+                         <thead className="bg-muted/50 border-b border-border">
                             <tr>
                                <th className="px-8 py-5 text-xs font-black text-gray-400 uppercase tracking-wider">الرحلة المُبلغ عنها</th>
                                <th className="px-6 py-5 text-xs font-black text-gray-400 uppercase tracking-wider">سبب البلاغ</th>
@@ -177,11 +182,11 @@ const AdminContentModeration = () => {
                          </thead>
                          <tbody className="divide-y divide-gray-50">
                             {reports.map((report) => (
-                               <tr key={report._id} className="group hover:bg-gray-50/30 transition-colors">
+                               <tr key={report._id} className="group hover:bg-muted/30 transition-colors">
                                   <td className="px-8 py-6">
                                      {report.tripId ? (
                                         <div className="flex items-center gap-4">
-                                           <div className="w-12 h-12 rounded-xl bg-gray-100 overflow-hidden shrink-0">
+                                           <div className="w-12 h-12 rounded-xl bg-muted overflow-hidden shrink-0">
                                               <img 
                                                 src={
                                                   report.tripId.images?.[0] || 
@@ -192,9 +197,13 @@ const AdminContentModeration = () => {
                                               />
                                            </div>
                                            <div className="min-w-0">
-                                              <Link to={`/trips/${report.tripId._id}`} target="_blank" className="font-bold text-gray-900 hover:text-indigo-600 block truncate mb-0.5 flex items-center gap-2">
-                                                 {report.tripId.title}
-                                                 <ExternalLink className="w-3 h-3 opacity-50" />
+                                              <Link 
+                                                to={report.tripModel === 'CorporateTrip' ? `/company-trip/${report.tripId._id}` : `/trips/${report.tripId._id}`} 
+                                                target="_blank" 
+                                                className="font-bold text-foreground hover:text-indigo-600 block truncate mb-0.5 flex items-center gap-2"
+                                              >
+                                                {report.tripId.title}
+                                                <ExternalLink className="w-3 h-3 opacity-50" />
                                               </Link>
                                               <p className="text-xs text-gray-400 font-bold">{report.tripId.destination}</p>
                                            </div>
@@ -206,17 +215,21 @@ const AdminContentModeration = () => {
                                   <td className="px-6 py-6">
                                      <span className={cn(
                                         "px-3 py-1 rounded-lg text-xs font-black block w-fit",
-                                        report.reason === 'spam' ? "bg-orange-50 text-orange-600" :
-                                        report.reason === 'inappropriate' ? "bg-red-50 text-red-600" :
-                                        "bg-blue-50 text-blue-600"
-                                     )}>
-                                        {report.reason === 'spam' ? 'إزعاج / احتيال' :
-                                         report.reason === 'inappropriate' ? 'محتوى غير لائق' :
-                                         report.reason === 'misleading' ? 'معلومات مضللة' : 'أخرى'}
-                                     </span>
+                                         report.reason === 'spam' ? "bg-orange-50 text-orange-600" :
+                                         report.reason === 'inappropriate' ? "bg-red-50 text-red-600" :
+                                         report.reason === 'scam' ? "bg-rose-100 text-rose-700 ring-1 ring-rose-200" :
+                                         report.reason === 'unsafe' ? "bg-amber-100 text-amber-700 ring-1 ring-amber-200" :
+                                         "bg-blue-50 text-blue-600"
+                                      )}>
+                                         {report.reason === 'spam' ? 'إزعاج / احتيال' :
+                                          report.reason === 'inappropriate' ? 'محتوى غير لائق' :
+                                          report.reason === 'misleading' ? 'معلومات مضللة' : 
+                                          report.reason === 'scam' ? 'عملية احتيال' :
+                                          report.reason === 'unsafe' ? 'غير آمن' : 'أخرى'}
+                                      </span>
                                   </td>
                                   <td className="px-6 py-6">
-                                     <p className="text-sm text-gray-600 max-w-[250px] line-clamp-2" title={report.description}>
+                                     <p className="text-sm text-muted-foreground max-w-[250px] line-clamp-2" title={report.description}>
                                         {report.description || "لا يوجد وصف"}
                                      </p>
                                   </td>
@@ -231,7 +244,7 @@ const AdminContentModeration = () => {
                                            <Button 
                                              size="sm" 
                                              onClick={() => handleDeleteClick(report)}
-                                             className="bg-white border border-rose-100 text-rose-600 hover:bg-rose-50 hover:border-rose-200 shadow-sm"
+                                             className="bg-card border border-rose-100 text-rose-600 hover:bg-rose-50 hover:border-rose-200 shadow-sm"
                                            >
                                               <Trash2 className="w-4 h-4 ml-2" />
                                               حذف الرحلة
@@ -240,7 +253,7 @@ const AdminContentModeration = () => {
                                              size="sm" 
                                              variant="ghost"
                                              onClick={() => handleDismiss(report._id)}
-                                             className="text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+                                             className="text-gray-400 hover:text-muted-foreground hover:bg-muted"
                                            >
                                               <XCircle className="w-4 h-4 ml-2" />
                                               تجاهل
@@ -253,7 +266,7 @@ const AdminContentModeration = () => {
                                                  <CheckCircle className="w-3 h-3" /> تم الحل
                                               </span>
                                            ) : (
-                                              <span className="flex items-center gap-1 text-gray-400 font-black text-xs bg-gray-50 px-3 py-1 rounded-lg">
+                                              <span className="flex items-center gap-1 text-gray-400 font-black text-xs bg-muted px-3 py-1 rounded-lg">
                                                  <XCircle className="w-3 h-3" /> تم التجاهل
                                               </span>
                                            )}
@@ -267,10 +280,10 @@ const AdminContentModeration = () => {
                    </div>
                 ) : (
                    <div className="flex flex-col items-center justify-center py-20 text-center">
-                      <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                      <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
                          <CheckCircle className="w-8 h-8 text-green-500" />
                       </div>
-                      <h3 className="text-xl font-black text-gray-900 mb-1">لا توجد بلاغات {statusFilter === 'pending' ? 'جديدة' : ''}</h3>
+                      <h3 className="text-xl font-black text-foreground mb-1">لا توجد بلاغات {statusFilter === 'pending' ? 'جديدة' : ''}</h3>
                       <p className="text-gray-400">جميع الأمور تجري على ما يرام!</p>
                    </div>
                 )}
@@ -287,7 +300,7 @@ const AdminContentModeration = () => {
                    </DialogTitle>
                 </DialogHeader>
                 <div className="py-4">
-                   <p className="text-gray-600 font-bold mb-2">هل أنت متأكد من رغبتك في حذف هذه الرحلة؟</p>
+                   <p className="text-muted-foreground font-bold mb-2">هل أنت متأكد من رغبتك في حذف هذه الرحلة؟</p>
                    <div className="bg-rose-50 p-4 rounded-xl border border-rose-100 text-sm text-rose-800 font-medium">
                       سيتم حذف الرحلة "{deleteData?.tripTitle}" نهائياً من المنصة، وسيتم إشعار صاحب الرحلة بذلك. كما سيتم إغلاق البلاغ تلقائياً.
                    </div>

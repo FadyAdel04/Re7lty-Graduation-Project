@@ -8,6 +8,7 @@ export interface Comment {
   likes: number;
   viewerHasLiked?: boolean;
   createdAt?: string;
+  replies?: Comment[];
 }
 
 export interface TripActivity {

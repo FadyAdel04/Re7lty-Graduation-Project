@@ -59,12 +59,12 @@ const SeatsTab: React.FC<SeatsTabProps> = ({
         <div className="p-8 m-0 focus-visible:outline-none">
             <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-4">
-                    <h2 className="text-2xl font-black text-gray-900">توزيع مقاعد الركاب</h2>
+                    <h2 className="text-2xl font-black text-foreground">توزيع مقاعد الركاب</h2>
                     <Button 
                         variant="ghost" 
                         size="icon" 
                         onClick={onRefresh} 
-                        className="rounded-full hover:bg-gray-100 text-gray-400 hover:text-indigo-600"
+                        className="rounded-full hover:bg-muted text-gray-400 hover:text-indigo-600"
                     >
                         <RefreshCcw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
                     </Button>
@@ -85,10 +85,10 @@ const SeatsTab: React.FC<SeatsTabProps> = ({
                             <button 
                                 key={trip.id || trip._id}
                                 onClick={() => onSelectTrip(trip)}
-                                className={`w-full p-4 rounded-2xl text-right transition-all border-2 ${isSelected ? 'border-indigo-600 bg-indigo-50 shadow-lg' : 'border-gray-100 hover:border-gray-200 bg-white'}`}
+                                className={`w-full p-4 rounded-2xl text-right transition-all border-2 ${isSelected ? 'border-indigo-600 bg-indigo-50 shadow-lg' : 'border-border hover:border-border bg-card'}`}
                             >
-                                <p className="font-black text-gray-900 mb-1">{trip.title}</p>
-                                <div className="flex items-center gap-2 text-xs text-gray-500 font-bold">
+                                <p className="font-black text-foreground mb-1">{trip.title}</p>
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground font-bold">
                                     <Calendar className="w-3 h-3" />
                                     {new Date(trip.startDate).toLocaleDateString()}
                                     <span className="mx-1">•</span>
@@ -102,17 +102,17 @@ const SeatsTab: React.FC<SeatsTabProps> = ({
 
                 <div className="lg:col-span-2">
                     {selectedTrip ? (
-                        <Card className="p-8 border-gray-100 rounded-3xl shadow-xl shadow-zinc-200/50 bg-white flex flex-col items-center">
+                        <Card className="p-8 border-border rounded-3xl shadow-xl shadow-zinc-200/50 bg-card flex flex-col items-center">
                             <div className="w-full flex items-center justify-between mb-8">
                                 <div>
-                                <h3 className="text-xl font-black text-gray-900">{selectedTrip.title}</h3>
+                                <h3 className="text-xl font-black text-foreground">{selectedTrip.title}</h3>
                                 <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">اضغط على المقعد لتسجيل اسم المسافر</p>
                                 </div>
                             </div>
                             
                             <div className="w-full mb-6">
                                 {transportationUnits.length > 1 && (
-                                   <div className="flex gap-2 p-2 bg-gray-50 rounded-2xl border border-gray-100 overflow-x-auto no-scrollbar justify-center">
+                                   <div className="flex gap-2 p-2 bg-muted rounded-2xl border border-border overflow-x-auto no-scrollbar justify-center">
                                       {transportationUnits.map((unit, idx) => (
                                          <button
                                             key={idx}
@@ -122,7 +122,7 @@ const SeatsTab: React.FC<SeatsTabProps> = ({
                                                px-4 py-2 rounded-xl text-xs font-black whitespace-nowrap transition-all border
                                                ${currentBusIndex === idx 
                                                   ? "bg-indigo-600 text-white border-indigo-700 shadow-lg scale-105" 
-                                                  : "bg-white text-gray-500 border-gray-200 hover:border-indigo-300"
+                                                  : "bg-card text-muted-foreground border-border hover:border-indigo-300"
                                                }
                                             `}
                                          >

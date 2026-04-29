@@ -402,7 +402,16 @@ export const adminService = {
         return response.data;
     },
 
-    // Delete regular user trip (moderation)
+    // regular user trips (moderation)
+    async getAllUserTrips(token?: string, page: number = 1, limit: number = 100) {
+        const response = await axios.get(`${API_URL}/api/trips`, {
+            params: { page, limit },
+            headers: getAuthHeaders(token),
+            withCredentials: true
+        });
+        return response.data; // { items: Trip[], total: number }
+    },
+
     async deleteUserTrip(id: string, token?: string) {
         const response = await axios.delete(`${API_URL}/api/trips/${id}`, {
             headers: getAuthHeaders(token),

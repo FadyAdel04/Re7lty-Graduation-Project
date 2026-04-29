@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Trip } from "@/types/corporateTrips";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 interface TripCardEnhancedProps {
   trip: Trip;
@@ -32,7 +33,7 @@ const TripCardEnhanced = ({ trip, companyName, companyLogo, showCompanyBadge = f
   };
 
   return (
-    <Card className="group relative bg-white border border-zinc-200/60 rounded-[2.5rem] overflow-hidden hover:shadow-2xl hover:shadow-zinc-200/60 transition-all duration-500 flex flex-col h-full">
+    <Card className="group relative bg-card border border-border rounded-[2.5rem] overflow-hidden hover:shadow-2xl hover:shadow-primary/5 transition-all duration-500 flex flex-col h-full font-cairo">
         {/* Visual Media Layer */}
         <div className="relative h-64 w-full overflow-hidden">
           <Link to={`/corporate-trips/${trip.id}`} className="block h-full">
@@ -41,24 +42,24 @@ const TripCardEnhanced = ({ trip, companyName, companyLogo, showCompanyBadge = f
               alt={trip.title}
               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[1.5s] ease-out"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/80 via-zinc-900/20 to-transparent opacity-80" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-80" />
           </Link>
 
           {/* Floating Branding & Metadata */}
           <div className="absolute top-4 inset-x-4 flex justify-between items-start z-10">
-            <Badge className="bg-white/10 backdrop-blur-md border border-white/20 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest pointer-events-none">
-              <MapPin className="h-2.5 w-2.5 ml-1 text-orange-400" />
+            <Badge className="bg-background/20 backdrop-blur-md border border-white/20 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest pointer-events-none">
+              <MapPin className="h-2.5 w-2.5 ml-1 text-primary" />
               {trip.destination}
             </Badge>
             
             {showCompanyBadge && companyName && (
               <Link to={`/companies/${trip.companyId}`}>
-                <div className="bg-orange-600 p-2 rounded-2xl shadow-xl transition-all duration-300">
-                  {companyLogo.startsWith('http') ? (
-                          <img src={companyLogo} alt={companyName} className="w-8 h-8" />
-                        ) : (
-                          <div className="w-8 h-8">{companyLogo}</div>
-                        )}
+                <div className="bg-primary p-2 rounded-2xl shadow-xl transition-all duration-300 hover:scale-110">
+                  {companyLogo?.startsWith('http') ? (
+                    <img src={companyLogo} alt={companyName} className="w-8 h-8 rounded-lg object-cover" />
+                  ) : (
+                    <div className="w-8 h-8 flex items-center justify-center text-white font-black">{companyLogo || <Building2 className="w-5 h-5" />}</div>
+                  )}
                 </div>
               </Link>
             )}
@@ -67,11 +68,12 @@ const TripCardEnhanced = ({ trip, companyName, companyLogo, showCompanyBadge = f
           {/* Countdown Flag Badge */}
           {trip.startDate && (
             <div className="absolute top-16 right-0 z-20">
-               <div className={`flex items-center gap-2 px-4 py-2 rounded-l-full shadow-lg backdrop-blur-md border-y border-l transition-all ${
+               <div className={cn(
+                 "flex items-center gap-2 px-4 py-2 rounded-l-full shadow-lg backdrop-blur-md border-y border-l transition-all",
                  isAcceptingBookings(trip.startDate) 
                  ? "bg-emerald-500/90 border-emerald-400 text-white" 
                  : "bg-rose-500/90 border-rose-400 text-white"
-               }`}>
+               )}>
                   <Timer className="w-3.5 h-3.5 animate-pulse" />
                   <div className="flex flex-col">
                     <span className="text-[10px] font-black uppercase leading-none">{getTimeRemaining(trip.startDate)}</span>
@@ -90,19 +92,19 @@ const TripCardEnhanced = ({ trip, companyName, companyLogo, showCompanyBadge = f
                </h3>
                <div className="flex items-center gap-3 text-white/70 text-[10px] font-black uppercase tracking-[0.15em]">
                   <span className="flex items-center gap-1"><Clock className="h-2.5 w-2.5" /> {trip.duration}</span>
-                  <span className="flex items-center gap-1"><Star className="h-2.5 w-2.5 fill-orange-400 text-orange-400" /> {trip.rating}</span>
+                  <span className="flex items-center gap-1"><Star className="h-2.5 w-2.5 fill-primary text-primary" /> {trip.rating}</span>
                </div>
             </div>
-            <div className="bg-white rounded-2xl px-4 py-2 shadow-xl shadow-black/20 text-center">
-               <span className="block text-[8px] font-black text-zinc-400 uppercase leading-none mb-0.5">تبدأ من</span>
-               <span className="text-lg font-black text-zinc-900 leading-none">{trip.price} <span className="text-[10px]">ج.م</span></span>
+            <div className="bg-background/90 backdrop-blur-md rounded-2xl px-4 py-2 shadow-xl shadow-black/20 text-center border border-border/50">
+               <span className="block text-[8px] font-black text-muted-foreground uppercase leading-none mb-0.5">تبدأ من</span>
+               <span className="text-lg font-black text-foreground leading-none">{trip.price} <span className="text-[10px]">ج.م</span></span>
             </div>
           </div>
         </div>
         
         {/* Content Layer */}
         <CardContent className="p-8 flex flex-col flex-1">
-          <p className="text-zinc-500 text-sm font-medium leading-[1.6] line-clamp-2 mb-8 flex-1">
+          <p className="text-muted-foreground text-sm font-bold leading-[1.6] line-clamp-2 mb-8 flex-1">
             {trip.shortDescription}
           </p>
 
@@ -110,7 +112,7 @@ const TripCardEnhanced = ({ trip, companyName, companyLogo, showCompanyBadge = f
              <div className="flex gap-2">
                <Button 
                   asChild
-                  className="flex-1 h-14 rounded-2xl bg-zinc-900 hover:bg-orange-600 text-white font-black text-base shadow-lg shadow-zinc-200 transition-all border-0"
+                  className="flex-1 h-14 rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-black text-base shadow-lg shadow-primary/20 transition-all border-0"
                 >
                   <Link to={`/corporate-trips/${trip.id}`} className="flex items-center justify-center gap-3">
                     اكتشف المـزيد
@@ -123,7 +125,7 @@ const TripCardEnhanced = ({ trip, companyName, companyLogo, showCompanyBadge = f
                 {onEdit && (
                   <Button 
                     variant="outline" 
-                    className="h-14 w-1 flex-1 max-w-[80px] rounded-2xl border-zinc-200 text-zinc-600 hover:bg-zinc-50 font-black"
+                    className="h-14 w-1 flex-1 max-w-[80px] rounded-2xl border-border text-foreground hover:bg-muted font-black"
                     onClick={(e) => { e.preventDefault(); onEdit(trip); }}
                   >
                     تعديل
@@ -133,7 +135,7 @@ const TripCardEnhanced = ({ trip, companyName, companyLogo, showCompanyBadge = f
                 {onExport && (
                   <Button 
                     variant="outline" 
-                    className="h-14 w-1 flex-1 max-w-[100px] rounded-2xl border-indigo-100 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 font-bold gap-2 transition-all"
+                    className="h-14 w-1 flex-1 max-w-[100px] rounded-2xl border-primary/20 text-primary hover:bg-primary/10 hover:border-primary/30 font-black gap-2 transition-all"
                     onClick={(e) => { e.preventDefault(); onExport(trip); }}
                   >
                     <span className="hidden sm:inline">PDF</span>
@@ -143,21 +145,21 @@ const TripCardEnhanced = ({ trip, companyName, companyLogo, showCompanyBadge = f
              </div>
 
              {companyName && (
-               <div className="flex items-center justify-center gap-3 text-[10px] font-black text-zinc-300 uppercase tracking-widest pt-2">
-                 <span className="h-px flex-1 bg-zinc-100" />
-                 <div className="flex items-center gap-2 text-zinc-400 group-hover:text-zinc-600 transition-colors">
+               <div className="flex items-center justify-center gap-3 text-[10px] font-black text-muted-foreground/30 uppercase tracking-widest pt-2">
+                 <span className="h-px flex-1 bg-border/50" />
+                 <div className="flex items-center gap-2 text-muted-foreground group-hover:text-foreground transition-colors">
                     {companyLogo && (
-                      <div className="h-5 w-5 rounded-md overflow-hidden bg-zinc-50 border border-zinc-100">
+                      <div className="h-5 w-5 rounded-md overflow-hidden bg-muted border border-border">
                         {companyLogo.startsWith('http') ? (
                           <img src={companyLogo} alt={companyName} className="w-full h-full object-cover" />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-zinc-100 text-[8px] font-black">{companyLogo}</div>
+                          <div className="w-full h-full flex items-center justify-center bg-muted text-[8px] font-black">{companyLogo}</div>
                         )}
                       </div>
                     )}
-                    <span>بواسطة {companyName}</span>
+                    <span className="font-bold">بواسطة {companyName}</span>
                  </div>
-                 <span className="h-px flex-1 bg-zinc-100" />
+                 <span className="h-px flex-1 bg-border/50" />
                </div>
              )}
           </div>

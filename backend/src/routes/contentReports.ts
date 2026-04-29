@@ -1,7 +1,9 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import { getAuth } from '@clerk/express';
 import ContentReport from '../models/ContentReport';
 import { Trip } from '../models/Trip';
+import { CorporateTrip } from '../models/CorporateTrip';
 import { Notification as NotificationModel } from '../models/Notification';
 
 const router = express.Router();
@@ -22,18 +24,27 @@ const requireAuth = (req: express.Request, res: express.Response, next: express.
 router.post('/', requireAuth, async (req, res) => {
     try {
         const { userId } = getAuth(req);
-        const { tripId, reason, description } = req.body;
+        const { tripId, reason, description, tripModel = 'Trip' } = req.body;
 
         if (!tripId || !reason) {
             return res.status(400).json({ error: 'Trip ID and reason are required' });
         }
 
-        if (!['spam', 'inappropriate', 'misleading', 'other'].includes(reason)) {
+        if (!['spam', 'inappropriate', 'misleading', 'scam', 'unsafe', 'other'].includes(reason)) {
             return res.status(400).json({ error: 'Invalid reason' });
         }
 
+        if (!['Trip', 'CorporateTrip'].includes(tripModel)) {
+            return res.status(400).json({ error: 'Invalid trip model' });
+        }
+
+        if (!mongoose.Types.ObjectId.isValid(tripId)) {
+            return res.status(400).json({ error: 'Invalid Trip ID format' });
+        }
+
         // Check if trip exists
-        const trip = await Trip.findById(tripId);
+        const targetModel = tripModel === 'CorporateTrip' ? (CorporateTrip as any) : (Trip as any);
+        const trip = await targetModel.findById(tripId);
         if (!trip) {
             return res.status(404).json({ error: 'Trip not found' });
         }
@@ -53,6 +64,7 @@ router.post('/', requireAuth, async (req, res) => {
             reportedBy: userId!,
             reason,
             description,
+            tripModel,
             status: 'pending',
         });
 
@@ -93,7 +105,7 @@ router.get('/', requireAuth, async (req, res) => {
         }
 
         const reports = await ContentReport.find(filter)
-            .populate('tripId', 'title destination author images')
+            .populate('tripId', 'title destination author image images companyId')
             .sort({ createdAt: -1 })
             .lean();
 
@@ -173,16 +185,22 @@ router.patch('/:id', requireAuth, async (req, res) => {
                     message: message,
                     isRead: false,
                     tripId: (report.tripId as any)?._id,
-                    link: `/trips/${(report.tripId as any)?._id}`
+                    link: report.tripModel === 'CorporateTrip' 
+                        ? `/company-trip/${(report.tripId as any)?._id}` 
+                        : `/trips/${(report.tripId as any)?._id}`
                 });
             }
         }
 
-        const updatedReport = await ContentReport.findById(id).populate('tripId', 'title destination author');
+        const updatedReport = await ContentReport.findById(id).populate('tripId', 'title destination author image images companyId');
         res.json(updatedReport);
     } catch (error: any) {
-        console.error('Error updating report:', error);
-        res.status(500).json({ error: 'Failed to update report', message: error.message });
+        console.error('Detailed error submitting report:', error);
+        res.status(500).json({ 
+            error: 'Failed to submit report', 
+            message: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
     }
 });
 

@@ -89,35 +89,35 @@ const BookingPaymentResult = () => {
       title: "جاري التحقق من الدفع...",
       description: "يرجى الانتظار بينما نتحقق من حالة معاملتك",
       color: "from-indigo-500 to-indigo-700",
-      bg: "bg-indigo-50",
+      bg: "bg-indigo-50 dark:bg-indigo-950/30",
     },
     success: {
       icon: <CheckCircle2 className="w-16 h-16 text-emerald-400" />,
       title: "تم الدفع بنجاح! 🎉",
       description: "تمت معالجة دفعتك بنجاح. تحقق من حجوزاتك للتفاصيل وستصلك رسالة تأكيد قريباً.",
       color: "from-emerald-500 to-teal-600",
-      bg: "bg-emerald-50",
+      bg: "bg-emerald-50 dark:bg-emerald-950/30",
     },
     pending: {
       icon: <Clock className="w-16 h-16 text-amber-400" />,
       title: "الدفع قيد المعالجة",
       description: "دفعتك قيد المراجعة. ستصلك رسالة تأكيد خلال دقائق.",
       color: "from-amber-500 to-orange-600",
-      bg: "bg-amber-50",
+      bg: "bg-amber-50 dark:bg-amber-950/30",
     },
     failed: {
       icon: <XCircle className="w-16 h-16 text-rose-400" />,
       title: "فشلت عملية الدفع",
       description: "لم تكتمل عملية الدفع. يرجى المحاولة مرة أخرى أو التواصل مع الدعم الفني.",
       color: "from-rose-500 to-red-700",
-      bg: "bg-rose-50",
+      bg: "bg-rose-50 dark:bg-rose-950/30",
     },
   };
 
   const config = statusConfig[status];
 
   return (
-    <div className="min-h-screen bg-gray-50 font-cairo" dir="rtl">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 font-cairo text-gray-900 dark:text-slate-100" dir="rtl">
       <Header />
       <main className="container mx-auto px-4 py-16 flex items-center justify-center">
         <motion.div
@@ -127,7 +127,7 @@ const BookingPaymentResult = () => {
           className="w-full max-w-md"
         >
           {/* Card */}
-          <div className={`${config.bg} rounded-[2.5rem] p-10 shadow-2xl border border-white text-center space-y-6`}>
+          <div className={`${config.bg} rounded-[2.5rem] p-10 shadow-2xl border border-white dark:border-slate-800 text-center space-y-6`}>
             {/* Icon */}
             <motion.div
               initial={{ scale: 0 }}
@@ -140,21 +140,21 @@ const BookingPaymentResult = () => {
 
             {/* Title */}
             <div className="space-y-2">
-              <h1 className="text-2xl font-black text-gray-900">{config.title}</h1>
-              <p className="text-gray-600 font-medium leading-relaxed">{config.description}</p>
+              <h1 className="text-2xl font-black text-gray-900 dark:text-white">{config.title}</h1>
+              <p className="text-gray-600 dark:text-slate-300 font-medium leading-relaxed">{config.description}</p>
             </div>
 
             {/* Transaction details */}
             {orderId && (
-              <div className="bg-white/70 rounded-2xl p-4 space-y-2 text-sm">
+              <div className="bg-white/70 dark:bg-slate-900/70 rounded-2xl p-4 space-y-2 text-sm">
                 {orderId && (
                   <div className="flex justify-between">
-                    <span className="text-gray-500 font-bold">رقم الطلب</span>
-                    <span className="font-black text-gray-900 text-xs" dir="ltr">{orderId}</span>
+                    <span className="text-gray-500 dark:text-slate-400 font-bold">رقم الطلب</span>
+                    <span className="font-black text-gray-900 dark:text-white text-xs" dir="ltr">{orderId}</span>
                   </div>
                 )}
                 <div className="flex justify-between">
-                  <span className="text-gray-500 font-bold">الحالة</span>
+                  <span className="text-gray-500 dark:text-slate-400 font-bold">الحالة</span>
                   <span className={`font-black text-xs px-2 py-0.5 rounded-full ${
                     status === 'success' ? 'bg-emerald-100 text-emerald-700' :
                     status === 'pending' ? 'bg-amber-100 text-amber-700' :
@@ -167,9 +167,9 @@ const BookingPaymentResult = () => {
             )}
 
             {/* Paymob badge */}
-            <div className="flex items-center justify-center gap-2 text-xs text-gray-400 font-bold">
+            <div className="flex items-center justify-center gap-2 text-xs text-gray-400 dark:text-slate-500 font-bold">
               <span>مدعوم بأمان بواسطة</span>
-              <span className="bg-white px-3 py-1 rounded-full border border-gray-100 font-black text-gray-700">Paymob</span>
+              <span className="bg-white dark:bg-slate-900 px-3 py-1 rounded-full border border-gray-100 dark:border-slate-800 font-black text-gray-700 dark:text-slate-300">Paymob</span>
             </div>
 
             {/* Actions */}
@@ -220,7 +220,7 @@ const BookingPaymentResult = () => {
           </div>
 
           {/* Support note */}
-          <p className="text-center text-xs text-gray-400 mt-6 font-medium">
+          <p className="text-center text-xs text-gray-400 dark:text-slate-500 mt-6 font-medium">
             هل تواجه مشكلة؟{" "}
             <Link to="/support" className="text-indigo-500 hover:underline font-bold">
               تواصل مع الدعم الفني

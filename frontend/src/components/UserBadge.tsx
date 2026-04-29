@@ -8,7 +8,8 @@ import {
   Zap, 
   Award,
   ShieldCheck,
-  Gem
+  Gem,
+  Badge
 } from "lucide-react";
 import {
   Tooltip,
@@ -140,69 +141,89 @@ export const UserBadge: React.FC<UserBadgeProps> = ({
             <UserBadgeChildren tier={tier} showLabel={showLabel} size={size} />
           </div>
         </TooltipTrigger>
-        <TooltipContent className="font-cairo p-4 min-w-[240px] border-0 shadow-2xl bg-gray-900 text-white rounded-2xl">
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <p className="font-black text-sm text-yellow-500 flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4" />
-                {config.label}
-              </p>
-              <p className="text-xs text-gray-300 leading-relaxed">
-                {config.description}
-              </p>
+        <TooltipContent 
+          side="top"
+          className="font-cairo p-5 min-w-[280px] border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] bg-gray-900/95 backdrop-blur-2xl text-white rounded-[2rem] overflow-hidden animate-in fade-in zoom-in duration-300"
+        >
+          {/* Animated Background Sparkle */}
+          <div className="absolute -top-12 -right-12 w-32 h-32 bg-indigo-500/20 rounded-full blur-3xl" />
+          <div className="absolute -bottom-12 -left-12 w-32 h-32 bg-orange-500/10 rounded-full blur-3xl" />
+          
+          <div className="space-y-5 relative z-10">
+            <div className="flex items-center gap-4">
+               <div className={cn("p-2.5 rounded-2xl bg-gradient-to-br shadow-lg", config.color)}>
+                  <config.icon className="w-5 h-5 text-white" />
+               </div>
+               <div className="space-y-1">
+                  <p className="font-black text-base text-white tracking-tight">
+                    {config.label}
+                  </p>
+                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest flex items-center gap-1.5">
+                    <ShieldCheck className="w-3 h-3 text-indigo-400" />
+                    مستوى الحساب الموثق
+                  </p>
+               </div>
             </div>
 
+            <p className="text-xs text-gray-300 leading-relaxed font-medium bg-white/5 p-3 rounded-2xl border border-white/5">
+              {config.description}
+            </p>
+
             {progression && progression.pointsNeeded > 0 && (
-              <div className="pt-3 border-t border-white/10 space-y-3">
-                <div className="flex items-center justify-between">
+              <div className="space-y-3 pt-1">
+                <div className="flex items-center justify-between px-1">
                   <span className="text-[10px] font-bold text-gray-400">الترقية القادمة</span>
-                  <span className="text-[10px] font-black text-indigo-400">{progression.nextTierLabel}</span>
+                  <Badge className="text-[9px] font-black border-indigo-500/30 text-indigo-400 bg-indigo-500/5 px-2 py-0.5 rounded-full">
+                    {progression.nextTierLabel}
+                  </Badge>
                 </div>
                 
-                <div className="grid grid-cols-1 gap-2">
-                   <div className="flex items-center justify-between bg-white/5 p-2 rounded-xl">
-                      <span className="text-[10px] text-gray-400">نقاط متبقية</span>
-                      <span className="text-sm font-black text-orange-500">+{progression.pointsNeeded}</span>
+                <div className="grid grid-cols-2 gap-2">
+                   <div className="bg-gradient-to-br from-white/10 to-white/5 p-3 rounded-2xl border border-white/5 flex flex-col items-center justify-center gap-1">
+                      <p className="text-[9px] text-gray-500 font-bold">نقاط متبقية</p>
+                      <p className="text-sm font-black text-orange-500">+{progression.pointsNeeded}</p>
                    </div>
-                   
-                   <p className="text-[10px] text-gray-500 text-center font-bold">يمكنك تحقيق ذلك عبر:</p>
-                   
-                   <div className="grid grid-cols-2 gap-2">
-                      <div className="bg-white/5 p-2 rounded-xl text-center">
-                         <p className="text-[10px] text-gray-400">رحلات</p>
-                         <p className="text-sm font-black text-white">{progression.tripsNeeded}</p>
-                      </div>
-                      <div className="bg-white/5 p-2 rounded-xl text-center">
-                         <p className="text-[10px] text-gray-400">قصص</p>
-                         <p className="text-sm font-black text-white">{progression.storiesNeeded}</p>
-                      </div>
+                   <div className="bg-gradient-to-br from-white/10 to-white/5 p-3 rounded-2xl border border-white/5 flex flex-col items-center justify-center gap-1">
+                      <p className="text-[9px] text-gray-500 font-bold">رحلات مطلوبة</p>
+                      <p className="text-sm font-black text-white">{progression.tripsNeeded}</p>
                    </div>
                 </div>
               </div>
             )}
 
-            <div className="pt-3 border-t border-white/10 space-y-2 mt-3 block">
-               <p className="text-[10px] font-bold text-gray-400 mb-2 text-center">نظام تسلسل المستويات (النقاط المطلوبة)</p>
-               <div className="flex flex-col gap-1 border border-white/5 rounded-xl bg-black/20 p-2">
+            <div className="pt-4 border-t border-white/10 space-y-3">
+               <p className="text-[10px] font-bold text-gray-500 text-center uppercase tracking-widest">تسلسل المستويات</p>
+               <div className="grid grid-cols-1 gap-1">
                  {Object.entries(badgeConfigs).map(([key, badge]: [string, any]) => {
+                    const isCurrent = tier === key;
                     const reqPoints = key === 'none' ? '0' : key === 'bronze' ? '30' : key === 'silver' ? '100' : key === 'gold' ? '350' : key === 'diamond' ? '800' : '2000';
+                    
                     return (
-                      <div key={key} className={cn("flex items-center justify-between p-1.5 rounded-lg", tier === key ? "bg-white/10 shadow-sm" : "")}>
-                         <div className="flex items-center gap-2">
-                            <div className={cn("p-1 rounded bg-gradient-to-br", badge.color)}>
+                      <div key={key} className={cn(
+                        "flex items-center justify-between p-2 rounded-xl transition-all",
+                        isCurrent ? "bg-white/10 ring-1 ring-white/10 shadow-lg scale-[1.02]" : "opacity-40"
+                      )}>
+                         <div className="flex items-center gap-2.5">
+                            <div className={cn("p-1.5 rounded-lg bg-gradient-to-br shadow-sm", badge.color)}>
                                <badge.icon className="w-2.5 h-2.5 text-white" />
                             </div>
-                            <span className={cn("text-[11px] font-bold", tier === key ? "text-white" : "text-gray-400")}>{badge.label}</span>
+                            <span className={cn("text-[11px] font-bold", isCurrent ? "text-white" : "text-gray-400")}>{badge.label}</span>
                          </div>
-                         <span className={cn("text-[10px] font-mono", tier === key ? "text-indigo-400 font-bold" : "text-gray-600")}>
-                           {reqPoints}
-                         </span>
+                         <div className="flex items-center gap-1.5">
+                            <span className={cn("text-[10px] font-mono", isCurrent ? "text-indigo-400 font-black" : "text-gray-600")}>
+                              {reqPoints}
+                            </span>
+                            {isCurrent && <Sparkles className="w-3 h-3 text-yellow-500 fill-yellow-500 animate-pulse" />}
+                         </div>
                       </div>
                     );
                  })}
                </div>
-               <p className="text-[9px] text-gray-500 mt-2 text-center leading-relaxed">اجمع نقاط عبر نشر الرحلات (20)، والقصص (5)، وكسب تفاعلات ومتابعين للحصول على ترقيات مميزة.</p>
             </div>
+            
+            <p className="text-[9px] text-gray-500 text-center leading-relaxed px-2">
+               انشر رحلاتك وقصصك لرفع مستواك والحصول على مميزات حصرية في المجتمع.
+            </p>
           </div>
         </TooltipContent>
       </Tooltip>

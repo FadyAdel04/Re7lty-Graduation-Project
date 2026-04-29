@@ -50,12 +50,12 @@ const ReportsTab: React.FC<ReportsTabProps> = ({
     return (
         <div className="p-8 m-0 focus-visible:outline-none">
             <div className="flex items-center justify-between mb-8">
-                <h2 className="text-2xl font-black text-gray-900">التقارير والإحصائيات</h2>
+                <h2 className="text-2xl font-black text-foreground">التقارير والإحصائيات</h2>
                 <Button 
                     variant="ghost" 
                     size="icon" 
                     onClick={onRefresh} 
-                    className="rounded-full hover:bg-gray-100 text-gray-400 hover:text-indigo-600"
+                    className="rounded-full hover:bg-muted text-gray-400 hover:text-indigo-600"
                 >
                     <RefreshCcw className="w-5 h-5" />
                 </Button>
@@ -64,7 +64,7 @@ const ReportsTab: React.FC<ReportsTabProps> = ({
             <div className="space-y-8">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     {/* Bookings Status Distribution */}
-                    <Card className="p-6 rounded-3xl border-gray-100 shadow-sm">
+                    <Card className="p-6 rounded-3xl border-border shadow-sm">
                         <CardHeader className="px-0 pt-0">
                             <CardTitle className="text-lg font-bold">توزيع حالات الحجوزات</CardTitle>
                         </CardHeader>
@@ -92,7 +92,7 @@ const ReportsTab: React.FC<ReportsTabProps> = ({
                     </Card>
 
                     {/* Payment Summary Pie Chart */}
-                    <Card className="p-6 rounded-3xl border-gray-100 shadow-sm">
+                    <Card className="p-6 rounded-3xl border-border shadow-sm">
                         <CardHeader className="px-0 pt-0">
                             <CardTitle className="text-lg font-bold">حالة التحصيل المالي</CardTitle>
                         </CardHeader>
@@ -136,7 +136,7 @@ const ReportsTab: React.FC<ReportsTabProps> = ({
                 </div>
 
                 {/* Trip Views vs Bookings */}
-                <Card className="p-6 rounded-3xl border-gray-100 shadow-sm">
+                <Card className="p-6 rounded-3xl border-border shadow-sm">
                     <CardHeader className="px-0 pt-0">
                         <CardTitle className="text-lg font-bold">المشاهدات مقابل الحجوزات (لكل رحلة)</CardTitle>
                     </CardHeader>
@@ -159,19 +159,19 @@ const ReportsTab: React.FC<ReportsTabProps> = ({
                 </Card>
 
                 {/* Detailed Performance Table */}
-                <Card className="p-6 rounded-3xl border-gray-100 shadow-sm overflow-hidden">
+                <Card className="p-6 rounded-3xl border-border shadow-sm overflow-hidden">
                     <CardHeader className="px-0 pt-0">
                         <CardTitle className="text-lg font-bold">أداء الرحلات التفصيلي</CardTitle>
                     </CardHeader>
                     <div className="overflow-x-auto">
                         <table className="w-full text-right">
                             <thead>
-                                <tr className="border-b border-gray-100">
-                                    <th className="pb-4 font-bold text-gray-500">الرحلة</th>
-                                    <th className="pb-4 font-bold text-gray-500">المشاهدات</th>
-                                    <th className="pb-4 font-bold text-gray-500">الحجوزات</th>
-                                    <th className="pb-4 font-bold text-gray-500">معدل التحويل</th>
-                                    <th className="pb-4 font-bold text-gray-500">الإيرادات</th>
+                                <tr className="border-b border-border">
+                                    <th className="pb-4 font-bold text-muted-foreground">الرحلة</th>
+                                    <th className="pb-4 font-bold text-muted-foreground">المشاهدات</th>
+                                    <th className="pb-4 font-bold text-muted-foreground">الحجوزات</th>
+                                    <th className="pb-4 font-bold text-muted-foreground">معدل التحويل</th>
+                                    <th className="pb-4 font-bold text-muted-foreground">الإيرادات</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">

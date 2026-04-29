@@ -1,12 +1,14 @@
 import { useEffect, useRef } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
 interface MapboxTripMapProps {
   positions: { lat: number; lng: number }[];
   activityNames?: string[];
+  activitiesData?: any[];
   onMarkerClick?: (index: number) => void;
   markerColors?: string[];
   className?: string;
@@ -16,11 +18,14 @@ interface MapboxTripMapProps {
 export const MapboxTripMap = ({
   positions,
   activityNames = [],
+  activitiesData = [],
   onMarkerClick,
   markerColors = [],
   className = "",
   height = "280px",
 }: MapboxTripMapProps) => {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
@@ -40,7 +45,7 @@ export const MapboxTripMap = ({
 
     const map = new mapboxgl.Map({
       container: containerRef.current,
-      style: "mapbox://styles/mapbox/streets-v12",
+      style: isDark ? "mapbox://styles/mapbox/dark-v11" : "mapbox://styles/mapbox/streets-v12",
       center,
       zoom: 12,
     });
@@ -141,11 +146,16 @@ export const MapboxTripMap = ({
           el.style.zIndex = "1";
         };
 
-        const name = activityNames[idx] || `نقطة ${idx + 1}`;
+        const name = activityNames[idx] || (activitiesData[idx]?.name) || `نقطة ${idx + 1}`;
+        const description = activitiesData[idx]?.description ? `<p style="color:#6b7280;font-size:11px;margin:6px 0 0 0;line-height:1.4">${activitiesData[idx].description.substring(0, 80)}...</p>` : '';
+        const image = activitiesData[idx]?.images?.[0] ? `<img src="${activitiesData[idx].images[0]}" style="width:100%;height:100px;object-fit:cover;border-radius:8px;margin-bottom:8px" />` : '';
+
         const popup = new mapboxgl.Popup({ offset: 15, closeButton: false })
-          .setHTML(`<div dir="rtl" style="padding:10px;min-width:140px;border-radius:12px">
+          .setHTML(`<div dir="rtl" style="padding:12px;min-width:200px;max-width:240px;border-radius:12px;font-family:Cairo,sans-serif">
+            ${image}
             <div style="font-size:10px;font-weight:900;color:${markerColor};text-transform:uppercase;margin-bottom:4px">الوجهة رقم ${idx + 1}</div>
-            <strong style="color:#111827;font-size:14px">${name}</strong>
+            <strong style="color:#111827;font-size:15px;line-height:1.2;display:block">${name}</strong>
+            ${description}
           </div>`);
 
         const marker = new mapboxgl.Marker({ element: el })
@@ -168,7 +178,7 @@ export const MapboxTripMap = ({
       mapRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [positions.length, JSON.stringify(positions)]);
+  }, [positions.length, JSON.stringify(positions), isDark]);
 
   if (!positions.length) return null;
 

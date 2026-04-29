@@ -453,7 +453,6 @@ router.put("/:id/payment", requireAuthStrict, async (req, res) => {
             company.createdBy === userId ||
             (currentUserProfile?.companyId && currentUserProfile.companyId.toString() === (company._id as any).toString())
         );
-
         if (!isAuthorized || !company) {
             return res.status(403).json({ error: "Unauthorized: You don't have permission to manage this company's bookings" });
         }
@@ -468,6 +467,11 @@ router.put("/:id/payment", requireAuthStrict, async (req, res) => {
         }
         await booking.save();
 
+        // If paid and accepted, ensure user is in the group chat
+        if (booking.status === 'accepted' && booking.paymentStatus === 'paid') {
+            await handleBookingAccepted(booking.tripId.toString(), booking.userId);
+        }
+
         res.json({ success: true, booking });
     } catch (error: any) {
         console.error("Error updating payment:", error);
@@ -481,7 +485,6 @@ router.get("/analytics", requireAuthStrict, async (req: any, res) => {
         const userId = auth?.userId;
 
         if (!userId) {
-            console.error("GET /analytics - No userId found in req.auth");
             return res.status(401).json({ error: "Unauthorized - No user ID" });
         }
 
@@ -577,6 +580,7 @@ router.get("/analytics", requireAuthStrict, async (req: any, res) => {
     }
 });
 
+
 router.get("/:id", requireAuthStrict, async (req: any, res) => {
     try {
         const userId = req.auth?.userId;
@@ -601,13 +605,90 @@ router.get("/:id", requireAuthStrict, async (req: any, res) => {
             );
             
             if (!isCompanyOwner) {
-                return res.status(403).json({ error: "Unauthorized" });
+                return res.status(403).json({ error: "Unauthorized access" });
             }
         }
-        
+            
         res.json(booking);
     } catch (error: any) {
         res.status(500).json({ error: error.message });
+    }
+});
+
+/**
+ * POST /api/bookings/:id/apply-coupon
+ * Applies a coupon to an existing booking and updates the total price.
+ */
+router.post("/:id/apply-coupon", requireAuthStrict, async (req, res) => {
+    try {
+        const { userId } = getAuth(req);
+        const { id } = req.params;
+        const { couponCode } = req.body;
+
+        if (!couponCode) {
+            return res.status(400).json({ error: "يرجى إدخال كود الخصم" });
+        }
+
+        const booking = await Booking.findById(id);
+        if (!booking) return res.status(404).json({ error: "الحجز غير موجود" });
+        if (booking.userId !== userId) return res.status(403).json({ error: "غير مصرح لك بتعديل هذا الحجز" });
+        if (booking.paymentStatus === 'paid') return res.status(400).json({ error: "لا يمكن تطبيق كوبون على حجز مدفوع بالفعل" });
+
+        const { Coupon } = await import("../models/Coupon");
+        const coupon = await Coupon.findOne({
+            code: couponCode.toUpperCase().trim(),
+            companyId: booking.companyId,
+            isActive: true,
+            expiryDate: { $gt: new Date() }
+        });
+
+        if (!coupon) {
+            return res.status(400).json({ error: "كود الخصم غير صالح أو منتهي الصلاحية" });
+        }
+
+        if (coupon.usageLimit && coupon.usageCount >= coupon.usageLimit) {
+            return res.status(400).json({ error: "تم استهلاك كود الخصم بالكامل" });
+        }
+
+        if (coupon.applicableTrips.length > 0 && !coupon.applicableTrips.some(tid => tid.toString() === booking.tripId.toString())) {
+            return res.status(400).json({ error: "هذا الكود لا ينطبق على هذه الرحلة" });
+        }
+
+        // Calculate discount
+        const originalTotalPrice = booking.totalPrice + (booking.discountApplied || 0);
+        let discountApplied = 0;
+        
+        if (coupon.discountType === 'percentage') {
+            discountApplied = (originalTotalPrice * coupon.discountValue) / 100;
+        } else {
+            discountApplied = coupon.discountValue;
+        }
+
+        const newTotalPrice = Math.max(0, originalTotalPrice - discountApplied);
+
+        // Update booking
+        booking.discountApplied = discountApplied;
+        booking.totalPrice = newTotalPrice;
+        booking.couponId = coupon._id as any;
+        
+        // Update commission and net amount
+        booking.commissionAmount = parseFloat((newTotalPrice * 0.05).toFixed(2));
+        booking.netAmount = parseFloat((newTotalPrice - booking.commissionAmount).toFixed(2));
+
+        await booking.save();
+
+        // Increment coupon usage
+        coupon.usageCount += 1;
+        await coupon.save();
+
+        res.json({
+            success: true,
+            message: "تم تطبيق الكوبون بنجاح",
+            booking
+        });
+    } catch (error: any) {
+        console.error("Error applying coupon:", error);
+        res.status(500).json({ error: error.message || "فشل تطبيق الكوبون" });
     }
 });
 

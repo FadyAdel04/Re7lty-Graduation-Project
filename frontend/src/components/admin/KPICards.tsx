@@ -80,7 +80,7 @@ const KPICards: React.FC<KPICardsProps> = ({ stats, loading = false }) => {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
         {[1, 2, 3, 4, 5].map((i) => (
-          <div key={i} className="h-32 bg-white rounded-3xl animate-pulse shadow-sm min-w-0" />
+          <div key={i} className="h-32 bg-card rounded-3xl animate-pulse shadow-sm min-w-0" />
         ))}
       </div>
     );
@@ -112,7 +112,7 @@ const KPICards: React.FC<KPICardsProps> = ({ stats, loading = false }) => {
                    <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg transition-transform group-hover:rotate-12", getColors(card.color))}>
                       <card.icon className="w-6 h-6" />
                    </div>
-                   <div className="h-8 px-2.5 rounded-full bg-gray-50 flex items-center gap-1 text-[10px] font-black text-gray-400">
+                   <div className="h-8 px-2.5 rounded-full bg-muted flex items-center gap-1 text-[10px] font-black text-gray-400">
                       <ArrowUpRight className="w-3 h-3 text-emerald-500" />
                       {card.label}
                    </div>
@@ -120,7 +120,7 @@ const KPICards: React.FC<KPICardsProps> = ({ stats, loading = false }) => {
                 
                 <h4 className="text-gray-400 font-black text-[10px] uppercase tracking-wider mb-1">{card.title}</h4>
                 <div className="flex items-baseline gap-2">
-                   <span className="text-2xl font-black text-gray-900 leading-none">
+                   <span className="text-2xl font-black text-foreground leading-none">
                      {card.value.toLocaleString('ar-EG')}
                      {('isCurrency' in card) && <span className="text-xs mr-1 text-gray-400">ج.م</span>}
                    </span>

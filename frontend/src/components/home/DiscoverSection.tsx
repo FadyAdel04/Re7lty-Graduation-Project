@@ -4,10 +4,10 @@ import { Link } from "react-router-dom";
 
 const DiscoverSection = () => {
   return (
-    <section className="py-24 bg-white relative overflow-hidden">
+    <section className="py-24 bg-background relative overflow-hidden">
       
       {/* Background Map Graphic (Pure CSS/SVG pattern) */}
-      <div className="absolute inset-0 opacity-[0.03] pointer-events-none">
+      <div className="absolute inset-0 opacity-[0.03] pointer-events-none dark:opacity-[0.07]">
          <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
             <path d="M0 0 L100 100 M100 0 L0 100" stroke="currentColor" strokeWidth="0.5" />
          </svg>
@@ -15,43 +15,43 @@ const DiscoverSection = () => {
       </div>
 
       <div className="container mx-auto px-4 relative z-10">
-         <div className="bg-slate-900 rounded-3xl p-8 md:p-12 lg:p-16 text-white shadow-2xl relative overflow-hidden">
+         <div className="bg-card rounded-3xl p-8 md:p-12 lg:p-16 text-foreground shadow-2xl relative overflow-hidden border border-border">
             
             {/* Decorative circles */}
-            <div className="absolute top-0 right-0 -mt-20 -mr-20 w-80 h-80 bg-orange-500 rounded-full opacity-20 blur-3xl"></div>
-            <div className="absolute bottom-0 left-0 -mb-20 -ml-20 w-80 h-80 bg-blue-500 rounded-full opacity-20 blur-3xl"></div>
+            <div className="absolute top-0 right-0 -mt-20 -mr-20 w-80 h-80 bg-primary rounded-full opacity-20 blur-3xl"></div>
+            <div className="absolute bottom-0 left-0 -mb-20 -ml-20 w-80 h-80 bg-secondary rounded-full opacity-20 blur-3xl"></div>
 
             <div className="grid md:grid-cols-2 gap-12 items-center">
                <div className="space-y-6">
-                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 text-orange-300 text-sm font-medium">
+                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium">
                     <Compass className="h-4 w-4 animate-spin-slow" />
                     <span>خرائط تفاعلية للرحلات</span>
                   </div>
                   <h2 className="text-3xl md:text-5xl font-bold leading-tight">
                     تتبع خط سير رحلتك <br />
-                    <span className="text-orange-400">خطوة بخطوة</span>
+                    <span className="text-primary">خطوة بخطوة</span>
                   </h2>
-                  <p className="text-gray-300 text-lg">
+                  <p className="text-muted-foreground text-lg">
                     لا مزيد من التوهان! استعرض مسار رحلتك بالكامل على الخريطة التفاعلية. شاهد أماكن الزيارة، الفنادق، والمطاعم مرتبة حسب جدولك اليومي.
                   </p>
                   
-                  <ul className="space-y-3 text-gray-400">
+                  <ul className="space-y-3 text-muted-foreground">
                      <li className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-400"><MapPin className="h-4 w-4" /></div>
+                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary"><MapPin className="h-4 w-4" /></div>
                         <span>عرض مسار الرحلة اليومي بوضوح</span>
                      </li>
                      <li className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400"><Globe className="h-4 w-4" /></div>
+                        <div className="w-8 h-8 rounded-full bg-secondary/20 flex items-center justify-center text-secondary"><Globe className="h-4 w-4" /></div>
                         <span>استكشاف الأماكن القريبة من موقعك</span>
                      </li>
                   </ul>
                </div>
 
-               <div className="relative h-[300px] md:h-[400px] bg-slate-800 rounded-2xl border border-white/10 overflow-hidden group shadow-inner">
+               <div className="relative h-[300px] md:h-[400px] bg-slate-950 rounded-2xl border border-border overflow-hidden group shadow-inner">
                   {/* Fake Map UI */}
-                  <div className="absolute inset-0 bg-[#1a1d24]">
+                  <div className="absolute inset-0 bg-[#0d0f14]">
                      {/* Map Grid Lines */}
-                     <div className="absolute inset-0" style={{ backgroundImage: 'linear-gradient(#2a2e36 1px, transparent 1px), linear-gradient(90deg, #2a2e36 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
+                     <div className="absolute inset-0" style={{ backgroundImage: 'linear-gradient(#1a1d24 1px, transparent 1px), linear-gradient(90deg, #1a1d24 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
                      
                      {/* Route Path (SVG) */}
                      <svg className="absolute inset-0 w-full h-full pointer-events-none">
@@ -76,38 +76,38 @@ const DiscoverSection = () => {
                      </div>
 
                      {/* Floating Itinerary Card */}
-                     <div className="hidden md:block absolute top-6 right-6 bg-white/10 backdrop-blur-md p-3 rounded-xl border border-white/20 w-48 shadow-xl">
+                     <div className="hidden md:block absolute top-6 right-6 bg-background/40 backdrop-blur-md p-3 rounded-xl border border-border w-48 shadow-xl">
                         {/* Day 1 */}
-                        <div className="text-xs text-gray-400 mb-2">اليوم الأول</div>
+                        <div className="text-[10px] text-muted-foreground mb-2">اليوم الأول</div>
                         <div className="flex items-center gap-2 mb-2">
                            <div className="w-2 h-2 rounded-full bg-orange-500"></div>
-                           <span className="text-sm font-bold">الوصول للفندق</span>
+                           <span className="text-xs font-bold">الوصول للفندق</span>
                         </div>
                         <div className="flex items-center gap-2 mb-2">
                            <div className="w-2 h-2 rounded-full bg-orange-500"></div>
-                           <span className="text-sm font-bold">زيارة المتحف</span>
+                           <span className="text-xs font-bold">زيارة المتحف</span>
                         </div>
                         <div className="flex items-center gap-2 mb-3">
-                           <div className="w-2 h-2 rounded-full bg-gray-500"></div>
-                           <span className="text-sm text-gray-400">العشاء</span>
+                           <div className="w-2 h-2 rounded-full bg-muted-foreground"></div>
+                           <span className="text-xs text-muted-foreground">العشاء</span>
                         </div>
 
                         {/* Day 2 */}
-                        <div className="border-t border-white/10 pt-2 mb-2"></div>
-                        <div className="text-xs text-gray-400 mb-2">اليوم الثاني</div>
+                        <div className="border-t border-border pt-2 mb-2"></div>
+                        <div className="text-[10px] text-muted-foreground mb-2">اليوم الثاني</div>
                         <div className="flex items-center gap-2 mb-2">
                            <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                           <span className="text-sm font-bold">جولة بحرية</span>
+                           <span className="text-xs font-bold">جولة بحرية</span>
                         </div>
                         <div className="flex items-center gap-2">
                            <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                           <span className="text-sm font-bold">الغداء في الجزيرة</span>
+                           <span className="text-xs font-bold">الغداء في الجزيرة</span>
                         </div>
                      </div>
                   </div>
                   
                   {/* Hover Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent opacity-60"></div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-60"></div>
                </div>
             </div>
 

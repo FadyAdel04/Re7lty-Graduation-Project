@@ -3,10 +3,11 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface IContentReport extends Document {
     tripId: mongoose.Types.ObjectId;
     reportedBy: string; // Clerk userId
-    reason: 'spam' | 'inappropriate' | 'misleading' | 'other';
+    reason: 'spam' | 'inappropriate' | 'misleading' | 'scam' | 'unsafe' | 'other';
     description?: string;
     status: 'pending' | 'resolved' | 'dismissed';
     adminNotes?: string;
+    tripModel: 'Trip' | 'CorporateTrip';
     createdAt: Date;
     updatedAt: Date;
 }
@@ -15,8 +16,14 @@ const ContentReportSchema: Schema = new Schema(
     {
         tripId: {
             type: Schema.Types.ObjectId,
-            ref: 'Trip',
+            refPath: 'tripModel',
             required: true,
+        },
+        tripModel: {
+            type: String,
+            required: true,
+            enum: ['Trip', 'CorporateTrip'],
+            default: 'Trip',
         },
         reportedBy: {
             type: String,
@@ -24,7 +31,7 @@ const ContentReportSchema: Schema = new Schema(
         },
         reason: {
             type: String,
-            enum: ['spam', 'inappropriate', 'misleading', 'other'],
+            enum: ['spam', 'inappropriate', 'misleading', 'scam', 'unsafe', 'other'],
             required: true,
         },
         description: {

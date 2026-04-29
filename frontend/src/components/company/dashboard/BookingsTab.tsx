@@ -22,7 +22,7 @@ const BookingsTab: React.FC<BookingsTabProps> = ({
         <div className="p-8 m-0 focus-visible:outline-none">
             <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-4">
-                    <h2 className="text-2xl font-black text-gray-900">طلبات الحجز</h2>
+                    <h2 className="text-2xl font-black text-foreground">طلبات الحجز</h2>
                     {pendingBookings.length > 0 && (
                         <div className="flex items-center gap-2 px-3 py-1 bg-red-100 rounded-full border border-red-200">
                             <Bell className="w-4 h-4 text-red-600" />
@@ -52,19 +52,19 @@ const BookingsTab: React.FC<BookingsTabProps> = ({
                         <div className="mb-6 p-6 bg-gradient-to-l from-indigo-50 to-white border border-indigo-100 rounded-3xl flex items-center justify-between shadow-sm relative overflow-hidden">
                             <div className="absolute top-0 right-0 w-1 h-full bg-indigo-500" />
                             <div className="relative z-10">
-                                <h3 className="font-bold text-gray-900 mb-1 flex items-center gap-2">
+                                <h3 className="font-bold text-foreground mb-1 flex items-center gap-2">
                                     <Activity className="w-4 h-4 text-indigo-600" />
                                     ملخص الطلبات الجديدة
                                 </h3>
-                                <p className="text-sm text-gray-500">لديك <span className="font-bold text-indigo-600">{pendingBookings.length}</span> طلبات حجز قيد الانتظار</p>
+                                <p className="text-sm text-muted-foreground">لديك <span className="font-bold text-indigo-600">{pendingBookings.length}</span> طلبات حجز قيد الانتظار</p>
                             </div>
                             <div className="relative z-10 text-left">
                                 <p className="text-xs text-gray-400 font-bold mb-1">إجمالي القيمة المتوقعة</p>
-                                <p className="text-2xl font-black text-gray-900">
+                                <p className="text-2xl font-black text-foreground">
                                     {pendingBookings
                                         .reduce((acc, curr) => acc + (curr.totalPrice || 0), 0)
                                         .toLocaleString()} 
-                                    <span className="text-sm font-bold text-gray-500 mr-1">ج.م</span>
+                                    <span className="text-sm font-bold text-muted-foreground mr-1">ج.م</span>
                                 </p>
                             </div>
                         </div>

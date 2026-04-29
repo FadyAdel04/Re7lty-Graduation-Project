@@ -10,6 +10,11 @@ const CommentSchema = new Schema({
   likedBy: { type: [String], default: [] },
 }, { _id: true, timestamps: true });
 
+// Add recursive replies support
+CommentSchema.add({
+  replies: [CommentSchema]
+});
+
 const ActivitySchema = new Schema({
   name: String,
   images: [String],

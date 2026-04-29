@@ -25,12 +25,12 @@ const TripsTab: React.FC<TripsTabProps> = ({
         <div className="p-8 m-0 focus-visible:outline-none">
             <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-4">
-                    <h2 className="text-2xl font-black text-gray-900">إدارة الرحلات</h2>
+                    <h2 className="text-2xl font-black text-foreground">إدارة الرحلات</h2>
                     <Button 
                         variant="ghost" 
                         size="icon" 
                         onClick={onRefresh} 
-                        className="rounded-full hover:bg-gray-100 text-gray-400 hover:text-indigo-600"
+                        className="rounded-full hover:bg-muted text-gray-400 hover:text-indigo-600"
                     >
                         <RefreshCcw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
                     </Button>
@@ -58,7 +58,7 @@ const TripsTab: React.FC<TripsTabProps> = ({
             ) : (
                 <div className="text-center py-20 text-gray-400">
                     <Map className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                    <h3 className="text-xl font-bold text-gray-700">لا توجد رحلات حالياً</h3>
+                    <h3 className="text-xl font-bold text-muted-foreground">لا توجد رحلات حالياً</h3>
                     <p className="mb-6">ابدأ بنشر رحلتك الأولى واستقبل الحجوزات</p>
                     <Button className="bg-indigo-600 text-white rounded-xl" onClick={onCreateTrip}>إضافة رحلة</Button>
                 </div>

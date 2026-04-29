@@ -70,7 +70,7 @@ const PieChart: React.FC<PieChartProps> = ({
         {/* Stats Summary */}
         <div className="mt-4 grid grid-cols-1 gap-2">
           {data.map((item, index) => (
-            <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+            <div key={index} className="flex items-center justify-between p-2 bg-muted rounded">
               <div className="flex items-center gap-2">
                 <div 
                   className="w-3 h-3 rounded-full" 

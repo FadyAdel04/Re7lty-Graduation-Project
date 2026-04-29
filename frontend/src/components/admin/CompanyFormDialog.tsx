@@ -165,7 +165,7 @@ const CompanyFormDialog = ({ open, onOpenChange, onSuccess, initialData }: Compa
                   />
                   {/* Logo Preview */}
                   {formData.logo && (
-                     <div className="mt-2 text-center text-xs text-gray-500">
+                     <div className="mt-2 text-center text-xs text-muted-foreground">
                        <p className="mb-1">معاينة:</p>
                        <div className={`h-12 w-12 mx-auto rounded-lg bg-gradient-to-br ${formData.color} flex items-center justify-center text-white overflow-hidden shadow-sm`}>
                          <img src={formData.logo} alt="Logo" className="w-full h-full object-cover" onError={(e) => (e.currentTarget.style.display = 'none')} />

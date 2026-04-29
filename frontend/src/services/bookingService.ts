@@ -259,4 +259,18 @@ export const bookingService = {
             throw error;
         }
     },
+
+    // Apply a coupon to an existing booking
+    applyCoupon: async (bookingId: string, couponCode: string, token?: string): Promise<{ success: boolean; booking: Booking }> => {
+        try {
+            const response = await axios.post(`${API_URL}/api/bookings/${bookingId}/apply-coupon`, { couponCode }, {
+                headers: getAuthHeaders(token),
+                withCredentials: true
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error applying coupon:', error);
+            throw error;
+        }
+    },
 };

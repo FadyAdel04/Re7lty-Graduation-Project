@@ -6,7 +6,32 @@ import Footer from "@/components/Footer";
 import { listTrips, toggleTripLove, toggleTripSave, toggleFollowUser, getUserFollowing } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Heart, MessageCircle, Share2, Bookmark, MapPin, Star, Clock, MoreHorizontal, LayoutGrid, TrendingUp, ArrowRight, Sparkles, Calendar, Flag, Video, Play, Zap, Filter, MessageSquare as MessageIcon, Image as ImageIcon } from "lucide-react";
+import { 
+  Heart, 
+  MessageCircle, 
+  Share2, 
+  Bookmark, 
+  MapPin, 
+  Star, 
+  Clock, 
+  MoreHorizontal, 
+  LayoutGrid, 
+  TrendingUp, 
+  ArrowRight, 
+  Sparkles, 
+  Calendar, 
+  Flag, 
+  Video, 
+  Play, 
+  Zap, 
+  Filter, 
+  MessageSquare as MessageIcon, 
+  Image as ImageIcon,
+  Users,
+  Compass,
+  ArrowUpRight,
+  ArrowLeft
+} from "lucide-react";
 import TripComments from "@/components/TripComments";
 import ReportTripDialog from "@/components/ReportTripDialog";
 import { SignedIn, useAuth, useUser } from "@clerk/clerk-react";
@@ -54,6 +79,7 @@ const Timeline = () => {
     if (n.includes('matrouh') || n.includes('matro')) return 'mersa matrouh';
     return n;
   };
+
   const [showHeartByTrip, setShowHeartByTrip] = useState<Record<string, boolean>>({});
   const [activeImageByTrip, setActiveImageByTrip] = useState<Record<string, string>>({});
   const [activeCommentsTripId, setActiveCommentsTripId] = useState<string | null>(null);
@@ -80,6 +106,7 @@ const Timeline = () => {
 
   const userTrips = trips.filter(t => t.ownerId === userId);
   const uniqueDestinations = new Set(userTrips.map(t => normalizeCity(t.city || t.destination)).filter(c => c !== 'unknown'));
+  
   const getTierFromPoints = (points: number): BadgeTier => {
     if (points >= 2000) return 'legend';
     if (points >= 800) return 'diamond';
@@ -241,7 +268,7 @@ const Timeline = () => {
     const tripId = getTripIdentifier(trip);
     if (!tripId) return;
     if (!isSignedIn) { 
-      if (!fromGesture) toast({ title: "تسجيل الدخول مطلوب" }); 
+      if (!fromGesture) toast({ title: "تسجيل الدخول مطلوب", description: "يجب تسجيل الدخول للإعجاب بالمنشورات" }); 
       return; 
     }
 
@@ -280,6 +307,7 @@ const Timeline = () => {
       const token = await getToken();
       const result = await toggleTripSave(trip._id, token || "");
       setSaveState((prev) => ({ ...prev, [tripId]: result.saved }));
+      toast({ title: result.saved ? "تم الحفظ" : "تم إلغاء الحفظ", description: result.saved ? "تمت إضافة الرحلة للمحفوظات" : "" });
     } catch (e) { console.error(e); }
   };
 
@@ -291,6 +319,18 @@ const Timeline = () => {
        setSuggestedTravelers(prev => prev.map(t => t.userId === targetUserId ? { ...t, isFollowing: res.following } : t));
        toast({ title: res.following ? "تمت المتابعة" : "تم إلغاء المتابعة" });
      } catch (e) { console.error(e); }
+  };
+
+  const handleShare = async () => {
+    const url = window.location.href;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "رحلتي", url });
+      } catch (e) {}
+    } else {
+      navigator.clipboard.writeText(url);
+      toast({ title: "تم نسخ الرابط" });
+    }
   };
 
   const toProfilePath = (trip: any) => {
@@ -314,17 +354,18 @@ const Timeline = () => {
   const activeCommentsTrip = activeCommentsTripId ? trips.find(t => getTripIdentifier(t) === activeCommentsTripId) : null;
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] font-cairo text-right" dir="rtl">
+    <div className="min-h-screen bg-background font-cairo text-right transition-all duration-700" dir="rtl">
       <Header />
       
       <main className="container mx-auto px-4 py-8">
         
         <TimelineHero />
 
-        <div className="max-w-[1400px] mx-auto mt-4">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 relative items-start">
+        <div className="max-w-[1400px] mx-auto mt-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 relative items-start">
             
-            <div className="lg:col-span-3 sticky top-24 hidden lg:block space-y-6 overflow-y-auto max-h-[85vh] no-scrollbar">
+            {/* Left Sidebar - Sticky */}
+            <div className="lg:col-span-3 sticky top-28 hidden lg:block space-y-8 overflow-y-auto max-h-[calc(100vh-8rem)] custom-scrollbar pr-1">
                  <LeftSidebar
                    filters={filters}
                    onFiltersChange={setFilters}
@@ -332,38 +373,58 @@ const Timeline = () => {
                    upcomingTrip={null}
                  />
                
-               <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
-                  <h4 className="font-bold text-gray-900 mb-4 flex items-center justify-end gap-2">
-                     روابط سريعة
-                     <LayoutGrid className="w-4 h-4 text-orange-500" />
+               <motion.div 
+                 initial={{ opacity: 0, y: 20 }}
+                 animate={{ opacity: 1, y: 0 }}
+                 transition={{ delay: 0.2 }}
+                 className="bg-card/50 backdrop-blur-xl rounded-[2.5rem] p-8 shadow-2xl border border-border group overflow-hidden relative"
+               >
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16 blur-3xl group-hover:bg-primary/10 transition-colors" />
+                  
+                  <h4 className="font-black text-foreground text-lg mb-6 flex items-center justify-end gap-3 relative z-10">
+                     استكشف المزيد
+                     <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                        <Compass className="w-4 h-4" />
+                     </div>
                   </h4>
-                  <div className="space-y-2">
-                     {['لوحة المتصدرين', 'اكتشف الرحلات'].map(link => (
-                       <Link key={link} to={link === 'لوحة المتصدرين' ? '/leaderboard' : link === 'اكتشف الرحلات' ? '/discover' : '#'} className="flex items-center justify-between p-2 rounded-xl text-sm text-gray-600 hover:bg-orange-50 hover:text-orange-600 transition-all">
-                         <div className="flex items-center gap-2">
-                             <ArrowRight className="w-3 h-3 rotate-180" />
-                             {link}
+                  <div className="space-y-3 relative z-10">
+                     {[
+                       { name: 'لوحة المتصدرين', path: '/leaderboard', icon: TrendingUp },
+                       { name: 'اكتشف الرحلات', path: '/discover', icon: MapPin },
+                       { name: 'وكالات السفر', path: '/agency', icon: Users }
+                     ].map(link => (
+                       <Link 
+                        key={link.name} 
+                        to={link.path} 
+                        className="flex items-center justify-between p-4 rounded-2xl text-sm font-black text-muted-foreground hover:bg-primary hover:text-white transition-all shadow-sm hover:shadow-lg group/item"
+                       >
+                         <ArrowUpRight className="w-4 h-4 opacity-0 group-hover/item:opacity-100 transition-opacity" />
+                         <div className="flex items-center gap-3">
+                            {link.name}
+                            <link.icon className="w-4 h-4" />
                          </div>
                        </Link>
                      ))}
                   </div>
-               </div>
+               </motion.div>
             </div>
 
-            <div className="lg:col-span-6 space-y-8">
-              <div className="flex lg:hidden mb-4">
+            {/* Center Feed */}
+            <div className="lg:col-span-6 space-y-10">
+              {/* Mobile Filter Toggle */}
+              <div className="flex lg:hidden mb-6">
                 <Sheet open={showFiltersMobile} onOpenChange={setShowFiltersMobile}>
                   <SheetTrigger asChild>
-                    <Button variant="outline" className="w-full gap-2 rounded-2xl border-orange-200 text-orange-600 hover:bg-orange-50 font-bold py-6">
+                    <Button variant="outline" className="w-full h-16 gap-3 rounded-2xl border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 font-black text-lg shadow-lg">
                       <Filter className="w-5 h-5" />
-                      تصفية الرحلات
+                      تخصيص الخلاصة
                     </Button>
                   </SheetTrigger>
-                  <SheetContent side="right" className="w-[320px] max-w-[90vw] p-0 overflow-y-auto" dir="rtl">
-                    <SheetHeader className="p-4 border-b border-gray-100">
-                      <SheetTitle className="text-right font-black">تصفية الرحلات</SheetTitle>
+                  <SheetContent side="right" className="w-[320px] max-w-[90vw] p-0 overflow-y-auto bg-background border-border" dir="rtl">
+                    <SheetHeader className="p-6 border-b border-border">
+                      <SheetTitle className="text-right font-black text-2xl text-foreground">تصفية الرحلات</SheetTitle>
                     </SheetHeader>
-                    <div className="p-4 space-y-4">
+                    <div className="p-6 space-y-6">
                       <LeftSidebar
                         filters={filters}
                         onFiltersChange={setFilters}
@@ -374,227 +435,259 @@ const Timeline = () => {
                   </SheetContent>
                 </Sheet>
               </div>
-              <div className="bg-white rounded-[2.5rem] p-4 shadow-sm border border-gray-100 overflow-hidden">
+
+              {/* Stories Section */}
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-card/50 backdrop-blur-xl rounded-[3rem] p-6 shadow-2xl border border-border overflow-hidden transition-all"
+              >
                 <StoriesBar
                   onUserClick={(user) => { setActiveStoryGroup(user); setIsStoryViewerOpen(true); }}
                 />
-              </div>
+              </motion.div>
 
+              {/* Post Feed */}
               {loading ? (
-                <div className="space-y-6">
-                   <div className="h-96 bg-gray-100 rounded-[2.5rem] animate-pulse" />
-                   <div className="h-96 bg-gray-100 rounded-[2.5rem] animate-pulse" />
+                <div className="space-y-10">
+                   <TripSkeletonLoader variant="list" />
+                   <TripSkeletonLoader variant="list" />
                 </div>
               ) : (
-                <div id="timeline-posts" className="space-y-8">
-                  {filteredTrips.map((trip) => {
-                    const id = getTripIdentifier(trip);
-                    const isLiked = loveState[id]?.liked;
-                    const isSaved = saveState[id];
-                    const activeSrc = activeImageByTrip[id] || trip.image;
-                    const thumbnails = [
-                      ...((trip.activities || []).flatMap((a: any) => a.images || [])),
-                      ...((trip.foodAndRestaurants || []).map((f: any) => f.image)),
-                    ].filter(Boolean).slice(0, 8);
+                <div id="timeline-posts" className="space-y-12">
+                  {filteredTrips.length === 0 ? (
+                    <div className="text-center py-20 bg-card rounded-[3rem] border border-dashed border-border shadow-inner">
+                       <Sparkles className="w-16 h-16 text-muted-foreground/20 mx-auto mb-6" />
+                       <h3 className="text-2xl font-black text-foreground mb-2">لا توجد نتائج</h3>
+                       <p className="text-muted-foreground font-bold">جرب تغيير الفلاتر لاستكشاف المزيد من الرحلات</p>
+                    </div>
+                  ) : (
+                    filteredTrips.map((trip, index) => {
+                      const id = getTripIdentifier(trip);
+                      const isLiked = loveState[id]?.liked;
+                      const isSaved = saveState[id];
+                      const activeSrc = activeImageByTrip[id] || trip.image;
+                      const thumbnails = [
+                        ...((trip.activities || []).flatMap((a: any) => a.images || [])),
+                        ...((trip.foodAndRestaurants || []).map((f: any) => f.image)),
+                      ].filter(Boolean).slice(0, 8);
 
-                    return (
-                      <Card key={id} className="group border-0 shadow-sm hover:shadow-xl transition-all duration-500 rounded-[2.5rem] overflow-hidden bg-white">
-                        <CardContent className="p-0">
-                          <div className="p-5 flex items-center justify-between">
-                             <div className="flex items-center gap-4">
-                                <Link to={toProfilePath(trip)} className="relative shrink-0">
-                                   <div className="p-1 rounded-full bg-gradient-to-tr from-orange-400 to-yellow-500">
-                                      <Avatar className="w-12 h-12 border-2 border-white">
-                                         <AvatarImage src={trip.authorImage} />
-                                         <AvatarFallback className="bg-orange-50 text-orange-600 font-bold">{trip.author?.[0]}</AvatarFallback>
-                                      </Avatar>
-                                   </div>
-                                </Link>
-                                 <div className="space-y-0.5 text-right flex-1 min-w-0">
-                                      <div className="flex items-center gap-2 mb-1">
-                                         <Link to={toProfilePath(trip)} className="font-bold text-gray-900 hover:text-orange-600 transition-colors block leading-tight">
-                                            {trip.author}
-                                         </Link>
-                                         <UserBadge tier={trip.authorBadge || 'none'} size='sm' showLabel={true} />
+                      return (
+                        <motion.div
+                          key={id}
+                          initial={{ opacity: 0, y: 40 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: Math.min(index * 0.1, 0.5) }}
+                        >
+                          <Card className="group border-0 shadow-2xl hover:shadow-[0_40px_100px_rgba(0,0,0,0.2)] dark:hover:shadow-[0_40px_100px_rgba(0,0,0,0.5)] transition-all duration-700 rounded-[3rem] overflow-hidden bg-card/80 backdrop-blur-xl ring-1 ring-border">
+                            <CardContent className="p-0">
+                              {/* Post Header */}
+                              <div className="p-6 flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                    <Link to={toProfilePath(trip)} className="relative shrink-0 group/avatar">
+                                       <div className="p-1 rounded-2xl bg-gradient-to-tr from-primary to-orange-400 group-hover/avatar:rotate-6 transition-transform">
+                                          <Avatar className="w-14 h-14 border-4 border-background rounded-[1.1rem]">
+                                             <AvatarImage src={trip.authorImage} className="object-cover" />
+                                             <AvatarFallback className="bg-primary/10 text-primary font-black text-xl">{trip.author?.[0]}</AvatarFallback>
+                                          </Avatar>
+                                       </div>
+                                       <div className="absolute -bottom-1 -right-1">
+                                          <UserBadge tier={trip.authorBadge || 'none'} size='sm' showLabel={false} />
+                                       </div>
+                                    </Link>
+                                     <div className="space-y-0.5 text-right flex-1 min-w-0">
+                                          <div className="flex items-center gap-2 mb-0.5">
+                                             <Link to={toProfilePath(trip)} className="font-black text-foreground hover:text-primary transition-colors block text-lg leading-tight tracking-tight">
+                                                {trip.author}
+                                             </Link>
+                                          </div>
+                                        <div className="flex items-center gap-2 text-xs text-muted-foreground font-bold">
+                                           {formatFacebookDate(trip.postedAt)}
+                                           <span className="text-border/30">•</span>
+                                           <div className="flex items-center gap-1 text-primary">
+                                              <MapPin className="w-3 h-3" />
+                                              {trip.destination}
+                                           </div>
+                                        </div>
+                                     </div>
+                                </div>
+                                
+                                <div className="flex items-center gap-2">
+                                  {trip.postType === 'quick' && (
+                                    <Badge className="bg-amber-500/10 text-amber-500 border-amber-200/50 gap-1.5 px-4 py-1.5 rounded-full font-black text-[10px] uppercase tracking-widest">
+                                      <Zap className="w-3.5 h-3.5 fill-amber-500" />
+                                      بوست سريع
+                                    </Badge>
+                                  )}
+                                  {trip.postType === 'ask' && (
+                                    <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-200/50 gap-1.5 px-4 py-1.5 rounded-full font-black text-[10px] uppercase tracking-widest">
+                                      <MessageCircle className="w-3.5 h-3.5 fill-emerald-600" />
+                                      سؤال واستفسار
+                                    </Badge>
+                                  )}
+                                  <ReportTripDialog 
+                                    tripId={id} 
+                                    tripTitle={trip.title}
+                                    trigger={
+                                      <Button variant="ghost" size="icon" className="rounded-full h-11 w-11 text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 transition-colors">
+                                        <Flag className="w-5 h-5" />
+                                      </Button>
+                                    }
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Post Media */}
+                               {(!(trip.postType === 'ask' && !trip.image)) && (
+                                 <div className={cn("relative aspect-video overflow-hidden bg-muted", trip.postType !== 'quick' && "cursor-pointer")} onDoubleClick={(!trip.activities?.[0]?.videos?.[0] && trip.postType !== 'quick') ? () => handleToggleLove(trip, true) : undefined}>
+                                   {trip.activities?.[0]?.videos?.[0] ? (
+                                     <CustomVideoPlayer 
+                                       src={trip.activities[0].videos[0]} 
+                                     />
+                                   ) : (
+                                     <>
+                                       {activeSrc ? (
+                                         <img src={activeSrc} alt="" className="w-full h-full object-cover transition-transform duration-[1.5s] group-hover:scale-110" />
+                                       ) : (
+                                         <div className="w-full h-full flex items-center justify-center">
+                                           <ImageIcon className="w-16 h-16 text-muted-foreground/10" />
+                                         </div>
+                                       )}
+                                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-700" />
+                                     </>
+                                   )}
+                                   
+                                   <AnimatePresence>
+                                     {showHeartByTrip[id] && (
+                                       <motion.div 
+                                         initial={{ opacity: 0, scale: 0 }}
+                                         animate={{ opacity: 1, scale: [0, 1.5, 1] }}
+                                         exit={{ opacity: 0, scale: 2, y: -100 }}
+                                         transition={{ duration: 0.5, ease: "backOut" }}
+                                         className="absolute inset-0 flex items-center justify-center pointer-events-none z-20"
+                                       >
+                                          <div className="bg-white/20 backdrop-blur-md p-10 rounded-full border border-white/30 shadow-[0_0_50px_rgba(255,255,255,0.3)]">
+                                             <Heart className="w-24 h-24 text-white fill-white drop-shadow-2xl" />
+                                          </div>
+                                       </motion.div>
+                                     )}
+                                   </AnimatePresence>
+      
+                                   <div className="absolute bottom-6 left-6 flex flex-col gap-3 items-end">
+                                      <div className="flex items-center gap-2 px-4 py-2 bg-black/30 backdrop-blur-xl rounded-2xl text-white text-xs font-black border border-white/20 shadow-2xl">
+                                         {trip.rating} / 5
+                                         <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
                                       </div>
-                                    <div className="flex items-center gap-2 text-xs text-gray-500">
-                                       {formatFacebookDate(trip.postedAt)}
-                                       <Clock className="w-3 h-3 text-orange-400" />
-                                      <span className="text-gray-300">|</span>
-                                      {trip.destination}
-                                      <MapPin className="w-3 h-3 text-orange-400" />
+                                      {trip.season && (
+                                         <div className="flex items-center gap-2 px-4 py-2 bg-primary/80 backdrop-blur-xl rounded-2xl text-white text-xs font-black border border-white/20 shadow-2xl">
+                                            {trip.season === 'winter' ? 'شتاء' : 
+                                             trip.season === 'summer' ? 'صيف' :
+                                             trip.season === 'fall' ? 'خريف' :
+                                             trip.season === 'spring' ? 'ربيع' : trip.season}
+                                            <Calendar className="w-4 h-4" />
+                                         </div>
+                                      )}
+                                   </div>
+                                 </div>
+                               )}
+
+                              {/* Thumbnails */}
+                              {thumbnails.length > 0 && (
+                                <div className="flex gap-3 p-6 pb-2 overflow-x-auto custom-scrollbar">
+                                   <button 
+                                     onClick={() => setActiveImageByTrip(p => ({ ...p, [id]: trip.image }))}
+                                     className={cn("w-16 h-16 rounded-2xl overflow-hidden shrink-0 border-4 transition-all duration-500", activeSrc === trip.image ? "border-primary scale-110 shadow-xl" : "border-transparent opacity-50 grayscale hover:grayscale-0")}
+                                   >
+                                      <img src={trip.image} className="w-full h-full object-cover" />
+                                   </button>
+                                   {thumbnails.map((src, i) => (
+                                     <button 
+                                       key={i} 
+                                       onClick={() => setActiveImageByTrip(p => ({ ...p, [id]: src }))}
+                                       className={cn("w-16 h-16 rounded-2xl overflow-hidden shrink-0 border-4 transition-all duration-500", activeSrc === src ? "border-primary scale-110 shadow-xl" : "border-transparent opacity-50 grayscale hover:grayscale-0")}
+                                     >
+                                        <img src={src} className="w-full h-full object-cover" />
+                                     </button>
+                                   ))}
+                                </div>
+                              )}
+
+                              {/* Post Body */}
+                              <div className="p-8 pt-4 text-right">
+                                 {trip.postType !== 'ask' ? (
+                                   <>
+                                     {trip.postType === 'quick' ? (
+                                        <h3 className="text-3xl font-black text-foreground mb-4 tracking-tighter leading-none">
+                                          {trip.title}
+                                        </h3>
+                                     ) : (
+                                        <Link to={`/trips/${id}`}>
+                                           <h3 className="text-3xl font-black text-foreground mb-4 hover:text-primary transition-colors tracking-tighter leading-none">
+                                             {trip.title}
+                                           </h3>
+                                        </Link>
+                                     )}
+                                     <p className="text-muted-foreground leading-relaxed text-lg line-clamp-3 mb-8 font-bold opacity-80">
+                                        {trip.description}
+                                     </p>
+                                   </>
+                                 ) : (
+                                   <p className="text-foreground text-2xl leading-relaxed mb-8 font-black tracking-tight">
+                                      {trip.description}
+                                   </p>
+                                 )}
+
+                                 <div className="flex items-center justify-between pt-6 border-t border-border/60">
+                                    <div className="flex items-center gap-3">
+                                       <Button 
+                                         variant="ghost" 
+                                         className={cn("rounded-2xl px-6 h-14 gap-3 transition-all font-black text-base shadow-sm", isLiked ? "bg-rose-500/10 text-rose-600 border border-rose-500/20" : "hover:bg-muted text-muted-foreground border border-transparent")}
+                                         onClick={() => handleToggleLove(trip)}
+                                       >
+                                          <Heart className={cn("w-6 h-6 transition-all", isLiked && "fill-rose-600 scale-125")} />
+                                          <span className="tabular-nums">{loveState[id]?.likes || 0}</span>
+                                       </Button>
+                                       
+                                       <Button 
+                                         variant="ghost" 
+                                         className="rounded-2xl px-6 h-14 gap-3 text-muted-foreground hover:bg-muted font-black text-base border border-transparent shadow-sm"
+                                         onClick={() => setActiveCommentsTripId(id)}
+                                       >
+                                          <MessageCircle className="w-6 h-6" />
+                                          <span className="tabular-nums">{(trip.comments || []).length}</span>
+                                       </Button>
+                                    </div>
+
+                                    <div className="flex items-center gap-3">
+                                       <Button variant="ghost" className={cn("rounded-2xl h-14 w-14 p-0 text-muted-foreground hover:bg-muted border border-transparent shadow-sm", isSaved && "text-primary bg-primary/10 border-primary/20")} onClick={() => handleToggleSave(trip)}>
+                                          <Bookmark className={cn("w-6 h-6", isSaved && "fill-primary")} />
+                                       </Button>
+                                       <Button variant="ghost" className="rounded-2xl h-14 w-14 p-0 text-muted-foreground hover:bg-muted border border-transparent shadow-sm" onClick={() => handleShare()}>
+                                          <Share2 className="w-6 h-6" />
+                                       </Button>
+                                        {(trip.postType !== 'ask' && trip.postType !== 'quick') && (
+                                          <Link to={`/trips/${id}`}>
+                                              <Button className="rounded-2xl h-14 px-8 bg-primary hover:bg-primary/90 text-white font-black shadow-xl shadow-primary/20 gap-2 group/btn">
+                                                  تفاصيل الرحلة
+                                                  <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+                                              </Button>
+                                          </Link>
+                                        )}
                                     </div>
                                  </div>
-                             </div>
-                             
-                             <div className="flex items-center gap-2">
-                               {trip.postType === 'quick' && (
-                                 <Badge className="bg-amber-500/10 text-amber-500 border-amber-200/50 gap-1 px-3 py-1 font-black">
-                                   <Zap className="w-3.5 h-3.5 fill-amber-500" />
-                                   بوست سريع
-                                 </Badge>
-                               )}
-                               {trip.postType === 'ask' && (
-                                 <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-200/50 gap-1 px-3 py-1 font-black">
-                                   <MessageCircle className="w-3.5 h-3.5 fill-emerald-600" />
-                                   سؤال واستفسار
-                                 </Badge>
-                               )}
-                               <ReportTripDialog 
-                                 tripId={id} 
-                                 tripTitle={trip.title}
-                                 trigger={
-                                   <Button variant="ghost" size="icon" className="rounded-full text-gray-400">
-                                     <Flag className="w-5 h-5" />
-                                   </Button>
-                                 }
-                               />
-                             </div>
-                          </div>
-
-                           {(!(trip.postType === 'ask' && !trip.image)) && (
-                             <div className={cn("relative aspect-video overflow-hidden", trip.postType !== 'quick' && "cursor-pointer")} onDoubleClick={(!trip.activities?.[0]?.videos?.[0] && trip.postType !== 'quick') ? () => handleToggleLove(trip, true) : undefined} onClick={trip.postType !== 'quick' ? undefined : (e) => e.stopPropagation()}>
-                               {trip.activities?.[0]?.videos?.[0] ? (
-                                 <CustomVideoPlayer 
-                                   src={trip.activities[0].videos[0]} 
-                                 />
-                               ) : (
-                                 <>
-                                   {activeSrc ? (
-                                     <img src={activeSrc} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                                   ) : (
-                                     <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-                                       <ImageIcon className="w-12 h-12 text-gray-200" />
-                                     </div>
-                                   )}
-                                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                                 </>
-                               )}
-                               
-                               <AnimatePresence>
-                                 {showHeartByTrip[id] && (
-                                   <motion.div 
-                                     initial={{ opacity: 0, scale: 0.5 }}
-                                     animate={{ opacity: 1, scale: [0.5, 1.2, 1] }}
-                                     exit={{ opacity: 0, scale: 0.5, y: -20 }}
-                                     className="absolute inset-0 flex items-center justify-center pointer-events-none z-20"
-                                   >
-                                     <div className="bg-white/20 backdrop-blur-sm p-8 rounded-full">
-                                        <Heart className="w-20 h-20 text-white fill-white drop-shadow-[0_0_20px_rgba(255,255,255,0.5)]" />
-                                     </div>
-                                   </motion.div>
-                                 )}
-                               </AnimatePresence>
-  
-                               <div className="absolute bottom-4 left-4 flex flex-col gap-2 items-end">
-                                  <div className="flex items-center gap-2 px-3 py-1.5 bg-black/30 backdrop-blur-md rounded-full text-white text-xs font-bold border border-white/20">
-                                     {trip.rating} / 5
-                                     <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
-                                  </div>
-                                  {trip.season && (
-                                     <div className="flex items-center gap-2 px-3 py-1.5 bg-orange-600/80 backdrop-blur-md rounded-full text-white text-xs font-bold border border-orange-400/30">
-                                        {trip.season === 'winter' ? 'شتاء' : 
-                                         trip.season === 'summer' ? 'صيف' :
-                                         trip.season === 'fall' ? 'خريف' :
-                                         trip.season === 'spring' ? 'ربيع' : trip.season}
-                                        <Calendar className="w-3.5 h-3.5" />
-                                     </div>
-                                  )}
-                               </div>
-                             </div>
-                           )}
-
-                          {thumbnails.length > 0 && (
-                            <div className="flex gap-2 p-4 overflow-x-auto no-scrollbar">
-                               <button 
-                                 onClick={() => setActiveImageByTrip(p => ({ ...p, [id]: trip.image }))}
-                                 className={cn("w-14 h-14 rounded-xl overflow-hidden shrink-0 border-2 transition-all", activeSrc === trip.image ? "border-orange-500 scale-105 shadow-md" : "border-transparent opacity-70")}
-                               >
-                                  <img src={trip.image} className="w-full h-full object-cover" />
-                               </button>
-                               {thumbnails.map((src, i) => (
-                                 <button 
-                                   key={i} 
-                                   onClick={() => setActiveImageByTrip(p => ({ ...p, [id]: src }))}
-                                   className={cn("w-14 h-14 rounded-xl overflow-hidden shrink-0 border-2 transition-all", activeSrc === src ? "border-orange-500 scale-105 shadow-md" : "border-transparent opacity-70")}
-                                 >
-                                    <img src={src} className="w-full h-full object-cover" />
-                                 </button>
-                               ))}
-                            </div>
-                          )}
-
-                          <div className="p-6 pt-2 text-right">
-                             {trip.postType !== 'ask' ? (
-                               <>
-                                 {trip.postType === 'quick' ? (
-                                    <h3 className="text-2xl font-black text-gray-900 mb-2 transition-colors">
-                                      {trip.title}
-                                    </h3>
-                                 ) : (
-                                    <Link to={`/trips/${id}`}>
-                                       <h3 className="text-2xl font-black text-gray-900 mb-2 hover:text-orange-600 transition-colors">
-                                         {trip.title}
-                                       </h3>
-                                    </Link>
-                                 )}
-                                 <p className="text-gray-500 leading-relaxed line-clamp-2 md:line-clamp-3 mb-6 font-light">
-                                    {trip.description}
-                                 </p>
-                               </>
-                             ) : (
-                               <p className="text-gray-900 text-xl leading-relaxed mb-6 font-bold">
-                                  {trip.description}
-                               </p>
-                             )}
-
-                             <div className="flex items-center justify-between pt-4 border-t border-gray-50">
-                                <div className="flex items-center gap-2">
-                                   <Button 
-                                     variant="ghost" 
-                                     className={cn("rounded-full px-5 h-11 gap-2 transition-all", isLiked ? "bg-red-50 text-red-600" : "hover:bg-gray-50 text-gray-500")}
-                                     onClick={() => handleToggleLove(trip)}
-                                   >
-                                      <Heart className={cn("w-5 h-5", isLiked && "fill-red-600 scale-110")} />
-                                      <span className="font-bold">{loveState[id]?.likes || 0}</span>
-                                   </Button>
-                                   
-                                   <Button 
-                                     variant="ghost" 
-                                     className="rounded-full px-5 h-11 gap-2 text-gray-500 hover:bg-gray-50"
-                                     onClick={() => setActiveCommentsTripId(id)}
-                                   >
-                                      <MessageCircle className="w-5 h-5" />
-                                      <span className="font-bold">{(trip.comments || []).length}</span>
-                                   </Button>
-                                </div>
-
-                                <div className="flex items-center gap-2">
-                                   <Button variant="ghost" className="rounded-full h-11 px-4 text-gray-500 hover:bg-gray-50" onClick={() => handleToggleSave(trip)}>
-                                      <Bookmark className={cn("w-5 h-5", isSaved && "fill-orange-500 text-orange-500 font-bold")} />
-                                   </Button>
-                                   <Button variant="ghost" className="rounded-full h-11 px-4 text-gray-500 hover:bg-gray-50">
-                                      <Share2 className="w-5 h-5" />
-                                   </Button>
-                                    {(trip.postType !== 'ask' && trip.postType !== 'quick') && (
-                                      <Link to={`/trips/${id}`}>
-                                          <Button variant="ghost" size="sm" className="rounded-full px-4 text-orange-600 hover:bg-orange-50 h-11">
-                                              المزيد
-                                          </Button>
-                                      </Link>
-                                    )}
-                                </div>
-                             </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </motion.div>
+                      );
+                    })
+                  )}
                 </div>
               )}
             </div>
 
-            <div className="lg:col-span-3 sticky top-24 hidden xl:block space-y-6">
+            {/* Right Sidebar - Sticky */}
+            <div className="lg:col-span-3 sticky top-28 hidden xl:block space-y-8">
                 <RightSidebar
                   followedTravelers={suggestedTravelers}
                   onToggleFollow={handleFollowedToggle}
@@ -609,19 +702,19 @@ const Timeline = () => {
       {isStoryViewerOpen && activeStoryGroup && <StoryViewer group={activeStoryGroup} isOpen={isStoryViewerOpen} onClose={() => setIsStoryViewerOpen(false)} />}
       
       <Dialog open={!!activeCommentsTripId} onOpenChange={(open) => !open && setActiveCommentsTripId(null)}>
-        <DialogContent className="max-w-2xl max-h-[85vh] p-0 overflow-hidden font-cairo shadow-2xl rounded-[2.5rem] border-0" dir="rtl">
-           <div className="p-6 pb-2 border-b border-gray-50">
+        <DialogContent className="max-w-2xl max-h-[90vh] p-0 overflow-hidden font-cairo shadow-[0_50px_100px_rgba(0,0,0,0.5)] rounded-[3.5rem] border-0 bg-background flex flex-col" dir="rtl">
+           <div className="p-8 border-b border-border bg-card/50 backdrop-blur-xl shrink-0">
               <DialogHeader>
-                 <DialogTitle className="text-right text-2xl font-black text-gray-900">
-                    التعليقات
-                    <span className="block text-sm font-bold text-indigo-500 mt-1">{activeCommentsTrip?.title}</span>
+                 <DialogTitle className="text-right text-3xl font-black text-foreground tracking-tight">
+                    التعليقات والمناقشات
+                    <span className="block text-sm font-black text-primary mt-2 uppercase tracking-widest">{activeCommentsTrip?.title}</span>
                  </DialogTitle>
                  <DialogDescription className="sr-only">
                     عرض جميع تعليقات المستخدمين على هذا المنشور والتفاعل معها.
                  </DialogDescription>
               </DialogHeader>
            </div>
-           <div className="p-6 pt-0 overflow-y-auto custom-scrollbar h-full">
+           <div className="flex-1 overflow-y-auto custom-scrollbar p-2">
               <TripComments
                 tripId={activeCommentsTripId || ""}
                 initialComments={activeCommentsTrip ? (Array.isArray(activeCommentsTrip.comments) ? activeCommentsTrip.comments : []) : []}

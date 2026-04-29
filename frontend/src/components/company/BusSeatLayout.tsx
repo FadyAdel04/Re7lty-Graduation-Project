@@ -283,34 +283,34 @@ const BusSeatLayout = ({
   }, [tripBookings, searchQuery]);
 
   return (
-    <div className="flex flex-col w-full font-cairo" dir="rtl">
+    <div className="flex flex-col w-full font-cairo transition-colors duration-500" dir="rtl">
       {/* Legend & Stats */}
       <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
          <div className="flex flex-wrap gap-4 items-center justify-center md:justify-start">
             <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded bg-white border border-zinc-200" />
-                <span className="text-[10px] font-bold text-zinc-500">متاح</span>
+                <div className="w-3 h-3 rounded bg-card border border-border" />
+                <span className="text-[10px] font-black text-muted-foreground">متاح</span>
             </div>
             <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded bg-indigo-600" />
-                <span className="text-[10px] font-bold text-zinc-500">محجوز</span>
+                <div className="w-3 h-3 rounded bg-primary" />
+                <span className="text-[10px] font-black text-muted-foreground">محجوز</span>
             </div>
             {isAdmin && (
                 <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded bg-orange-500 animate-pulse" />
-                    <span className="text-[10px] font-bold text-zinc-500">محدد</span>
+                    <span className="text-[10px] font-black text-muted-foreground">محدد</span>
                 </div>
             )}
          </div>
 
-         <div className="bg-white px-4 py-2 rounded-2xl border border-zinc-100 shadow-sm flex items-center justify-between">
+         <div className="bg-card px-4 py-2 rounded-2xl border border-border shadow-sm flex items-center justify-between">
             <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-blue-600" />
-                <span className="text-[10px] font-black text-zinc-400">الحجوزات: <span className="text-zinc-900">{totalBookedPassengers}</span></span>
+                <Users className="w-4 h-4 text-primary" />
+                <span className="text-[10px] font-black text-muted-foreground">الحجوزات: <span className="text-foreground">{totalBookedPassengers}</span></span>
             </div>
             <div className="flex items-center gap-2 text-[10px] font-black">
-                <span className="text-emerald-600">{stats.available} متاح</span>
-                <span className="text-indigo-600">{stats.booked} محجوز</span>
+                <span className="text-emerald-500">{stats.available} متاح</span>
+                <span className="text-primary">{stats.booked} محجوز</span>
             </div>
          </div>
       </div>
@@ -321,27 +321,27 @@ const BusSeatLayout = ({
           <div className="space-y-4">
              <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                   <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-100">
+                   <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/20">
                       <Users className="w-5 h-5" />
                    </div>
                    <div>
-                      <h3 className="text-lg font-black text-gray-900">توزيع المقاعد</h3>
-                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">اسحب اسم المسافر إلى المقعد المخصص له</p>
+                      <h3 className="text-lg font-black text-foreground">توزيع المقاعد</h3>
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">اسحب اسم المسافر إلى المقعد المخصص له</p>
                    </div>
                 </div>
                 
                 <div className="relative w-full md:w-64">
-                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input 
                       placeholder="ابحث عن مسافر..." 
-                      className="pr-10 h-10 rounded-xl border-zinc-100 bg-white shadow-sm"
+                      className="pr-10 h-10 rounded-xl border-border bg-card shadow-sm text-foreground focus-visible:ring-primary/20"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                     />
                 </div>
              </div>
              
-             <Card className="rounded-[2.5rem] border-zinc-100 shadow-xl overflow-hidden bg-white/50 backdrop-blur-sm p-4">
+             <Card className="rounded-[2.5rem] border-border shadow-xl overflow-hidden bg-card/50 backdrop-blur-sm p-4">
                 <ScrollArea className="w-full pb-2" dir="rtl">
                    <div className="flex gap-3 min-w-max pb-2 px-1">
                       {filteredBookings.length > 0 ? (
@@ -357,19 +357,19 @@ const BusSeatLayout = ({
                               className={cn(
                                 "p-3 rounded-2xl border transition-all cursor-grab active:cursor-grabbing flex items-center gap-3 w-48 shrink-0 group",
                                 isAssigned 
-                                  ? "bg-emerald-50 border-emerald-100" 
-                                  : "bg-white border-zinc-100 hover:border-indigo-400 hover:shadow-md"
+                                  ? "bg-emerald-500/10 border-emerald-500/20" 
+                                  : "bg-background border-border hover:border-primary hover:shadow-md"
                               )}
                             >
-                               <div className="w-8 h-8 rounded-xl bg-zinc-50 flex items-center justify-center shrink-0 border border-zinc-100 group-hover:bg-indigo-50 group-hover:border-indigo-100 transition-colors">
-                                  <GripVertical className="w-4 h-4 text-zinc-300 group-hover:text-indigo-400" />
+                               <div className="w-8 h-8 rounded-xl bg-muted flex items-center justify-center shrink-0 border border-border group-hover:bg-primary/10 group-hover:border-primary/20 transition-colors">
+                                  <GripVertical className="w-4 h-4 text-muted-foreground group-hover:text-primary" />
                                </div>
                                <div className="min-w-0 flex-1">
-                                  <p className="text-[11px] font-black text-zinc-900 truncate leading-none mb-1">{booking.userName}</p>
+                                  <p className="text-[11px] font-black text-foreground truncate leading-none mb-1">{booking.userName}</p>
                                   {isAssigned ? (
                                     <Badge className="bg-emerald-600 text-white text-[8px] border-0 h-4 px-1.5 font-black uppercase">مقعد {assignedSeat}</Badge>
                                   ) : (
-                                    <p className="text-[9px] font-bold text-zinc-400">غير مخصص</p>
+                                    <p className="text-[9px] font-bold text-muted-foreground">غير مخصص</p>
                                   )}
                                </div>
                             </div>
@@ -377,7 +377,7 @@ const BusSeatLayout = ({
                         })
                       ) : (
                         <div className="w-full py-4 text-center opacity-40">
-                            <p className="text-[10px] font-bold">لا يوجد مسافرين مطابقين</p>
+                            <p className="text-[10px] font-bold text-muted-foreground">لا يوجد مسافرين مطابقين</p>
                         </div>
                       )}
                    </div>
@@ -393,7 +393,7 @@ const BusSeatLayout = ({
               <div className="animate-in fade-in slide-in-from-top-2">
                   <Button 
                       onClick={handleBookSelected}
-                      className="bg-orange-600 hover:bg-orange-700 text-white font-black px-8 h-12 rounded-full shadow-xl border-4 border-white gap-2 transition-all hover:scale-105"
+                      className="bg-primary hover:bg-primary/90 text-primary-foreground font-black px-8 h-12 rounded-full shadow-xl border-4 border-background gap-2 transition-all hover:scale-105"
                   >
                       تأكيد حجز {selectedSeats.length} مقاعد
                   </Button>
@@ -405,10 +405,9 @@ const BusSeatLayout = ({
                   <Button 
                       onClick={() => {
                         onSelectSeats(selectedSeats);
-                        // Optional alert or toast could be added here
                       }}
                       type="button"
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white font-black px-8 h-12 rounded-full shadow-xl border-4 border-white gap-2 transition-all hover:scale-105 flex items-center"
+                      className="bg-primary hover:bg-primary/90 text-primary-foreground font-black px-8 h-12 rounded-full shadow-xl border-4 border-background gap-2 transition-all hover:scale-105 flex items-center"
                   >
                       تأكيد اختيار المقاعد ({selectedSeats.length})
                       <CheckCircle2 className="w-5 h-5 ml-2" />
@@ -417,12 +416,12 @@ const BusSeatLayout = ({
             )}
 
             <div className="relative w-full py-2 flex justify-center">
-              <Card className="inline-flex p-6 md:p-8 bg-zinc-50/50 border-zinc-200 rounded-[3rem] shadow-inner relative">
+              <Card className="inline-flex p-6 md:p-8 bg-muted/30 border-border rounded-[3rem] shadow-inner relative overflow-hidden">
                   {/* Visual Decoration - Side Walls of the Bus */}
-                  <div className="absolute left-0 top-10 bottom-10 w-1 bg-zinc-200/50 rounded-full" />
-                  <div className="absolute right-0 top-10 bottom-10 w-1 bg-zinc-200/50 rounded-full" />
+                  <div className="absolute left-0 top-0 bottom-0 w-2 bg-gradient-to-r from-border/20 to-transparent" />
+                  <div className="absolute right-0 top-0 bottom-0 w-2 bg-gradient-to-l from-border/20 to-transparent" />
                   
-                  <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-3 relative z-10">
                       {layout.map((row, rIdx) => (
                           <div key={rIdx} className="flex flex-row gap-3 items-center justify-center">
                               {row.map((seat, sIdx) => {
@@ -433,11 +432,11 @@ const BusSeatLayout = ({
                                   if (seat.type === 'wc' || seat.type === 'door' || seat.type === 'driver' || seat.type === 'guide') {
                                       return (
                                           <div key={sIdx} className={cn(`
-                                              w-10 h-10 md:w-12 md:h-12 rounded-xl flex flex-col items-center justify-center border-b-4 text-[9px] font-black text-center p-1 shadow-sm
+                                              w-10 h-10 md:w-12 md:h-12 rounded-xl flex flex-col items-center justify-center border-b-4 text-[9px] font-black text-center p-1 shadow-sm transition-colors duration-500
                                           `, 
-                                            seat.type === 'driver' ? 'bg-zinc-800 border-zinc-950 text-white' : 
-                                            seat.type === 'guide' ? 'bg-zinc-200 border-zinc-300 text-zinc-600' :
-                                            'bg-orange-100 border-orange-200 text-orange-600'
+                                            seat.type === 'driver' ? 'bg-zinc-800 dark:bg-zinc-700 border-zinc-950 text-white' : 
+                                            seat.type === 'guide' ? 'bg-muted border-border text-muted-foreground' :
+                                            'bg-orange-500/10 border-orange-500/20 text-orange-500'
                                           )}>
                                               {seat.type === 'driver' && <Disc className="w-5 h-5 mb-0.5" />}
                                               {seat.type === 'wc' && <Coffee className="w-5 h-5 mb-0.5 text-orange-500" />}
@@ -463,17 +462,17 @@ const BusSeatLayout = ({
                                                           w-10 h-10 md:w-12 md:h-12 rounded-xl font-black text-[11px] transition-all relative flex flex-col items-center justify-center border-b-4 group shadow-sm
                                                       `, 
                                                         seat.isBooked 
-                                                            ? "bg-indigo-600 border-indigo-800 text-white shadow-indigo-200" 
+                                                            ? "bg-primary border-primary/80 text-primary-foreground shadow-primary/20" 
                                                             : isSelected
                                                                 ? "bg-orange-500 border-orange-700 text-white scale-110 shadow-xl z-20"
-                                                                : "bg-white border-zinc-200 text-zinc-600 hover:border-indigo-400 hover:shadow-md"
+                                                                : "bg-card border-border text-foreground hover:border-primary hover:shadow-md"
                                                       )}
                                                   >
                                                       {seat.isBooked ? (
                                                         <div className="flex flex-col items-center">
                                                            {seat.passengerName ? (
-                                                              <span className="text-[7px] leading-none mb-1 opacity-80 line-clamp-1 px-1">{seat.passengerName}</span>
-                                                           ) : null}
+                                                                <span className="text-[7px] leading-none mb-1 opacity-80 line-clamp-1 px-1">{seat.passengerName}</span>
+                                                            ) : null}
                                                            <span>{seat.label}</span>
                                                         </div>
                                                       ) : seat.label}
@@ -484,8 +483,8 @@ const BusSeatLayout = ({
                                                       {seat.isBooked ? (
                                                           <>
                                                               <p className="opacity-50 text-[9px] font-bold">المسافر:</p>
-                                                              <p className="font-black text-indigo-400 text-xs">{seat.passengerName}</p>
-                                                              <div className="h-px bg-white/10 my-2" />
+                                                              <p className="font-black text-primary text-xs">{seat.passengerName}</p>
+                                                              <div className="h-px bg-card/10 my-2" />
                                                               <p className="text-[9px]">رقم المقعد: {seat.label}</p>
                                                           </>
                                                       ) : (
@@ -510,10 +509,10 @@ const BusSeatLayout = ({
       </div>
 
       <Dialog open={showBookingDialog} onOpenChange={setShowBookingDialog}>
-         <DialogContent className="font-cairo rounded-[2rem] max-w-sm">
+         <DialogContent className="font-cairo rounded-[2rem] max-w-sm bg-background border-border">
             <DialogHeader>
-                <DialogTitle className="text-xl font-black text-center flex flex-col items-center gap-2">
-                    <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 mb-2">
+                <DialogTitle className="text-xl font-black text-center flex flex-col items-center gap-2 text-foreground">
+                    <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mb-2">
                        <Armchair className="w-6 h-6" />
                     </div>
                     تخصيص الحجز
@@ -522,21 +521,21 @@ const BusSeatLayout = ({
             <div className="py-4 space-y-4">
                 <div className="flex flex-wrap gap-1.5 justify-center">
                     {selectedSeats.map(id => (
-                        <Badge key={id} variant="secondary" className="bg-zinc-100 text-zinc-600 border-0 h-6 px-3 rounded-full text-[10px] font-black">مقعد {id}</Badge>
+                        <Badge key={id} variant="secondary" className="bg-muted text-muted-foreground border-0 h-6 px-3 rounded-full text-[10px] font-black">مقعد {id}</Badge>
                     ))}
                 </div>
                 <div className="space-y-2">
-                    <Label className="text-xs font-black mr-1 text-zinc-500 uppercase">اسم المسافر</Label>
+                    <Label className="text-xs font-black mr-1 text-muted-foreground uppercase">اسم المسافر</Label>
                     <Input 
                         value={passengerName} 
                         onChange={(e) => setPassengerName(e.target.value)}
                         placeholder="الاسم بالكامل..."
-                        className="h-14 rounded-2xl border-zinc-100 bg-zinc-50 font-black text-center text-lg focus:ring-indigo-500/20"
+                        className="h-14 rounded-2xl border-border bg-muted/50 font-black text-center text-lg focus:ring-primary/20 text-foreground"
                     />
                 </div>
             </div>
             <DialogFooter className="flex flex-col gap-2">
-                <Button onClick={saveBooking} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl h-14 font-black text-lg shadow-xl shadow-indigo-100">
+                <Button onClick={saveBooking} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-2xl h-14 font-black text-lg shadow-xl shadow-primary/20">
                     حـفـظ الـحـجـز
                 </Button>
                 <div className="grid grid-cols-2 gap-2">
@@ -549,14 +548,14 @@ const BusSeatLayout = ({
                           setSelectedSeats([]);
                           setShowBookingDialog(false);
                       }}
-                      className="rounded-2xl h-12 border-rose-100 text-rose-600 hover:bg-rose-50 hover:text-rose-700 font-bold"
+                      className="rounded-2xl h-12 border-rose-500/20 text-rose-500 hover:bg-rose-500/10 font-bold"
                   >
                       حذف الحجز
                   </Button>
                   <Button 
                       variant="ghost" 
                       onClick={() => setShowBookingDialog(false)} 
-                      className="rounded-2xl h-12 text-zinc-400 font-bold"
+                      className="rounded-2xl h-12 text-muted-foreground font-bold"
                   >
                       إلغاء التحديد
                   </Button>
@@ -566,26 +565,26 @@ const BusSeatLayout = ({
       </Dialog>
       {/* Confirm Assignment Dialog */}
       <Dialog open={showConfirmDrop} onOpenChange={setShowConfirmDrop}>
-        <DialogContent className="sm:max-w-[400px] rounded-[2rem] font-cairo" dir="rtl">
+        <DialogContent className="sm:max-w-[400px] rounded-[2rem] font-cairo bg-background border-border" dir="rtl">
           <DialogHeader>
-            <DialogTitle className="text-xl font-black text-gray-900 flex items-center gap-2">
-                <Users className="w-5 h-5 text-indigo-600" />
+            <DialogTitle className="text-xl font-black text-foreground flex items-center gap-2">
+                <Users className="w-5 h-5 text-primary" />
                 تأكيد تخصيص المقعد
             </DialogTitle>
-            <DialogDescription className="text-gray-500 font-bold py-4">
-                هل أنت متأكد من رغبتك في تخصيص المقعد رقم <span className="text-indigo-600 font-black">{targetSeat}</span> للمسافر <span className="text-indigo-600 font-black">{draggedPassenger}</span>؟
+            <DialogDescription className="text-muted-foreground font-bold py-4">
+                هل أنت متأكد من رغبتك في تخصيص المقعد رقم <span className="text-primary font-black">{targetSeat}</span> للمسافر <span className="text-primary font-black">{draggedPassenger}</span>؟
             </DialogDescription>
           </DialogHeader>
           <div className="flex gap-3 mt-4">
              <Button 
                variant="outline" 
-               className="flex-1 h-12 rounded-2xl font-black border-zinc-100"
+               className="flex-1 h-12 rounded-2xl font-black border-border text-foreground hover:bg-muted"
                onClick={() => setShowConfirmDrop(false)}
              >
                إلغاء
              </Button>
              <Button 
-               className="flex-1 h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black shadow-lg shadow-indigo-100"
+               className="flex-1 h-12 rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-black shadow-lg shadow-primary/20"
                onClick={confirmAssignment}
              >
                تأكيد الآن

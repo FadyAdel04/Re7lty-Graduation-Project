@@ -699,7 +699,7 @@ const CompanyDashboard = () => {
                     <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
                         <div>
                             <div className="flex items-center gap-3 mb-2">
-                                <div className="h-12 w-12 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center">
+                                <div className="h-12 w-12 rounded-2xl bg-card/20 backdrop-blur flex items-center justify-center">
                                     <Activity className="h-6 w-6" />
                                 </div>
                                 <div>
@@ -712,7 +712,7 @@ const CompanyDashboard = () => {
                             <Button 
                                 onClick={refreshAllData}
                                 variant="secondary" 
-                                className="bg-white/20 hover:bg-white/30 text-white border-0 backdrop-blur rounded-xl gap-2"
+                                className="bg-card/20 hover:bg-card/30 text-white border-0 backdrop-blur rounded-xl gap-2"
                             >
                                 <RefreshCcw className="h-4 w-4" />
                                 تحديث
@@ -720,14 +720,14 @@ const CompanyDashboard = () => {
                             <Button 
                                 onClick={handleCreateTrip} 
                                 disabled={!canAddTrip}
-                                className="bg-white text-indigo-600 hover:bg-white/90 font-bold rounded-xl gap-2 shadow-lg"
+                                className="bg-card text-indigo-600 hover:bg-card/90 font-bold rounded-xl gap-2 shadow-lg"
                             >
                                 <Plus className="h-4 w-4" />
                                 رحلة جديدة
                             </Button>
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                    <Button variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-0 backdrop-blur rounded-xl">
+                                    <Button variant="secondary" className="bg-card/20 hover:bg-card/30 text-white border-0 backdrop-blur rounded-xl">
                                         <MoreVertical className="h-4 w-4" />
                                     </Button>
                                 </DropdownMenuTrigger>
@@ -752,23 +752,23 @@ const CompanyDashboard = () => {
 
                     {/* Quick Stats Row */}
                     <div className="relative z-10 grid grid-cols-2 lg:grid-cols-5 gap-4 mt-8">
-                        <div className="bg-white/10 backdrop-blur rounded-2xl p-4">
+                        <div className="bg-card/10 backdrop-blur rounded-2xl p-4">
                             <div className="text-white/70 text-sm">إجمالي الرحلات</div>
                             <div className="text-2xl font-black">{totalTrips}</div>
                         </div>
-                        <div className="bg-white/10 backdrop-blur rounded-2xl p-4">
+                        <div className="bg-card/10 backdrop-blur rounded-2xl p-4">
                             <div className="text-white/70 text-sm">إجمالي الحجوزات</div>
                             <div className="text-2xl font-black">{totalBookings}</div>
                         </div>
-                        <div className="bg-white/10 backdrop-blur rounded-2xl p-4">
+                        <div className="bg-card/10 backdrop-blur rounded-2xl p-4">
                             <div className="text-white/70 text-sm">قيد الانتظار</div>
                             <div className="text-2xl font-black text-yellow-300">{pendingBookings}</div>
                         </div>
-                        <div className="bg-white/10 backdrop-blur rounded-2xl p-4">
+                        <div className="bg-card/10 backdrop-blur rounded-2xl p-4">
                             <div className="text-white/70 text-sm">الإيرادات</div>
                             <div className="text-2xl font-black">{totalRevenue.toLocaleString()} ج.م</div>
                         </div>
-                        <div className="bg-white/10 backdrop-blur rounded-2xl p-4">
+                        <div className="bg-card/10 backdrop-blur rounded-2xl p-4">
                             <div className="text-white/70 text-sm">المشاهدات</div>
                             <div className="text-2xl font-black">{totalViews}</div>
                         </div>
@@ -782,9 +782,9 @@ const CompanyDashboard = () => {
                         <AlertTriangle className="h-6 w-6" />
                         تنبيه هام جداً
                       </AlertDialogTitle>
-                      <AlertDialogDescription className="text-right space-y-4 pt-4 text-gray-600 text-base">
+                      <AlertDialogDescription className="text-right space-y-4 pt-4 text-muted-foreground text-base">
                         <div className="p-4 bg-orange-50 border border-orange-100 rounded-xl">
-                            <p className="font-bold text-gray-900 mb-2">هل أنت متأكد من التحويل إلى حساب "مسافر"؟</p>
+                            <p className="font-bold text-foreground mb-2">هل أنت متأكد من التحويل إلى حساب "مسافر"؟</p>
                             <p className="text-sm">بمجرد التحويل، لن تتمكن من العودة واستخدام حساب الشركة مرة أخرى إلا بعد مرور <span className="font-black text-red-600">14 يوماً</span>.</p>
                         </div>
                         <p>خلال هذه الفترة، ستتوقف لوحة تحكم شركتك ولن تتمكن من إدارة أي رحلات أو حجوزات.</p>
@@ -793,11 +793,11 @@ const CompanyDashboard = () => {
                              <input 
                                 type="checkbox" 
                                 id="accept-warning" 
-                                className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                className="w-5 h-5 rounded border-border text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                                 checked={acceptedWarning}
                                 onChange={(e) => setAcceptedWarning(e.target.checked)}
                              />
-                             <label htmlFor="accept-warning" className="text-sm font-bold text-gray-900 cursor-pointer select-none">
+                             <label htmlFor="accept-warning" className="text-sm font-bold text-foreground cursor-pointer select-none">
                                 قرأت التنبيه وأوافق على فترة الانتظار (14 يوم)
                              </label>
                         </div>
@@ -826,20 +826,20 @@ const CompanyDashboard = () => {
                         "transition-all duration-300 relative",
                         sidebarCollapsed ? "lg:w-20" : "lg:w-80"
                     )}>
-                        <Card className="rounded-3xl border-0 shadow-xl sticky top-24 overflow-hidden bg-white/80 backdrop-blur">
+                        <Card className="rounded-3xl border-0 shadow-xl sticky top-24 overflow-hidden bg-card/80 backdrop-blur">
                             {/* Sidebar Toggle Button - Fixed positioning */}
                             <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                                className="absolute -left-3 top-1/2 transform -translate-y-1/2 rounded-full w-8 h-8 p-0 bg-white border shadow-md hover:bg-gray-50 z-10 hidden lg:flex"
+                                className="absolute -left-3 top-1/2 transform -translate-y-1/2 rounded-full w-8 h-8 p-0 bg-card border shadow-md hover:bg-muted z-10 hidden lg:flex"
                             >
                                 {sidebarCollapsed ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                             </Button>
 
                             {/* Company Profile Summary - Only show when expanded */}
                             {!sidebarCollapsed && (
-                                <div className="p-6 border-b border-gray-100">
+                                <div className="p-6 border-b border-border">
                                     <div className="flex items-center gap-4">
                                         <Avatar className="h-16 w-16 rounded-2xl border-2 border-indigo-200">
                                             <AvatarImage src={settingsData.logo} />
@@ -848,8 +848,8 @@ const CompanyDashboard = () => {
                                             </AvatarFallback>
                                         </Avatar>
                                         <div>
-                                            <h3 className="font-black text-gray-900">{settingsData.name || 'اسم الشركة'}</h3>
-                                            <p className="text-sm text-gray-500">{settingsData.contactInfo.email || 'البريد الإلكتروني'}</p>
+                                            <h3 className="font-black text-foreground">{settingsData.name || 'اسم الشركة'}</h3>
+                                            <p className="text-sm text-muted-foreground">{settingsData.contactInfo.email || 'البريد الإلكتروني'}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -875,12 +875,12 @@ const CompanyDashboard = () => {
                                                 isGuideHighlight && "ring-2 ring-amber-400 ring-offset-2",
                                                 activeTab === tab.id 
                                                     ? `bg-gradient-to-l ${tab.color} text-white shadow-lg` 
-                                                    : "hover:bg-gray-100 text-gray-600"
+                                                    : "hover:bg-accent text-muted-foreground"
                                             )}
                                         >
                                             <div className={cn(
                                                 "w-8 h-8 rounded-xl flex items-center justify-center shrink-0",
-                                                activeTab === tab.id ? "bg-white/20" : "bg-gray-100 group-hover:bg-white"
+                                                activeTab === tab.id ? "bg-card/20" : "bg-accent group-hover:bg-card"
                                             )}>
                                                 <Icon className={cn("w-4 h-4", activeTab === tab.id ? "text-white" : `text-${tab.color.split(' ')[0].replace('from-', '')}`)} />
                                             </div>
@@ -905,10 +905,10 @@ const CompanyDashboard = () => {
 
                             {/* Commission Info - Only show when expanded */}
                             {!sidebarCollapsed && (
-                                <div className="p-4 mt-4 border-t border-gray-100">
+                                <div className="p-4 mt-4 border-t border-border">
                                     <div className="p-4 rounded-2xl bg-gradient-to-l from-orange-50 to-white border border-orange-100">
                                         <p className="text-xs font-bold text-orange-600 mb-2">نظام العمولات</p>
-                                        <p className="text-xs text-gray-600">تطبق عمولة 5% على كل حجز ناجح</p>
+                                        <p className="text-xs text-muted-foreground">تطبق عمولة 5% على كل حجز ناجح</p>
                                         <Button variant="link" className="text-orange-600 p-0 h-auto text-xs font-black mt-2">اعرف المزيد</Button>
                                     </div>
                                 </div>
@@ -920,7 +920,7 @@ const CompanyDashboard = () => {
                     <div className="flex-1 min-w-0">
                         {/* Guide Panel (if shown) */}
                         {showGuideDialog && (
-                            <Card className="mb-6 rounded-3xl border-2 border-amber-200 shadow-xl bg-white overflow-hidden">
+                            <Card className="mb-6 rounded-3xl border-2 border-amber-200 shadow-xl bg-card overflow-hidden">
                                 <div className="p-6">
                                     <div className="flex items-start justify-between gap-4">
                                         <div className="flex items-center gap-4">
@@ -935,7 +935,7 @@ const CompanyDashboard = () => {
                                             </div>
                                             <div>
                                                 <p className="text-sm font-bold text-amber-600 mb-1">دليل الاستخدام</p>
-                                                <h3 className="text-2xl font-black text-gray-900">{GUIDE_SECTIONS[guideStep]?.label}</h3>
+                                                <h3 className="text-2xl font-black text-foreground">{GUIDE_SECTIONS[guideStep]?.label}</h3>
                                             </div>
                                         </div>
                                         <Button
@@ -947,7 +947,7 @@ const CompanyDashboard = () => {
                                             ✕
                                         </Button>
                                     </div>
-                                    <p className="mt-4 text-gray-600 leading-relaxed">{GUIDE_SECTIONS[guideStep]?.text}</p>
+                                    <p className="mt-4 text-muted-foreground leading-relaxed">{GUIDE_SECTIONS[guideStep]?.text}</p>
                                     {GUIDE_SECTIONS[guideStep]?.actionIcons?.length > 0 && (
                                         <div className="flex flex-wrap gap-2 mt-4">
                                             {GUIDE_SECTIONS[guideStep].actionIcons.map((item, i) => {
@@ -961,7 +961,7 @@ const CompanyDashboard = () => {
                                             })}
                                         </div>
                                     )}
-                                    <div className="flex items-center justify-between gap-2 mt-6 pt-4 border-t border-gray-100">
+                                    <div className="flex items-center justify-between gap-2 mt-6 pt-4 border-t border-border">
                                         <Button
                                             variant="outline"
                                             onClick={() => {
@@ -1000,7 +1000,7 @@ const CompanyDashboard = () => {
                         )}
 
                         {/* Content Area */}
-                        <Card className="rounded-3xl border-0 shadow-xl overflow-hidden bg-white">
+                        <Card className="rounded-3xl border-0 shadow-xl overflow-hidden bg-card">
                             {/* Hidden Tabs for functionality */}
                             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                                 <TabsList className="hidden">
@@ -1014,8 +1014,8 @@ const CompanyDashboard = () => {
                                     <>
                                         <div className="flex flex-col lg:flex-row items-center justify-between gap-4 mb-8">
                                             <div className="flex items-center gap-4">
-                                                <h2 className="text-2xl font-black text-gray-900">إدارة الرحلات</h2>
-                                                <Button variant="ghost" size="icon" onClick={handleRefreshTrips} className="rounded-full hover:bg-gray-100">
+                                                <h2 className="text-2xl font-black text-foreground">إدارة الرحلات</h2>
+                                                <Button variant="ghost" size="icon" onClick={handleRefreshTrips} className="rounded-full hover:bg-accent">
                                                     <RefreshCcw className={`w-5 h-5 ${tripsLoading ? 'animate-spin' : ''}`} />
                                                 </Button>
                                             </div>
@@ -1027,7 +1027,7 @@ const CompanyDashboard = () => {
                                                     placeholder="بحث عن رحلة..."
                                                     value={searchQuery}
                                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                                    className="pr-10 h-12 rounded-xl border-gray-200"
+                                                    className="pr-10 h-12 rounded-xl border-border"
                                                 />
                                             </div>
 
@@ -1054,7 +1054,7 @@ const CompanyDashboard = () => {
                                         ) : (
                                             <div className="text-center py-20 text-gray-400">
                                                 <Map className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                                                <h3 className="text-xl font-bold text-gray-700">لا توجد رحلات</h3>
+                                                <h3 className="text-xl font-bold text-foreground">لا توجد رحلات</h3>
                                                 <p className="mb-6">ابدأ بنشر رحلتك الأولى</p>
                                                 <Button className="bg-indigo-600 text-white rounded-xl" onClick={handleCreateTrip}>
                                                     إضافة رحلة
@@ -1068,7 +1068,7 @@ const CompanyDashboard = () => {
                                     <>
                                         <div className="flex flex-col lg:flex-row items-center justify-between gap-4 mb-8">
                                             <div className="flex items-center gap-4">
-                                                <h2 className="text-2xl font-black text-gray-900">طلبات الحجز</h2>
+                                                <h2 className="text-2xl font-black text-foreground">طلبات الحجز</h2>
                                                 {pendingBookings > 0 && (
                                                     <div className="flex items-center gap-2 px-3 py-1 bg-red-100 rounded-full border border-red-200">
                                                         <Bell className="w-4 h-4 text-red-600" />
@@ -1095,22 +1095,22 @@ const CompanyDashboard = () => {
                                                 {pendingBookings > 0 && (
                                                     <div className="mb-6 p-6 bg-gradient-to-l from-indigo-50 to-white border border-indigo-100 rounded-3xl flex items-center justify-between shadow-sm">
                                                         <div>
-                                                            <h3 className="font-bold text-gray-900 mb-1 flex items-center gap-2">
+                                                            <h3 className="font-bold text-foreground mb-1 flex items-center gap-2">
                                                                 <Activity className="w-4 h-4 text-indigo-600" />
                                                                 ملخص الطلبات الجديدة
                                                             </h3>
-                                                            <p className="text-sm text-gray-500">
+                                                            <p className="text-sm text-muted-foreground">
                                                                 لديك <span className="font-bold text-indigo-600">{pendingBookings}</span> طلبات حجز قيد الانتظار
                                                             </p>
                                                         </div>
                                                         <div className="text-left">
                                                             <p className="text-xs text-gray-400 font-bold mb-1">إجمالي القيمة المتوقعة</p>
-                                                            <p className="text-2xl font-black text-gray-900">
+                                                            <p className="text-2xl font-black text-foreground">
                                                                 {bookings
                                                                     .filter(b => b.status === 'pending')
                                                                     .reduce((acc, curr) => acc + (curr.totalPrice || 0), 0)
                                                                     .toLocaleString()} 
-                                                                <span className="text-sm font-bold text-gray-500 mr-1">ج.م</span>
+                                                                <span className="text-sm font-bold text-muted-foreground mr-1">ج.م</span>
                                                             </p>
                                                         </div>
                                                     </div>
@@ -1125,8 +1125,8 @@ const CompanyDashboard = () => {
                                     <>
                                         <div className="flex items-center justify-between mb-8">
                                             <div className="flex items-center gap-4">
-                                                <h2 className="text-2xl font-black text-gray-900">توزيع مقاعد الركاب</h2>
-                                                <Button variant="ghost" size="icon" onClick={handleRefreshTrips} className="rounded-full hover:bg-gray-100">
+                                                <h2 className="text-2xl font-black text-foreground">توزيع مقاعد الركاب</h2>
+                                                <Button variant="ghost" size="icon" onClick={handleRefreshTrips} className="rounded-full hover:bg-accent">
                                                     <RefreshCcw className={`w-5 h-5 ${tripsLoading ? 'animate-spin' : ''}`} />
                                                 </Button>
                                             </div>
@@ -1139,7 +1139,7 @@ const CompanyDashboard = () => {
                                                     placeholder="بحث عن رحلة..."
                                                     value={searchQuery}
                                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                                    className="h-12 rounded-xl border-gray-200"
+                                                    className="h-12 rounded-xl border-border"
                                                 />
                                                 <div className="space-y-2 max-h-[600px] overflow-y-auto">
                                                     {filteredTrips.map(trip => {
@@ -1155,11 +1155,11 @@ const CompanyDashboard = () => {
                                                                     "w-full p-4 rounded-2xl text-right transition-all border-2",
                                                                     selectedTripForSeats?.id === trip.id || selectedTripForSeats?._id === trip._id 
                                                                         ? 'border-indigo-600 bg-indigo-50 shadow-lg' 
-                                                                        : 'border-gray-100 hover:border-gray-200 bg-white'
+                                                                        : 'border-border hover:border-border bg-card'
                                                                 )}
                                                             >
-                                                                <p className="font-black text-gray-900 mb-1">{trip.title}</p>
-                                                                <div className="flex items-center gap-2 text-xs text-gray-500 font-bold">
+                                                                <p className="font-black text-foreground mb-1">{trip.title}</p>
+                                                                <div className="flex items-center gap-2 text-xs text-muted-foreground font-bold">
                                                                     <Calendar className="w-3 h-3" />
                                                                     {new Date(trip.startDate).toLocaleDateString()}
                                                                     <span className="mx-1">•</span>
@@ -1174,10 +1174,10 @@ const CompanyDashboard = () => {
 
                                             <div className="lg:col-span-2">
                                                 {selectedTripForSeats ? (
-                                                    <Card className="p-8 border-gray-100 rounded-3xl shadow-xl bg-white">
+                                                    <Card className="p-8 border-border rounded-3xl shadow-xl bg-card">
                                                         <div className="w-full flex items-center justify-between mb-8">
                                                             <div>
-                                                                <h3 className="text-xl font-black text-gray-900">{selectedTripForSeats.title}</h3>
+                                                                <h3 className="text-xl font-black text-foreground">{selectedTripForSeats.title}</h3>
                                                                 <p className="text-xs font-bold text-gray-400 mt-1">
                                                                     اضغط على المقعد لتسجيل اسم المسافر
                                                                 </p>
@@ -1190,14 +1190,14 @@ const CompanyDashboard = () => {
 
                                                         {/* Bus Selection Tabs */}
                                                         {selectedTripForSeats.transportations?.length > 0 && (
-                                                            <div className="w-full mb-8 p-4 bg-gray-50 rounded-2xl border border-gray-100 flex flex-wrap gap-2">
+                                                            <div className="w-full mb-8 p-4 bg-muted rounded-2xl border border-border flex flex-wrap gap-2">
                                                                 {selectedTripForSeats.transportations.map((unit: any, idx: number) => (
                                                                     <Button
                                                                         key={idx}
                                                                         variant={currentBusIndex === idx ? "default" : "outline"}
                                                                         className={cn(
                                                                             "rounded-xl h-10 font-bold transition-all",
-                                                                            currentBusIndex === idx ? "bg-indigo-600 text-white shadow-md" : "bg-white hover:border-indigo-200"
+                                                                            currentBusIndex === idx ? "bg-indigo-600 text-white shadow-md" : "bg-card hover:border-indigo-200"
                                                                         )}
                                                                         onClick={() => setCurrentBusIndex(idx)}
                                                                     >
@@ -1240,7 +1240,7 @@ const CompanyDashboard = () => {
                                                         
                                                     </Card>
                                                 ) : (
-                                                    <div className="h-full flex flex-col items-center justify-center p-20 border-2 border-dashed border-gray-100 rounded-[3rem] text-gray-400">
+                                                    <div className="h-full flex flex-col items-center justify-center p-20 border-2 border-dashed border-border rounded-[3rem] text-gray-400">
                                                         <Bus className="w-16 h-16 opacity-20 mb-4" />
                                                         <p className="font-bold">اختر رحلة من القائمة لبدء توزيع المقاعد</p>
                                                     </div>
@@ -1253,7 +1253,7 @@ const CompanyDashboard = () => {
                                 <TabsContent value="coupons" className="p-6 m-0 focus-visible:outline-none">
                                     <>
                                         <div className="flex items-center justify-between mb-8">
-                                            <h2 className="text-2xl font-black text-gray-900">إدارة الكوبونات</h2>
+                                            <h2 className="text-2xl font-black text-foreground">إدارة الكوبونات</h2>
                                         </div>
                                         <CouponManagement />
                                     </>
@@ -1266,9 +1266,9 @@ const CompanyDashboard = () => {
                                 <TabsContent value="reports" className="p-6 m-0 focus-visible:outline-none">
                                     <>
                                         <div className="flex items-center justify-between mb-8">
-                                            <h2 className="text-2xl font-black text-gray-900">التقارير والإحصائيات</h2>
+                                            <h2 className="text-2xl font-black text-foreground">التقارير والإحصائيات</h2>
                                             <div className="flex gap-2">
-                                                <Button variant="ghost" size="icon" onClick={handleRefreshReports} className="rounded-full hover:bg-gray-100">
+                                                <Button variant="ghost" size="icon" onClick={handleRefreshReports} className="rounded-full hover:bg-accent">
                                                     <RefreshCcw className="w-5 h-5" />
                                                 </Button>
                                                 <Button variant="outline" className="rounded-xl gap-2">
@@ -1308,7 +1308,7 @@ const CompanyDashboard = () => {
 
                                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                                 {/* Bookings Status Distribution */}
-                                                <Card className="p-6 rounded-3xl border-gray-100 shadow-md">
+                                                <Card className="p-6 rounded-3xl border-border shadow-md">
                                                     <CardHeader className="px-0 pt-0">
                                                         <CardTitle className="text-lg font-bold">توزيع حالات الحجوزات</CardTitle>
                                                     </CardHeader>
@@ -1346,7 +1346,7 @@ const CompanyDashboard = () => {
                                                 </Card>
 
                                                 {/* Payment Summary */}
-                                                <Card className="p-6 rounded-3xl border-gray-100 shadow-md">
+                                                <Card className="p-6 rounded-3xl border-border shadow-md">
                                                     <CardHeader className="px-0 pt-0">
                                                         <CardTitle className="text-lg font-bold">حالة التحصيل المالي</CardTitle>
                                                     </CardHeader>
@@ -1383,7 +1383,7 @@ const CompanyDashboard = () => {
                                             </div>
 
                                             {/* Trip Views vs Bookings */}
-                                            <Card className="p-6 rounded-3xl border-gray-100 shadow-md">
+                                            <Card className="p-6 rounded-3xl border-border shadow-md">
                                                 <CardHeader className="px-0 pt-0">
                                                     <CardTitle className="text-lg font-bold">المشاهدات مقابل الحجوزات</CardTitle>
                                                 </CardHeader>
@@ -1410,20 +1410,20 @@ const CompanyDashboard = () => {
                                             </Card>
 
                                             {/* Detailed Performance Table */}
-                                            <Card className="p-6 rounded-3xl border-gray-100 shadow-md overflow-hidden">
+                                            <Card className="p-6 rounded-3xl border-border shadow-md overflow-hidden">
                                                 <CardHeader className="px-0 pt-0">
                                                     <CardTitle className="text-lg font-bold">أداء الرحلات التفصيلي</CardTitle>
                                                 </CardHeader>
                                                 <div className="overflow-x-auto">
                                                     <table className="w-full text-right">
                                                         <thead>
-                                                            <tr className="border-b border-gray-100">
-                                                                <th className="pb-4 font-bold text-gray-500">الرحلة</th>
-                                                                <th className="pb-4 font-bold text-gray-500">المشاهدات</th>
-                                                                <th className="pb-4 font-bold text-gray-500">الحجوزات</th>
-                                                                <th className="pb-4 font-bold text-gray-500">معدل التحويل</th>
-                                                                <th className="pb-4 font-bold text-gray-500">الإيرادات</th>
-                                                                <th className="pb-4 font-bold text-gray-500"></th>
+                                                            <tr className="border-b border-border">
+                                                                <th className="pb-4 font-bold text-muted-foreground">الرحلة</th>
+                                                                <th className="pb-4 font-bold text-muted-foreground">المشاهدات</th>
+                                                                <th className="pb-4 font-bold text-muted-foreground">الحجوزات</th>
+                                                                <th className="pb-4 font-bold text-muted-foreground">معدل التحويل</th>
+                                                                <th className="pb-4 font-bold text-muted-foreground">الإيرادات</th>
+                                                                <th className="pb-4 font-bold text-muted-foreground"></th>
                                                             </tr>
                                                         </thead>
                                                         <tbody className="divide-y divide-gray-50">
@@ -1434,7 +1434,7 @@ const CompanyDashboard = () => {
                                                                 const revenue = acceptedBookingsForTrip.reduce((acc, b) => acc + (b.totalPrice || 0), 0);
                                                                 
                                                                 return (
-                                                                    <tr key={trip.id || trip._id} className="hover:bg-gray-50">
+                                                                    <tr key={trip.id || trip._id} className="hover:bg-muted">
                                                                         <td className="py-4 font-semibold">{trip.title}</td>
                                                                         <td className="py-4">{trip.views || 0}</td>
                                                                         <td className="py-4">{tripBookings.length}</td>
@@ -1463,18 +1463,18 @@ const CompanyDashboard = () => {
                                 <TabsContent value="qr-scanner" className="p-6 m-0 focus-visible:outline-none">
                                     <>
                                         <div className="flex items-center justify-between mb-8">
-                                            <h2 className="text-2xl font-black text-gray-900">التحقق من رمز الحجز</h2>
+                                            <h2 className="text-2xl font-black text-foreground">التحقق من رمز الحجز</h2>
                                         </div>
 
                                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                             {/* Left Column: Scanner UI */}
-                                            <Card className="p-8 border-gray-100 rounded-[2.5rem] shadow-xl bg-white flex flex-col items-center text-center overflow-hidden relative">
+                                            <Card className="p-8 border-border rounded-[2.5rem] shadow-xl bg-card flex flex-col items-center text-center overflow-hidden relative">
                                                 <div className="w-full mb-6">
-                                                    <h3 className="text-xl font-bold text-gray-900 mb-2">امسح الكود الآن</h3>
-                                                    <p className="text-sm text-gray-500">وجه الكاميرا نحو رمز QR الموجود في واجهة تطبيق المسافر</p>
+                                                    <h3 className="text-xl font-bold text-foreground mb-2">امسح الكود الآن</h3>
+                                                    <p className="text-sm text-muted-foreground">وجه الكاميرا نحو رمز QR الموجود في واجهة تطبيق المسافر</p>
                                                 </div>
 
-                                                <div className="relative w-full aspect-square max-w-[400px] bg-gray-50 rounded-[2rem] border-2 border-dashed border-gray-200 flex flex-col items-center justify-center overflow-hidden mb-8 group transition-all hover:bg-gray-100/50">
+                                                <div className="relative w-full aspect-square max-w-[400px] bg-muted rounded-[2rem] border-2 border-dashed border-border flex flex-col items-center justify-center overflow-hidden mb-8 group transition-all hover:bg-accent/50">
                                                     <div id="reader" className="w-full h-full object-cover"></div>
                                                     
                                                     {!isScanning && !qrResult && (
@@ -1528,17 +1528,17 @@ const CompanyDashboard = () => {
                                             {/* Right Column: Result UI */}
                                             <div className="space-y-6">
                                                 {isValidating ? (
-                                                    <Card className="p-12 border-gray-100 rounded-[2.5rem] shadow-xl bg-white flex flex-col items-center justify-center text-center h-full">
+                                                    <Card className="p-12 border-border rounded-[2.5rem] shadow-xl bg-card flex flex-col items-center justify-center text-center h-full">
                                                         <Loader2 className="w-16 h-16 animate-spin text-indigo-600 mb-6" />
-                                                        <h3 className="text-xl font-bold text-gray-900">جاري التحقق من صحة الكود...</h3>
+                                                        <h3 className="text-xl font-bold text-foreground">جاري التحقق من صحة الكود...</h3>
                                                         <p className="text-gray-400 mt-2">يرجى الانتظار قليلاً</p>
                                                     </Card>
                                                 ) : verifiedBooking ? (
-                                                    <Card className="overflow-hidden border-border/50 rounded-[2.5rem] shadow-2xl bg-white animate-in zoom-in-95 duration-500">
+                                                    <Card className="overflow-hidden border-border/50 rounded-[2.5rem] shadow-2xl bg-card animate-in zoom-in-95 duration-500">
                                                         <div className="p-8 bg-emerald-600 text-white relative">
-                                                            <div className="absolute top-0 left-0 w-32 h-32 bg-white/10 rounded-full -ml-16 -mt-16 blur-3xl"></div>
+                                                            <div className="absolute top-0 left-0 w-32 h-32 bg-card/10 rounded-full -ml-16 -mt-16 blur-3xl"></div>
                                                             <div className="flex items-center gap-4 relative z-10">
-                                                                <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center shadow-inner">
+                                                                <div className="w-16 h-16 rounded-2xl bg-card/20 backdrop-blur flex items-center justify-center shadow-inner">
                                                                     <ShieldCheck className="w-10 h-10" />
                                                                 </div>
                                                                 <div>
@@ -1557,23 +1557,23 @@ const CompanyDashboard = () => {
                                                                 </div>
                                                                 <div className="flex flex-col">
                                                                     <span className="text-[10px] font-black text-indigo-400 uppercase">تفاصيل الرحلة</span>
-                                                                    <span className="text-lg font-black text-gray-900 leading-tight">{verifiedBooking.trip.title}</span>
+                                                                    <span className="text-lg font-black text-foreground leading-tight">{verifiedBooking.trip.title}</span>
                                                                     <div className="flex items-center gap-2 mt-1">
                                                                         <MapPin className="w-3 h-3 text-gray-400" />
-                                                                        <span className="text-xs text-gray-500 font-bold">{verifiedBooking.trip.destination}</span>
+                                                                        <span className="text-xs text-muted-foreground font-bold">{verifiedBooking.trip.destination}</span>
                                                                     </div>
                                                                 </div>
                                                             </div>
 
                                                             <div className="grid grid-cols-2 gap-4">
-                                                                <div className="p-4 rounded-2xl bg-gray-50 border border-gray-100">
+                                                                <div className="p-4 rounded-2xl bg-muted border border-border">
                                                                     <p className="text-xs text-gray-400 font-bold uppercase mb-1">اسم المسافر</p>
                                                                     <div className="flex items-center gap-2">
                                                                         <Users className="w-4 h-4 text-indigo-500" />
-                                                                        <p className="text-lg font-black text-gray-900">{verifiedBooking.booking.userName}</p>
+                                                                        <p className="text-lg font-black text-foreground">{verifiedBooking.booking.userName}</p>
                                                                     </div>
                                                                 </div>
-                                                                <div className="p-4 rounded-2xl bg-gray-50 border border-gray-100">
+                                                                <div className="p-4 rounded-2xl bg-muted border border-border">
                                                                     <p className="text-xs text-gray-400 font-bold uppercase mb-1">الحالة</p>
                                                                     <Badge className={cn(
                                                                         "h-8 px-4 font-black rounded-lg border-0",
@@ -1585,31 +1585,31 @@ const CompanyDashboard = () => {
                                                                          verifiedBooking.booking.status === 'pending' ? 'قيد الانتظار' : 'ملغي'}
                                                                     </Badge>
                                                                 </div>
-                                                                <div className="p-4 rounded-2xl bg-gray-50 border border-gray-100">
+                                                                <div className="p-4 rounded-2xl bg-muted border border-border">
                                                                     <p className="text-xs text-gray-400 font-bold uppercase mb-1">عدد الركاب</p>
                                                                     <p className="text-2xl font-black text-indigo-600">{verifiedBooking.booking.numberOfPeople} <span className="text-sm">أفراد</span></p>
                                                                 </div>
-                                                                <div className="p-4 rounded-2xl bg-gray-50 border border-gray-100">
+                                                                <div className="p-4 rounded-2xl bg-muted border border-border">
                                                                     <p className="text-xs text-gray-400 font-bold uppercase mb-1">رقم الحجز</p>
-                                                                    <p className="text-lg font-black text-gray-900">{verifiedBooking.booking.bookingReference}</p>
+                                                                    <p className="text-lg font-black text-foreground">{verifiedBooking.booking.bookingReference}</p>
                                                                 </div>
                                                             </div>
 
                                                             <div className="grid grid-cols-2 gap-4">
-                                                                <div className="p-4 rounded-2xl bg-gray-50 border border-gray-100">
+                                                                <div className="p-4 rounded-2xl bg-muted border border-border">
                                                                     <p className="text-xs text-gray-400 font-bold uppercase mb-1">المبلغ الإجمالي</p>
                                                                     <p className="text-lg font-black text-emerald-600">{verifiedBooking.booking.totalPrice?.toLocaleString()} ج.م</p>
                                                                 </div>
-                                                                <div className="p-4 rounded-2xl bg-gray-50 border border-gray-100">
+                                                                <div className="p-4 rounded-2xl bg-muted border border-border">
                                                                     <p className="text-xs text-gray-400 font-bold uppercase mb-1">طريقة الدفع</p>
-                                                                    <p className="text-lg font-black text-gray-700">{verifiedBooking.booking.paymentMethod === 'cash' ? 'كاش (نقدي)' : 'بطاقة بنكية'}</p>
+                                                                    <p className="text-lg font-black text-foreground">{verifiedBooking.booking.paymentMethod === 'cash' ? 'كاش (نقدي)' : 'بطاقة بنكية'}</p>
                                                                 </div>
                                                             </div>
 
                                                             {verifiedBooking.booking.specialRequests && (
                                                                 <div className="p-4 rounded-2xl bg-amber-50 border border-amber-100">
                                                                     <p className="text-xs text-amber-600 font-bold uppercase mb-2">طلبات خاصة</p>
-                                                                    <p className="text-sm font-bold text-gray-700">{verifiedBooking.booking.specialRequests}</p>
+                                                                    <p className="text-sm font-bold text-foreground">{verifiedBooking.booking.specialRequests}</p>
                                                                 </div>
                                                             )}
 
@@ -1624,7 +1624,7 @@ const CompanyDashboard = () => {
                                                                             مقعد {s}
                                                                         </Badge>
                                                                     )) : (
-                                                                        <Badge className="bg-gray-200 text-gray-600 border-0 font-black px-4 py-1.5 rounded-xl">
+                                                                        <Badge className="bg-gray-200 text-muted-foreground border-0 font-black px-4 py-1.5 rounded-xl">
                                                                             غير محدد بعد
                                                                         </Badge>
                                                                     )}
@@ -1634,7 +1634,7 @@ const CompanyDashboard = () => {
                                                             <div className="flex gap-4">
                                                                 <Button 
                                                                     onClick={() => { setVerifiedBooking(null); setQrResult(null); }}
-                                                                    className="flex-1 h-14 rounded-2xl bg-gray-900 hover:bg-gray-800 text-white font-black text-lg transition-all active:scale-95"
+                                                                    className="flex-1 h-14 rounded-2xl bg-gray-900 hover:bg-muted text-white font-black text-lg transition-all active:scale-95"
                                                                 >
                                                                     مسح كود آخر
                                                                 </Button>
@@ -1642,7 +1642,7 @@ const CompanyDashboard = () => {
                                                         </CardContent>
                                                     </Card>
                                                 ) : (
-                                                    <div className="h-full flex flex-col items-center justify-center p-20 border-2 border-dashed border-gray-100 rounded-[3rem] text-gray-300 text-center">
+                                                    <div className="h-full flex flex-col items-center justify-center p-20 border-2 border-dashed border-border rounded-[3rem] text-gray-300 text-center">
                                                         <QrCode className="w-20 h-20 opacity-10 mb-6" />
                                                         <h3 className="text-xl font-bold text-gray-400">في انتظار مسح الكود...</h3>
                                                         <p className="max-w-[250px] mt-2 text-sm">سيتم عرض بيانات المسافر وتفاصيل الحجز هنا فور مسح الرمز.</p>
@@ -1655,13 +1655,13 @@ const CompanyDashboard = () => {
 
                                 <TabsContent value="settings" className="p-6 m-0 focus-visible:outline-none">
                                     <>
-                                        <h2 className="text-2xl font-black text-gray-900 mb-8">إعدادات الشركة</h2>
+                                        <h2 className="text-2xl font-black text-foreground mb-8">إعدادات الشركة</h2>
                                         <form onSubmit={handleSaveSettings}>
                                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
                                                 {/* Right Column: Basic Info */}
                                                 <div className="space-y-6">
                                                     <div>
-                                                        <h3 className="text-xl font-bold text-gray-900 mb-4 border-b pb-2">المعلومات الأساسية</h3>
+                                                        <h3 className="text-xl font-bold text-foreground mb-4 border-b pb-2">المعلومات الأساسية</h3>
                                                         <div className="space-y-4">
                                                             <div className="space-y-2">
                                                                 <Label htmlFor="name">اسم الشركة *</Label>
@@ -1702,7 +1702,7 @@ const CompanyDashboard = () => {
                                                     </div>
 
                                                     <div>
-                                                        <h3 className="text-xl font-bold text-gray-900 mb-4 border-b pb-2 mt-8">الشعار والهوية</h3>
+                                                        <h3 className="text-xl font-bold text-foreground mb-4 border-b pb-2 mt-8">الشعار والهوية</h3>
                                                         <div className="space-y-4">
                                                             <div className="space-y-4">
                                                                 <div className="flex flex-col gap-4">
@@ -1721,7 +1721,7 @@ const CompanyDashboard = () => {
                                                                                     try {
                                                                                         setSavingSettings(true);
                                                                                         const token = await getToken();
-                                                                                        const sigData = await fetch(`${import.meta.env.VITE_API_URL || "http://127.0.0.1:5000"}/api/trips/cloudinary-signature`, {
+                                                                                        const sigData = await fetch(`${API_BASE_URL}/trips/cloudinary-signature`, {
                                                                                             headers: { 'Authorization': `Bearer ${token}` }
                                                                                         }).then(res => res.json());
 
@@ -1762,7 +1762,7 @@ const CompanyDashboard = () => {
                                                                     />
                                                                 </div>
                                                                 {settingsData.logo && (
-                                                                    <div className="mt-4 p-6 border border-gray-100 rounded-[2rem] bg-gray-50/50 flex items-center justify-center animate-in zoom-in-95">
+                                                                    <div className="mt-4 p-6 border border-border rounded-[2rem] bg-muted/50 flex items-center justify-center animate-in zoom-in-95">
                                                                         <div className={cn("h-32 w-32 rounded-[2rem] bg-gradient-to-br flex items-center justify-center text-white overflow-hidden shadow-2xl p-2", settingsData.color)}>
                                                                             <img src={settingsData.logo} alt="Logo" className="w-full h-full object-cover rounded-[1.5rem]" />
                                                                         </div>
@@ -1793,7 +1793,7 @@ const CompanyDashboard = () => {
                                                 {/* Left Column: Contact Info */}
                                                 <div className="space-y-6">
                                                     <div>
-                                                        <h3 className="text-xl font-bold text-gray-900 mb-4 border-b pb-2">بيانات التواصل</h3>
+                                                        <h3 className="text-xl font-bold text-foreground mb-4 border-b pb-2">بيانات التواصل</h3>
                                                         <div className="space-y-4">
                                                             <div className="space-y-2">
                                                                 <Label htmlFor="phone">رقم الهاتف *</Label>

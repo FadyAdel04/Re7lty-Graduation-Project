@@ -3,9 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, TrendingUp, Sparkles, Users2, ShieldCheck, Image as ImageIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { useSeasonalTheme } from "@/contexts/SeasonalThemeContext";
 import { motion } from "framer-motion";
-import { Moon, Star } from "lucide-react";
 
 // Platform Features Data
 const FEATURES = [
@@ -60,9 +58,6 @@ const FEATURES = [
 ];
 
 const Hero = () => {
-  const { isSeasonalActive, currentSeason, themeConfig } = useSeasonalTheme();
-  const showSeasonal = isSeasonalActive;
-  const isRamadan = isSeasonalActive && currentSeason === 'ramadan';
   const [activeId, setActiveId] = useState(1);
   const activeFeature = FEATURES.find(f => f.id === activeId) || FEATURES[0];
 
@@ -83,7 +78,7 @@ const Hero = () => {
   }, [activeId]); // Reset timer whenever activeId changes (manual interaction)
 
   return (
-    <section className="relative  min-h-[600px] w-full overflow-hidden font-cairo bg-black">
+    <section className="relative min-h-[600px] w-full overflow-hidden font-cairo bg-black">
       
       {/* Dynamic Background Layer - Optimized for LCP */}
       {FEATURES.map((feature) => {
@@ -100,7 +95,6 @@ const Hero = () => {
               isCurrent ? "opacity-100 z-0" : "opacity-0 -z-10"
             )}
           >
-            {/* Using img instead of background-image for faster discovery */}
             <img 
               src={feature.image} 
               alt={feature.title}
@@ -115,56 +109,6 @@ const Hero = () => {
           </div>
         );
       })}
-
-      {/* Seasonal Decorations Layer */}
-      {showSeasonal && (
-        <div className="absolute inset-0 pointer-events-none z-[5]">
-           {isRamadan ? (
-             <>
-               <motion.div 
-                 className="absolute top-10 right-[5%] text-gold opacity-40"
-                 animate={{ y: [0, -15, 0], rotate: [-5, 5, -5] }}
-                 transition={{ duration: 6, repeat: Infinity }}
-               >
-                 <Moon size={120} fill="#D4AF37" />
-               </motion.div>
-               
-               <motion.div 
-                 className="absolute top-20 left-[10%] text-gold opacity-30"
-                 animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.6, 0.3] }}
-                 transition={{ duration: 4, repeat: Infinity }}
-               >
-                 <Star size={40} fill="#D4AF37" />
-               </motion.div>
-
-               <motion.div 
-                 className="absolute bottom-20 right-[20%] text-gold opacity-20"
-                 animate={{ y: [0, -10, 0] }}
-                 transition={{ duration: 5, repeat: Infinity }}
-               >
-                 <svg width="40" height="60" viewBox="0 0 40 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M20 0V10" stroke="#D4AF37" strokeWidth="2"/>
-                    <path d="M10 10H30L35 25L20 50L5 25L10 10Z" fill="#D4AF37" fillOpacity="0.4" stroke="#D4AF37" strokeWidth="2"/>
-                 </svg>
-               </motion.div>
-             </>
-           ) : (
-             <>
-               <motion.div 
-                 className="absolute top-10 right-[5%] opacity-20"
-                 style={{ color: themeConfig.primaryColor }}
-                 animate={{ y: [0, -20, 0], rotate: [0, 10, 0] }}
-                 transition={{ duration: 7, repeat: Infinity }}
-               >
-                  {currentSeason === 'winter' && <div className="text-[120px]">❄️</div>}
-                  {currentSeason === 'spring' && <div className="text-[120px]">🌸</div>}
-                  {currentSeason === 'summer' && <div className="text-[120px]">☀️</div>}
-                  {currentSeason === 'autumn' && <div className="text-[120px]">🍂</div>}
-               </motion.div>
-             </>
-           )}
-        </div>
-      )}
 
       {/* Main Content Container */}
       <div className="relative z-10 w-full h-full flex flex-col pt-24 pb-4 container mx-auto px-4">
@@ -248,10 +192,6 @@ const Hero = () => {
                           : "flex-1 bg-black/40 hover:bg-black/60 grayscale opacity-60 hover:opacity-100"
                       )}
                     >
-                      {/* Inner Image for Card (visible only when expanded or purely decorative?) 
-                          Let's keep the transparent gradient feel, maybe show a hint of the image 
-                      */}
-                      {/* Card Background: Image only for active card to save bandwidth, sleek gradient for others */}
                       <div className="absolute inset-0 opacity-20 transition-opacity duration-500 group-hover:opacity-40">
                          {isActive ? (
                            <img 
@@ -280,8 +220,6 @@ const Hero = () => {
                           )}>
                             <Icon className="w-7 h-7 text-white" />
                           </div>
-                          
-                          {/* Rotated Text for inactive vertical state? No, standard text simpler. */}
                         </div>
 
                         <h3 className={cn(
@@ -326,6 +264,7 @@ const Hero = () => {
 };
 
 export default Hero;
+
 
 
 

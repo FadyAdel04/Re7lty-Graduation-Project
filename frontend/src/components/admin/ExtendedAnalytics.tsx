@@ -23,7 +23,7 @@ const ExtendedAnalytics: React.FC<ExtendedAnalyticsProps> = ({
     return (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="bg-white rounded-lg p-6 animate-pulse">
+          <div key={i} className="bg-card rounded-lg p-6 animate-pulse">
             <div className="h-64 bg-gray-200 rounded"></div>
           </div>
         ))}
@@ -61,29 +61,29 @@ const ExtendedAnalytics: React.FC<ExtendedAnalyticsProps> = ({
       />
 
       {/* 4. Top Performing Companies Table */}
-      <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-        <h3 className="text-lg font-bold text-gray-900 mb-4">أفضل الشركات أداءً</h3>
+      <div className="bg-card rounded-lg p-6 shadow-sm border border-border">
+        <h3 className="text-lg font-bold text-foreground mb-4">أفضل الشركات أداءً</h3>
         <div className="space-y-4">
           {topCompanies.map((company: any) => (
-            <div key={company._id} className="flex items-center justify-between border-b border-gray-100 pb-3 last:border-0 last:pb-0">
+            <div key={company._id} className="flex items-center justify-between border-b border-border pb-3 last:border-0 last:pb-0">
               <div className="flex items-center gap-3">
                 <img 
                   src={company.logo || "https://placehold.co/100x100?text=Logo"} 
                   alt={company.name}
-                  className="w-10 h-10 rounded-lg object-cover bg-gray-100"
+                  className="w-10 h-10 rounded-lg object-cover bg-muted"
                 />
                 <div>
-                  <p className="font-semibold text-gray-900">{company.name}</p>
-                  <p className="text-sm text-gray-500">{company.email}</p>
+                  <p className="font-semibold text-foreground">{company.name}</p>
+                  <p className="text-sm text-muted-foreground">{company.email}</p>
                 </div>
               </div>
               <div className="text-center bg-blue-50 px-3 py-1 rounded-full">
-                <span className="text-xs text-gray-600 block">رحلات</span>
+                <span className="text-xs text-muted-foreground block">رحلات</span>
                 <span className="font-bold text-blue-600">{company.tripsCount || 0}</span>
               </div>
             </div>
           ))}
-          {topCompanies.length === 0 && <p className="text-center text-gray-500 py-4">لا توجد شركات حتى الآن</p>}
+          {topCompanies.length === 0 && <p className="text-center text-muted-foreground py-4">لا توجد شركات حتى الآن</p>}
         </div>
       </div>
     </div>

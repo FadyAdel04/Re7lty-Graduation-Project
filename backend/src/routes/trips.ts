@@ -1059,6 +1059,72 @@ router.post('/:id/comments', requireAuthStrict, async (req, res) => {
 });
 
 // Like/unlike a specific comment
+// Add a reply to a comment
+router.post('/:id/comments/:commentId/replies', requireAuthStrict, async (req, res) => {
+  try {
+    const { userId } = getAuth(req);
+    const { content } = req.body;
+
+    if (!content?.trim()) {
+      return res.status(400).json({ error: 'Reply content is required' });
+    }
+
+    const trip = await Trip.findById(req.params.id);
+    if (!trip) return res.status(404).json({ error: 'Trip not found' });
+
+    const parentComment = trip.comments.id(req.params.commentId);
+    if (!parentComment) return res.status(404).json({ error: 'Comment not found' });
+
+    const clerkUser = (req.headers['x-demo-user'] && process.env.NODE_ENV !== 'production') 
+      ? { fullName: 'Demo User', imageUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde', username: 'demo_user' }
+      : await clerkClient.users.getUser(userId);
+
+    const authorName = (clerkUser as any).fullName || (clerkUser as any).firstName || (clerkUser as any).username || 'مستخدم';
+    
+    const replyId = new mongoose.Types.ObjectId();
+    const newReply = {
+      _id: replyId,
+      authorId: userId,
+      author: authorName,
+      authorAvatar: clerkUser.imageUrl || undefined,
+      content: content.trim(),
+      date: new Date().toISOString(),
+      likes: 0,
+      likedBy: [],
+      replies: []
+    };
+
+    if (!(parentComment as any).replies) (parentComment as any).replies = [];
+    (parentComment as any).replies.push(newReply as any);
+    
+    await trip.save();
+
+    // Notify the parent comment author
+    if (parentComment.authorId && parentComment.authorId !== userId) {
+      try {
+        await createNotification({
+          recipientId: parentComment.authorId,
+          actorId: userId,
+          actorName: authorName,
+          actorImage: clerkUser.imageUrl,
+          type: "comment", // Reuse comment type
+          message: `${authorName} رد على تعليقك`,
+          tripId: trip._id,
+          commentId: parentComment._id,
+          metadata: { snippet: content.slice(0, 120) },
+        });
+      } catch (err) {
+        console.error("Error creating reply notification:", err);
+      }
+    }
+
+    res.json(formatComment(newReply, userId, req));
+  } catch (error: any) {
+    console.error('Error adding reply:', error);
+    res.status(500).json({ error: 'Failed to add reply', message: error.message });
+  }
+});
+
 router.post('/:tripId/comments/:commentId/love', requireAuthStrict, async (req, res) => {
   try {
     if (mongoose.connection.readyState !== 1) {
@@ -1346,7 +1412,7 @@ router.delete('/:id', requireAuthStrict, async (req, res) => {
 
     // If Admin deleted it (and is not owner), notify the owner and resolve reports
     if (isAdmin && !isOwner) {
-      // Send notification
+      // Send notification to OWNER
       await createNotification({
         recipientId: trip.ownerId,
         actorId: userId,
@@ -1355,11 +1421,24 @@ router.delete('/:id', requireAuthStrict, async (req, res) => {
         type: "system",
         message: `تم حذف رحلتك "${trip.title}" لمخالفتها شروط النشر وسياسات المجتمع.`,
         isRead: false,
-        // No link since trip is deleted
       });
 
-      // Resolve any pending reports for this trip
-      // Note: ContentReport should already be imported at top
+      // Notify REPORTERS and resolve pending reports
+      const pendingReports = await ContentReport.find({ tripId: req.params.id, status: 'pending' });
+      for (const report of pendingReports) {
+        if (report.reportedBy) {
+          await createNotification({
+            recipientId: report.reportedBy,
+            actorId: userId,
+            actorName: "إدارة رحلتي",
+            actorImage: "/assets/logo.png",
+            type: "system",
+            message: `تمت مراجعة بلاغك بخصوص الرحلة "${trip.title}" واتخاذ الإجراء اللازم بحذف المحتوى. شكراً لمساعدتك!`,
+            isRead: false,
+          });
+        }
+      }
+
       await ContentReport.updateMany(
         { tripId: req.params.id },
         { status: 'resolved', adminNotes: 'Deleted by admin due to violation' }

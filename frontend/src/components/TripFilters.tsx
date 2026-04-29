@@ -14,6 +14,7 @@ import { TripFilters } from "@/types/corporateTrips";
 import { Company } from "@/types/corporateTrips";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 interface TripFiltersProps {
   filters: TripFilters;
@@ -53,10 +54,10 @@ const TripFiltersComponent = ({
   );
 
   return (
-    <div className="w-full space-y-4">
-      <div className="flex flex-wrap items-center gap-4 bg-white/80 backdrop-blur-md p-2 rounded-[2rem] border border-zinc-200/60 shadow-sm">
+    <div className="w-full space-y-4 font-cairo">
+      <div className="flex flex-wrap items-center gap-4 bg-card/80 backdrop-blur-md p-2 rounded-[2.5rem] border border-border shadow-xl shadow-black/5">
         {/* Quick Filter: Destination */}
-        <div className="flex-1 min-w-[180px]">
+        <div className="flex-1 min-w-[200px]">
           <Select
             value={filters.destination || "all"}
             onValueChange={(value) =>
@@ -66,48 +67,51 @@ const TripFiltersComponent = ({
               })
             }
           >
-            <SelectTrigger className="border-0 bg-transparent focus:ring-0 h-12 hover:bg-zinc-50 rounded-2xl transition-all">
-              <div className="flex items-center gap-2 text-zinc-600">
-                <MapPin className="h-4 w-4 text-orange-500" />
+            <SelectTrigger className="border-0 bg-transparent focus:ring-0 h-14 hover:bg-muted rounded-[1.5rem] transition-all px-6">
+              <div className="flex items-center gap-3 text-foreground font-black">
+                <MapPin className="h-5 w-5 text-primary" />
                 <SelectValue placeholder="اختر الوجهة" />
               </div>
             </SelectTrigger>
-            <SelectContent className="rounded-2xl border-zinc-100 shadow-2xl">
-              <SelectItem value="all">كل الوجهات</SelectItem>
+            <SelectContent className="rounded-[1.5rem] border-border shadow-2xl bg-card">
+              <SelectItem value="all" className="font-bold">كل الوجهات</SelectItem>
               {destinations.map((dest) => (
-                <SelectItem key={dest} value={dest}>{dest}</SelectItem>
+                <SelectItem key={dest} value={dest} className="font-bold">{dest}</SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
 
-        <div className="w-px h-8 bg-zinc-200 hidden md:block" />
+        <div className="w-px h-10 bg-border hidden md:block" />
 
-        {/* Quick Filter: Price */}
-        <div className="flex-1 min-w-[180px]">
+        {/* Quick Filter: Price & Options Toggle */}
+        <div className="flex-1 min-w-[200px]">
           <button 
             onClick={() => setIsExpanded(!isExpanded)}
-            className="w-full flex items-center justify-between px-4 h-12 hover:bg-zinc-50 rounded-2xl transition-all text-zinc-600"
+            className="w-full flex items-center justify-between px-6 h-14 hover:bg-muted rounded-[1.5rem] transition-all text-foreground"
           >
-            <div className="flex items-center gap-2">
-              <SlidersHorizontal className="h-4 w-4 text-orange-500" />
-              <span className="text-sm font-medium">السعر والخيارات</span>
+            <div className="flex items-center gap-3">
+              <SlidersHorizontal className="h-5 w-5 text-primary" />
+              <span className="text-base font-black">السعر والخيارات</span>
             </div>
-            <ChevronDown className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+            <motion.div animate={{ rotate: isExpanded ? 180 : 0 }}>
+              <ChevronDown className="h-5 w-5 text-muted-foreground" />
+            </motion.div>
           </button>
         </div>
 
-        {/* Advanced Toggle */}
+        {/* Action Button */}
         <Button
           variant={hasActiveFilters ? "default" : "outline"}
-          onClick={handleClearFilters}
-          className={`h-12 px-6 rounded-2xl font-bold transition-all border-zinc-200 ${
-            hasActiveFilters ? 'bg-orange-600 text-white border-0' : 'text-zinc-600'
-          }`}
+          onClick={hasActiveFilters ? handleClearFilters : () => setIsExpanded(!isExpanded)}
+          className={cn(
+            "h-14 px-8 rounded-[1.5rem] font-black transition-all border-border",
+            hasActiveFilters ? 'bg-primary text-primary-foreground border-0 shadow-lg shadow-primary/20' : 'text-foreground'
+          )}
         >
           {hasActiveFilters ? (
             <div className="flex items-center gap-2">
-              <X className="h-4 w-4" />
+              <X className="h-5 w-5" />
               مسح ({Object.keys(filters).length})
             </div>
           ) : (
@@ -119,18 +123,18 @@ const TripFiltersComponent = ({
       <AnimatePresence>
         {isExpanded && (
           <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
+            initial={{ height: 0, opacity: 0, y: -20 }}
+            animate={{ height: "auto", opacity: 1, y: 0 }}
+            exit={{ height: 0, opacity: 0, y: -20 }}
+            transition={{ duration: 0.4, ease: "circOut" }}
             className="overflow-hidden"
           >
-            <Card className="rounded-[2.5rem] border-zinc-100 shadow-xl bg-white/50 backdrop-blur-sm">
-              <CardContent className="p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <Card className="rounded-[3rem] border-border shadow-2xl bg-card/50 backdrop-blur-xl mb-6">
+              <CardContent className="p-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
                 {/* Price Range */}
-                <div className="space-y-4">
-                  <Label className="text-zinc-900 font-black flex items-center gap-2">السعر <span className="text-zinc-400 font-medium">(ج.م)</span></Label>
-                  <div className="px-2 pt-2">
+                <div className="space-y-6">
+                  <Label className="text-foreground font-black text-lg flex items-center gap-2">السعر <span className="text-muted-foreground font-bold text-sm">(ج.م)</span></Label>
+                  <div className="px-2 pt-4">
                     <Slider
                       min={priceRange.min}
                       max={priceRange.max}
@@ -141,75 +145,75 @@ const TripFiltersComponent = ({
                       className="w-full"
                     />
                   </div>
-                  <div className="flex justify-between items-center text-xs font-black text-zinc-500">
-                    <span className="bg-zinc-100 px-2 py-1 rounded-lg">{localPriceRange[0]}</span>
-                    <div className="h-px flex-1 bg-zinc-100 mx-2" />
-                    <span className="bg-zinc-100 px-2 py-1 rounded-lg">{localPriceRange[1]}</span>
+                  <div className="flex justify-between items-center text-xs font-black text-muted-foreground">
+                    <span className="bg-muted px-4 py-2 rounded-xl border border-border">{localPriceRange[0]}</span>
+                    <div className="h-px flex-1 bg-border mx-4" />
+                    <span className="bg-muted px-4 py-2 rounded-xl border border-border">{localPriceRange[1]}</span>
                   </div>
                 </div>
 
                 {/* Duration */}
-                <div className="space-y-4">
-                  <Label className="text-zinc-900 font-black">المدة الزمنية</Label>
+                <div className="space-y-6">
+                  <Label className="text-foreground font-black text-lg">المدة الزمنية</Label>
                   <Select
                     value={filters.duration || "all"}
                     onValueChange={(v) => onFiltersChange({...filters, duration: v === "all" ? undefined : v})}
                   >
-                    <SelectTrigger className="rounded-xl bg-white border-zinc-200">
+                    <SelectTrigger className="h-14 rounded-2xl bg-background border-border font-bold px-6">
                       <SelectValue placeholder="اختر المدة" />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">كل الفترات</SelectItem>
-                      {durations.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                    <SelectContent className="rounded-2xl bg-card border-border">
+                      <SelectItem value="all" className="font-bold">كل الفترات</SelectItem>
+                      {durations.map(d => <SelectItem key={d} value={d} className="font-bold">{d}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
 
                 {/* Company */}
-                <div className="space-y-4">
-                  <Label className="text-zinc-900 font-black">الشركة المفضلة</Label>
+                <div className="space-y-6">
+                  <Label className="text-foreground font-black text-lg">الشركة المفضلة</Label>
                   <Select
                     value={filters.companyId || "all"}
                     onValueChange={(v) => onFiltersChange({...filters, companyId: v === "all" ? undefined : v})}
                   >
-                    <SelectTrigger className="rounded-xl bg-white border-zinc-200">
+                    <SelectTrigger className="h-14 rounded-2xl bg-background border-border font-bold px-6">
                       <SelectValue placeholder="اختر الشركة" />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">جميع الشركات</SelectItem>
-                      {companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                    <SelectContent className="rounded-2xl bg-card border-border">
+                      <SelectItem value="all" className="font-bold">جميع الشركات</SelectItem>
+                      {companies.map(c => <SelectItem key={c.id} value={c.id} className="font-bold">{c.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
 
                 {/* Season & Rating */}
-                <div className="space-y-4">
-                  <Label className="text-zinc-900 font-black">التصنيف والموسم</Label>
-                  <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-6">
+                  <Label className="text-foreground font-black text-lg">التصنيف والموسم</Label>
+                  <div className="grid grid-cols-2 gap-4">
                     <Select
                       value={filters.season || "all"}
                       onValueChange={(v) => onFiltersChange({...filters, season: v === "all" ? undefined : v})}
                     >
-                      <SelectTrigger className="rounded-xl bg-white border-zinc-200">
+                      <SelectTrigger className="h-14 rounded-2xl bg-background border-border font-bold px-4">
                         <SelectValue placeholder="الموسم" />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">كل المواسم</SelectItem>
-                        <SelectItem value="winter">شتاء</SelectItem>
-                        <SelectItem value="summer">صيف</SelectItem>
+                      <SelectContent className="rounded-2xl bg-card border-border">
+                        <SelectItem value="all" className="font-bold">الكل</SelectItem>
+                        <SelectItem value="winter" className="font-bold">شتاء</SelectItem>
+                        <SelectItem value="summer" className="font-bold">صيف</SelectItem>
                       </SelectContent>
                     </Select>
                     <Select
                       value={filters.minRating?.toString() || "all"}
                       onValueChange={(v) => onFiltersChange({...filters, minRating: v === "all" ? undefined : parseFloat(v)})}
                     >
-                      <SelectTrigger className="rounded-xl bg-white border-zinc-200">
+                      <SelectTrigger className="h-14 rounded-2xl bg-background border-border font-bold px-4">
                         <SelectValue placeholder="التقييم" />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">الكل</SelectItem>
-                        <SelectItem value="4.5">4.5+</SelectItem>
-                        <SelectItem value="4.0">4.0+</SelectItem>
+                      <SelectContent className="rounded-2xl bg-card border-border">
+                        <SelectItem value="all" className="font-bold">الكل</SelectItem>
+                        <SelectItem value="4.5" className="font-bold">4.5+</SelectItem>
+                        <SelectItem value="4.0" className="font-bold">4.0+</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

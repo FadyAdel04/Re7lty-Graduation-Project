@@ -18,7 +18,7 @@ const NotFound = () => {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex flex-col font-cairo text-right" dir="rtl">
+    <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950 flex flex-col font-cairo text-right text-gray-900 dark:text-slate-100" dir="rtl">
       <Header />
       
       <main className="flex-1 flex items-center justify-center relative overflow-hidden py-20 px-6">
@@ -29,7 +29,7 @@ const NotFound = () => {
             alt="Travel background" 
             className="w-full h-full object-cover opacity-100 contrast-125"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#F8FAFC]/80 via-[#F8FAFC]/40 to-[#F8FAFC]" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#F8FAFC]/80 dark:from-slate-950/90 via-[#F8FAFC]/40 dark:via-slate-950/70 to-[#F8FAFC] dark:to-slate-950" />
         </div>
 
         {/* Background Decorative Elements */}
@@ -58,7 +58,7 @@ const NotFound = () => {
                 <motion.div 
                   animate={{ y: [0, -20, 0] }} 
                   transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                  className="absolute top-1/4 right-1/4 w-24 h-24 bg-white rounded-3xl shadow-2xl flex items-center justify-center text-orange-500 border border-orange-50"
+                  className="absolute top-1/4 right-1/4 w-24 h-24 bg-white dark:bg-slate-900 rounded-3xl shadow-2xl flex items-center justify-center text-orange-500 border border-orange-50 dark:border-slate-800"
                 >
                   <Compass className="w-12 h-12" />
                 </motion.div>
@@ -66,7 +66,7 @@ const NotFound = () => {
                 <motion.div 
                   animate={{ y: [0, 15, 0] }} 
                   transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-                  className="absolute bottom-1/3 left-1/4 w-16 h-16 bg-white rounded-2xl shadow-xl flex items-center justify-center text-indigo-600 border border-indigo-50"
+                  className="absolute bottom-1/3 left-1/4 w-16 h-16 bg-white dark:bg-slate-900 rounded-2xl shadow-xl flex items-center justify-center text-indigo-600 border border-indigo-50 dark:border-slate-800"
                 >
                   <MapPin className="w-8 h-8" />
                 </motion.div>
@@ -99,11 +99,11 @@ const NotFound = () => {
                 >
                    عذراً، يبدو أنك تهت قليلاً! 🧭
                 </motion.span>
-                <h1 className="text-4xl md:text-6xl font-black text-gray-900 leading-tight mb-6">
+                <h1 className="text-4xl md:text-6xl font-black text-gray-900 dark:text-white leading-tight mb-6">
                   هذه الوجهة <br />
                   <span className="text-transparent bg-clip-text bg-gradient-to-l from-indigo-600 to-purple-600">غير موجودة</span> على خريطتنا
                 </h1>
-                <p className="text-xl text-gray-500 font-medium leading-relaxed max-w-lg mx-auto lg:mr-0">
+                <p className="text-xl text-gray-500 dark:text-slate-400 font-medium leading-relaxed max-w-lg mx-auto lg:mr-0">
                   ربما الرابط الذي اتبعته قد انتهى، أو الصفحة قد انتقلت إلى مغامرة أخرى. دعنا نساعدك في العودة إلى طريقك الصحيح.
                 </p>
               </div>
@@ -122,20 +122,20 @@ const NotFound = () => {
                 <Button 
                   variant="outline" 
                   onClick={() => navigate(-1)}
-                  className="h-16 px-8 rounded-2xl border-gray-200 text-gray-700 font-black text-lg gap-3 hover:bg-white hover:border-indigo-400 transition-all"
+                  className="h-16 px-8 rounded-2xl border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-300 font-black text-lg gap-3 hover:bg-white dark:hover:bg-slate-800 hover:border-indigo-400 dark:hover:border-indigo-500 transition-all"
                 >
                   رجوع للخلف
                 </Button>
               </div>
 
-              <div className="pt-8 border-t border-gray-100 grid grid-cols-2 gap-4">
+              <div className="pt-8 border-t border-gray-100 dark:border-slate-800 grid grid-cols-2 gap-4">
                  <Link to="/timeline" className="group flex flex-col items-center lg:items-start text-right">
                     <span className="text-indigo-600 font-black flex items-center gap-1 group-hover:gap-2 transition-all">تصفح الرحلات <ArrowRight className="w-4 h-4 rotate-180" /></span>
-                    <span className="text-gray-400 text-xs mt-1">اكتشف مغامرات جديدة</span>
+                    <span className="text-gray-400 dark:text-slate-500 text-xs mt-1">اكتشف مغامرات جديدة</span>
                  </Link>
                  <Link to="/templates" className="group flex flex-col items-center lg:items-start text-right">
                     <span className="text-orange-600 font-black flex items-center gap-1 group-hover:gap-2 transition-all">باقات الشركات <ArrowRight className="w-4 h-4 rotate-180" /></span>
-                    <span className="text-gray-400 text-xs mt-1">رحلات منظمة بالكامل</span>
+                    <span className="text-gray-400 dark:text-slate-500 text-xs mt-1">رحلات منظمة بالكامل</span>
                  </Link>
               </div>
             </motion.div>

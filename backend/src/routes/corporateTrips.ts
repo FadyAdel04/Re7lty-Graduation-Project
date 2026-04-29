@@ -1,12 +1,16 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import { CorporateTrip } from '../models/CorporateTrip';
+import { formatComment } from '../utils/tripFormatter';
 import { CorporateCompany } from '../models/CorporateCompany';
 import { requireAdmin } from '../utils/adminMiddleware';
-import { ClerkExpressRequireAuth } from '@clerk/clerk-sdk-node';
+import { ClerkExpressRequireAuth, clerkClient } from '@clerk/clerk-sdk-node';
 import { persistBase64 } from '../utils/media';
 import { createNotification } from '../utils/notificationDispatcher';
 import { Booking } from '../models/Booking';
 import { ensureTripGroupExists } from '../utils/tripChatManager';
+import ContentReport from '../models/ContentReport';
+import { User } from '../models/User';
 import {
   validateTripTitle,
   validateDescription,
@@ -466,7 +470,6 @@ function validateImageBase64(dataUrl: string): { valid: boolean; message?: strin
 router.post('/me/create', ClerkExpressRequireAuth(), async (req, res) => {
     try {
         // Get user and verify company owner status
-        const { User } = await import('../models/User');
         const user = await User.findOne({ clerkId: req.auth?.userId });
 
         if (!user || !user.companyId || user.role !== 'company_owner') {
@@ -604,7 +607,6 @@ router.post('/me/create', ClerkExpressRequireAuth(), async (req, res) => {
  */
 router.put('/me/:id', ClerkExpressRequireAuth(), async (req, res) => {
     try {
-        const { User } = await import('../models/User');
         const user = await User.findOne({ clerkId: req.auth?.userId });
 
         if (!user || !user.companyId || user.role !== 'company_owner') {
@@ -768,24 +770,41 @@ router.put('/admin/:id', ClerkExpressRequireAuth(), requireAdmin, async (req, re
  *       200:
  *         description: Trip deactivated
  */
-router.delete('/admin/:id', ClerkExpressRequireAuth(), requireAdmin, async (req, res) => {
+router.delete('/admin/:id', ClerkExpressRequireAuth(), requireAdmin, async (req: any, res) => {
     try {
+        const adminId = req.auth?.userId || 'admin';
         const trip = await CorporateTrip.findById(req.params.id);
         if (!trip) {
             return res.status(404).json({ error: 'Trip not found' });
         }
 
-        const bookingsCount = await Booking.countDocuments({
+        // 1. Handle existing bookings: Cancel them and notify users
+        const bookings = await Booking.find({
             tripId: trip._id,
             status: { $in: ['pending', 'accepted'] }
         });
-        if (bookingsCount > 0) {
-            return res.status(400).json({
-                error: 'لا يمكن حذف رحلة بها حجوزات',
-                message: `يوجد ${bookingsCount} حجز(ات) لهذه الرحلة. يرجى إلغاء الحجوزات أولاً أو إلغاء تفعيل الرحلة بدلاً من الحذف.`
-            });
+
+        if (bookings.length > 0) {
+            console.log(`[Admin Delete] Cancelling ${bookings.length} bookings for trip ${trip._id}`);
+            for (const booking of bookings) {
+                booking.status = 'cancelled';
+                (booking as any).cancelReason = 'تم حذف الرحلة من قبل الإدارة لمخالفتها المعايير';
+                await booking.save();
+
+                await createNotification({
+                    recipientId: booking.userId,
+                    actorId: adminId,
+                    actorName: "إدارة رحلتي",
+                    actorImage: "/assets/logo.png",
+                    type: "system",
+                    message: `⚠️ تم إلغاء حجزك لرحلة "${trip.title}" بسبب حذف الرحلة من قبل الإدارة لمخالفتها المعايير. يرجى التواصل مع الدعم للمطالبة باسترداد المبلغ.`,
+                    isRead: false,
+                    metadata: { bookingId: booking._id, tripId: trip._id }
+                } as any);
+            }
         }
 
+        // 2. Perform deactivation (Soft Delete)
         await CorporateTrip.findByIdAndUpdate(
             req.params.id,
             { isActive: false },
@@ -798,13 +817,50 @@ router.delete('/admin/:id', ClerkExpressRequireAuth(), requireAdmin, async (req,
             { $inc: { tripsCount: -1 } }
         );
 
+        // 3. Notify Company Owner
+        const company = await CorporateCompany.findById(trip.companyId);
+        if (company && company.ownerId) {
+            await createNotification({
+                recipientId: company.ownerId,
+                actorId: adminId,
+                actorName: "إدارة رحلتي",
+                actorImage: "/assets/logo.png",
+                type: "system",
+                message: `‼️ تم حذف/إلغاء تفعيل رحلتكم "${trip.title}" من قبل الإدارة لمخالفتها شروط النشر وسياسات المجتمع.`,
+                isRead: false,
+                metadata: { tripId: trip._id }
+            } as any);
+        }
+
+        // 4. Notify REPORTERS and resolve pending reports
+        const pendingReports = await ContentReport.find({ tripId: req.params.id, status: 'pending' });
+        for (const report of pendingReports) {
+            if (report.reportedBy) {
+                await createNotification({
+                    recipientId: report.reportedBy,
+                    actorId: adminId,
+                    actorName: "إدارة رحلتي",
+                    actorImage: "/assets/logo.png",
+                    type: "system",
+                    message: `✅ تمت مراجعة بلاغك بخصوص الرحلة "${trip.title}" واتخاذ الإجراء اللازم بحذفها. شكراً لمساعدتك!`,
+                    isRead: false
+                } as any);
+            }
+        }
+
+        await ContentReport.updateMany(
+            { tripId: req.params.id },
+            { status: 'resolved', adminNotes: 'Deleted/Deactivated by admin due to violation' }
+        );
+
         res.json({
             success: true,
-            message: 'Trip deactivated successfully'
+            message: 'Trip deleted successfully and reports resolved',
+            cancelledBookings: bookings.length
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error deleting trip:', error);
-        res.status(500).json({ error: 'Failed to delete trip' });
+        res.status(500).json({ error: 'Failed to delete trip', message: error.message });
     }
 });
 
@@ -867,7 +923,6 @@ router.put('/admin/:id/toggle-active', ClerkExpressRequireAuth(), requireAdmin, 
  */
 router.patch('/:id', ClerkExpressRequireAuth(), async (req, res) => {
     try {
-        const { User } = await import('../models/User');
         const user = await User.findOne({ clerkId: req.auth?.userId });
 
         if (!user || !user.companyId || user.role !== 'company_owner') {
@@ -934,6 +989,140 @@ router.patch('/:id', ClerkExpressRequireAuth(), async (req, res) => {
     } catch (error: any) {
         console.error('Error updating seats:', error);
         res.status(500).json({ error: 'Failed to update seats', details: error.message });
+    }
+});
+
+// --- Comment Routes ---
+
+router.post('/:id/comments', ClerkExpressRequireAuth(), async (req: any, res: any) => {
+    try {
+        const { content } = req.body;
+        if (!content) return res.status(400).json({ error: 'Comment content is required' });
+
+        const trip = await CorporateTrip.findById(req.params.id);
+        if (!trip) return res.status(404).json({ error: 'Trip not found' });
+
+        const clerkUser = await clerkClient.users.getUser(req.auth.userId);
+        
+        const newComment = {
+            _id: new mongoose.Types.ObjectId(),
+            authorId: req.auth.userId,
+            author: clerkUser.fullName || clerkUser.username || 'Anonymous',
+            authorAvatar: clerkUser.imageUrl,
+            content,
+            date: new Date().toISOString(),
+            likes: 0,
+            likedBy: [],
+            replies: []
+        };
+
+        trip.comments.push(newComment as any);
+        await trip.save();
+
+        res.status(201).json(formatComment(newComment));
+    } catch (error: any) {
+        console.error('Error adding comment:', error);
+        res.status(500).json({ error: 'Failed to add comment' });
+    }
+});
+
+router.post('/:id/comments/:commentId/replies', ClerkExpressRequireAuth(), async (req: any, res: any) => {
+    try {
+        const { id, commentId } = req.params;
+        const { content } = req.body;
+
+        if (!content) return res.status(400).json({ error: 'Reply content is required' });
+
+        const trip = await CorporateTrip.findById(id);
+        if (!trip) return res.status(404).json({ error: 'Trip not found' });
+
+        const comment = (trip.comments as any).id(commentId);
+        if (!comment) return res.status(404).json({ error: 'Comment not found' });
+
+        const clerkUser = await clerkClient.users.getUser(req.auth.userId);
+
+        const newReply = {
+            _id: new mongoose.Types.ObjectId(),
+            authorId: req.auth.userId,
+            author: clerkUser.fullName || clerkUser.username || 'Anonymous',
+            authorAvatar: clerkUser.imageUrl,
+            content,
+            date: new Date().toISOString(),
+            likes: 0,
+            likedBy: []
+        };
+
+        if (!(comment as any).replies) (comment as any).replies = [];
+        (comment as any).replies.push(newReply);
+        await trip.save();
+
+        // Notify parent comment author
+        if (comment.authorId !== req.auth.userId) {
+            await createNotification({
+                recipientId: comment.authorId,
+                actorId: req.auth.userId,
+                actorName: clerkUser.fullName || 'مسافر',
+                actorImage: clerkUser.imageUrl,
+                type: 'comment',
+                message: `رد على تعليقك: "${content.substring(0, 30)}..."`,
+                tripId: trip._id,
+                isRead: false
+            });
+        }
+
+        res.status(201).json(formatComment(newReply));
+    } catch (error: any) {
+        console.error('Error adding reply:', error);
+        res.status(500).json({ error: 'Failed to add reply' });
+    }
+});
+
+router.post('/:id/comments/:commentId/love', ClerkExpressRequireAuth(), async (req: any, res: any) => {
+    try {
+        const { id, commentId } = req.params;
+        const trip = await CorporateTrip.findById(id);
+        if (!trip) return res.status(404).json({ error: 'Trip not found' });
+
+        const comment = (trip.comments as any).id(commentId);
+        if (!comment) return res.status(404).json({ error: 'Comment not found' });
+
+        const userId = req.auth.userId;
+        const likedIndex = comment.likedBy.indexOf(userId);
+
+        if (likedIndex > -1) {
+            comment.likedBy.splice(likedIndex, 1);
+            comment.likes = Math.max(0, comment.likes - 1);
+        } else {
+            comment.likedBy.push(userId);
+            comment.likes += 1;
+        }
+
+        await trip.save();
+        res.json({ likes: comment.likes, loved: likedIndex === -1 });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to like comment' });
+    }
+});
+
+router.delete('/:id/comments/:commentId', ClerkExpressRequireAuth(), async (req: any, res: any) => {
+    try {
+        const { id, commentId } = req.params;
+        const trip = await CorporateTrip.findById(id);
+        if (!trip) return res.status(404).json({ error: 'Trip not found' });
+
+        const comment = (trip.comments as any).id(commentId);
+        if (!comment) return res.status(404).json({ error: 'Comment not found' });
+
+        if (comment.authorId !== req.auth.userId && req.auth.sessionClaims?.metadata?.role !== 'admin') {
+            return res.status(403).json({ error: 'Unauthorized' });
+        }
+
+        (trip.comments as any).pull(commentId);
+        await trip.save();
+
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to delete comment' });
     }
 });
 

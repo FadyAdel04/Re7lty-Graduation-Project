@@ -20,13 +20,13 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
 }) => {
     return (
         <div className="p-8 m-0 focus-visible:outline-none">
-            <h2 className="text-2xl font-black text-gray-900 mb-8">إعدادات الشركة</h2>
+            <h2 className="text-2xl font-black text-foreground mb-8">إعدادات الشركة</h2>
             <form onSubmit={onSave}>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
                     {/* Right Column: Basic Info */}
                     <div className="space-y-6">
                         <div>
-                            <h3 className="text-xl font-bold text-gray-900 mb-4 border-b pb-2">المعلومات الأساسية</h3>
+                            <h3 className="text-xl font-bold text-foreground mb-4 border-b pb-2">المعلومات الأساسية</h3>
                             <div className="space-y-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="name">اسم الشركة *</Label>
@@ -66,7 +66,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
                         </div>
 
                         <div>
-                            <h3 className="text-xl font-bold text-gray-900 mb-4 border-b pb-2 mt-8">بيانات التواصل</h3>
+                            <h3 className="text-xl font-bold text-foreground mb-4 border-b pb-2 mt-8">بيانات التواصل</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="phone">رقم الهاتف</Label>
@@ -124,7 +124,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
                     {/* Left Column: Visuals & Links */}
                     <div className="space-y-6">
                         <div>
-                            <h3 className="text-xl font-bold text-gray-900 mb-4 border-b pb-2">روابط التواصل الاجتماعي</h3>
+                            <h3 className="text-xl font-bold text-foreground mb-4 border-b pb-2">روابط التواصل الاجتماعي</h3>
                             <div className="grid grid-cols-1 gap-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="facebook">رابط فيسبوك</Label>

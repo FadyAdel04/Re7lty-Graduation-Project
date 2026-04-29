@@ -6,6 +6,7 @@ import { CorporateTrip } from '../models/CorporateTrip';
 import { CorporateCompany } from '../models/CorporateCompany';
 import mongoose from 'mongoose';
 import { createNotification } from '../utils/notificationDispatcher';
+import { handleBookingAccepted } from '../utils/tripChatManager';
 
 const router = express.Router();
 
@@ -31,38 +32,80 @@ router.post('/create-payment-intention', requireAuthStrict, async (req, res) => 
     const { userId } = getAuth(req);
     const { bookingId, paymentMethod } = req.body;
 
+    console.log(`[Paymob] Starting payment intention for booking: ${bookingId}, method: ${paymentMethod}, user: ${userId}`);
+
+    if (!bookingId) {
+      return res.status(400).json({ error: 'Missing bookingId' });
+    }
+
     const booking = await Booking.findById(bookingId);
-    if (!booking) return res.status(404).json({ error: 'Booking not found' });
+    if (!booking) {
+      console.error(`[Paymob] Booking not found: ${bookingId}`);
+      return res.status(404).json({ error: 'Booking not found' });
+    }
 
     if (booking.userId !== userId) {
+      console.error(`[Paymob] Unauthorized access: User ${userId} trying to pay for booking owned by ${booking.userId}`);
       return res.status(403).json({ error: 'Unauthorized' });
     }
 
     const amountCents = Math.round((booking.totalPrice || 0) * 100);
+    console.log(`[Paymob] Amount in cents: ${amountCents} (Original: ${booking.totalPrice})`);
+
+    if (amountCents <= 0) {
+      console.warn(`[Paymob] Invalid amount for booking ${bookingId}: ${amountCents}`);
+      return res.status(400).json({ error: 'مبلغ الدفع يجب أن يكون أكبر من صفر' });
+    }
+
+    if (!PAYMOB_API_KEY) {
+      console.error('[Paymob] PAYMOB_API_KEY is missing in environment variables');
+      throw new Error('PAYMOB_API_KEY is not configured on the server');
+    }
 
     // Step 1: Authentication
-    console.log('[Paymob] Step 1: Authenticating...');
-    const authResponse = await axios.post('https://accept.paymob.com/api/auth/tokens', {
-      api_key: PAYMOB_API_KEY,
-    });
-    const authToken = authResponse.data.token;
+    console.log('[Paymob] Step 1: Authenticating with API Key...');
+    let authToken;
+    try {
+      const authResponse = await axios.post('https://accept.paymob.com/api/auth/tokens', {
+        api_key: PAYMOB_API_KEY,
+      });
+      authToken = authResponse.data.token;
+      console.log('[Paymob] Auth Token received successfully');
+    } catch (authError: any) {
+      console.error('[Paymob] Auth Error:', authError.response?.data || authError.message);
+      throw new Error(`Authentication failed: ${JSON.stringify(authError.response?.data) || authError.message}`);
+    }
 
     // Step 2: Create Order
     console.log('[Paymob] Step 2: Creating order...');
-    const orderResponse = await axios.post('https://accept.paymob.com/api/ecommerce/orders', {
-      auth_token: authToken,
-      delivery_needed: 'false',
-      amount_cents: amountCents,
-      currency: 'EGP',
-      items: [],
-      merchant_order_id: bookingId.toString(), // Link to our booking ID
-    });
-    const orderId = orderResponse.data.id;
+    let orderId;
+    try {
+      const orderResponse = await axios.post('https://accept.paymob.com/api/ecommerce/orders', {
+        auth_token: authToken,
+        delivery_needed: 'false',
+        amount_cents: amountCents,
+        currency: 'EGP',
+        items: [],
+        merchant_order_id: `BOOKING_${bookingId.toString()}_${Date.now()}`, // Make it unique to avoid duplicates if user retries
+      });
+      orderId = orderResponse.data.id;
+      console.log(`[Paymob] Order created successfully: ${orderId}`);
+    } catch (orderError: any) {
+      console.error('[Paymob] Order Error:', orderError.response?.data || orderError.message);
+      throw new Error(`Order creation failed: ${JSON.stringify(orderError.response?.data) || orderError.message}`);
+    }
 
     // Step 3: Generate Payment Key
-    console.log('[Paymob] Step 3: Generating payment key (Card Only)...');
-    let integrationId = PAYMOB_CARD_INTEGRATION_ID;
+    console.log('[Paymob] Step 3: Generating payment key...');
+    let integrationId = paymentMethod === 'wallet' ? PAYMOB_WALLET_INTEGRATION_ID : PAYMOB_CARD_INTEGRATION_ID;
     
+    console.log(`[Paymob] Using integration ID: ${integrationId} for method: ${paymentMethod}`);
+
+    if (!integrationId) {
+      console.error(`[Paymob] Integration ID missing for method: ${paymentMethod}`);
+      throw new Error(`بوابة الدفع (${paymentMethod}) غير مهيأة بشكل صحيح على الخادم. يرجى التواصل مع الدعم.`);
+    }
+
     const rawPhone = (booking.userPhone || '01000000000').replace(/\D/g, '');
     const phone = rawPhone.startsWith('20') && rawPhone.length > 10 ? rawPhone.substring(2) : rawPhone;
 
@@ -82,18 +125,26 @@ router.post('/create-payment-intention', requireAuthStrict, async (req, res) => 
       state: 'Cairo',
     };
 
-    const paymentKeyResponse = await axios.post('https://accept.paymob.com/api/acceptance/payment_keys', {
-      auth_token: authToken,
-      amount_cents: amountCents,
-      expiration: 3600,
-      order_id: orderId,
-      billing_data: billingData,
-      currency: 'EGP',
-      integration_id: parseInt(integrationId || '0'),
-    });
-
-    const paymentKey = paymentKeyResponse.data.token;
-    console.log('[Paymob] Payment key generated successfully');
+    let paymentKey;
+    try {
+      const payload = {
+        auth_token: authToken,
+        amount_cents: amountCents,
+        expiration: 3600,
+        order_id: orderId,
+        billing_data: billingData,
+        currency: 'EGP',
+        integration_id: parseInt(integrationId.toString() || '0'),
+      };
+      console.log('[Paymob] Generating payment key with payload:', JSON.stringify(payload).substring(0, 200));
+      
+      const paymentKeyResponse = await axios.post('https://accept.paymob.com/api/acceptance/payment_keys', payload);
+      paymentKey = paymentKeyResponse.data.token;
+      console.log('[Paymob] Payment Key generated successfully');
+    } catch (keyError: any) {
+      console.error('[Paymob] Payment Key Error:', keyError.response?.data || keyError.message);
+      throw new Error(`Payment key generation failed: ${JSON.stringify(keyError.response?.data) || keyError.message}`);
+    }
 
     booking.paymentStatus = 'pending';
     (booking as any).paymobOrderId = orderId.toString();
@@ -107,12 +158,11 @@ router.post('/create-payment-intention', requireAuthStrict, async (req, res) => 
       orderId: orderId,
     });
   } catch (error: any) {
-    const errorData = error.response?.data;
-    console.error('Paymob API Error:', JSON.stringify(errorData || error.message, null, 2));
-    
+    console.error('[Paymob] Final Error Handler:', error.message);
     res.status(500).json({
       error: 'فشل في تهيئة الدفع',
-      details: errorData || error.message,
+      message: error.message,
+      details: error.response?.data || null
     });
   }
 });
@@ -160,6 +210,9 @@ router.post('/webhook', async (req, res) => {
       booking.paymentMethod = 'card';
       (booking as any).paymobTransactionId = obj?.id?.toString() || '';
       await booking.save();
+
+      // Automatically add to trip group chat
+      await handleBookingAccepted(booking.tripId.toString(), booking.userId);
 
       // If booking is still pending, auto-accept it (or notify company)
       const company = await CorporateCompany.findById(booking.companyId);

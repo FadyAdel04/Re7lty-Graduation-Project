@@ -1,8 +1,8 @@
 import { TripChatGroup, TripChatMessage } from "../models/TripChat";
 import { CorporateTrip } from "../models/CorporateTrip";
 import { CorporateCompany } from "../models/CorporateCompany";
-import { Notification } from "../models/Notification";
-import { getPusher } from "../services/pusher";
+import { createNotification } from "./notificationDispatcher";
+import { safePusherTrigger } from "./pusherSafe";
 import { User } from "../models/User";
 
 export async function ensureTripGroupExists(tripId: string, forcedParticipantId?: string) {
@@ -69,17 +69,29 @@ export async function ensureTripGroupExists(tripId: string, forcedParticipantId?
 
 export async function handleBookingAccepted(tripId: string, userId: string) {
     try {
+        console.log(`[TripChat] Handling accepted booking for trip ${tripId}, user ${userId}`);
         const group = await ensureTripGroupExists(tripId);
-        if (!group) return;
+        if (!group) {
+            console.error(`[TripChat] Failed to ensure group exists for trip ${tripId}`);
+            return;
+        }
+
+        console.log(`[TripChat] Group found/created: ${group.name} (${group._id}). Participants: ${group.participants.length}`);
 
         // 2. Add user if not already in participants
-        if (!group.participants.includes(userId)) {
+        // Use a more robust check for existence in participants array
+        const isParticipant = group.participants.some(p => String(p) === String(userId));
+        
+        if (!isParticipant) {
+            console.log(`[TripChat] Adding user ${userId} to group ${group._id}`);
             group.participants.push(userId);
             await group.save();
 
             // Fetch user name
             const user = await User.findOne({ clerkId: userId });
             const userName = user?.fullName || 'عضو جديد';
+            
+            console.log(`[TripChat] User ${userName} added to group ${group._id}. Sending system message...`);
 
             // 3. Create system message
             const systemMsg = await TripChatMessage.create({
@@ -90,26 +102,32 @@ export async function handleBookingAccepted(tripId: string, userId: string) {
             });
 
             // 4. Trigger Pusher
-            const pusher = getPusher();
-            if (pusher) {
-                pusher.trigger(`trip-group-${group._id}`, 'new-message', {
-                    message: systemMsg
-                });
-                pusher.trigger(`user-updates-${userId}`, 'added-to-group', {
-                    groupId: group._id,
-                    groupName: group.name
-                });
-            }
+            console.log(`[TripChat] Triggering Pusher for group ${group._id}`);
+            await safePusherTrigger(`trip-group-${group._id}`, 'new-message', {
+                message: systemMsg
+            });
+            await safePusherTrigger(`user-updates-${userId}`, 'added-to-group', {
+                groupId: group._id,
+                groupName: group.name
+            });
 
             // 5. Send notification
-            await Notification.create({
+            await createNotification({
                 recipientId: userId,
                 actorId: 'system',
-                actorName: 'النظام',
+                actorName: 'إدارة رحلتي',
+                actorImage: '/assets/logo.png',
                 type: 'system',
                 message: `لقد تمت إضافتك إلى مجموعة الرحلة: ${group.name}`,
-                metadata: { groupId: group._id, type: 'trip_group' }
+                metadata: { 
+                    groupId: group._id, 
+                    type: 'trip_group',
+                    action: 'group_added'
+                }
             });
+            console.log(`[TripChat] Process completed for user ${userId}`);
+        } else {
+            console.log(`[TripChat] User ${userId} is already a participant in group ${group._id}`);
         }
     } catch (error) {
         console.error("Error in handleBookingAccepted:", error);
@@ -137,12 +155,9 @@ export async function handleBookingCancelled(tripId: string, userId: string) {
                 type: 'system'
             });
 
-            const pusher = getPusher();
-            if (pusher) {
-                pusher.trigger(`trip-group-${group._id}`, 'new-message', {
-                    message: systemMsg
-                });
-            }
+            await safePusherTrigger(`trip-group-${group._id}`, 'new-message', {
+                message: systemMsg
+            });
         }
     } catch (error) {
         console.error("Error in handleBookingCancelled:", error);

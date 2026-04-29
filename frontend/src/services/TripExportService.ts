@@ -4,13 +4,41 @@ import html2canvas from "html2canvas";
 export const exportTripDetailsToPDF = async (trip: any) => {
     const container = document.createElement("div");
     container.style.position = "fixed";
-    container.style.left = "-9999px";
+    container.style.left = "-5000px"; // Far but within reasonable limits
     container.style.top = "0";
-    container.style.width = "1200px";
-    container.style.background = "#f8fafc";
-    container.style.fontFamily = "'Cairo', 'Tajawal', sans-serif";
+    container.style.opacity = "1"; // Keep fully opaque for rendering
+    container.style.visibility = "visible";
+    container.style.pointerEvents = "none";
+    container.style.zIndex = "-1000";
+    container.style.width = "1100px"; // Standard width for PDF export
+    container.style.background = "#ffffff";
+    container.style.fontFamily = "'Cairo', sans-serif";
     container.style.direction = "rtl";
     container.style.padding = "40px";
+    container.style.color = "#000000";
+    container.style.lineHeight = "1.6";
+
+    // Add Google Fonts link to ensure Cairo is loaded
+    const fontLink = document.createElement("link");
+    fontLink.href = "https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap";
+    fontLink.rel = "stylesheet";
+    document.head.appendChild(fontLink);
+
+    // Add explicit font-face to the container to ensure it's used
+    const styleTag = document.createElement("style");
+    styleTag.textContent = `
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap');
+        * {
+            font-family: 'Cairo', sans-serif !important;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+        }
+        h1, h2, h3, h4 { font-weight: 900 !important; }
+        p, div { font-weight: 500; }
+        .page-break { page-break-after: always; }
+    `;
+    container.appendChild(styleTag);
 
     const formatDate = (dateStr?: string) => {
         if (!dateStr) return "غير محدد";
@@ -210,13 +238,14 @@ export const exportTripDetailsToPDF = async (trip: any) => {
         `;
     };
 
-    /* ---------------- STATS CARDS ---------------- */
-    const totalBooked = trip.seatBookings?.length || 0;
-    const acceptedBookings = trip.seatBookings?.filter((b: any) => b.status === 'accepted').length || 0;
-    const availableSeats = trip.transportations?.reduce((acc: number, t: any) => 
-        acc + (t.capacity * (t.count || 1)), 0) - totalBooked || 0;
+    const totalCapacity = trip.transportations?.reduce((acc: number, t: any) => 
+        acc + (t.capacity * (t.count || 1)), 0) || trip.totalCapacity || 0;
+    const bookedCount = trip.seatBookings?.length || 0;
+    const acceptedCount = trip.seatBookings?.filter((b: any) => b.status === 'accepted').length || 0;
+    const totalRevenue = acceptedCount * (trip.price || 0);
 
-    /* ---------------- MAIN CONTENT ---------------- */
+    const company = trip.companyId && typeof trip.companyId === 'object' ? trip.companyId : null;
+
     const transportationList =
         trip.transportations?.length > 0
             ? trip.transportations
@@ -241,6 +270,59 @@ export const exportTripDetailsToPDF = async (trip: any) => {
             busCounter++;
         }
     });
+
+    const passengerListHTML = (trip.seatBookings && trip.seatBookings.length > 0) ? `
+    <div style="
+        background: white;
+        border-radius: 48px;
+        padding: 50px;
+        margin-bottom: 40px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+        page-break-after: always;
+    ">
+        <h2 style="
+            font-size: 32px;
+            font-weight: 900;
+            color: #1e1b4b;
+            margin: 0 0 30px 0;
+            border-bottom: 4px solid #4f46e5;
+            padding-bottom: 20px;
+        ">
+            قائمة الركاب والمشتركين
+        </h2>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 20px; text-align: right;">
+            <thead>
+                <tr style="background: #f1f5f9;">
+                    <th style="padding: 15px; border: 1px solid #e2e8f0; font-weight: 900;">الاسم</th>
+                    <th style="padding: 15px; border: 1px solid #e2e8f0; font-weight: 900;">رقم المقعد</th>
+                    <th style="padding: 15px; border: 1px solid #e2e8f0; font-weight: 900;">الحافلة</th>
+                    <th style="padding: 15px; border: 1px solid #e2e8f0; font-weight: 900;">الحالة</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${trip.seatBookings.map((b: any) => `
+                    <tr>
+                        <td style="padding: 15px; border: 1px solid #e2e8f0; font-weight: 600;">${b.passengerName || 'غير معروف'}</td>
+                        <td style="padding: 15px; border: 1px solid #e2e8f0;">${b.seatNumber}</td>
+                        <td style="padding: 15px; border: 1px solid #e2e8f0;">${b.busIndex + 1}</td>
+                        <td style="padding: 15px; border: 1px solid #e2e8f0;">
+                            <span style="
+                                padding: 4px 12px;
+                                border-radius: 20px;
+                                font-size: 12px;
+                                font-weight: 700;
+                                background: ${b.status === 'accepted' ? '#dcfce7' : '#fee2e2'};
+                                color: ${b.status === 'accepted' ? '#166534' : '#991b1b'};
+                            ">
+                                ${b.status === 'accepted' ? 'مؤكد' : 'ملغي'}
+                            </span>
+                        </td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    </div>
+    ` : '';
 
     container.innerHTML = `
     <div style="max-width: 1100px; margin: 0 auto;">
@@ -339,6 +421,26 @@ export const exportTripDetailsToPDF = async (trip: any) => {
                     </div>
                 </div>
 
+                <!-- Company Header -->
+                ${company ? `
+                <div style="
+                    display: flex;
+                    align-items: center;
+                    gap: 20px;
+                    margin-bottom: 30px;
+                    background: rgba(255,255,255,0.1);
+                    padding: 20px;
+                    border-radius: 24px;
+                    backdrop-filter: blur(10px);
+                ">
+                    ${company.logo ? `<img src="${company.logo}" style="width: 60px; height: 60px; border-radius: 15px; object-cover: cover; background: white;" />` : '<div style="width: 60px; height: 60px; background: white; border-radius: 15px; display: flex; align-items: center; justify-content: center; color: #4f46e5; font-size: 24px;">🏢</div>'}
+                    <div>
+                        <div style="font-weight: 900; font-size: 18px;">${company.name}</div>
+                        <div style="font-size: 12px; opacity: 0.8;">الشركة المنظمة للرحلة</div>
+                    </div>
+                </div>
+                ` : ''}
+
                 <!-- Price Card -->
                 <div style="
                     background: white;
@@ -370,8 +472,80 @@ export const exportTripDetailsToPDF = async (trip: any) => {
             </div>
         </div>
 
-        
+        <!-- SUMMARY PAGE -->
+        <div style="
+            background: white;
+            border-radius: 48px;
+            padding: 50px;
+            margin-bottom: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+            page-break-after: always;
+        ">
+            <h2 style="
+                font-size: 32px;
+                font-weight: 900;
+                color: #1e1b4b;
+                margin: 0 0 30px 0;
+                border-bottom: 4px solid #4f46e5;
+                padding-bottom: 20px;
+            ">
+                ملخص وتفاصيل الرحلة
+            </h2>
 
+            <!-- Trip Description Narrative -->
+            <div style="
+                background: #f8fafc;
+                padding: 30px;
+                border-radius: 32px;
+                margin-bottom: 30px;
+                border-right: 6px solid #4f46e5;
+            ">
+                <h3 style="font-size: 20px; font-weight: 900; color: #1e1b4b; margin-bottom: 15px;">عن هذه الرحلة</h3>
+                <div style="font-size: 16px; color: #475569; line-height: 1.8; white-space: pre-wrap;">
+                    ${trip.description || trip.shortDescription || 'لا يوجد وصف تفصيلي متاح لهذه الرحلة.'}
+                </div>
+            </div>
+
+            <div style="
+                font-size: 22px;
+                font-weight: 900;
+                color: #1e1b4b;
+                margin-bottom: 20px;
+            ">
+                إحصائيات عامة
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
+                <div style="background: #f8fafc; padding: 25px; border-radius: 32px;">
+                    <div style="color: #64748b; font-weight: 700; font-size: 14px; margin-bottom: 10px;">إجمالي المقاعد</div>
+                    <div style="font-size: 36px; font-weight: 900; color: #1e1b4b;">${totalCapacity}</div>
+                </div>
+                <div style="background: #e0e7ff; padding: 25px; border-radius: 32px;">
+                    <div style="color: #4f46e5; font-weight: 700; font-size: 14px; margin-bottom: 10px;">إجمالي الحجوزات</div>
+                    <div style="font-size: 36px; font-weight: 900; color: #4f46e5;">${bookedCount}</div>
+                </div>
+                <div style="background: #dcfce7; padding: 25px; border-radius: 32px;">
+                    <div style="color: #166534; font-weight: 700; font-size: 14px; margin-bottom: 10px;">الحجوزات المؤكدة</div>
+                    <div style="font-size: 36px; font-weight: 900; color: #166534;">${acceptedCount}</div>
+                </div>
+                <div style="background: #fef3c7; padding: 25px; border-radius: 32px;">
+                    <div style="color: #92400e; font-weight: 700; font-size: 14px; margin-bottom: 10px;">إجمالي الإيرادات</div>
+                    <div style="font-size: 36px; font-weight: 900; color: #92400e;">${totalRevenue.toLocaleString()} <span style="font-size: 16px;">ج.م</span></div>
+                </div>
+            </div>
+
+            <div style="margin-top: 40px; background: #f1f5f9; padding: 30px; border-radius: 32px;">
+                <h3 style="font-weight: 900; margin-bottom: 15px;">نظرة عامة على المبيعات</h3>
+                <div style="height: 10px; background: #e2e8f0; border-radius: 5px; overflow: hidden; display: flex;">
+                    <div style="width: ${(acceptedCount / totalCapacity) * 100}%; background: #10b981;"></div>
+                    <div style="width: ${((bookedCount - acceptedCount) / totalCapacity) * 100}%; background: #f59e0b;"></div>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 12px; font-weight: 700;">
+                    <span style="color: #10b981;">مؤكد: ${Math.round((acceptedCount / totalCapacity) * 100)}%</span>
+                    <span style="color: #f59e0b;">معلق: ${Math.round(((bookedCount - acceptedCount) / totalCapacity) * 100)}%</span>
+                    <span style="color: #94a3b8;">شاغر: ${Math.round(((totalCapacity - bookedCount) / totalCapacity) * 100)}%</span>
+                </div>
+            </div>
+        </div>
         <!-- DETAILS PAGE -->
         <div style="
             background: white;
@@ -582,6 +756,9 @@ export const exportTripDetailsToPDF = async (trip: any) => {
         <!-- BUS LAYOUTS -->
         ${busLayoutsHTML}
 
+        <!-- PASSENGER LIST -->
+        ${passengerListHTML}
+
         <!-- NOTES PAGE -->
         <div style="
             background: white;
@@ -649,31 +826,44 @@ export const exportTripDetailsToPDF = async (trip: any) => {
 
     try {
         if ("fonts" in document) {
+            // Force load the font with a more specific check
+            await (document as any).fonts.load('12pt Cairo');
+            await (document as any).fonts.load('900 12pt Cairo');
             await (document as any).fonts.ready;
         }
+        
+        // Wait longer for fonts and layout to stabilize
+        await new Promise(resolve => setTimeout(resolve, 3000));
 
         const pdf = new jsPDF("p", "mm", "a4");
         const pdfWidth = pdf.internal.pageSize.getWidth();
 
         // Get all pages
-        const pageElements = container.querySelectorAll('div[style*="page-break-after: always"]');
+        const pageElements = container.querySelectorAll('.bus-layout-page, div[style*="page-break-after: always"]');
         
         for (let i = 0; i < pageElements.length; i++) {
             if (i > 0) pdf.addPage();
 
             const canvas = await html2canvas(pageElements[i] as HTMLElement, {
-                scale: 2,
+                scale: 3,
                 useCORS: true,
                 backgroundColor: "#ffffff",
                 logging: false,
-                allowTaint: true,
+                allowTaint: false,
+                imageTimeout: 15000,
+                onclone: (doc) => {
+                    const clonedContainer = doc.body.querySelector('div[style*="position: absolute"]');
+                    if (clonedContainer) {
+                        (clonedContainer as HTMLElement).style.opacity = "1";
+                    }
+                }
             });
 
-            const imgData = canvas.toDataURL("image/png");
+            const imgData = canvas.toDataURL("image/jpeg", 0.95);
             const imgProps = pdf.getImageProperties(imgData);
             const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
-            pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
+            pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, pdfHeight, undefined, 'SLOW');
         }
 
         pdf.save(`تقرير_رحلة_${trip.title.replace(/\s+/g, "_")}.pdf`);

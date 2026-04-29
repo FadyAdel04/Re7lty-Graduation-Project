@@ -53,10 +53,8 @@ import { UploadProgressProvider } from "@/contexts/UploadProgressContext";
 import { UploadProgressBar } from "@/components/UploadProgressBar";
 import { NotificationProvider } from "./contexts/NotificationContext";
 import { TermsAcceptanceModal } from "@/components/TermsAcceptanceModal";
-import { LoadingProvider, useLoading } from "./contexts/LoadingContext";
+import { LoadingProvider } from "./contexts/LoadingContext";
 import PremiumLoader from "./components/PremiumLoader";
-import RamadanTheme from "./components/seasonal/RamadanTheme";
-import { SeasonalThemeProvider } from "./contexts/SeasonalThemeContext";
 
 const queryClient = new QueryClient();
 
@@ -200,22 +198,22 @@ const AppContent = () => {
   );
 };
 
+import { ThemeProvider } from "./contexts/ThemeContext";
+
 const App = () => (
   <LoadingProvider>
     <UploadProgressProvider>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <NotificationProvider>
-              <SeasonalThemeProvider>
-                <RamadanTheme>
-                  <AppContent />
-                </RamadanTheme>
-              </SeasonalThemeProvider>
-            </NotificationProvider>
-          </BrowserRouter>
+          <ThemeProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <NotificationProvider>
+                <AppContent />
+              </NotificationProvider>
+            </BrowserRouter>
+          </ThemeProvider>
         </TooltipProvider>
       </QueryClientProvider>
     </UploadProgressProvider>

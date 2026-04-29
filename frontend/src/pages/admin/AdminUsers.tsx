@@ -88,8 +88,8 @@ const AdminUsers = () => {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
            <div>
-              <h1 className="text-3xl font-black text-gray-900 mb-2 font-cairo">إدارة <span className="text-indigo-600">المستخدمين</span></h1>
-              <p className="text-gray-500 font-bold text-sm">عرض وتحليل والتحكم في كافة حسابات المنصة.</p>
+              <h1 className="text-3xl font-black text-foreground mb-2 font-cairo">إدارة <span className="text-indigo-600">المستخدمين</span></h1>
+              <p className="text-muted-foreground font-bold text-sm">عرض وتحليل والتحكم في كافة حسابات المنصة.</p>
            </div>
            
            <div className="relative w-full md:w-[400px]">
@@ -99,7 +99,7 @@ const AdminUsers = () => {
                     placeholder="ابحث بالاسم أو البريد..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="h-14 pr-12 rounded-2xl bg-white border-gray-100 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-bold shadow-sm"
+                    className="h-14 pr-12 rounded-2xl bg-card border-border focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-bold shadow-sm"
                  />
                  <Search className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-indigo-600 transition-colors" />
               </div>
@@ -122,7 +122,7 @@ const AdminUsers = () => {
                       </div>
                       <div>
                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">{stat.title}</p>
-                         <p className="text-2xl font-black text-gray-900 leading-none mt-1">{stat.value.toLocaleString('ar-EG')}</p>
+                         <p className="text-2xl font-black text-foreground leading-none mt-1">{stat.value.toLocaleString('ar-EG')}</p>
                       </div>
                    </div>
                 </CardContent>
@@ -131,9 +131,9 @@ const AdminUsers = () => {
         </div>
 
         {/* Users Table / Grid */}
-        <div className="bg-white rounded-[2.5rem] border border-gray-50 shadow-2xl shadow-gray-200/20 p-8 overflow-hidden relative">
+        <div className="bg-card rounded-[2.5rem] border border-gray-50 shadow-2xl shadow-gray-200/20 p-8 overflow-hidden relative">
            <div className="flex items-center justify-between mb-8">
-              <h3 className="text-xl font-black text-gray-900">سجل النشاط</h3>
+              <h3 className="text-xl font-black text-foreground">سجل النشاط</h3>
               <div className="flex gap-2">
                  <button className="px-4 py-2 rounded-xl bg-indigo-50 text-indigo-600 text-[10px] font-black uppercase hover:bg-indigo-100 transition-colors">تصدير CSV</button>
               </div>
@@ -141,14 +141,14 @@ const AdminUsers = () => {
 
            {loading ? (
              <div className="space-y-4">
-                {[1,2,3,4].map(i => <div key={i} className="h-24 bg-gray-50 rounded-3xl animate-pulse" />)}
+                {[1,2,3,4].map(i => <div key={i} className="h-24 bg-muted rounded-3xl animate-pulse" />)}
              </div>
            ) : filteredUsers.length === 0 ? (
              <div className="text-center py-20 px-8">
-                <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
                    <Search className="h-10 w-10 text-gray-200" />
                 </div>
-                <h3 className="text-lg font-black text-gray-900">لا توجد نتائج بحث</h3>
+                <h3 className="text-lg font-black text-foreground">لا توجد نتائج بحث</h3>
                 <p className="text-gray-400 font-bold text-sm">تحقق من كتابة الاسم بشكل صحيح أو حاول البحث عن شيء آخر.</p>
              </div>
            ) : (
@@ -160,7 +160,7 @@ const AdminUsers = () => {
                       initial={{ opacity: 0, x: 20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: idx * 0.05 }}
-                      className="group flex flex-col md:flex-row items-center justify-between p-5 rounded-[2.5rem] bg-gray-50/50 hover:bg-white hover:shadow-xl hover:shadow-indigo-500/5 transition-all border border-transparent hover:border-indigo-50 gap-6"
+                      className="group flex flex-col md:flex-row items-center justify-between p-5 rounded-[2.5rem] bg-muted/50 hover:bg-card hover:shadow-xl hover:shadow-indigo-500/5 transition-all border border-transparent hover:border-indigo-50 gap-6"
                     >
                       <div className="flex items-center gap-5 w-full md:w-auto">
                         <div className="relative group-hover:scale-110 transition-transform duration-500">
@@ -172,7 +172,7 @@ const AdminUsers = () => {
                            </div>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-black text-gray-900 text-lg group-hover:text-indigo-600 transition-colors truncate">{user.fullName}</h4>
+                          <h4 className="font-black text-foreground text-lg group-hover:text-indigo-600 transition-colors truncate">{user.fullName}</h4>
                           <div className="flex items-center gap-3 mt-0.5">
                             <span className="flex items-center gap-1.5 text-xs font-bold text-gray-400 truncate">
                               <Mail className="h-3.5 w-3.5" />
@@ -188,12 +188,12 @@ const AdminUsers = () => {
                         <div className="flex items-center gap-6">
                            <div className="text-center">
                              <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest mb-1">الرحلات</p>
-                             <p className="text-lg font-black text-gray-900 leading-none">{user.trips}</p>
+                             <p className="text-lg font-black text-foreground leading-none">{user.trips}</p>
                            </div>
-                           <div className="h-8 w-px bg-gray-100" />
+                           <div className="h-8 w-px bg-muted" />
                            <div className="text-center">
                              <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest mb-1">المتابعين</p>
-                             <p className="text-lg font-black text-gray-900 leading-none">{user.followers}</p>
+                             <p className="text-lg font-black text-foreground leading-none">{user.followers}</p>
                            </div>
                         </div>
 
@@ -208,7 +208,7 @@ const AdminUsers = () => {
                            <Button
                               onClick={() => setUserToDelete(user)}
                               variant="ghost"
-                              className="h-12 w-12 rounded-2xl bg-white text-gray-400 hover:bg-rose-50 hover:text-rose-600 transition-all shadow-sm border border-gray-100"
+                              className="h-12 w-12 rounded-2xl bg-card text-gray-400 hover:bg-rose-50 hover:text-rose-600 transition-all shadow-sm border border-border"
                            >
                               <UserMinus className="h-5 w-5" />
                            </Button>
@@ -223,18 +223,18 @@ const AdminUsers = () => {
 
         {/* Delete Confirmation Modal */}
         <AlertDialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
-          <AlertDialogContent className="rounded-[2.5rem] border-0 shadow-2xl p-0 overflow-hidden max-w-md bg-white">
+          <AlertDialogContent className="rounded-[2.5rem] border-0 shadow-2xl p-0 overflow-hidden max-w-md bg-card">
             <div className="bg-rose-500 h-2 w-full" />
             <div className="p-8">
               <AlertDialogHeader>
                 <div className="w-20 h-20 bg-rose-50 rounded-3xl flex items-center justify-center text-rose-600 mb-6 mx-auto animate-bounce">
                   <UserMinus className="w-10 h-10" />
                 </div>
-                <AlertDialogTitle className="text-2xl font-black text-gray-900 text-center font-cairo">
+                <AlertDialogTitle className="text-2xl font-black text-foreground text-center font-cairo">
                   حذف المستخدم نهائياً؟
                 </AlertDialogTitle>
-                <AlertDialogDescription className="text-gray-500 font-bold text-center mt-2 leading-relaxed">
-                  أنت على وشك حذف <span className="text-gray-900">{userToDelete?.fullName}</span>. 
+                <AlertDialogDescription className="text-muted-foreground font-bold text-center mt-2 leading-relaxed">
+                  أنت على وشك حذف <span className="text-foreground">{userToDelete?.fullName}</span>. 
                   هذا الإجراء سيؤدي لحذف كافة بياناته، رحلاته، وتفاعلاته. 
                   <br />
                   <span className="text-rose-600 font-black mt-2 block italic text-xs">لا يمكن التراجع عن هذا الإجراء!</span>
@@ -250,7 +250,7 @@ const AdminUsers = () => {
                 <AlertDialogCancel asChild>
                   <Button 
                     variant="ghost"
-                    className="h-14 flex-1 rounded-2xl bg-gray-50 text-gray-500 font-black hover:bg-gray-100 transition-all"
+                    className="h-14 flex-1 rounded-2xl bg-muted text-muted-foreground font-black hover:bg-muted transition-all"
                   >
                     إلغاء
                   </Button>

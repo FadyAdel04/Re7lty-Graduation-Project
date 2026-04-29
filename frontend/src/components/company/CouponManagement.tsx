@@ -111,7 +111,7 @@ const CouponManagement = () => {
                             <select 
                                 value={formData.discountType}
                                 onChange={e => setFormData({...formData, discountType: e.target.value as any})}
-                                className="w-full rounded-xl h-11 border border-gray-200 px-3 bg-white focus:ring-2 focus:ring-indigo-500 transition-all font-bold"
+                                className="w-full rounded-xl h-11 border border-border px-3 bg-card focus:ring-2 focus:ring-indigo-500 transition-all font-bold"
                             >
                                 <option value="percentage">نسبة مئوية (%)</option>
                                 <option value="fixed">مبلغ ثابت (ج.م)</option>
@@ -184,30 +184,30 @@ const CouponManagement = () => {
                                     </Button>
                                 </div>
                                 
-                                <h3 className="text-xl font-black text-gray-900 mb-2">{coupon.code}</h3>
+                                <h3 className="text-xl font-black text-foreground mb-2">{coupon.code}</h3>
                                 
                                 <div className="space-y-3">
                                     <div className="flex items-center justify-between text-sm">
-                                        <span className="text-gray-500 font-bold">الخصم:</span>
+                                        <span className="text-muted-foreground font-bold">الخصم:</span>
                                         <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-0 rounded-lg">
                                             {coupon.discountValue}{coupon.discountType === 'percentage' ? '%' : ' ج.م'}
                                         </Badge>
                                     </div>
                                     <div className="flex items-center justify-between text-sm">
-                                        <span className="text-gray-500 font-bold">تاريخ الانتهاء:</span>
-                                        <span className="text-gray-900 font-black flex items-center gap-1">
+                                        <span className="text-muted-foreground font-bold">تاريخ الانتهاء:</span>
+                                        <span className="text-foreground font-black flex items-center gap-1">
                                             <Calendar className="w-3 h-3 text-indigo-400" />
                                             {format(new Date(coupon.expiryDate), 'dd MMM yyyy', { locale: ar })}
                                         </span>
                                     </div>
                                     <div className="flex items-center justify-between text-sm">
-                                        <span className="text-gray-500 font-bold">الاستخدام:</span>
-                                        <span className="text-gray-900 font-black">
+                                        <span className="text-muted-foreground font-bold">الاستخدام:</span>
+                                        <span className="text-foreground font-black">
                                             {coupon.usageCount} {coupon.usageLimit ? `/ ${coupon.usageLimit}` : 'مرة'}
                                         </span>
                                     </div>
                                     {coupon.usageLimit && (
-                                        <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden mt-1">
+                                        <div className="w-full bg-muted h-1.5 rounded-full overflow-hidden mt-1">
                                             <div 
                                                 className="bg-indigo-500 h-full transition-all" 
                                                 style={{ width: `${Math.min((coupon.usageCount / coupon.usageLimit) * 100, 100)}%` }}
@@ -219,7 +219,7 @@ const CouponManagement = () => {
                         </Card>
                     ))
                 ) : (
-                    <div className="col-span-full py-20 text-center bg-white rounded-[3rem] border-2 border-dashed border-gray-100">
+                    <div className="col-span-full py-20 text-center bg-card rounded-[3rem] border-2 border-dashed border-border">
                         <Tag className="w-16 h-16 mx-auto mb-4 opacity-10" />
                         <h3 className="text-xl font-bold text-gray-400">لا توجد كوبونات خصم حالياً</h3>
                     </div>

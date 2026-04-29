@@ -96,13 +96,13 @@ const SubmissionsModal = ({ open, onOpenChange }: SubmissionsModalProps) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl h-[85vh] flex flex-col p-0 overflow-hidden border-0 rounded-[2.5rem] shadow-2xl" dir="rtl">
-        <DialogHeader className="px-10 pt-10 pb-6 border-b border-gray-100 bg-white">
+        <DialogHeader className="px-10 pt-10 pb-6 border-b border-border bg-card">
           <div className="flex items-center gap-4 mb-2">
              <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600">
                 <ClipboardList className="w-6 h-6" />
              </div>
              <div>
-                <DialogTitle className="text-2xl font-black text-gray-900 font-cairo leading-none">طلبات الانضمام</DialogTitle>
+                <DialogTitle className="text-2xl font-black text-foreground font-cairo leading-none">طلبات الانضمام</DialogTitle>
                 <DialogDescription className="text-sm font-bold text-gray-400 mt-1">مراجعة والتحقق من ملفات تعريف الشركات المتقدمة.</DialogDescription>
              </div>
           </div>
@@ -119,7 +119,7 @@ const SubmissionsModal = ({ open, onOpenChange }: SubmissionsModalProps) => {
                   onClick={() => setFilter(btn.id)}
                   className={cn(
                     "px-6 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all whitespace-nowrap",
-                    filter === btn.id ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100" : "bg-gray-50 text-gray-400 hover:bg-gray-100 hover:text-gray-600 font-bold"
+                    filter === btn.id ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100" : "bg-muted text-gray-400 hover:bg-muted hover:text-muted-foreground font-bold"
                   )}
                 >
                    {btn.label}
@@ -131,14 +131,14 @@ const SubmissionsModal = ({ open, onOpenChange }: SubmissionsModalProps) => {
         <ScrollArea className="flex-1 px-10 py-8 bg-[#FDFDFF]">
            {loading ? (
              <div className="space-y-6">
-                {[1,2,3].map(i => <div key={i} className="h-44 bg-white border border-gray-100 rounded-[2rem] animate-pulse" />)}
+                {[1,2,3].map(i => <div key={i} className="h-44 bg-card border border-border rounded-[2rem] animate-pulse" />)}
              </div>
            ) : submissions.length === 0 ? (
              <div className="text-center py-20">
-                <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
                    <ShieldCheck className="w-10 h-10 text-gray-200" />
                 </div>
-                <h3 className="text-xl font-black text-gray-900 leading-none mb-2">لا توجد طلبات هنا</h3>
+                <h3 className="text-xl font-black text-foreground leading-none mb-2">لا توجد طلبات هنا</h3>
                 <p className="text-gray-400 font-bold text-sm">لم يتم العثor على أي شركة في هذا التصنيف حالياً.</p>
              </div>
            ) : (
@@ -153,18 +153,18 @@ const SubmissionsModal = ({ open, onOpenChange }: SubmissionsModalProps) => {
                          animate={{ opacity: 1, y: 0 }}
                          transition={{ delay: idx * 0.05 }}
                        >
-                          <Card className="border border-gray-100 shadow-xl shadow-gray-200/20 rounded-[2rem] overflow-hidden group hover:border-indigo-100 hover:shadow-indigo-500/5 transition-all">
+                          <Card className="border border-border shadow-xl shadow-gray-200/20 rounded-[2rem] overflow-hidden group hover:border-indigo-100 hover:shadow-indigo-500/5 transition-all">
                              <CardContent className="p-0">
                                 <div className="flex flex-col md:flex-row">
                                    <div className={cn("w-full md:w-2", status.bg.replace('/50', ''))} />
                                    <div className="flex-1 p-6">
                                       <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
                                          <div className="flex items-center gap-4">
-                                            <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 font-black text-xl shadow-inner group-hover:scale-110 transition-transform">
+                                            <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center text-gray-400 font-black text-xl shadow-inner group-hover:scale-110 transition-transform">
                                                {s.companyName[0]}
                                             </div>
                                             <div>
-                                               <h4 className="text-lg font-black text-gray-900 mb-1 group-hover:text-indigo-600 transition-colors leading-none">{s.companyName}</h4>
+                                               <h4 className="text-lg font-black text-foreground mb-1 group-hover:text-indigo-600 transition-colors leading-none">{s.companyName}</h4>
                                                <div className="flex items-center gap-3">
                                                   <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5 leading-none">
                                                      <Clock className="w-3 h-3" />
@@ -202,7 +202,7 @@ const SubmissionsModal = ({ open, onOpenChange }: SubmissionsModalProps) => {
                                               <Button 
                                                 size="sm" 
                                                 variant="ghost"
-                                                className="h-10 w-10 rounded-xl bg-gray-50 text-gray-400 hover:bg-rose-50 hover:text-rose-600 p-0"
+                                                className="h-10 w-10 rounded-xl bg-muted text-gray-400 hover:bg-rose-50 hover:text-rose-600 p-0"
                                                 onClick={() => handleDelete(s._id)}
                                               >
                                                  <Trash2 className="w-4 h-4" />
@@ -218,12 +218,12 @@ const SubmissionsModal = ({ open, onOpenChange }: SubmissionsModalProps) => {
                                            { icon: ShieldCheck, label: 'التخصص', value: s.tripTypes }
                                          ].map((item, i) => (
                                             <div key={i} className="flex gap-3">
-                                               <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center shrink-0">
+                                               <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
                                                   <item.icon className="w-3.5 h-3.5 text-indigo-400" />
                                                </div>
                                                <div className="min-w-0">
                                                   <p className="text-[10px] font-black text-gray-300 uppercase leading-none mb-1">{item.label}</p>
-                                                  <p className="text-xs font-bold text-gray-700 truncate leading-none">{item.value}</p>
+                                                  <p className="text-xs font-bold text-muted-foreground truncate leading-none">{item.value}</p>
                                                </div>
                                             </div>
                                          ))}
@@ -246,7 +246,7 @@ const SubmissionsModal = ({ open, onOpenChange }: SubmissionsModalProps) => {
            )}
         </ScrollArea>
         
-        <div className="px-10 py-6 border-t border-gray-100 bg-white flex justify-end">
+        <div className="px-10 py-6 border-t border-border bg-card flex justify-end">
            <Button 
             variant="ghost" 
             className="rounded-xl font-black text-sm text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all"

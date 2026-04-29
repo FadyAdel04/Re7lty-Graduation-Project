@@ -144,7 +144,7 @@ const ComplaintsPage = () => {
       toast({
         title: "تم تحديث الحالة بنجاح",
         description: `تم تغيير حالة ${type === 'complaint' ? 'الرسالة' : 'البلاغ'} إلى ${statusMap[status].label}`,
-        className: "bg-white border-indigo-100 rounded-[1.5rem] shadow-2xl",
+        className: "bg-card border-indigo-100 rounded-[1.5rem] shadow-2xl",
       });
     } catch (error) {
       toast({
@@ -175,7 +175,7 @@ const ComplaintsPage = () => {
       toast({
         title: "تم الحذف نهائياً",
         description: `تم حذف ${type === 'complaint' ? 'الرسالة' : 'البلاغ'} من النظام.`,
-        className: "bg-white border-rose-100 rounded-[1.5rem] shadow-2xl",
+        className: "bg-card border-rose-100 rounded-[1.5rem] shadow-2xl",
       });
     } catch (error) {
       toast({
@@ -191,7 +191,7 @@ const ComplaintsPage = () => {
   const statusMap = {
     pending: { label: 'قيد الانتظار', color: 'text-rose-600', bg: 'bg-rose-50' },
     resolved: { label: 'تم الحل', color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    dismissed: { label: 'تم التجاهل', color: 'text-gray-500', bg: 'bg-gray-100' }
+    dismissed: { label: 'تم التجاهل', color: 'text-muted-foreground', bg: 'bg-muted' }
   };
 
   // Charts Data Preparation
@@ -208,13 +208,13 @@ const ComplaintsPage = () => {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
            <div>
-              <h1 className="text-3xl font-black text-gray-900 mb-2 font-cairo">مركز <span className="text-indigo-600">الرقابة</span></h1>
-              <p className="text-gray-500 font-bold text-sm">إدارة شكاوى المستخدمين، البلاغات، ومراقبة المحتوى المحظور.</p>
+              <h1 className="text-3xl font-black text-foreground mb-2 font-cairo">مركز <span className="text-indigo-600">الرقابة</span></h1>
+              <p className="text-muted-foreground font-bold text-sm">إدارة شكاوى المستخدمين، البلاغات، ومراقبة المحتوى المحظور.</p>
            </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="h-16 bg-white border border-gray-100 p-2 rounded-2xl gap-2 w-full max-w-2xl mb-10 overflow-hidden mx-auto shadow-sm">
+          <TabsList className="h-16 bg-card border border-border p-2 rounded-2xl gap-2 w-full max-w-2xl mb-10 overflow-hidden mx-auto shadow-sm">
             <TabsTrigger 
               value="complaints" 
               className="flex-1 h-full rounded-xl data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg shadow-indigo-100 font-black text-sm gap-2 transition-all"
@@ -243,12 +243,12 @@ const ComplaintsPage = () => {
           <TabsContent value="complaints">
             {loading ? (
               <div className="grid gap-6">
-                 {[1,2].map(i => <div key={i} className="h-64 bg-white rounded-[2.5rem] animate-pulse shadow-sm" />)}
+                 {[1,2].map(i => <div key={i} className="h-64 bg-card rounded-[2.5rem] animate-pulse shadow-sm" />)}
               </div>
             ) : complaints.length === 0 ? (
-              <div className="text-center py-32 bg-white rounded-[2.5rem] border border-gray-50 shadow-sm">
+              <div className="text-center py-32 bg-card rounded-[2.5rem] border border-gray-50 shadow-sm">
                  <Mail className="h-16 w-16 text-gray-200 mx-auto mb-4" />
-                 <h3 className="text-xl font-black text-gray-900">لا توجد رسائل</h3>
+                 <h3 className="text-xl font-black text-foreground">لا توجد رسائل</h3>
                  <p className="text-gray-400 font-bold">صندوق الرسائل فارغ تماماً.</p>
               </div>
             ) : (
@@ -261,7 +261,7 @@ const ComplaintsPage = () => {
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: idx * 0.05 }}
                     >
-                       <Card className="border-0 shadow-2xl shadow-gray-200/40 rounded-[2.5rem] overflow-hidden group hover:bg-gray-50/50 transition-colors">
+                       <Card className="border-0 shadow-2xl shadow-gray-200/40 rounded-[2.5rem] overflow-hidden group hover:bg-muted/50 transition-colors">
                           <CardContent className="p-8">
                              <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-6">
                                 <div className="flex items-center gap-4">
@@ -270,7 +270,7 @@ const ComplaintsPage = () => {
                                    </div>
                                    <div>
                                       <div className="flex items-center gap-3 mb-1">
-                                         <h4 className="text-xl font-black text-gray-900">{c.subject || 'رسالة تواصل'}</h4>
+                                         <h4 className="text-xl font-black text-foreground">{c.subject || 'رسالة تواصل'}</h4>
                                          <Badge className={cn("px-3 py-1 rounded-full border-0 font-black text-[10px] uppercase shadow-inner", statusMap[c.status as keyof typeof statusMap].bg, statusMap[c.status as keyof typeof statusMap].color)}>
                                             {statusMap[c.status as keyof typeof statusMap].label}
                                          </Badge>
@@ -283,7 +283,7 @@ const ComplaintsPage = () => {
                                    </div>
                                 </div>
                                  <div className="flex items-center gap-2">
-                                    <div className="flex bg-gray-50 p-1 rounded-xl border border-gray-100">
+                                    <div className="flex bg-muted p-1 rounded-xl border border-border">
                                        {(['pending', 'resolved', 'dismissed'] as const).map((st) => (
                                           <button
                                             key={st}
@@ -292,8 +292,8 @@ const ComplaintsPage = () => {
                                             className={cn(
                                                "px-3 py-1.5 rounded-lg text-[10px] font-black transition-all",
                                                c.status === st 
-                                                ? "bg-white text-gray-900 shadow-sm" 
-                                                : "text-gray-400 hover:text-gray-600"
+                                                ? "bg-card text-foreground shadow-sm" 
+                                                : "text-gray-400 hover:text-muted-foreground"
                                             )}
                                           >
                                              {statusMap[st].label}
@@ -311,7 +311,7 @@ const ComplaintsPage = () => {
                                  </div>
                               </div>
 
-                             <div className="p-6 rounded-3xl bg-white border border-gray-100 font-bold text-gray-700 text-sm leading-relaxed mb-4 shadow-sm">
+                             <div className="p-6 rounded-3xl bg-card border border-border font-bold text-muted-foreground text-sm leading-relaxed mb-4 shadow-sm">
                                 {c.message}
                              </div>
                              <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest px-2 flex items-center gap-1.5">
@@ -330,12 +330,12 @@ const ComplaintsPage = () => {
           <TabsContent value="reports">
              {loading ? (
                 <div className="grid gap-6">
-                   {[1,2].map(i => <div key={i} className="h-64 bg-white rounded-[2.5rem] animate-pulse shadow-sm" />)}
+                   {[1,2].map(i => <div key={i} className="h-64 bg-card rounded-[2.5rem] animate-pulse shadow-sm" />)}
                 </div>
              ) : reports.length === 0 ? (
-               <div className="text-center py-32 bg-white rounded-[2.5rem] border border-gray-50 shadow-sm">
+               <div className="text-center py-32 bg-card rounded-[2.5rem] border border-gray-50 shadow-sm">
                   <ShieldAlert className="h-16 w-16 text-gray-200 mx-auto mb-4" />
-                  <h3 className="text-xl font-black text-gray-900">لا توجد بلاغات</h3>
+                  <h3 className="text-xl font-black text-foreground">لا توجد بلاغات</h3>
                   <p className="text-gray-400 font-bold">لم يبلغ أحد عن أي محتوى حتى الآن.</p>
                </div>
              ) : (
@@ -348,7 +348,7 @@ const ComplaintsPage = () => {
                          animate={{ opacity: 1, x: 0 }}
                          transition={{ delay: idx * 0.05 }}
                        >
-                          <Card className="border-0 shadow-2xl shadow-gray-200/40 rounded-[2.5rem] overflow-hidden group hover:bg-gray-50/50 transition-colors">
+                          <Card className="border-0 shadow-2xl shadow-gray-200/40 rounded-[2.5rem] overflow-hidden group hover:bg-muted/50 transition-colors">
                              <CardContent className="p-8">
                                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-6">
                                    <div className="flex items-center gap-4">
@@ -357,7 +357,7 @@ const ComplaintsPage = () => {
                                       </div>
                                       <div>
                                          <div className="flex items-center gap-3 mb-1">
-                                            <h4 className="text-xl font-black text-gray-900">بلاغ عن رحلة: {r.tripId?.title || 'رحلة محذوفة'}</h4>
+                                            <h4 className="text-xl font-black text-foreground">بلاغ عن رحلة: {r.tripId?.title || 'رحلة محذوفة'}</h4>
                                             <Badge className={cn("px-3 py-1 rounded-full border-0 font-black text-[10px] uppercase shadow-inner", statusMap[r.status as keyof typeof statusMap].bg, statusMap[r.status as keyof typeof statusMap].color)}>
                                                {statusMap[r.status as keyof typeof statusMap].label}
                                             </Badge>
@@ -375,7 +375,7 @@ const ComplaintsPage = () => {
                                       </div>
                                    </div>
                                     <div className="flex items-center gap-2">
-                                       <div className="flex bg-gray-50 p-1 rounded-xl border border-gray-100">
+                                       <div className="flex bg-muted p-1 rounded-xl border border-border">
                                           {(['pending', 'resolved', 'dismissed'] as const).map((st) => (
                                              <button
                                                key={st}
@@ -384,8 +384,8 @@ const ComplaintsPage = () => {
                                                className={cn(
                                                   "px-3 py-1.5 rounded-lg text-[10px] font-black transition-all",
                                                   r.status === st 
-                                                   ? "bg-white text-gray-900 shadow-sm" 
-                                                   : "text-gray-400 hover:text-gray-600"
+                                                   ? "bg-card text-foreground shadow-sm" 
+                                                   : "text-gray-400 hover:text-muted-foreground"
                                                )}
                                              >
                                                 {statusMap[st].label}
@@ -403,7 +403,7 @@ const ComplaintsPage = () => {
                                     </div>
                                  </div>
 
-                                <div className="p-6 rounded-3xl bg-rose-50/10 border border-rose-100 font-bold text-gray-700 text-sm leading-relaxed mb-4 shadow-sm">
+                                <div className="p-6 rounded-3xl bg-rose-50/10 border border-rose-100 font-bold text-muted-foreground text-sm leading-relaxed mb-4 shadow-sm">
                                    <span className="text-[10px] font-black text-rose-400 block mb-1 uppercase tracking-widest">وصف البلاغ</span>
                                    {r.description || 'لا يوجد وصف معمق'}
                                 </div>
@@ -426,10 +426,10 @@ const ComplaintsPage = () => {
                 {/* Stats Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <Card className="border-0 shadow-xl rounded-[2rem] bg-gradient-to-br from-indigo-500 to-violet-600 text-white overflow-hidden relative">
-                        <div className="absolute -right-10 -top-10 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+                        <div className="absolute -right-10 -top-10 w-32 h-32 bg-card/10 rounded-full blur-2xl"></div>
                         <CardContent className="p-8 relative z-10">
                            <div className="flex items-center gap-4 mb-4">
-                                <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center backdrop-blur-sm">
+                                <div className="w-12 h-12 rounded-xl bg-card/20 flex items-center justify-center backdrop-blur-sm">
                                     <MessageSquare className="w-6 h-6 text-white" />
                                 </div>
                                 <span className="font-bold text-indigo-100">إجمالي التعليقات</span>
@@ -439,10 +439,10 @@ const ComplaintsPage = () => {
                     </Card>
 
                     <Card className="border-0 shadow-xl rounded-[2rem] bg-gradient-to-br from-rose-500 to-pink-600 text-white overflow-hidden relative">
-                        <div className="absolute -right-10 -top-10 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+                        <div className="absolute -right-10 -top-10 w-32 h-32 bg-card/10 rounded-full blur-2xl"></div>
                         <CardContent className="p-8 relative z-10">
                            <div className="flex items-center gap-4 mb-4">
-                                <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center backdrop-blur-sm">
+                                <div className="w-12 h-12 rounded-xl bg-card/20 flex items-center justify-center backdrop-blur-sm">
                                     <Trash2 className="w-6 h-6 text-white" />
                                 </div>
                                 <span className="font-bold text-rose-100">تعليقات محذوفة</span>
@@ -452,10 +452,10 @@ const ComplaintsPage = () => {
                     </Card>
 
                     <Card className="border-0 shadow-xl rounded-[2rem] bg-gradient-to-br from-orange-400 to-amber-500 text-white overflow-hidden relative">
-                         <div className="absolute -right-10 -top-10 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+                         <div className="absolute -right-10 -top-10 w-32 h-32 bg-card/10 rounded-full blur-2xl"></div>
                         <CardContent className="p-8 relative z-10">
                            <div className="flex items-center gap-4 mb-4">
-                                <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center backdrop-blur-sm">
+                                <div className="w-12 h-12 rounded-xl bg-card/20 flex items-center justify-center backdrop-blur-sm">
                                     <AlertTriangle className="w-6 h-6 text-white" />
                                 </div>
                                 <span className="font-bold text-orange-100">نسبة التعليقات السيئة</span>
@@ -468,8 +468,8 @@ const ComplaintsPage = () => {
                 {/* Analysis Charts */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     <Card className="border-0 shadow-xl rounded-[2.5rem] overflow-hidden">
-                        <CardHeader className="bg-gray-50/50 pb-2">
-                           <CardTitle className="flex items-center gap-2 text-gray-800">
+                        <CardHeader className="bg-muted/50 pb-2">
+                           <CardTitle className="flex items-center gap-2 text-foreground">
                                <PieChartIcon className="w-5 h-5 text-indigo-500" />
                                توزيع التعليقات
                            </CardTitle>
@@ -499,8 +499,8 @@ const ComplaintsPage = () => {
                     </Card>
                     
                     <Card className="border-0 shadow-xl rounded-[2.5rem] overflow-hidden">
-                         <CardHeader className="bg-gray-50/50 pb-2">
-                           <CardTitle className="flex items-center gap-2 text-gray-800">
+                         <CardHeader className="bg-muted/50 pb-2">
+                           <CardTitle className="flex items-center gap-2 text-foreground">
                                <BarChart3 className="w-5 h-5 text-indigo-500" />
                                تحليل المشاعر (Sentiment Analysis)
                            </CardTitle>
@@ -551,13 +551,13 @@ const ComplaintsPage = () => {
               </div>
             )}
 
-            <div className="bg-white rounded-[2.5rem] shadow-xl border border-gray-100 overflow-hidden">
-               <div className="p-8 border-b border-gray-100 flex items-center justify-between">
-                  <h3 className="text-xl font-black text-gray-900 flex items-center gap-3">
+            <div className="bg-card rounded-[2.5rem] shadow-xl border border-border overflow-hidden">
+               <div className="p-8 border-b border-border flex items-center justify-between">
+                  <h3 className="text-xl font-black text-foreground flex items-center gap-3">
                       <TableIcon className="w-6 h-6 text-rose-500" />
                       سجل المحذوفات
                   </h3>
-                  <Badge variant="outline" className="rounded-xl px-3 py-1 border-gray-200">
+                  <Badge variant="outline" className="rounded-xl px-3 py-1 border-border">
                       آخر {removedComments.length} تعليق
                   </Badge>
                </div>
@@ -569,29 +569,29 @@ const ComplaintsPage = () => {
                 ) : removedComments.length === 0 ? (
                     <div className="text-center py-20">
                         <CheckCircle2 className="h-16 w-16 text-emerald-200 mx-auto mb-4" />
-                        <h3 className="text-xl font-black text-gray-900">نظيف تماماً</h3>
+                        <h3 className="text-xl font-black text-foreground">نظيف تماماً</h3>
                         <p className="text-gray-400 font-bold">لم يتم رصد أي كلمات محظورة.</p>
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-right">
-                           <thead className="bg-gray-50/50 border-b border-gray-200">
+                           <thead className="bg-muted/50 border-b border-border">
                                <tr>
-                                   <th className="px-6 py-4 font-black text-gray-900 text-sm rounded-tr-2xl">المستخدم</th>
-                                   <th className="px-6 py-4 font-black text-gray-900 text-sm">المحتوى الأصلي</th>
-                                   <th className="px-6 py-4 font-black text-gray-900 text-sm">الكلمات المحظورة</th>
-                                   <th className="px-6 py-4 font-black text-gray-900 text-sm">التاريخ</th>
-                                   <th className="px-6 py-4 font-black text-gray-900 text-sm rounded-tl-2xl">الإجراء</th>
+                                   <th className="px-6 py-4 font-black text-foreground text-sm rounded-tr-2xl">المستخدم</th>
+                                   <th className="px-6 py-4 font-black text-foreground text-sm">المحتوى الأصلي</th>
+                                   <th className="px-6 py-4 font-black text-foreground text-sm">الكلمات المحظورة</th>
+                                   <th className="px-6 py-4 font-black text-foreground text-sm">التاريخ</th>
+                                   <th className="px-6 py-4 font-black text-foreground text-sm rounded-tl-2xl">الإجراء</th>
                                </tr>
                            </thead>
                            <tbody className="divide-y divide-gray-100">
                                {removedComments.map((c, idx) => (
-                                   <tr key={idx} className="hover:bg-gray-50/50 transition-colors group">
+                                   <tr key={idx} className="hover:bg-muted/50 transition-colors group">
                                        <td className="px-6 py-4">
-                                           <div className="font-bold text-gray-900">{c.authorName}</div>
+                                           <div className="font-bold text-foreground">{c.authorName}</div>
                                        </td>
                                        <td className="px-6 py-4">
-                                           <div className="max-w-xs truncate text-gray-500 font-medium bg-gray-50 px-3 py-2 rounded-lg border border-gray-100 text-xs">
+                                           <div className="max-w-xs truncate text-muted-foreground font-medium bg-muted px-3 py-2 rounded-lg border border-border text-xs">
                                                {c.content}
                                            </div>
                                        </td>

@@ -3,6 +3,7 @@ import axios from "axios";
 import https from "https";
 import cors from "cors";
 import dotenv from "dotenv";
+dotenv.config();
 import path from "path";
 import { clerkMiddleware } from "@clerk/express";
 import tripsRouter from "./routes/trips";
@@ -30,7 +31,6 @@ import paymobRouter from "./routes/paymob";
 import { connectToDatabase } from "./db";
 import mongoose from "mongoose";
 
-dotenv.config();
 
 if (!process.env.CLERK_SECRET_KEY) {
     console.warn("Warning: CLERK_SECRET_KEY is not set. Authentication will not work properly.");
@@ -902,180 +902,159 @@ export function createApp() {
 
     app.get("/api/proxy/hotels", async (req, res) => {
         try {
-            const { city, budget, checkIn, checkOut, lat: qLat, lon: qLon, location_id: qLocationId } = req.query;
-            // Prioritize RAPIDAPI_KEY from .env, then RAPIDAPI_HOTELS_KEY, then the fallback
-            const HOTELS_KEY = process.env.RAPIDAPI_KEY_HOTELS_TRIP_ADVISOR;
+            const { city, budget, checkIn, checkOut, lat: qLat, lon: qLon } = req.query;
+            const RAPID_API_KEY = '8887399421msh0d6d70328fb0fa5p1da174jsn2a02cf1627bc';
             const GEOAPIFY_KEY = process.env.GEOAPIFY_API_KEY;
 
-            // Generate default dates if missing (Very important for Tripadvisor API)
+            // Generate default dates if missing
             const today = new Date();
             const tomorrow = new Date(today);
             tomorrow.setDate(today.getDate() + 1);
             const in4Days = new Date(today);
             in4Days.setDate(today.getDate() + 4);
 
-            const finalCheckIn = checkIn || tomorrow.toISOString().split('T')[0];
-            const finalCheckOut = checkOut || in4Days.toISOString().split('T')[0];
+            const arrivalDate = (checkIn as string) || tomorrow.toISOString().split('T')[0];
+            const departureDate = (checkOut as string) || in4Days.toISOString().split('T')[0];
 
-            let lat = qLat;
-            let lon = qLon;
-            let formattedHotels: any[] = [];
+            let lat = qLat as string | undefined;
+            let lon = qLon as string | undefined;
 
-            let rawHotels: any[] = [];
-            try {
-                let hotelsUrl = "";
-                if (qLocationId) {
-                    console.log(`[Hotels Proxy] Trying Tripadvisor16 geoId: ${qLocationId}`);
-                    hotelsUrl = `https://tripadvisor16.p.rapidapi.com/api/v1/hotels/searchHotels?geoId=${qLocationId}&checkIn=${finalCheckIn}&checkOut=${finalCheckOut}&pageNumber=1&currencyCode=EGP`;
-                } else {
-                    if (!lat || !lon) {
-                        try {
-                            const geocodeUrl = `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(String(city))}&apiKey=${GEOAPIFY_KEY}`;
-                            const geocodeRes = await axios.get(geocodeUrl);
-                            if (geocodeRes.data.results?.[0]) {
-                                lat = geocodeRes.data.results[0].lat;
-                                lon = geocodeRes.data.results[0].lon;
-                            }
-                        } catch (e) { console.error("Geocoding failed"); }
+            // If no coordinates provided, geocode the city name
+            if (!lat || !lon) {
+                try {
+                    const geocodeUrl = `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(String(city))}&apiKey=${GEOAPIFY_KEY}`;
+                    const geocodeRes = await axios.get(geocodeUrl, { timeout: 8000 });
+                    if (geocodeRes.data?.results?.[0]) {
+                        lat = String(geocodeRes.data.results[0].lat);
+                        lon = String(geocodeRes.data.results[0].lon);
                     }
-                    
-                    if (lat && lon) {
-                        console.log(`[Hotels Proxy] Falling back to Tripadvisor16 lat/lng search: ${lat}, ${lon}`);
-                        hotelsUrl = `https://tripadvisor16.p.rapidapi.com/api/v1/hotels/searchHotelsByLocation?latitude=${lat}&longitude=${lon}&checkIn=${finalCheckIn}&checkOut=${finalCheckOut}&currencyCode=EGP`;
-                    }
-                }
-
-                if (hotelsUrl) {
-                    let response = await axios.get(hotelsUrl, {
-                        headers: {
-                            'X-RapidAPI-Key': HOTELS_KEY,
-                            'X-RapidAPI-Host': 'tripadvisor16.p.rapidapi.com'
-                        },
-                        timeout: 12000
-                    });
-
-                    // Comprehensive data extraction for Tripadvisor16
-                    rawHotels = response.data?.data?.data || response.data?.data || response.data?.hotels || response.data?.results || [];
-                    
-                    if (!Array.isArray(rawHotels) && typeof response.data?.data === 'object') {
-                         const possibleKeys = ['data', 'hotels', 'results', 'items', 'list'];
-                         for (const key of possibleKeys) {
-                             if (Array.isArray(response.data.data[key])) {
-                                 rawHotels = response.data.data[key];
-                                 break;
-                             }
-                         }
-                    }
-                }
-
-                // Intermediate Fallback: If geoId search returned nothing, try lat/lng search
-                if ((!rawHotels || rawHotels.length === 0) && lat && lon) {
-                    console.log(`[Hotels Proxy] No results for geoId ${qLocationId}, trying lat/lng search...`);
-                    const fallbackUrl = `https://tripadvisor16.p.rapidapi.com/api/v1/hotels/searchHotelsByLocation?latitude=${lat}&longitude=${lon}&checkIn=${finalCheckIn}&checkOut=${finalCheckOut}&currencyCode=EGP`;
-                    let fbResponse = await axios.get(fallbackUrl, {
-                        headers: {
-                            'X-RapidAPI-Key': HOTELS_KEY,
-                            'X-RapidAPI-Host': 'tripadvisor16.p.rapidapi.com'
-                        },
-                        timeout: 10000
-                    }).catch(() => null);
-
-                    if (fbResponse?.data) {
-                        const fbData = fbResponse.data?.data?.data || fbResponse.data?.data || fbResponse.data?.hotels || fbResponse.data?.results || [];
-                        if (Array.isArray(fbData) && fbData.length > 0) {
-                            rawHotels = fbData;
-                        }
-                }
+                } catch (e) { console.error("[Hotels Proxy] Geocoding failed"); }
             }
 
-            // FALLBACK: If Tripadvisor16 failed or returned nothing, try Booking.com
-                if ((!rawHotels || rawHotels.length === 0) && lat && lon) {
-                    console.log(`[Hotels Proxy] Tripadvisor16 returned no results. Falling back to Booking.com...`);
-                    const bookingUrl = `https://booking-com.p.rapidapi.com/v1/hotels/search-by-coordinates?longitude=${lon}&latitude=${lat}&checkin_date=${finalCheckIn}&checkout_date=${finalCheckOut}&locale=en-gb&filter_by_currency=EGP&room_number=1&adults_number=2&order_by=popularity&units=metric&page_number=0&include_adjacency=true`;
-                    
-                    const bRes = await axios.get(bookingUrl, {
-                        headers: {
-                            'X-RapidAPI-Key': HOTELS_KEY,
-                            'X-RapidAPI-Host': 'booking-com.p.rapidapi.com'
-                        },
-                        timeout: 12000
-                    });
-                    
-                    const bData = bRes.data?.result || bRes.data?.data || bRes.data || [];
-                    if (Array.isArray(bData)) {
-                        rawHotels = bData.map((h: any) => ({
-                            id: h.hotel_id,
-                            title: h.hotel_name,
-                            name: h.hotel_name,
-                            bubbleRating: { rating: h.review_score / 2 || 4.5 },
-                            rating: h.review_score / 2 || 4.5,
-                            priceForDisplay: h.min_total_price ? `${h.min_total_price} EGP` : "Check Price",
-                            cardPhotos: [{ sizes: { urlTemplate: h.main_photo_url?.replace('square60', 'max1280x900') } }],
-                            latitude: h.latitude,
-                            longitude: h.longitude,
-                            address: h.address || h.city
-                        }));
-                    }
-                }
-                
-                if (!Array.isArray(rawHotels)) rawHotels = [];
+            let formattedHotels: any[] = [];
 
-                formattedHotels = rawHotels
-                    .filter((h: any) => h && (h.title || h.name || h.hotel_name))
-                    .map((h: any) => {
-                        let photoUrl = "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=500&q=80";
-                        
+            if (lat && lon) {
+                console.log(`[Hotels Proxy] TripAdvisor search: lat=${lat}, lon=${lon}, arrival=${arrivalDate}, departure=${departureDate}`);
+
+                try {
+                    const tripAdvisorUrl = `https://tripadvisor16.p.rapidapi.com/api/v1/hotels/searchHotelsByLocation?latitude=${lat}&longitude=${lon}&checkIn=${arrivalDate}&checkOut=${departureDate}`;
+
+                    console.log(`[Hotels Proxy] Calling: ${tripAdvisorUrl}`);
+                    const response = await axios.get(tripAdvisorUrl, {
+                        headers: {
+                            'X-RapidAPI-Key': RAPID_API_KEY,
+                            'X-RapidAPI-Host': 'tripadvisor16.p.rapidapi.com'
+                        },
+                        timeout: 15000
+                    });
+
+                    console.log(`[Hotels Proxy] API status: ${response.status}`);
+
+                    // TripAdvisor API returns data in response.data.data.data
+                    const hotelList = response.data?.data?.data || [];
+                    console.log(`[Hotels Proxy] Raw hotel count: ${hotelList.length}`);
+
+                    formattedHotels = hotelList.map((h: any) => {
+                        // Clean title (remove "1. ", "2. " prefixes)
+                        const rawTitle = h.title || 'فندق';
+                        const name = rawTitle.replace(/^\d+\.\s*/, '');
+
+                        // Process Photo URL Template
+                        let photoUrl = 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80';
                         if (h.cardPhotos?.[0]?.sizes?.urlTemplate) {
                             photoUrl = h.cardPhotos[0].sizes.urlTemplate
                                 .replace('{width}', '800')
-                                .replace('{height}', '500');
-                        } else if (h.heroImage?.urlTemplate) {
-                             photoUrl = h.heroImage.urlTemplate
-                                .replace('{width}', '800')
-                                .replace('{height}', '500');
-                        } else if (h.photo?.images?.large?.url) {
-                            photoUrl = h.photo.images.large.url;
+                                .replace('{height}', '600');
                         }
 
-                        const price = h.priceForDisplay || 
-                                      h.commerceInfo?.priceForDisplay?.text || 
-                                      h.priceSummary?.price?.text ||
-                                      "جاري التحقق";
+                        // Extract Amenities / Info
+                        const amenities = [];
+                        if (h.primaryInfo) amenities.push({ name: h.primaryInfo });
+                        if (h.badge?.type === 'TRAVELLER_CHOICE') amenities.push({ name: `Traveller's Choice ${h.badge.year || ''}` });
+                        if (amenities.length === 0) amenities.push({ name: 'Wi-Fi' });
+
+                        // Rating
+                        const rating = h.bubbleRating?.rating?.toString() || '4.0';
+                        const numReviews = h.bubbleRating?.count?.replace(/[()]/g, '') || '0';
+
+                        // Price
+                        const price = h.priceForDisplay || 'اضغط لرؤية السعر';
 
                         return {
-                            location_id: h.id || h.hotelId || String(Math.random()),
-                            name: h.title || h.name || "فندق في " + city,
-                            latitude: h.latitude,
-                            longitude: h.longitude,
-                            address: h.address || String(city),
-                            rating: h.bubbleRating?.rating || h.rating || "4.5",
-                            price: price,
+                            location_id: h.id?.toString() || String(Math.random()),
+                            name,
+                            latitude: lat,
+                            longitude: lon,
+                            address: h.secondaryInfo || String(city),
+                            rating,
+                            num_reviews: numReviews,
+                            review_word: parseFloat(rating) >= 4.5 ? 'ممتاز' : parseFloat(rating) >= 4 ? 'رائع' : 'جيد',
+                            price,
+                            website: '', 
+                            star_rating: Math.floor(parseFloat(rating)) || 4,
+                            is_free_cancellable: h.primaryInfo?.includes('Free cancellation') || false,
+                            distance_to_center: '',
                             photo: {
                                 images: {
                                     medium: { url: photoUrl },
                                     large: { url: photoUrl }
                                 }
                             },
-                            amenities: ["Wi-Fi", "Parking", "Pool"]
+                            amenities
                         };
                     });
-                
-                console.log(`[Hotels Proxy] Found ${formattedHotels.length} hotels`);
-
-                // EXTRA SAFETY: If location_id returned 0, try list-by-latlng as last resort
-                if (formattedHotels.length === 0 && qLocationId && (qLat || qLon || city)) {
-                    console.log(`[Hotels Proxy] 0 results for geoId ${qLocationId}, trying lat/lng fallback...`);
-                    // We recursive-like call ourselves or just run the other URL logic
-                    // For simplicity, just return empty and let frontend fallback, 
-                    // or implement a quick retry here.
+                } catch (apiErr: any) {
+                    console.error("[Hotels Proxy] TripAdvisor API error:", apiErr.message);
                 }
-
-                return res.json(formattedHotels);
-
-            } catch (apiErr: any) {
-                console.error("[Hotels Proxy] Internal fetch failed:", apiErr.message);
-                return res.json([]); // Return empty list on failure
             }
+
+            // FINAL BACKEND FALLBACK: if Booking.com failed, serve curated static data
+            if (formattedHotels.length === 0) {
+                console.log(`[Hotels Proxy] All APIs failed, serving backend static fallback for: ${city}`);
+                const staticByCity: Record<string, any[]> = {
+                    'القاهرة': [
+                        { location_id: 'h_c1', name: 'فندق فور سيزونز نايل بلازا', rating: '4.9', address: 'جاردن سيتي، القاهرة', price: '4000 EGP', photo: { images: { medium: { url: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=500&q=80' }, large: { url: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=1000&q=80' } } }, amenities: [{ name: 'Wi-Fi' }, { name: 'Pool' }, { name: 'Spa' }] },
+                        { location_id: 'h_c2', name: 'فندق ماريوت الزمالك', rating: '4.7', address: 'الزمالك، القاهرة', price: '2500 EGP', photo: { images: { medium: { url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=500&q=80' }, large: { url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=1000&q=80' } } }, amenities: [{ name: 'Wi-Fi' }, { name: 'Gym' }] },
+                        { location_id: 'h_c3', name: 'كمبينسكي الهرم', rating: '4.8', address: 'الجيزة، القاهرة', price: '3200 EGP', photo: { images: { medium: { url: 'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=500&q=80' }, large: { url: 'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=1000&q=80' } } }, amenities: [{ name: 'Wi-Fi' }, { name: 'Pool' }] },
+                    ],
+                    'الإسكندرية': [
+                        { location_id: 'h_a1', name: 'فندق فور سيزونز سان ستيفانو', rating: '4.9', address: 'سان ستيفانو، الإسكندرية', price: '3800 EGP', photo: { images: { medium: { url: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=500&q=80' }, large: { url: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1000&q=80' } } }, amenities: [{ name: 'Wi-Fi' }, { name: 'Beach' }] },
+                        { location_id: 'h_a2', name: 'هيلتون الإسكندرية', rating: '4.6', address: 'كورنيش البحر، الإسكندرية', price: '2200 EGP', photo: { images: { medium: { url: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=500&q=80' }, large: { url: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=1000&q=80' } } }, amenities: [{ name: 'Wi-Fi' }, { name: 'Sea View' }] },
+                    ],
+                    'الغردقة': [
+                        { location_id: 'h_h1', name: 'فندق البارون سهل حشيش', rating: '4.9', address: 'سهل حشيش، الغردقة', price: '3500 EGP', photo: { images: { medium: { url: 'https://images.unsplash.com/photo-1544124499-58912cb9034e?w=500&q=80' }, large: { url: 'https://images.unsplash.com/photo-1544124499-58912cb9034e?w=1000&q=80' } } }, amenities: [{ name: 'Wi-Fi' }, { name: 'Beach' }, { name: 'Diving' }] },
+                        { location_id: 'h_h2', name: 'ريكسوس برايم جيت الغردقة', rating: '4.8', address: 'طريق القرى، الغردقة', price: '2800 EGP', photo: { images: { medium: { url: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=500&q=80' }, large: { url: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=1000&q=80' } } }, amenities: [{ name: 'Wi-Fi' }, { name: 'All Inclusive' }] },
+                        { location_id: 'h_h3', name: 'هيلتون الغردقة بلازا', rating: '4.7', address: 'شارع الشيراتون، الغردقة', price: '2100 EGP', photo: { images: { medium: { url: 'https://images.unsplash.com/photo-1590073242678-70ee3fc28e8e?w=500&q=80' }, large: { url: 'https://images.unsplash.com/photo-1590073242678-70ee3fc28e8e?w=1000&q=80' } } }, amenities: [{ name: 'Wi-Fi' }, { name: 'Pool' }] },
+                    ],
+                    'شرم الشيخ': [
+                        { location_id: 'h_s1', name: 'فور سيزونز شرم الشيخ', rating: '5.0', address: 'خليج القرش، شرم الشيخ', price: '4500 EGP', photo: { images: { medium: { url: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=500&q=80' }, large: { url: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1000&q=80' } } }, amenities: [{ name: 'Wi-Fi' }, { name: 'Beach' }, { name: 'Spa' }] },
+                        { location_id: 'h_s2', name: 'ريكسوس شرم الشيخ', rating: '4.8', address: 'خليج نبق، شرم الشيخ', price: '3200 EGP', photo: { images: { medium: { url: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=500&q=80' }, large: { url: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=1000&q=80' } } }, amenities: [{ name: 'Wi-Fi' }, { name: 'All Inclusive' }] },
+                    ],
+                    'الأقصر': [
+                        { location_id: 'h_l1', name: 'فندق سوفيتيل ونتر بالاس', rating: '4.9', address: 'شارع الكورنيش، الأقصر', price: '2800 EGP', photo: { images: { medium: { url: 'https://images.unsplash.com/photo-1544124499-58912cb9034e?w=500&q=80' }, large: { url: 'https://images.unsplash.com/photo-1544124499-58912cb9034e?w=1000&q=80' } } }, amenities: [{ name: 'Wi-Fi' }, { name: 'Historic' }] },
+                        { location_id: 'h_l2', name: 'فندق سونستا سانت جورج', rating: '4.7', address: 'كورنيش النيل، الأقصر', price: '1500 EGP', photo: { images: { medium: { url: 'https://images.unsplash.com/photo-1590073242678-70ee3fc28e8e?w=500&q=80' }, large: { url: 'https://images.unsplash.com/photo-1590073242678-70ee3fc28e8e?w=1000&q=80' } } }, amenities: [{ name: 'Wi-Fi' }, { name: 'Nile View' }] },
+                    ],
+                    'أسوان': [
+                        { location_id: 'h_as1', name: 'فندق أولد كتاراكت', rating: '5.0', address: 'جزيرة الفنتين، أسوان', price: '5000 EGP', photo: { images: { medium: { url: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=500&q=80' }, large: { url: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1000&q=80' } } }, amenities: [{ name: 'Wi-Fi' }, { name: 'Historic' }, { name: 'Nile View' }] },
+                        { location_id: 'h_as2', name: 'موفنبيك أسوان', rating: '4.7', address: 'جزيرة الفنتين، أسوان', price: '2500 EGP', photo: { images: { medium: { url: 'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=500&q=80' }, large: { url: 'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=1000&q=80' } } }, amenities: [{ name: 'Wi-Fi' }, { name: 'Island' }] },
+                    ],
+                    'دهب': [
+                        { location_id: 'h_d1', name: 'تيراديس فيلاج دهب', rating: '4.6', address: 'المشربة، دهب', price: '1200 EGP', photo: { images: { medium: { url: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=500&q=80' }, large: { url: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=1000&q=80' } } }, amenities: [{ name: 'Wi-Fi' }, { name: 'Diving' }] },
+                        { location_id: 'h_d2', name: 'ميليا سينا دهب', rating: '4.5', address: 'وسط البلد، دهب', price: '900 EGP', photo: { images: { medium: { url: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=500&q=80' }, large: { url: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=1000&q=80' } } }, amenities: [{ name: 'Wi-Fi' }, { name: 'Sea View' }] },
+                    ],
+                    'الجونة': [
+                        { location_id: 'h_g1', name: 'فندق شتاينبرجر الجونة', rating: '4.8', address: 'وسط البلد، الجونة', price: '3200 EGP', photo: { images: { medium: { url: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=500&q=80' }, large: { url: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=1000&q=80' } } }, amenities: [{ name: 'Wi-Fi' }, { name: 'Marina' }] },
+                    ],
+                };
+
+                const cityKey = String(city);
+                formattedHotels = staticByCity[cityKey] || [
+                    { location_id: `static_${cityKey}_1`, name: `فندق الماسة ${cityKey}`, rating: '4.7', address: `وسط البلد، ${cityKey}`, price: '1800 EGP', photo: { images: { medium: { url: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=500&q=80' }, large: { url: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1000&q=80' } } }, amenities: [{ name: 'Wi-Fi' }] },
+                    { location_id: `static_${cityKey}_2`, name: `فندق النيل ${cityKey}`, rating: '4.5', address: `كورنيش، ${cityKey}`, price: '1200 EGP', photo: { images: { medium: { url: 'https://images.unsplash.com/photo-1590073242678-70ee3fc28e8e?w=500&q=80' }, large: { url: 'https://images.unsplash.com/photo-1590073242678-70ee3fc28e8e?w=1000&q=80' } } }, amenities: [{ name: 'Wi-Fi' }] },
+                ];
+            }
+
+            return res.json(formattedHotels);
         } catch (error: any) {
             console.error("Hotels Proxy critical error:", error.message);
             res.status(500).json({ error: error.message });
@@ -1325,29 +1304,87 @@ export function createApp() {
 
     app.get("/api/proxy/hotels-by-location", async (req, res) => {
         try {
-            const { latitude, longitude, checkIn, checkOut, units = 'metric' } = req.query;
+            const { latitude, longitude, checkIn, checkOut } = req.query;
             
             if (!latitude || !longitude || !checkIn || !checkOut) {
                 return res.status(400).json({ error: "Missing required parameters: latitude, longitude, checkIn, checkOut" });
             }
 
-            const hotelsKey = process.env.RAPIDAPI_HOTELS_KEY || '2ed4a558c2mshe06fddea2ff2dd5p196f5ejsne6f896119af2';
+            const RAPID_API_KEY = process.env.RAPIDAPI_KEY || '8887399421msh0d6d70328fb0fa5p1da174jsn2a02cf1627bc';
             
-            // Booking.com Search by Coordinates API
-            const fullUrl = `https://booking-com.p.rapidapi.com/v1/hotels/search-by-coordinates?latitude=${latitude}&longitude=${longitude}&checkin_date=${checkIn}&checkout_date=${checkOut}&units=${units}&room_number=1&adults_number=2&order_by=popularity&locale=ar&currency=EGP`;
+            const tripAdvisorUrl = `https://tripadvisor16.p.rapidapi.com/api/v1/hotels/searchHotelsByLocation?latitude=${latitude}&longitude=${longitude}&checkIn=${checkIn}&checkOut=${checkOut}`;
             
-            console.log(`[Proxy] Searching hotels near ${latitude}, ${longitude} for dates ${checkIn} to ${checkOut}`);
+            console.log(`[Proxy] Searching TripAdvisor hotels near ${latitude}, ${longitude}`);
             
-            const response = await axios.get(fullUrl, {
+            const response = await axios.get(tripAdvisorUrl, {
                 headers: {
-                    'X-RapidAPI-Key': hotelsKey,
-                    'X-RapidAPI-Host': 'booking-com.p.rapidapi.com'
-                }
+                    'X-RapidAPI-Key': RAPID_API_KEY,
+                    'X-RapidAPI-Host': 'tripadvisor16.p.rapidapi.com'
+                },
+                timeout: 15000
             });
             
-            res.json(response.data);
+            const hotelList = response.data?.data?.data || [];
+            
+            const normalized = hotelList.map((h: any) => {
+                // Clean title
+                const rawTitle = h.title || 'فندق';
+                const name = rawTitle.replace(/^\d+\.\s*/, '');
+
+                // Photo
+                let photoUrl = 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80';
+                if (h.cardPhotos?.[0]?.sizes?.urlTemplate) {
+                    photoUrl = h.cardPhotos[0].sizes.urlTemplate
+                        .replace('{width}', '800')
+                        .replace('{height}', '600');
+                }
+
+                return {
+                    location_id: h.id?.toString() || String(Math.random()),
+                    name,
+                    latitude,
+                    longitude,
+                    address: h.secondaryInfo || "",
+                    rating: h.bubbleRating?.rating?.toString() || '4.0',
+                    num_reviews: h.bubbleRating?.count?.replace(/[()]/g, '') || '0',
+                    review_word: parseFloat(h.bubbleRating?.rating || "0") >= 4.5 ? 'ممتاز' : 'جيد جداً',
+                    price: (() => {
+                        const rawPrice = h.priceForDisplay || '';
+                        const numericPrice = parseFloat(rawPrice.replace(/[^0-9.]/g, ''));
+                        if (!isNaN(numericPrice)) {
+                            // Assume USD to EGP (approx 50 EGP per 1 USD)
+                            const egpPrice = Math.round(numericPrice * 50);
+                            return `${egpPrice} ج.م`;
+                        }
+                        return rawPrice || 'اضغط لرؤية السعر';
+                    })(),
+                    priceRange: (() => {
+                        const rawPrice = h.priceForDisplay || '';
+                        const numericPrice = parseFloat(rawPrice.replace(/[^0-9.]/g, ''));
+                        if (!isNaN(numericPrice)) {
+                            const egpPrice = Math.round(numericPrice * 50);
+                            return `${egpPrice} ج.م`;
+                        }
+                        return 'غير متوفر';
+                    })(),
+                    photo: {
+                        images: {
+                            medium: { url: photoUrl },
+                            large: { url: photoUrl }
+                        }
+                    },
+                    images: h.cardPhotos?.map((p: any) => p.sizes?.urlTemplate?.replace('{width}', '800').replace('{height}', '600')).filter(Boolean) || [photoUrl],
+                    star_rating: h.starRating || 0,
+                    distance_to_center: h.distance || '',
+                    amenities: h.amenities || [],
+                    description: h.description || `استمتع بإقامة فاخرة في ${name}. يقع هذا الفندق في موقع متميز ويوفر خدمات مريحة لضيوفه في ${h.secondaryInfo || 'المدينة'}.`,
+                    is_free_cancellable: h.primaryInfo?.includes('Free cancellation') || false,
+                };
+            });
+            
+            res.json({ data: normalized });
         } catch(error: any) { 
-            console.error("Proxy hotels error:", error.message);
+            console.error("Proxy hotels-by-location error:", error.message);
             res.status(500).json({ error: error.message });
         }
     });

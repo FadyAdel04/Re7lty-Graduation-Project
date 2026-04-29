@@ -46,7 +46,7 @@ const PaymentDialog = ({ open, onOpenChange, planName, price, onSuccess }: Payme
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-md font-cairo" dir="rtl">
                 <DialogHeader className="text-right">
-                    <DialogTitle className="text-xl font-black text-gray-900">ترقية الباقة</DialogTitle>
+                    <DialogTitle className="text-xl font-black text-foreground">ترقية الباقة</DialogTitle>
                     <DialogDescription>
                         أنت على وشك الاشتراك في <span className="font-bold text-indigo-600">{planName}</span>
                     </DialogDescription>
@@ -55,7 +55,7 @@ const PaymentDialog = ({ open, onOpenChange, planName, price, onSuccess }: Payme
                 {step === 'form' && (
                     <form onSubmit={handlePay} className="space-y-6 pt-4">
                         <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100 flex justify-between items-center">
-                            <span className="text-sm font-bold text-gray-600">الإجمالي للدفع</span>
+                            <span className="text-sm font-bold text-muted-foreground">الإجمالي للدفع</span>
                             <span className="text-2xl font-black text-indigo-600">{price} <span className="text-xs">ج.م</span></span>
                         </div>
 
@@ -108,8 +108,8 @@ const PaymentDialog = ({ open, onOpenChange, planName, price, onSuccess }: Payme
                              </div>
                          </div>
                          <div>
-                             <h3 className="text-lg font-bold text-gray-900">جاري معالجة الدفع...</h3>
-                             <p className="text-sm text-gray-500">برجاء الانتظار وعدم إغلاق النافذة</p>
+                             <h3 className="text-lg font-bold text-foreground">جاري معالجة الدفع...</h3>
+                             <p className="text-sm text-muted-foreground">برجاء الانتظار وعدم إغلاق النافذة</p>
                          </div>
                      </div>
                 )}
@@ -120,8 +120,8 @@ const PaymentDialog = ({ open, onOpenChange, planName, price, onSuccess }: Payme
                              <CheckCircle2 className="w-10 h-10 text-green-600" />
                          </div>
                          <div>
-                             <h3 className="text-2xl font-black text-gray-900">تم الدفع بنجاح!</h3>
-                             <p className="text-gray-500 font-bold">تم ترقية باقتك إلى {planName}</p>
+                             <h3 className="text-2xl font-black text-foreground">تم الدفع بنجاح!</h3>
+                             <p className="text-muted-foreground font-bold">تم ترقية باقتك إلى {planName}</p>
                          </div>
                      </div>
                 )}

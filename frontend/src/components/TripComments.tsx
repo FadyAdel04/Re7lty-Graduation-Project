@@ -6,7 +6,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Comment as TripComment } from "@/lib/trips-data";
 import { SignedIn, SignedOut, SignInButton, useUser, useAuth } from "@clerk/clerk-react";
 import { useToast } from "@/hooks/use-toast";
-import { addTripComment, toggleTripCommentLove, deleteTripComment, searchUsers } from "@/lib/api";
+import { 
+  addTripComment, 
+  toggleTripCommentLove, 
+  deleteTripComment, 
+  searchUsers, 
+  addTripCommentReply,
+  addCorporateTripComment,
+  addCorporateTripCommentReply,
+  toggleCorporateTripCommentLove,
+  deleteCorporateTripComment
+} from "@/lib/api";
 import { cn } from "@/lib/utils";
 import EmojiPicker, { Theme } from "emoji-picker-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -19,6 +29,7 @@ interface TripCommentsProps {
   onCommentUpdated?: (commentId: string, changes: Partial<TripComment>) => void;
   onCommentDeleted?: (commentId: string) => void;
   tripOwnerId?: string;
+  isCorporate?: boolean;
 }
 
 const TripComments = ({
@@ -28,6 +39,7 @@ const TripComments = ({
   onCommentUpdated,
   onCommentDeleted,
   tripOwnerId,
+  isCorporate = false,
 }: TripCommentsProps) => {
   const { user } = useUser();
   const { isSignedIn, getToken } = useAuth();
@@ -37,6 +49,11 @@ const TripComments = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pendingCommentId, setPendingCommentId] = useState<string | null>(null);
   const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
+
+  // Reply state
+  const [replyToId, setReplyToId] = useState<string | null>(null);
+  const [replyContent, setReplyContent] = useState("");
+  const [isReplying, setIsReplying] = useState(false);
 
   // Mention state
   const [mentionQuery, setMentionQuery] = useState("");
@@ -117,13 +134,14 @@ const TripComments = ({
     setIsSubmitting(true);
     try {
       const token = await getToken();
-      if (!token) {
-        throw new Error("يرجى إعادة تسجيل الدخول");
-      }
+      if (!token) throw new Error("يرجى إعادة تسجيل الدخول");
 
-      const added = await addTripComment(tripId, newComment.trim(), token);
-      setCommentsList((prev) => [added, ...(prev || [])]);
-      onCommentAdded?.(added);
+      const addedComment = isCorporate 
+        ? await addCorporateTripComment(tripId, newComment.trim(), token)
+        : await addTripComment(tripId, newComment.trim(), token);
+      
+      setCommentsList((prev) => [addedComment, ...prev]);
+      if (onCommentAdded) onCommentAdded(addedComment);
       setNewComment("");
       
       toast({
@@ -142,6 +160,57 @@ const TripComments = ({
     }
   };
 
+  const handleAddReply = async (parentCommentId: string) => {
+    if (!replyContent.trim()) return;
+    if (!isSignedIn) {
+      toast({
+        title: "تسجيل الدخول مطلوب",
+        description: "يجب تسجيل الدخول للرد على التعليقات",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsReplying(true);
+    try {
+      const token = await getToken();
+      if (!token) throw new Error("يرجى إعادة تسجيل الدخول");
+
+      const addedReply = isCorporate
+        ? await addCorporateTripCommentReply(tripId, parentCommentId, replyContent.trim(), token)
+        : await addTripCommentReply(tripId, parentCommentId, replyContent.trim(), token);
+      
+      setCommentsList((prev) =>
+        prev.map((c) => {
+          if (c.id === parentCommentId) {
+            return {
+              ...c,
+              replies: [...(c.replies || []), addedReply],
+            };
+          }
+          return c;
+        })
+      );
+
+      setReplyContent("");
+      setReplyToId(null);
+      
+      toast({
+        title: "تم إضافة الرد",
+        description: "تم نشر ردك بنجاح",
+      });
+    } catch (error: any) {
+      console.error("Error adding reply:", error);
+      toast({
+        title: "خطأ",
+        description: error.message || "تعذر إضافة الرد",
+        variant: "destructive",
+      });
+    } finally {
+      setIsReplying(false);
+    }
+  };
+
   const handleLikeComment = async (commentId: string) => {
     if (!isSignedIn) {
       toast({
@@ -155,17 +224,23 @@ const TripComments = ({
     try {
       setPendingCommentId(commentId);
       const token = await getToken();
-      if (!token) {
-        throw new Error("يرجى إعادة تسجيل الدخول");
-      }
+      if (!token) throw new Error("يرجى إعادة تسجيل الدخول");
 
-      const result = await toggleTripCommentLove(tripId, commentId, token);
+      const result = isCorporate
+        ? await toggleCorporateTripCommentLove(tripId, commentId, token)
+        : await toggleTripCommentLove(tripId, commentId, token);
+      
       setCommentsList((prev) =>
-        prev.map((comment) =>
-          comment.id === commentId
-            ? { ...comment, likes: result.likes, viewerHasLiked: result.liked }
-            : comment
-        )
+        prev.map((c) => {
+          if (c.id === commentId) {
+            return {
+              ...c,
+              likes: result.likes,
+              viewerHasLiked: result.liked,
+            };
+          }
+          return c;
+        })
       );
       onCommentUpdated?.(commentId, { likes: result.likes, viewerHasLiked: result.liked });
     } catch (error: any) {
@@ -241,105 +316,176 @@ const TripComments = ({
       <div className="flex-1 overflow-y-auto px-1 py-4 space-y-4 min-h-[300px]">
         {commentsList.length > 0 ? (
           commentsList.map((comment) => (
-            <div
-              key={comment.id}
-              className={cn(
-                "flex gap-3 group transition-all animate-in fade-in slide-in-from-bottom-2",
-                canDeleteComment(comment) ? "flex-row" : "flex-row"
-              )}
-            >
-              <Avatar className="h-9 w-9 shrink-0 border-2 border-white shadow-sm">
-                {comment.authorAvatar && (
-                  <AvatarImage src={comment.authorAvatar} alt={comment.author} />
+            <div key={comment.id} className="space-y-4">
+              <div
+                className={cn(
+                  "flex gap-3 group transition-all animate-in fade-in slide-in-from-bottom-2",
+                  canDeleteComment(comment) ? "flex-row" : "flex-row"
                 )}
-                <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-xs font-bold">
-                  {comment.author.charAt(0)}
-                </AvatarFallback>
-              </Avatar>
+              >
+                <Avatar className="h-9 w-9 shrink-0 border-2 border-background shadow-sm">
+                  {comment.authorAvatar && (
+                    <AvatarImage src={comment.authorAvatar} alt={comment.author} />
+                  )}
+                  <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground text-xs font-bold">
+                    {comment.author.charAt(0)}
+                  </AvatarFallback>
+                </Avatar>
 
-              <div className="flex-1 space-y-1">
-                <div className="flex items-baseline justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-black text-gray-900">{comment.author}</span>
-                    <span className="text-[10px] text-gray-400 font-medium">{formatFacebookDate(comment.date)}</span>
+                <div className="flex-1 space-y-1">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-black text-foreground">{comment.author}</span>
+                      <span className="text-[10px] text-muted-foreground font-medium">{formatFacebookDate(comment.date)}</span>
+                    </div>
+                    
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <SignedIn>
+                        {canDeleteComment(comment) && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 rounded-full"
+                            onClick={() => handleDeleteComment(comment.id)}
+                            disabled={deletingCommentId === comment.id}
+                          >
+                            {deletingCommentId === comment.id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-3.5 w-3.5" />
+                            )}
+                          </Button>
+                        )}
+                      </SignedIn>
+                    </div>
                   </div>
-                  
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <SignedIn>
-                      {canDeleteComment(comment) && (
+
+                  <div className="relative">
+                    <div className="inline-block px-4 py-2.5 rounded-2xl bg-muted/30 border border-border text-sm text-foreground/90 leading-relaxed max-w-[90%] whitespace-pre-wrap">
+                      {formatCommentContent(comment.content)}
+                    </div>
+                    
+                    <div className="flex items-center gap-3 mt-1">
+                      <button
+                        onClick={() => handleLikeComment(comment.id)}
+                        disabled={pendingCommentId === comment.id}
+                        className={cn(
+                          "flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-bold transition-all",
+                          comment.viewerHasLiked 
+                            ? "bg-rose-500/10 text-rose-500 shadow-sm" 
+                            : "text-muted-foreground hover:bg-muted"
+                        )}
+                      >
+                        <Heart className={cn("h-3 w-3", comment.viewerHasLiked && "fill-current")} />
+                        <span>{comment.likes > 0 ? comment.likes : "إعجاب"}</span>
+                      </button>
+
+                      <button
+                        onClick={() => setReplyToId(replyToId === comment.id ? null : comment.id)}
+                        className="text-[10px] font-bold text-muted-foreground hover:text-primary transition-colors"
+                      >
+                        رد
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Reply Input */}
+                  {replyToId === comment.id && (
+                    <div className="mt-3 space-y-2 animate-in slide-in-from-top-1">
+                      <Textarea
+                        placeholder={`الرد على ${comment.author}...`}
+                        value={replyContent}
+                        onChange={(e) => setReplyContent(e.target.value)}
+                        className="min-h-[60px] text-xs rounded-xl bg-muted/30 border-border focus:bg-background transition-all resize-none p-3 text-foreground"
+                        autoFocus
+                      />
+                      <div className="flex justify-end gap-2">
                         <Button
                           variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-full"
-                          onClick={() => handleDeleteComment(comment.id)}
-                          disabled={deletingCommentId === comment.id}
+                          size="sm"
+                          onClick={() => {
+                            setReplyToId(null);
+                            setReplyContent("");
+                          }}
+                          className="h-7 text-[10px] font-bold text-muted-foreground"
                         >
-                          {deletingCommentId === comment.id ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-3.5 w-3.5" />
-                          )}
+                          إلغاء
                         </Button>
-                      )}
-                    </SignedIn>
-                  </div>
-                </div>
+                        <Button
+                          size="sm"
+                          disabled={!replyContent.trim() || isReplying}
+                          onClick={() => handleAddReply(comment.id)}
+                          className="h-7 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-[10px] px-4 rounded-lg"
+                        >
+                          {isReplying ? <Loader2 className="h-3 w-3 animate-spin" /> : "نشر الرد"}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
 
-                <div className="relative">
-                  <div className="inline-block px-4 py-2.5 rounded-2xl bg-gray-50 border border-gray-100/50 text-sm text-gray-700 leading-relaxed max-w-[90%] whitespace-pre-wrap">
-                    {formatCommentContent(comment.content)}
-                  </div>
-                  
-                  <button
-                    onClick={() => handleLikeComment(comment.id)}
-                    disabled={pendingCommentId === comment.id}
-                    className={cn(
-                      "mt-1 flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-bold transition-all",
-                      comment.viewerHasLiked 
-                        ? "bg-red-50 text-red-500 shadow-sm" 
-                        : "text-gray-400 hover:bg-gray-100"
-                    )}
-                  >
-                    <Heart className={cn("h-3 w-3", comment.viewerHasLiked && "fill-current")} />
-                    <span>{comment.likes > 0 ? comment.likes : "إعجاب"}</span>
-                  </button>
+                  {/* Render Nested Replies */}
+                  {comment.replies && comment.replies.length > 0 && (
+                    <div className="mt-4 space-y-4 mr-6 border-r-2 border-border pr-4">
+                      {comment.replies.map((reply: any) => (
+                        <div key={reply.id} className="flex gap-3">
+                          <Avatar className="h-7 w-7 shrink-0 border-2 border-background shadow-sm">
+                            {reply.authorAvatar && (
+                              <AvatarImage src={reply.authorAvatar} alt={reply.author} />
+                            )}
+                            <AvatarFallback className="bg-muted text-muted-foreground text-[10px] font-bold">
+                              {reply.author.charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-black text-foreground">{reply.author}</span>
+                              <span className="text-[9px] text-muted-foreground font-medium">{formatFacebookDate(reply.date)}</span>
+                            </div>
+                            <div className="inline-block px-3 py-2 rounded-2xl bg-muted/20 text-xs text-foreground/80 max-w-[90%] whitespace-pre-wrap">
+                              {formatCommentContent(reply.content)}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           ))
         ) : (
           <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
-            <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center">
-              <MessageSquare className="w-8 h-8 text-indigo-200" />
+            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+              <MessageSquare className="w-8 h-8 text-primary/30" />
             </div>
             <div>
-              <p className="text-gray-900 font-black">لا توجد تعليقات بعد</p>
-              <p className="text-sm text-gray-400">كن أول من يشارك رأيه في هذه الرحلة</p>
+              <p className="text-foreground font-black">لا توجد تعليقات بعد</p>
+              <p className="text-sm text-muted-foreground">كن أول من يشارك رأيه في هذه الرحلة</p>
             </div>
           </div>
         )}
       </div>
 
       {/* Sticky Input Area */}
-      <div className="mt-4 pt-4 border-t border-gray-100 relative">
+      <div className="mt-4 pt-4 border-t border-border relative">
         <SignedIn>
           <div className="relative">
             {showMentions && mentionResults.length > 0 && (
-              <div className="absolute bottom-full mb-2 left-0 w-64 bg-white rounded-xl shadow-xl border border-gray-100 max-h-48 overflow-y-auto z-50">
+              <div className="absolute bottom-full mb-2 left-0 w-64 bg-card rounded-xl shadow-xl border border-border max-h-48 overflow-y-auto z-50">
                  <div className="p-2 space-y-1">
                    {mentionResults.map(u => (
                      <button
                        key={u._id}
                        onClick={() => insertMention(u.username)}
-                       className="w-full flex items-center gap-2 p-2 hover:bg-gray-50 rounded-lg transition-colors text-right"
+                       className="w-full flex items-center gap-2 p-2 hover:bg-muted rounded-lg transition-colors text-right"
                      >
                        <Avatar className="h-6 w-6">
                          <AvatarImage src={u.imageUrl} />
                          <AvatarFallback>{u.username?.charAt(0)}</AvatarFallback>
                        </Avatar>
                        <div className="flex flex-col items-start">
-                         <span className="text-sm font-bold text-gray-900">{u.username}</span>
-                         <span className="text-xs text-gray-500">{u.fullName}</span>
+                         <span className="text-sm font-bold text-foreground">{u.username}</span>
+                         <span className="text-xs text-muted-foreground">{u.fullName}</span>
                        </div>
                      </button>
                    ))}
@@ -352,7 +498,7 @@ const TripComments = ({
               placeholder="اكتب تعليقك هنا... (استخدم @ لذكر شخص)"
               value={newComment}
               onChange={handleTextChange}
-              className="min-h-[100px] w-full rounded-2xl bg-gray-50 border-gray-100 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/50 transition-all resize-none p-4 pr-4 pb-12 text-sm font-medium"
+              className="min-h-[100px] w-full rounded-2xl bg-muted/30 border-border focus:bg-background focus:ring-4 focus:ring-primary/10 focus:border-primary/50 transition-all resize-none p-4 pr-4 pb-12 text-sm font-medium text-foreground"
             />
             <div className="absolute bottom-3 left-3 flex items-center gap-2">
               <Popover>
@@ -360,7 +506,7 @@ const TripComments = ({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-9 w-9 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
+                    className="h-9 w-9 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl transition-colors"
                   >
                     <Smile className="h-5 w-5" />
                   </Button>
@@ -368,7 +514,7 @@ const TripComments = ({
                 <PopoverContent className="p-0 border-none shadow-2xl rounded-2xl overflow-hidden mb-2" side="top" align="start">
                   <EmojiPicker
                     onEmojiClick={(emojiData) => setNewComment(prev => prev + emojiData.emoji)}
-                    theme={Theme.LIGHT}
+                    theme={Theme.AUTO}
                     autoFocusSearch={false}
                     width={320}
                     height={400}
@@ -381,7 +527,7 @@ const TripComments = ({
               <Button 
                 onClick={handleAddComment}
                 disabled={!newComment.trim() || isSubmitting}
-                className="h-9 px-5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs gap-2 shadow-lg shadow-indigo-100 transition-all active:scale-95"
+                className="h-9 px-5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs gap-2 shadow-lg shadow-primary/10 transition-all active:scale-95"
               >
                 {isSubmitting ? (
                   <Loader2 className="h-3 w-3 animate-spin" />
@@ -393,21 +539,21 @@ const TripComments = ({
                 )}
               </Button>
             </div>
-            <div className="absolute bottom-3 right-4 text-[10px] text-gray-400 font-medium">
+            <div className="absolute bottom-3 right-4 text-[10px] text-muted-foreground font-medium">
               {newComment.length} / 500
             </div>
           </div>
         </SignedIn>
 
         <SignedOut>
-          <div className="bg-orange-50/50 border border-orange-100 border-dashed rounded-2xl p-6 text-center">
-            <div className="flex items-center justify-center gap-2 text-orange-600 font-black mb-2">
+          <div className="bg-primary/5 border border-primary/10 border-dashed rounded-2xl p-6 text-center">
+            <div className="flex items-center justify-center gap-2 text-primary font-black mb-2">
               <Lock className="h-4 w-4" />
               <span>تسجيل الدخول مطلوب</span>
             </div>
-            <p className="text-xs text-orange-600/70 mb-4 font-bold">يرجى تسجيل الدخول لتتمكن من إضافة تعليقك</p>
+            <p className="text-xs text-primary/70 mb-4 font-bold">يرجى تسجيل الدخول لتتمكن من إضافة تعليقك</p>
             <SignInButton mode="modal">
-              <Button size="sm" className="bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-black px-8">
+              <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl font-black px-8">
                 تسجيل الدخول
               </Button>
             </SignInButton>

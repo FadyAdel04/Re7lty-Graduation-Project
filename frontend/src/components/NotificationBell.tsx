@@ -1,4 +1,4 @@
-import { Bell, Check, Loader2, Settings, Trash2, ShieldCheck, Zap, ChevronRight } from "lucide-react";
+import { Bell, Check, Loader2, ShieldCheck, Zap, ChevronRight, Heart, Bookmark, MessageCircle, UserPlus, Tag, MapPin, Bus, CreditCard, LayoutDashboard, ExternalLink, Compass } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -27,6 +27,49 @@ function formatTimeAgo(dateString: string) {
   return "الآن";
 }
 
+// Returns a label + icon + colour describing where the notification will navigate
+function getDestinationMeta(notification: any) {
+  const { type, metadata, tripId, actorId, message, link } = notification;
+
+  if (link) return { label: "رابط مباشر", Icon: ExternalLink, color: "text-gray-500 bg-gray-100" };
+
+  if (metadata?.action === 'seat_assignment')
+    return { label: "مقعدك في الرحلة", Icon: Bus, color: "text-indigo-600 bg-indigo-50" };
+
+  if (type === 'message' && metadata?.conversationId)
+    return { label: "الرسائل", Icon: MessageCircle, color: "text-orange-600 bg-orange-50" };
+
+  if (metadata?.type === 'trip_group' && metadata?.groupId)
+    return { label: "مجموعة الرحلة", Icon: MessageCircle, color: "text-purple-600 bg-purple-50" };
+
+  if (type === 'follow')
+    return { label: "صفحة المتابع", Icon: UserPlus, color: "text-emerald-600 bg-emerald-50" };
+
+  if (type === 'love')
+    return { label: "صفحة الرحلة", Icon: Heart, color: "text-rose-600 bg-rose-50" };
+
+  if (type === 'save')
+    return { label: "صفحة الرحلة", Icon: Bookmark, color: "text-blue-600 bg-blue-50" };
+
+  if (type === 'comment' || type === 'tag')
+    return { label: "تعليقات الرحلة", Icon: MessageCircle, color: "text-violet-600 bg-violet-50" };
+
+  if (type === 'system') {
+    if (metadata?.bookingId && metadata?.tripId)
+      return { label: "لوحة تحكم الشركة", Icon: LayoutDashboard, color: "text-slate-600 bg-slate-100" };
+    if (metadata?.bookingId)
+      return { label: "حجوزاتي", Icon: CreditCard, color: "text-emerald-700 bg-emerald-50" };
+    if (metadata?.tripId)
+      return { label: "اكتشف الرحلات", Icon: Compass, color: "text-gray-600 bg-gray-100" };
+    return { label: "اكتشف", Icon: Compass, color: "text-gray-600 bg-gray-100" };
+  }
+
+  if (tripId)
+    return { label: "صفحة الرحلة", Icon: MapPin, color: "text-orange-600 bg-orange-50" };
+
+  return { label: "ملف المستخدم", Icon: UserPlus, color: "text-gray-500 bg-gray-100" };
+}
+
 const NotificationBell = () => {
   const { notifications, unreadCount, markAsRead, markAllAsRead, isStreaming } = useNotifications();
   const navigate = useNavigate();
@@ -34,50 +77,105 @@ const NotificationBell = () => {
 
   const handleNotificationClick = async (notification: any) => {
     await markAsRead(notification.id);
-    
-    // Check if it's a seat assignment notification
-    if (notification.metadata?.action === 'seat_assignment' && notification.metadata?.tripSlug) {
-      navigate(`/corporate-trips/${notification.metadata.tripSlug}#transportation`);
-      // Force scroll to element if hash is present
-      setTimeout(() => {
-        const el = document.getElementById('transportation');
-        if (el) el.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
+
+    const { type, metadata, tripId, actorId, message, link } = notification;
+
+    // ── 1. Direct link override ─────────────────────────────────────────
+    if (link) {
+      navigate(link);
       return;
     }
 
-    // Check if it's a booking-related notification
-    const isBooking = 
-      notification.type === 'booking' || 
-      notification.type === 'booking_status' ||
-      notification.message.includes('حجز') || 
-      notification.message.toLowerCase().includes('booking');
-
-    if (notification.type === 'message' && notification.metadata?.conversationId) {
-       navigate(`/messages?conv=${notification.metadata.conversationId}`);
-       return;
+    // ── 2. Seat assignment → corporate trip transportation section ───────
+    if (metadata?.action === 'seat_assignment' && metadata?.tripSlug) {
+      navigate(`/corporate-trips/${metadata.tripSlug}#transportation`);
+      setTimeout(() => {
+        const el = document.getElementById('transportation');
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }, 150);
+      return;
     }
 
-    if (notification.metadata?.type === 'trip_group' && notification.metadata?.groupId) {
-       navigate(`/trip-groups?id=${notification.metadata.groupId}`);
-       return;
+    // ── 3. Direct messages ───────────────────────────────────────────────
+    if (type === 'message' && metadata?.conversationId) {
+      navigate(`/messages?conv=${metadata.conversationId}`);
+      return;
     }
 
-    if (isBooking && user?.id) {
-       navigate(`/user/${user.id}?tab=bookings`);
-       return;
+    // ── 4. Trip group chat ───────────────────────────────────────────────
+    if (metadata?.type === 'trip_group' && metadata?.groupId) {
+      navigate(`/trip-groups?id=${metadata.groupId}`);
+      return;
     }
 
-    if (notification.link) {
-      navigate(notification.link);
-    } else if (notification.tripId) {
-      if (notification.metadata?.tripSlug) {
-        navigate(`/corporate-trips/${notification.metadata.tripSlug}`);
+    // ── 5. Follow notification → follower's profile ──────────────────────
+    if (type === 'follow' && actorId) {
+      navigate(`/user/${actorId}`);
+      return;
+    }
+
+    // ── 6. Love / Save → trip detail page ────────────────────────────────
+    if ((type === 'love' || type === 'save') && tripId) {
+      if (metadata?.tripSlug) {
+        navigate(`/corporate-trips/${metadata.tripSlug}`);
       } else {
-        navigate(`/trips/${notification.tripId}`);
+        navigate(`/trips/${tripId}`);
       }
-    } else if (notification.actorId) {
-      navigate(`/user/${notification.actorId}`);
+      return;
+    }
+
+    // ── 7. Comment / Reply / Tag in a trip → trip detail comments section
+    if ((type === 'comment' || type === 'tag') && tripId) {
+      if (metadata?.tripSlug) {
+        navigate(`/corporate-trips/${metadata.tripSlug}#comments`);
+      } else {
+        navigate(`/trips/${tripId}#comments`);
+      }
+      setTimeout(() => {
+        const el = document.getElementById('comments');
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }, 150);
+      return;
+    }
+
+    // ── 8. Booking notifications (Requests, Status Updates, Payments) ────
+    // Differentiate between Company Owner (Dashboard) and Traveler (Profile)
+    if (metadata?.bookingId) {
+      const role = (user?.publicMetadata as any)?.role;
+      if (role === 'company_owner' || role === 'admin') {
+        navigate(`/company/dashboard?tab=bookings`);
+      } else {
+        navigate(`/user/${user?.id}?tab=bookings`);
+      }
+      return;
+    }
+
+    // ── 10. System: trip deleted / deactivated by admin → if has tripId navigate to discover
+    if (type === 'system' && metadata?.tripId && !metadata?.bookingId) {
+      // Trip was removed, navigate to discover instead
+      navigate('/discover');
+      return;
+    }
+
+    // ── 11. System: reporter was notified of action taken → no specific page, go to discover
+    if (type === 'system' && !metadata?.tripId && !metadata?.bookingId) {
+      navigate('/discover');
+      return;
+    }
+
+    // ── 12. Generic trip fallback
+    if (tripId) {
+      if (metadata?.tripSlug) {
+        navigate(`/corporate-trips/${metadata.tripSlug}`);
+      } else {
+        navigate(`/trips/${tripId}`);
+      }
+      return;
+    }
+
+    // ── 13. Final fallback → actor's profile
+    if (actorId) {
+      navigate(`/user/${actorId}`);
     }
   };
 
@@ -183,12 +281,19 @@ const NotificationBell = () => {
                         )}>
                           {notification.message}
                         </p>
-                        <div className="flex items-center gap-3">
-                           <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest flex items-center gap-1">
-                              <Loader2 className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 transition-opacity animate-spin" />
+                        <div className="flex items-center gap-2 flex-wrap">
+                           <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">
                               {formatTimeAgo(notification.createdAt)}
                            </span>
-
+                           {(() => {
+                             const { label, Icon, color } = getDestinationMeta(notification);
+                             return (
+                               <span className={cn("inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wide px-2 py-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200", color)}>
+                                 <Icon className="w-2.5 h-2.5" />
+                                 {label}
+                               </span>
+                             );
+                           })()}
                         </div>
                       </div>
 

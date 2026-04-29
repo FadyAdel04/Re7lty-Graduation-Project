@@ -11,15 +11,26 @@ export function toAbsoluteUrl(input: string | undefined | null, req: any): strin
   return `${protocol}://${host}${path}`;
 }
 
-export function formatComment(raw: any, viewerId?: string) {
+export function formatComment(raw: any, viewerId?: string, req?: any) {
   if (!raw) return raw;
   const plain = typeof raw.toObject === 'function' ? raw.toObject() : raw;
   const likedBy: string[] = Array.isArray(plain?.likedBy) ? plain.likedBy : [];
   const { likedBy: _discard, _id, ...rest } = plain;
+  
+  // Format avatar URL
+  const authorAvatar = req ? toAbsoluteUrl(rest.authorAvatar, req) : rest.authorAvatar;
+  
+  // Format replies recursively
+  const replies = Array.isArray(rest.replies)
+    ? rest.replies.map((r: any) => formatComment(r, viewerId, req))
+    : [];
+
   return {
     ...rest,
+    authorAvatar,
     id: _id ? String(_id) : rest.id,
     viewerHasLiked: viewerId ? likedBy.includes(viewerId) : false,
+    replies,
   };
 }
 
@@ -49,15 +60,7 @@ export function formatTripMedia(trip: any, req: any, viewerId?: string) {
     : [];
 
   const comments = Array.isArray(plain.comments)
-    ? plain.comments.map((c: any) =>
-      formatComment(
-        {
-          ...c,
-          authorAvatar: toAbsoluteUrl(c?.authorAvatar, req) || c?.authorAvatar,
-        },
-        viewerId
-      )
-    )
+    ? plain.comments.map((c: any) => formatComment(c, viewerId, req))
     : [];
 
   const hotels = Array.isArray(plain.hotels)

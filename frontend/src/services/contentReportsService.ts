@@ -7,14 +7,15 @@ export const contentReportsService = {
     // Submit a content report (authenticated users)
     async submitReport(
         tripId: string,
-        reason: 'spam' | 'inappropriate' | 'misleading' | 'other',
+        reason: 'spam' | 'inappropriate' | 'misleading' | 'scam' | 'unsafe' | 'other',
         description?: string,
+        tripModel: 'Trip' | 'CorporateTrip' = 'Trip',
         token?: string
     ) {
         try {
             const response = await axios.post(
                 `${API_URL}/api/content-reports`,
-                { tripId, reason, description },
+                { tripId, reason, description, tripModel },
                 {
                     headers: getAuthHeaders(token),
                     withCredentials: true,

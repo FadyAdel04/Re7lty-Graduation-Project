@@ -204,6 +204,22 @@ export async function addTripComment(id: string, content: string, token: string)
   return await res.json();
 }
 
+export async function addTripCommentReply(tripId: string, commentId: string, content: string, token: string) {
+  const res = await fetch(`${BASE}/api/trips/${tripId}/comments/${commentId}/replies`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ content }),
+  });
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(errorText || 'Failed to add reply');
+  }
+  return await res.json();
+}
+
 export async function toggleTripCommentLove(tripId: string, commentId: string, token: string) {
   const res = await fetch(`${BASE}/api/trips/${tripId}/comments/${commentId}/love`, {
     method: 'POST',
@@ -215,6 +231,83 @@ export async function toggleTripCommentLove(tripId: string, commentId: string, t
   if (!res.ok) {
     const errorText = await res.text();
     throw new Error(errorText || 'Failed to update comment love');
+  }
+  return await res.json();
+}
+
+export async function deleteTripComment(tripId: string, commentId: string, token: string) {
+  const res = await fetch(`${BASE}/api/trips/${tripId}/comments/${commentId}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(errorText || 'Failed to delete comment');
+  }
+  return await res.json();
+}
+
+// --- Corporate Trip Comments ---
+
+export async function addCorporateTripComment(id: string, content: string, token: string) {
+  const res = await fetch(`${BASE}/api/corporate/trips/${id}/comments`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ content }),
+  });
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(errorText || 'Failed to add comment');
+  }
+  return await res.json();
+}
+
+export async function addCorporateTripCommentReply(tripId: string, commentId: string, content: string, token: string) {
+  const res = await fetch(`${BASE}/api/corporate/trips/${tripId}/comments/${commentId}/replies`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ content }),
+  });
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(errorText || 'Failed to add reply');
+  }
+  return await res.json();
+}
+
+export async function toggleCorporateTripCommentLove(tripId: string, commentId: string, token: string) {
+  const res = await fetch(`${BASE}/api/corporate/trips/${tripId}/comments/${commentId}/love`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(errorText || 'Failed to update comment love');
+  }
+  return await res.json();
+}
+
+export async function deleteCorporateTripComment(tripId: string, commentId: string, token: string) {
+  const res = await fetch(`${BASE}/api/corporate/trips/${tripId}/comments/${commentId}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(errorText || 'Failed to delete comment');
   }
   return await res.json();
 }
@@ -234,19 +327,6 @@ export async function toggleFollowUser(clerkId: string, token: string) {
   return await res.json();
 }
 
-export async function deleteTripComment(tripId: string, commentId: string, token: string) {
-  const res = await fetch(`${BASE}/api/trips/${tripId}/comments/${commentId}`, {
-    method: 'DELETE',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  if (!res.ok) {
-    const errorText = await res.text();
-    throw new Error(errorText || 'Failed to delete comment');
-  }
-  return await res.json();
-}
 
 export async function getNotifications(limit: number = 30, token?: string) {
   const url = `${BASE}/api/notifications?limit=${limit}`;

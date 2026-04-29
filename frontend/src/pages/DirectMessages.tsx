@@ -523,15 +523,15 @@ const DirectMessages = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] font-cairo" dir="rtl">
+    <div className="min-h-screen bg-background font-cairo" dir="rtl">
       <Header />
       
       <main className="container mx-auto px-0 md:px-4 py-0 md:py-8 h-[calc(100vh-80px)] md:h-[calc(100vh-120px)]">
-         <div className="bg-white backdrop-blur-xl border-y md:border border-gray-100 rounded-none md:rounded-[2.5rem] shadow-2xl h-full overflow-hidden flex flex-col md:flex-row">
+         <div className="bg-card backdrop-blur-xl border-y md:border border-border rounded-none md:rounded-[2.5rem] shadow-2xl h-full overflow-hidden flex flex-col md:flex-row">
             
             {/* Sidebar: Conversations List */}
             <div className={cn(
-          "w-full md:w-[380px] border-r border-gray-200 bg-white flex flex-col transition-all duration-300",
+          "w-full md:w-[380px] border-r border-border bg-card flex flex-col transition-all duration-300",
           activeConversation ? "hidden md:flex" : "flex"
         )}>
           {/* Tabs */}
@@ -548,7 +548,7 @@ const DirectMessages = () => {
             </Button>
             <Button 
                 variant="ghost" 
-                className="rounded-xl font-bold text-gray-500 hover:bg-gray-50 h-11"
+                className="rounded-xl font-bold text-muted-foreground hover:bg-muted h-11"
                 onClick={() => navigate('/trip-groups')}
             >
                 <div className="flex items-center gap-2">
@@ -559,14 +559,14 @@ const DirectMessages = () => {
           </div>
 
           <div className="p-6 space-y-4">
-                  <h2 className="text-2xl font-black text-gray-900">الرسائل</h2>
+                  <h2 className="text-2xl font-black text-foreground">الرسائل</h2>
                   <div className="relative">
                      <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                      <Input 
                         placeholder="ابحث عن مستخدمين..." 
                         value={searchQuery}
                         onChange={(e) => handleSearch(e.target.value)}
-                        className="pr-11 h-12 rounded-2xl bg-gray-50 border-0 focus-visible:ring-indigo-600/20" 
+                        className="pr-11 h-12 rounded-2xl bg-muted border-0 focus-visible:ring-indigo-600/20" 
                      />
                   </div>
                </div>
@@ -587,7 +587,7 @@ const DirectMessages = () => {
                                     <AvatarFallback>{u.fullName?.charAt(0)}</AvatarFallback>
                                  </Avatar>
                                  <div className="flex-1">
-                                    <h4 className="font-bold text-gray-900">{u.fullName}</h4>
+                                    <h4 className="font-bold text-foreground">{u.fullName}</h4>
                                     <p className="text-xs text-gray-400">@{u.username}</p>
                                  </div>
                               </button>
@@ -609,7 +609,7 @@ const DirectMessages = () => {
                                 }}
                                 className={cn(
                                     "w-full p-4 rounded-[1.8rem] flex items-center gap-4 transition-all group relative",
-                                    activeConversation?._id === conv._id ? "bg-indigo-600 text-white shadow-xl shadow-indigo-100" : "hover:bg-gray-50 text-gray-900"
+                                    activeConversation?._id === conv._id ? "bg-indigo-600 text-white shadow-xl shadow-indigo-100" : "hover:bg-muted text-foreground"
                                 )}
                               >
                                  <div className="relative">
@@ -626,7 +626,7 @@ const DirectMessages = () => {
                                           {conv.lastMessageAt ? format(new Date(conv.lastMessageAt), 'hh:mm a', { locale: ar }) : ''}
                                        </span>
                                     </div>
-                                    <p className={cn("text-xs truncate font-medium", activeConversation?._id === conv._id ? "text-indigo-100" : "text-gray-500")}>
+                                    <p className={cn("text-xs truncate font-medium", activeConversation?._id === conv._id ? "text-indigo-100" : "text-muted-foreground")}>
                                        {conv.lastMessage || 'ابدأ المحادثة الآن...'}
                                     </p>
                                  </div>
@@ -639,7 +639,7 @@ const DirectMessages = () => {
                            ))}
                            {conversations.length === 0 && !isLoadingConvs && (
                               <div className="text-center py-20 px-6">
-                                 <div className="w-16 h-16 bg-gray-50 rounded-3xl flex items-center justify-center mx-auto mb-4 text-gray-200">
+                                 <div className="w-16 h-16 bg-muted rounded-3xl flex items-center justify-center mx-auto mb-4 text-gray-200">
                                     <MessageSquare className="w-8 h-8" />
                                  </div>
                                  <p className="text-sm font-bold text-gray-400">لا توجد محادثات نشطة</p>
@@ -654,20 +654,20 @@ const DirectMessages = () => {
 
             {/* Main Chat Window */}
             <section className={cn(
-               "flex-1 flex-col h-full bg-white relative",
+               "flex-1 flex-col h-full bg-card relative",
                activeConversation ? "flex" : "hidden md:flex"
             )}>
                 {activeConversation ? (
                     <>
                         {/* Chat Header */}
-                        <header className="p-6 border-b border-gray-50 flex items-center justify-between bg-white/50 backdrop-blur-md z-10 sticky top-0">
+                        <header className="p-6 border-b border-border flex items-center justify-between bg-card/50 backdrop-blur-md z-10 sticky top-0">
                            <div className="flex items-center gap-4">
                               <Avatar className="h-12 w-12 border-2 border-indigo-100 shadow-sm">
                                  <AvatarImage src={activeConversation.otherParticipant?.imageUrl} />
                                  <AvatarFallback>{activeConversation.otherParticipant?.fullName?.charAt(0)}</AvatarFallback>
                               </Avatar>
                               <div>
-                                 <h3 className="text-lg font-black text-gray-900">{activeConversation.otherParticipant?.fullName}</h3>
+                                 <h3 className="text-lg font-black text-foreground">{activeConversation.otherParticipant?.fullName}</h3>
                                  <div className="flex items-center gap-1.5">
                                     <Circle className="w-2 h-2 fill-emerald-400 text-emerald-400" />
                                     <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">نشط الآن</span>
@@ -703,7 +703,7 @@ const DirectMessages = () => {
                                     <div key={msg._id} className="space-y-4">
                                        {showDate && (
                                           <div className="flex justify-center">
-                                             <span className="bg-gray-50 text-gray-400 text-[10px] font-black px-4 py-1.5 rounded-full border border-gray-100">
+                                             <span className="bg-muted text-gray-400 text-[10px] font-black px-4 py-1.5 rounded-full border border-border">
                                                 {format(new Date(msg.createdAt), 'd MMMM yyyy', { locale: ar })}
                                              </span>
                                           </div>
@@ -722,7 +722,7 @@ const DirectMessages = () => {
                                                   "p-4 shadow-sm relative",
                                                   isMe 
                                                      ? "bg-indigo-600 text-white rounded-t-[1.5rem] rounded-bl-[1.5rem] shadow-indigo-100" 
-                                                     : "bg-gray-100 text-gray-800 rounded-t-[1.5rem] rounded-br-[1.5rem]",
+                                                     : "bg-accent text-foreground rounded-t-[1.5rem] rounded-br-[1.5rem]",
                                                   (msg.type === 'image' || msg.type === 'video') && "p-1 overflow-hidden"
                                                )}>
                                                   {msg.type === 'image' && (
@@ -765,7 +765,7 @@ const DirectMessages = () => {
                                                         <div className="flex-1 space-y-2 pt-1">
                                                            <div className="h-1.5 w-full bg-black/5 rounded-full overflow-hidden relative">
                                                               <div 
-                                                                className={cn("h-full absolute left-0 top-0 transition-all duration-100", isMe ? "bg-white" : "bg-indigo-600")}
+                                                                className={cn("h-full absolute left-0 top-0 transition-all duration-100", isMe ? "bg-card" : "bg-indigo-600")}
                                                                 style={{ width: `${audioProgress[msg._id] || 0}%` }}
                                                               />
                                                            </div>
@@ -815,7 +815,7 @@ const DirectMessages = () => {
                                                      <button 
                                                        key={emoji}
                                                        onClick={() => handleToggleReaction(msg._id, emoji)}
-                                                       className="bg-white border border-gray-100 rounded-full px-1.5 py-0.5 shadow-sm flex items-center gap-1 hover:bg-gray-50 transition-colors"
+                                                       className="bg-card border border-border rounded-full px-1.5 py-0.5 shadow-sm flex items-center gap-1 hover:bg-muted transition-colors"
                                                      >
                                                        <span className="text-xs">{emoji}</span>
                                                        {count > 1 && <span className="text-[9px] font-black text-indigo-500">{count}</span>}
@@ -826,7 +826,7 @@ const DirectMessages = () => {
 
                                                {/* Reaction Picker on Hover */}
                                                <div className={cn(
-                                                 "absolute -top-11 opacity-0 group-hover/msg:opacity-100 transition-opacity z-30 flex items-center gap-1 bg-white/90 backdrop-blur-md border border-gray-100 p-1 rounded-full shadow-xl",
+                                                 "absolute -top-11 opacity-0 group-hover/msg:opacity-100 transition-opacity z-30 flex items-center gap-1 bg-white/90 backdrop-blur-md border border-border p-1 rounded-full shadow-xl",
                                                  isMe ? "right-0" : "left-0"
                                                )}>
                                                  {REACTION_EMOJIS.map(emoji => {
@@ -864,10 +864,10 @@ const DirectMessages = () => {
                            </div>
                         </ScrollArea>
 
-                        <footer className="p-6 bg-white border-t border-gray-50">
+                        <footer className="p-6 bg-card border-t border-border">
                            {/* Pending Files Preview */}
                            {pendingFiles.length > 0 && (
-                              <div className="flex flex-wrap gap-3 mb-4 p-4 bg-gray-50/50 rounded-3xl border border-gray-100 overflow-x-auto custom-scrollbar">
+                              <div className="flex flex-wrap gap-3 mb-4 p-4 bg-muted/50 rounded-3xl border border-border overflow-x-auto custom-scrollbar">
                                  {pendingFiles.map(file => (
                                     <div key={file.id} className="relative group w-24 h-24 shrink-0">
                                        <img src={file.preview} alt="Preview" className="w-full h-full object-cover rounded-2xl border-2 border-white shadow-md group-hover:brightness-75 transition-all" />
@@ -917,7 +917,7 @@ const DirectMessages = () => {
                                              audio.onended = () => URL.revokeObjectURL(url);
                                           }
                                        }}
-                                       className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-indigo-600 shadow-sm hover:scale-105 transition-transform"
+                                       className="w-12 h-12 bg-card rounded-full flex items-center justify-center text-indigo-600 shadow-sm hover:scale-105 transition-transform"
                                      >
                                         <Play className="w-5 h-5 ml-0.5" />
                                      </button>
@@ -938,7 +938,7 @@ const DirectMessages = () => {
                            ) : (
                               <form 
                                  onSubmit={pendingFiles.length > 0 ? (e) => { e.preventDefault(); sendPendingFiles(); } : handleSendMessage} 
-                                 className="bg-gray-50 p-2 rounded-[2rem] flex items-center gap-2 border border-gray-100 focus-within:border-indigo-600/30 transition-all"
+                                 className="bg-muted p-2 rounded-[2rem] flex items-center gap-2 border border-border focus-within:border-indigo-600/30 transition-all"
                               >
                                  <input 
                                     type="file" 
@@ -954,7 +954,7 @@ const DirectMessages = () => {
                                     onClick={startRecording}
                                     variant="ghost" 
                                     size="icon" 
-                                    className="rounded-full text-indigo-600 hover:bg-white shrink-0"
+                                    className="rounded-full text-indigo-600 hover:bg-card shrink-0"
                                  >
                                     <Mic className="w-5 h-5" />
                                  </Button>
@@ -964,13 +964,13 @@ const DirectMessages = () => {
                                     onClick={() => fileInputRef.current?.click()}
                                     variant="ghost" 
                                     size="icon" 
-                                    className="rounded-full text-indigo-600 hover:bg-white shrink-0"
+                                    className="rounded-full text-indigo-600 hover:bg-card shrink-0"
                                  >
                                     {isUploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <ImageIcon className="w-5 h-5" />}
                                  </Button>
                                  <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
                                     <PopoverTrigger asChild>
-                                       <Button type="button" variant="ghost" size="icon" className="rounded-full text-indigo-600 hover:bg-white shrink-0">
+                                       <Button type="button" variant="ghost" size="icon" className="rounded-full text-indigo-600 hover:bg-card shrink-0">
                                           <Smile className="w-5 h-5" />
                                        </Button>
                                     </PopoverTrigger>
@@ -1011,7 +1011,7 @@ const DirectMessages = () => {
                            <MessageSquare className="w-16 h-16 text-indigo-600" />
                            <div className="absolute -top-4 -right-4 w-12 h-12 bg-orange-500 rounded-full border-4 border-white animate-bounce" />
                         </div>
-                        <h2 className="text-3xl font-black text-gray-900 mb-4">مرحباً بك في عالم تواصل رحلتى!</h2>
+                        <h2 className="text-3xl font-black text-foreground mb-4">مرحباً بك في عالم تواصل رحلتى!</h2>
                         <p className="text-gray-400 max-w-md mx-auto leading-relaxed font-bold">
                            اختر محادثة من القائمة الجانبية أو ابحث عن رحالة جديد لبدء تبادل الخبرات ومشاركة المغامرات.
                         </p>

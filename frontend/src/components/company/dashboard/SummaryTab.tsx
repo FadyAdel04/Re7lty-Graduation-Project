@@ -98,7 +98,7 @@ const SummaryTab: React.FC<SummaryTabProps> = ({ stats, tripsCount, tripsViews =
                 >
                   <card.icon className="w-4 h-4" />
                 </div>
-                <div className="h-6 px-1.5 rounded-full bg-gray-50 flex items-center gap-0.5 text-[9px] font-black text-gray-400">
+                <div className="h-6 px-1.5 rounded-full bg-muted flex items-center gap-0.5 text-[9px] font-black text-gray-400">
                   <ArrowUpRight className="w-2.5 h-2.5 text-emerald-500" />
                   {card.label}
                 </div>
@@ -108,7 +108,7 @@ const SummaryTab: React.FC<SummaryTabProps> = ({ stats, tripsCount, tripsViews =
                 {card.title}
               </h4>
               <div className="flex items-baseline gap-1">
-                <span className="text-base font-black text-gray-900 leading-none">
+                <span className="text-base font-black text-foreground leading-none">
                   {card.value.toLocaleString('ar-EG')}
                   {'isCurrency' in card && (
                     <span className="text-[10px] mr-0.5 text-gray-400">ج.م</span>

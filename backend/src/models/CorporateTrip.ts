@@ -63,6 +63,24 @@ const CorporateTripSchema = new Schema({
     transportationType: { type: String, enum: ['bus-48', 'minibus-28', 'van-14', 'bus-50'], default: 'bus-48' },
     transportations: [TransportationUnitSchema],
     seatBookings: [SeatBookingSchema],
+    comments: [new Schema({
+      authorId: { type: String, index: true },
+      author: String,
+      authorAvatar: String,
+      content: String,
+      date: String,
+      likes: { type: Number, default: 0 },
+      likedBy: { type: [String], default: [] },
+      replies: [new Schema({
+        authorId: { type: String, index: true },
+        author: String,
+        authorAvatar: String,
+        content: String,
+        date: String,
+        likes: { type: Number, default: 0 },
+        likedBy: { type: [String], default: [] },
+      }, { _id: true, timestamps: true })]
+    }, { _id: true, timestamps: true })],
     createdBy: { type: String }, // Clerk ID of admin who created
 }, { timestamps: true });
 

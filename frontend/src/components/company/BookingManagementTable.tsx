@@ -177,7 +177,7 @@ const BookingManagementTable = ({ bookings, onUpdate }: BookingManagementTablePr
       case "rejected":
         return <Badge className="bg-red-100 text-red-700 hover:bg-red-100 border-red-200">مرفوض</Badge>;
       case "cancelled":
-        return <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-100 border-gray-200">ملغي</Badge>;
+        return <Badge className="bg-muted text-muted-foreground hover:bg-muted border-border">ملغي</Badge>;
       default:
         return <Badge className="bg-yellow-100 text-yellow-700 hover:bg-yellow-100 border-yellow-200">قيد الانتظار</Badge>;
     }
@@ -199,7 +199,7 @@ const BookingManagementTable = ({ bookings, onUpdate }: BookingManagementTablePr
         other: <HelpCircle className="w-3 h-3" />
     };
 
-    const config = statusMap[status] || { label: status, class: "bg-gray-100" };
+    const config = statusMap[status] || { label: status, class: "bg-muted" };
     
     return (
         <div className="flex items-center gap-1.5 mt-1.5 opacity-80">
@@ -213,32 +213,32 @@ const BookingManagementTable = ({ bookings, onUpdate }: BookingManagementTablePr
 
   return (
     <>
-      <div className="rounded-xl border border-gray-200 bg-white overflow-hidden shadow-sm" dir="rtl">
+      <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm" dir="rtl">
         <Table className="min-w-[800px]">
           <TableHeader>
-            <TableRow className="bg-gray-50/50">
-              <TableHead className="text-right font-black text-gray-900 w-[300px] px-4">اسم الرحلة</TableHead>
-              <TableHead className="text-right font-black text-gray-900 px-4">بيانات العميل</TableHead>
-              <TableHead className="text-right font-black text-gray-900 px-4">تاريخ الحجز</TableHead>
-              <TableHead className="text-right font-black text-gray-900 px-4">العدد / السعر</TableHead>
-              <TableHead className="text-right font-black text-gray-900 px-4">حالة الحجز</TableHead>
-              <TableHead className="text-right font-black text-gray-900 w-[80px] px-4"></TableHead>
+            <TableRow className="bg-muted/50">
+              <TableHead className="text-right font-black text-foreground w-[300px] px-4">اسم الرحلة</TableHead>
+              <TableHead className="text-right font-black text-foreground px-4">بيانات العميل</TableHead>
+              <TableHead className="text-right font-black text-foreground px-4">تاريخ الحجز</TableHead>
+              <TableHead className="text-right font-black text-foreground px-4">العدد / السعر</TableHead>
+              <TableHead className="text-right font-black text-foreground px-4">حالة الحجز</TableHead>
+              <TableHead className="text-right font-black text-foreground w-[80px] px-4"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {bookings.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center text-gray-500">
+                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                   لا توجد حجوزات لعرضها
                 </TableCell>
               </TableRow>
             ) : (
               bookings.map((booking) => (
-                <TableRow key={booking._id} className="group hover:bg-gray-50/50">
+                <TableRow key={booking._id} className="group hover:bg-muted/50">
                   <TableCell className="text-right font-medium align-top">
                     <div className="flex flex-col gap-1">
                       <span className="text-[10px] font-black text-indigo-500 uppercase">#{booking.bookingReference || booking._id.substring(0, 8)}</span>
-                      <span className="text-gray-900 font-bold line-clamp-2">{booking.tripTitle}</span>
+                      <span className="text-foreground font-bold line-clamp-2">{booking.tripTitle}</span>
                       <div className="flex items-center gap-2 mt-1">
                         <Badge variant="outline" className="text-[10px] bg-indigo-50 text-indigo-600 border-indigo-100">
                           مقاعد: {booking.selectedSeats?.join(", ") || "غير محدد"}
@@ -258,16 +258,16 @@ const BookingManagementTable = ({ bookings, onUpdate }: BookingManagementTablePr
                         <User className="w-3 h-3 text-gray-400" />
                         <span className="font-semibold">{booking.userName}</span>
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
                          <span className="truncate">{booking.userEmail}</span>
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-gray-500 font-mono" dir="ltr">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground font-mono" dir="ltr">
                          <span className="text-right flex-1">{booking.userPhone}</span>
                          <Phone className="w-3 h-3 text-gray-400" />
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="text-right align-top text-gray-600">
+                  <TableCell className="text-right align-top text-muted-foreground">
                     <div className="flex items-center gap-2">
                       <Calendar className="w-3 h-3" />
                       {format(new Date(booking.bookingDate), "dd MMM yyyy", { locale: ar })}
@@ -275,7 +275,7 @@ const BookingManagementTable = ({ bookings, onUpdate }: BookingManagementTablePr
                   </TableCell>
                   <TableCell className="text-right align-top">
                     <div className="font-bold">{booking.totalPrice} ج.م</div>
-                    <div className="text-xs text-gray-500">{booking.numberOfPeople} أفراد</div>
+                    <div className="text-xs text-muted-foreground">{booking.numberOfPeople} أفراد</div>
                   </TableCell>
                    <TableCell className="text-right align-top">
                     {getStatusBadge(booking.status)}
@@ -284,7 +284,7 @@ const BookingManagementTable = ({ bookings, onUpdate }: BookingManagementTablePr
                   <TableCell className="text-right align-top">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0 text-gray-400 hover:text-gray-900">
+                        <Button variant="ghost" className="h-8 w-8 p-0 text-gray-400 hover:text-foreground">
                           <span className="sr-only">فتح القائمة</span>
                           {loadingId === booking._id ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
@@ -491,15 +491,15 @@ const BookingManagementTable = ({ bookings, onUpdate }: BookingManagementTablePr
           {detailsDialog.booking && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-6">
                 {/* Trip Info */}
-                <Card className="p-4 border-gray-100 shadow-sm col-span-1 md:col-span-2 bg-gray-50/50">
+                <Card className="p-4 border-border shadow-sm col-span-1 md:col-span-2 bg-muted/50">
                     <h4 className="text-xs font-black text-gray-400 uppercase mb-2">بيانات الرحلة</h4>
-                    <p className="text-lg font-bold text-gray-900">{detailsDialog.booking.tripTitle}</p>
+                    <p className="text-lg font-bold text-foreground">{detailsDialog.booking.tripTitle}</p>
                     <div className="flex items-center gap-4 mt-2">
-                        <div className="flex items-center gap-1.5 text-sm text-gray-500">
+                        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                             <Calendar className="w-4 h-4" />
                             {format(new Date(detailsDialog.booking.bookingDate), "dd MMMM yyyy", { locale: ar })}
                         </div>
-                        <div className="flex items-center gap-1.5 text-sm text-gray-500">
+                        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                             <MapPin className="w-4 h-4" />
                             {detailsDialog.booking.tripDestination}
                         </div>
@@ -511,15 +511,15 @@ const BookingManagementTable = ({ bookings, onUpdate }: BookingManagementTablePr
                     <div>
                         <h4 className="text-xs font-black text-gray-400 uppercase mb-2">بيانات العميل</h4>
                         <div className="space-y-2">
-                            <div className="flex items-center gap-3 p-3 bg-white border border-gray-100 rounded-xl">
+                            <div className="flex items-center gap-3 p-3 bg-card border border-border rounded-xl">
                                 <User className="w-4 h-4 text-indigo-600" />
                                 <span className="font-bold">{detailsDialog.booking.userName}</span>
                             </div>
-                            <div className="flex items-center gap-3 p-3 bg-white border border-gray-100 rounded-xl">
+                            <div className="flex items-center gap-3 p-3 bg-card border border-border rounded-xl">
                                 <Smartphone className="w-4 h-4 text-indigo-600" />
                                 <span className="font-mono" dir="ltr">{detailsDialog.booking.userPhone}</span>
                             </div>
-                            <div className="flex items-center gap-3 p-3 bg-white border border-gray-100 rounded-xl">
+                            <div className="flex items-center gap-3 p-3 bg-card border border-border rounded-xl">
                                 <MessageSquare className="w-4 h-4 text-indigo-600" />
                                 <span className="text-sm truncate">{detailsDialog.booking.userEmail}</span>
                             </div>
@@ -528,13 +528,13 @@ const BookingManagementTable = ({ bookings, onUpdate }: BookingManagementTablePr
 
                     <div>
                         <h4 className="text-xs font-black text-gray-400 uppercase mb-2">المقاعد والركاب</h4>
-                        <div className="p-3 bg-white border border-gray-100 rounded-xl space-y-2">
+                        <div className="p-3 bg-card border border-border rounded-xl space-y-2">
                             <div className="flex justify-between items-center">
-                                <span className="text-sm text-gray-500">عدد الأفراد:</span>
+                                <span className="text-sm text-muted-foreground">عدد الأفراد:</span>
                                 <span className="font-bold">{detailsDialog.booking.numberOfPeople}</span>
                             </div>
                             <div className="flex justify-between items-start">
-                                <span className="text-sm text-gray-500">أرقام المقاعد:</span>
+                                <span className="text-sm text-muted-foreground">أرقام المقاعد:</span>
                                 <div className="flex flex-wrap gap-1 justify-end">
                                     {detailsDialog.booking.selectedSeats?.map(s => (
                                         <Badge key={s} variant="outline" className="bg-indigo-50 text-indigo-600 border-indigo-100">{s}</Badge>
@@ -567,7 +567,7 @@ const BookingManagementTable = ({ bookings, onUpdate }: BookingManagementTablePr
                         </div>
                     </div>
 
-                    <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-3">
+                    <div className="p-4 bg-muted rounded-2xl border border-border space-y-3">
                         <div className="flex justify-between items-center">
                             <span className="text-xs font-bold text-gray-400 uppercase">حالة الدفع</span>
                             {getPaymentBadge((detailsDialog.booking as any).paymentStatus || "pending", (detailsDialog.booking as any).paymentMethod || "cash")}
@@ -591,7 +591,7 @@ const BookingManagementTable = ({ bookings, onUpdate }: BookingManagementTablePr
           )}
 
           <DialogFooter>
-            <Button className="w-full h-12 rounded-xl bg-gray-900 text-white hover:bg-gray-800" onClick={() => setDetailsDialog({ open: false, booking: null })}>
+            <Button className="w-full h-12 rounded-xl bg-gray-900 text-white hover:bg-muted" onClick={() => setDetailsDialog({ open: false, booking: null })}>
               إغلاق التفاصيل
             </Button>
           </DialogFooter>
