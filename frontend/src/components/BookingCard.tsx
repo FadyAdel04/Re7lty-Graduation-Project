@@ -360,33 +360,38 @@ const BookingCard = ({ trip, company, sticky = false }: BookingCardProps) => {
               </motion.div>
             )}
             
-            <Button
-              className="w-full h-16 rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground gap-3 font-black text-lg shadow-xl shadow-primary/20 transition-all active:scale-95 group"
-              onClick={handleDirectBooking}
-            >
-              <Zap className="h-6 w-6 fill-current group-hover:scale-110 transition-transform" />
-              حجز فوري وآمن
-            </Button>
+            <div className="flex flex-col gap-4">
+              <Button
+                className="w-full h-16 rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground gap-3 font-black text-lg shadow-xl shadow-primary/20 transition-all active:scale-95 group"
+                onClick={handleDirectBooking}
+              >
+                <Zap className="h-6 w-6 fill-current group-hover:scale-110 transition-transform" />
+                حجز فوري وآمن
+              </Button>
 
-            <div className="grid grid-cols-2 gap-3">
-              {trip.bookingMethod.website && company.contactInfo.website && (
+              <div className="grid grid-cols-2 lg:grid-cols-2 gap-3">
+                {trip.bookingMethod.website && company.contactInfo.website && (
+                  <Button
+                    variant="outline"
+                    className="h-12 rounded-xl border-border hover:bg-muted font-bold text-sm gap-2"
+                    onClick={handleWebsiteBooking}
+                  >
+                    <Globe className="h-4 w-4" />
+                    الموقع
+                  </Button>
+                )}
                 <Button
                   variant="outline"
-                  className="h-12 rounded-xl border-border hover:bg-muted font-bold text-sm gap-2"
-                  onClick={handleWebsiteBooking}
+                  className={cn(
+                    "h-12 rounded-xl border-border hover:bg-muted font-bold text-sm gap-2",
+                    (!trip.bookingMethod.website || !company.contactInfo.website) && "col-span-2 h-14 text-base"
+                  )}
+                  onClick={handleWhatsAppBooking}
                 >
-                  <Globe className="h-4 w-4" />
-                  الموقع
+                  <MessageCircle className="h-4 w-4 text-emerald-500" />
+                  واتساب
                 </Button>
-              )}
-              <Button
-                variant="outline"
-                className="h-12 rounded-xl border-border hover:bg-muted font-bold text-sm gap-2"
-                onClick={handleWhatsAppBooking}
-              >
-                <MessageCircle className="h-4 w-4 text-emerald-500" />
-                واتساب
-              </Button>
+              </div>
             </div>
           </div>
 

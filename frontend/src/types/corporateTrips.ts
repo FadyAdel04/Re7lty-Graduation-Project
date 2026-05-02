@@ -70,6 +70,11 @@ export interface Trip {
         userId?: string;
     }[];
     comments?: any[];
+    stayDetails?: {
+        name: string;
+        details: string;
+        images?: string[];
+    }[];
 }
 
 export interface TripFilters {

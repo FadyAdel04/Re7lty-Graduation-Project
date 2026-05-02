@@ -11,8 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-// import { adminService } from "@/services/adminService"; // Replaced
-import { corporateTripsService } from "@/services/corporateTripsService"; // New service
+import { corporateTripsService } from "@/services/corporateTripsService";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Loader2, 
@@ -31,15 +30,25 @@ import {
   Phone,
   ExternalLink,
   Bus,
-  Truck,
-  Map,
-  Users,
-  BarChart,
-  Activity,
-  Settings
+  Hotel,
+  Check,
+  ChevronsUpDown
 } from "lucide-react";
-import BusSeatLayout from "./BusSeatLayout";
 import { cn } from "@/lib/utils";
+import { EGYPT_CITIES_LIST } from "@/lib/egypt-data";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import {
   validateTripTitle,
   validateDescription,
@@ -93,14 +102,18 @@ const CompanyTripFormDialog = ({ open, onOpenChange, onSuccess, initialData }: C
       website: false
     },
     transportationType: "bus-48",
-    seatBookings: []
+    seatBookings: [],
+    stayDetails: []
   });
+  const [openDestination, setOpenDestination] = useState(false);
+  const [suggestedHotels, setSuggestedHotels] = useState<any[]>([]);
+  const [showSuggestionsDialog, setShowSuggestionsDialog] = useState(false);
+  const [fetchingHotels, setFetchingHotels] = useState(false);
 
   const calculateTransportations = (totalSeats: number) => {
     let remaining = totalSeats;
     const units: { type: string; capacity: number; count: number }[] = [];
     
-    // Fill with 48-seat buses
     const bigBuses = Math.floor(remaining / 48);
     if (bigBuses > 0) {
       units.push({ type: 'bus-48', capacity: 48, count: bigBuses });
@@ -137,9 +150,9 @@ const CompanyTripFormDialog = ({ open, onOpenChange, onSuccess, initialData }: C
           availableSeats: initialData.availableSeats || "",
           transportationImages: initialData.transportationImages?.length > 0 ? initialData.transportationImages : ["", ""],
           isActive: initialData.isActive !== undefined ? initialData.isActive : true,
+          stayDetails: initialData.stayDetails || [],
         });
       } else {
-        // Try to load draft from local storage
         const savedDraft = localStorage.getItem("companyTripDraft");
         if (savedDraft) {
           try {
@@ -176,7 +189,8 @@ const CompanyTripFormDialog = ({ open, onOpenChange, onSuccess, initialData }: C
             },
             transportationType: "bus-48",
             transportations: [],
-            seatBookings: []
+            seatBookings: [],
+            stayDetails: []
           });
         }
       }
@@ -184,7 +198,6 @@ const CompanyTripFormDialog = ({ open, onOpenChange, onSuccess, initialData }: C
     }
   }, [initialData, open]);
 
-  // Save draft to localStorage only for new trips
   useEffect(() => {
     if (open && !initialData) {
       localStorage.setItem("companyTripDraft", JSON.stringify(formData));
@@ -227,7 +240,6 @@ const CompanyTripFormDialog = ({ open, onOpenChange, onSuccess, initialData }: C
             setLoading(true);
             const token = await getToken();
             
-            // Get Cloudinary signature from our backend
             const sigData = await fetch(`${API_BASE_URL}/api/trips/cloudinary-signature`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             }).then(res => res.json());
@@ -320,6 +332,7 @@ const CompanyTripFormDialog = ({ open, onOpenChange, onSuccess, initialData }: C
         includedServices: formData.includedServices.filter((s: string) => s.trim() !== ""),
         excludedServices: formData.excludedServices.filter((s: string) => s.trim() !== ""),
         transportationImages: formData.transportationImages.filter((img: string) => img.trim() !== ""),
+        stayDetails: (formData.stayDetails || []).filter((s: any) => s.name?.trim() !== ""),
       };
 
       if (initialData) {
@@ -328,7 +341,7 @@ const CompanyTripFormDialog = ({ open, onOpenChange, onSuccess, initialData }: C
       } else {
         await corporateTripsService.createMyTrip(processedData, token || undefined);
         toast({ title: "تم نشر الرحلة بنجاح", description: "ستظهر رحلتك الآن في صفحة الشركات" });
-        localStorage.removeItem("companyTripDraft"); // Clear draft after successful creation
+        localStorage.removeItem("companyTripDraft");
       }
 
       onSuccess();
@@ -345,6 +358,7 @@ const CompanyTripFormDialog = ({ open, onOpenChange, onSuccess, initialData }: C
   const tabItems = [
     { id: 'basic', label: 'أساسي', icon: Info },
     { id: 'details', label: 'تفاصيل', icon: ListChecks },
+    { id: 'stay', label: 'الإقامة', icon: Hotel },
     { id: 'itinerary', label: 'برنامج', icon: Layers },
     { id: 'images', label: 'صور', icon: Camera },
     { id: 'settings', label: 'إعدادات', icon: Settings2 },
@@ -410,16 +424,65 @@ const CompanyTripFormDialog = ({ open, onOpenChange, onSuccess, initialData }: C
                              </div>
                              <div className="space-y-2">
                                 <Label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">الوجهة (في مصر) *</Label>
-                                <div className="relative">
-                                   <MapPin className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300" />
-                                   <Input 
-                                     className="h-14 pr-12 rounded-2xl bg-card border-border shadow-sm font-bold text-foreground placeholder:text-gray-300 focus:border-indigo-500 transition-all"
-                                     value={formData.destination} 
-                                     onChange={(e) => setFormData({...formData, destination: e.target.value})}
-                                     required 
-                                     placeholder="مثال: شرم الشيخ، الغردقة، الأقصر"
-                                   />
-                                </div>
+                                <Popover open={openDestination} onOpenChange={setOpenDestination}>
+                                   <PopoverTrigger asChild>
+                                      <Button
+                                         variant="outline"
+                                         role="combobox"
+                                         aria-expanded={openDestination}
+                                         className="w-full h-14 justify-between rounded-2xl bg-card border-border shadow-sm font-bold text-foreground hover:bg-card/80 transition-all px-4"
+                                      >
+                                         <div className="flex items-center gap-3">
+                                            <MapPin className="w-5 h-5 text-gray-300" />
+                                            {formData.destination ? (
+                                               <span className="text-foreground">
+                                                  {EGYPT_CITIES_LIST.find(city => city.nameAr === formData.destination)?.emoji} {formData.destination}
+                                               </span>
+                                            ) : (
+                                               <span className="text-gray-300">اختر الوجهة (مثال: شرم الشيخ، الأقصر...)</span>
+                                            )}
+                                         </div>
+                                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                      </Button>
+                                   </PopoverTrigger>
+                                   <PopoverContent className="w-[--radix-popover-trigger-width] p-0 rounded-2xl border-border shadow-xl overflow-hidden z-[9999]" align="start">
+                                      <Command className="bg-card">
+                                         <CommandInput placeholder="ابحث عن مدينة..." className="h-12 border-none focus:ring-0 font-bold" />
+                                         <CommandList className="max-h-[300px]">
+                                            <CommandEmpty>لم يتم العثور على المدينة.</CommandEmpty>
+                                            <CommandGroup heading="المدن والمحافظات">
+                                               {EGYPT_CITIES_LIST.map((city) => (
+                                                  <CommandItem
+                                                     key={city.nameAr}
+                                                     value={city.nameAr}
+                                                     onSelect={(currentValue) => {
+                                                        setFormData({...formData, destination: currentValue});
+                                                        setOpenDestination(false);
+                                                     }}
+                                                     className="flex items-center gap-3 p-3 cursor-pointer hover:bg-indigo-50 transition-colors"
+                                                  >
+                                                     <span className="text-lg">{city.emoji}</span>
+                                                     <div className="flex flex-col">
+                                                        <span className="font-bold text-foreground">{city.nameAr}</span>
+                                                        <span className="text-[10px] text-gray-400 uppercase tracking-tighter">
+                                                           {city.category === 'beach' ? 'مدينة ساحلية' : 
+                                                            city.category === 'historical' ? 'مدينة تاريخية' : 
+                                                            city.category === 'desert' ? 'واحة / صحراء' : 'محافظة'}
+                                                        </span>
+                                                     </div>
+                                                     <Check
+                                                        className={cn(
+                                                           "mr-auto h-4 w-4 text-indigo-600",
+                                                           formData.destination === city.nameAr ? "opacity-100" : "opacity-0"
+                                                        )}
+                                                     />
+                                                  </CommandItem>
+                                               ))}
+                                            </CommandGroup>
+                                         </CommandList>
+                                      </Command>
+                                   </PopoverContent>
+                                </Popover>
                              </div>
 
                              <div className="space-y-2">
@@ -721,6 +784,283 @@ const CompanyTripFormDialog = ({ open, onOpenChange, onSuccess, initialData }: C
                        </div>
                     )}
 
+                    {activeTab === 'stay' && (
+                       <div className="space-y-8">
+                          <div className="flex items-center justify-between mb-4">
+                              <h4 className="text-sm font-black text-indigo-900 border-r-4 border-indigo-600 pr-3">تفاصيل الإقامة والفنادق</h4>
+                              <Button
+                                  type="button"
+                                  disabled={fetchingHotels}
+                                  onClick={async () => {
+                                     if (!formData.destination) {
+                                        toast({ title: "تنبيه", description: "يرجى تحديد الوجهة في التبويب الأساسي أولاً", variant: "destructive" });
+                                        return;
+                                     }
+                                     setFetchingHotels(true);
+                                     toast({ title: "جاري البحث...", description: "نبحث عن أفضل الفنادق في " + formData.destination });
+                                     try {
+                                        const res = await fetch(`${API_BASE_URL}/api/proxy/hotels?city=${encodeURIComponent(formData.destination)}`);
+                                        const data = await res.json();
+                                        if (data && data.length > 0) {
+                                           const hotels = data.slice(0, 6).map((h: any) => ({
+                                              name: h.name,
+                                              details: `${h.rating || 'N/A'} نجوم - السعر المتوقع: ${h.price || 'غير متوفر'}\n${h.description || h.address || ''}`,
+                                              images: h.photo?.images?.large?.url ? [h.photo.images.large.url] : [],
+                                              selected: false
+                                           }));
+                                           setSuggestedHotels(hotels);
+                                           setShowSuggestionsDialog(true);
+                                        } else {
+                                           toast({ title: "لم نجد نتائج", description: "عذراً لم نجد فنادق مقترحة، يمكنك إضافتها يدوياً", variant: "destructive" });
+                                        }
+                                     } catch(e) {
+                                        toast({ title: "خطأ", description: "حدث خطأ أثناء الاتصال بخدمة الذكاء الاصطناعي للفنادق", variant: "destructive" });
+                                     } finally {
+                                        setFetchingHotels(false);
+                                     }
+                                  }}
+                                  className="h-10 px-4 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-600 font-black text-xs transition-colors gap-2"
+                              >
+                                  {fetchingHotels ? <Loader2 className="w-4 h-4 animate-spin" /> : <Hotel className="w-4 h-4" />}
+                                  اقتراح فنادق ذكاء اصطناعي
+                              </Button>
+                          </div>
+
+                           <Dialog open={showSuggestionsDialog} onOpenChange={setShowSuggestionsDialog}>
+                              <DialogContent className="max-w-2xl font-cairo rounded-[2rem]">
+                                 <DialogHeader>
+                                    <DialogTitle className="text-xl font-black text-indigo-900 flex items-center gap-2">
+                                       <Hotel className="w-6 h-6" />
+                                       اقتراحات الفنادق في {formData.destination}
+                                    </DialogTitle>
+                                    <DialogDescription className="text-right">اختر الفنادق التي ترغب في إضافتها لرحلتك</DialogDescription>
+                                 </DialogHeader>
+                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[400px] overflow-y-auto p-2">
+                                    {suggestedHotels.map((hotel, idx) => (
+                                       <div 
+                                          key={idx} 
+                                          onClick={() => {
+                                             const newSuggest = [...suggestedHotels];
+                                             newSuggest[idx].selected = !newSuggest[idx].selected;
+                                             setSuggestedHotels(newSuggest);
+                                          }}
+                                          className={cn(
+                                             "relative group cursor-pointer border-2 rounded-2xl p-4 transition-all duration-300",
+                                             hotel.selected ? "border-indigo-500 bg-indigo-50" : "border-border hover:border-indigo-200 bg-card"
+                                          )}
+                                       >
+                                          {hotel.selected && (
+                                             <div className="absolute top-2 left-2 w-6 h-6 bg-indigo-600 text-white rounded-full flex items-center justify-center shadow-lg animate-in zoom-in">
+                                                <Check className="w-4 h-4" />
+                                             </div>
+                                          )}
+                                          <div className="aspect-video rounded-xl bg-muted overflow-hidden mb-3">
+                                             {hotel.images?.[0] ? (
+                                                <img src={hotel.images[0]} alt={hotel.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                             ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-gray-300">
+                                                   <ImageIcon className="w-8 h-8" />
+                                                </div>
+                                             )}
+                                          </div>
+                                          <h5 className="font-black text-indigo-950 text-sm line-clamp-1">{hotel.name}</h5>
+                                          <p className="text-[10px] text-gray-500 line-clamp-2 mt-1">{hotel.details}</p>
+                                       </div>
+                                    ))}
+                                 </div>
+                                 <div className="flex gap-4 mt-6">
+                                    <Button 
+                                       className="flex-1 h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 font-black"
+                                       onClick={() => {
+                                          const selected = suggestedHotels.filter(h => h.selected).map(h => ({
+                                             name: h.name,
+                                             details: h.details,
+                                             images: h.images
+                                          }));
+                                          if (selected.length === 0) {
+                                             toast({ title: "تنبيه", description: "يرجى اختيار فندق واحد على الأقل", variant: "destructive" });
+                                             return;
+                                          }
+                                          setFormData({...formData, stayDetails: [...(formData.stayDetails || []), ...selected]});
+                                          setShowSuggestionsDialog(false);
+                                          toast({ title: "تم الإضافة", description: `تمت إضافة ${selected.length} فنادق بنجاح` });
+                                       }}
+                                    >
+                                       إضافة المختار ({suggestedHotels.filter(h => h.selected).length})
+                                    </Button>
+                                    <Button variant="ghost" className="h-12 px-6 rounded-xl font-bold" onClick={() => setShowSuggestionsDialog(false)}>إلغاء</Button>
+                                 </div>
+                              </DialogContent>
+                           </Dialog>
+
+                          <AnimatePresence mode="popLayout">
+                             {(formData.stayDetails || []).map((stay: any, idx: number) => (
+                                <motion.div key={idx} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="relative bg-card border border-border rounded-3xl p-8 shadow-sm">
+                                   <div className="flex items-center justify-between mb-6">
+                                      <div className="flex items-center gap-4">
+                                         <div className="w-10 h-10 rounded-xl bg-blue-600 text-white font-black flex items-center justify-center shadow-lg shadow-blue-100">
+                                            <Hotel className="w-5 h-5" />
+                                         </div>
+                                         <h4 className="text-lg font-black text-foreground">مكان الإقامة {idx + 1}</h4>
+                                      </div>
+                                      <Button type="button" variant="ghost" className="h-10 w-10 p-0 text-gray-300 hover:text-rose-600 hover:bg-rose-50" onClick={() => removeArrayItem('stayDetails', idx)}>
+                                         <Trash2 className="w-4 h-4" />
+                                      </Button>
+                                   </div>
+                                   
+                                   <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+                                       {/* Image Management Section */}
+                                       <div className="md:col-span-4 space-y-4">
+                                          <div className="flex items-center justify-between">
+                                             <Label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">صور الفندق</Label>
+                                             <span className="text-[10px] font-bold text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full">
+                                                {stay.images?.length || 0} صور
+                                             </span>
+                                          </div>
+                                          
+                                          <div className="grid grid-cols-2 gap-3">
+                                             <AnimatePresence mode="popLayout">
+                                                {stay.images?.map((img: string, imgIdx: number) => (
+                                                   <motion.div 
+                                                      layout
+                                                      key={imgIdx}
+                                                      initial={{ opacity: 0, scale: 0.8 }}
+                                                      animate={{ opacity: 1, scale: 1 }}
+                                                      exit={{ opacity: 0, scale: 0.8 }}
+                                                      className="relative aspect-square rounded-[1.5rem] bg-muted overflow-hidden border border-border group"
+                                                   >
+                                                      <img src={img} alt="" className="w-full h-full object-cover" />
+                                                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                         <Button 
+                                                            type="button" 
+                                                            variant="destructive" 
+                                                            size="icon" 
+                                                            className="h-8 w-8 rounded-xl shadow-lg"
+                                                            onClick={() => {
+                                                               const newStay = [...(formData.stayDetails || [])];
+                                                               newStay[idx].images = (newStay[idx].images || []).filter((_: any, i: number) => i !== imgIdx);
+                                                               setFormData({ ...formData, stayDetails: newStay });
+                                                            }}
+                                                         >
+                                                            <Trash2 className="w-4 h-4" />
+                                                         </Button>
+                                                      </div>
+                                                   </motion.div>
+                                                ))}
+                                             </AnimatePresence>
+
+                                             {/* Add Image Button */}
+                                             <button 
+                                                type="button"
+                                                onClick={() => document.getElementById(`hotel-images-upload-${idx}`)?.click()}
+                                                className="aspect-square rounded-[1.5rem] border-2 border-dashed border-border hover:border-blue-400 hover:bg-blue-50 transition-all flex flex-col items-center justify-center gap-2 group text-muted-foreground hover:text-blue-600"
+                                             >
+                                                <div className="w-10 h-10 rounded-2xl bg-muted group-hover:bg-blue-100 flex items-center justify-center transition-colors">
+                                                   <Camera className="w-5 h-5" />
+                                                </div>
+                                                <span className="text-[9px] font-black uppercase tracking-tighter">إضافة صور</span>
+                                             </button>
+                                          </div>
+
+                                          <input 
+                                             id={`hotel-images-upload-${idx}`}
+                                             type="file" 
+                                             className="hidden" 
+                                             accept="image/*"
+                                             multiple
+                                             onChange={async (e) => {
+                                                const files = Array.from(e.target.files || []);
+                                                if (files.length === 0) return;
+
+                                                for (const file of files) {
+                                                   const validation = validateImageFile(file);
+                                                   if (!validation.valid) {
+                                                      toast({ title: "خطأ في الصورة", description: validation.message, variant: "destructive" });
+                                                      continue;
+                                                   }
+                                                   
+                                                   const reader = new FileReader();
+                                                   reader.onloadend = () => {
+                                                      const base64 = reader.result as string;
+                                                      const newStay = [...(formData.stayDetails || [])];
+                                                      newStay[idx].images = [...(newStay[idx].images || []), base64];
+                                                      setFormData({ ...formData, stayDetails: newStay });
+                                                   };
+                                                   reader.readAsDataURL(file);
+                                                }
+                                             }}
+                                          />
+
+                                          <div className="relative group">
+                                             <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300">
+                                                <ImageIcon className="w-3.5 h-3.5" />
+                                             </div>
+                                             <Input 
+                                                className="h-9 pr-9 pl-3 rounded-xl bg-muted/50 border-0 text-[10px] font-bold focus-visible:ring-1 focus-visible:ring-blue-400"
+                                                placeholder="أضف رابط صورة واضغط Enter..."
+                                                onKeyDown={(e) => {
+                                                   if (e.key === 'Enter') {
+                                                      e.preventDefault();
+                                                      const input = e.currentTarget;
+                                                      const url = input.value.trim();
+                                                      if (url) {
+                                                         const newStay = [...(formData.stayDetails || [])];
+                                                         newStay[idx].images = [...(newStay[idx].images || []), url];
+                                                         setFormData({ ...formData, stayDetails: newStay });
+                                                         input.value = '';
+                                                         toast({ title: "تمت الإضافة", description: "تمت إضافة الصورة بنجاح" });
+                                                      }
+                                                   }
+                                                }}
+                                             />
+                                          </div>
+                                       </div>
+
+                                       {/* Details Section */}
+                                       <div className="md:col-span-8 space-y-5">
+                                          <div className="space-y-1.5">
+                                             <Label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">اسم الفندق *</Label>
+                                             <Input 
+                                                className="h-12 rounded-2xl border-border shadow-sm font-black text-foreground focus:ring-2 focus:ring-blue-500/10"
+                                                value={stay.name} 
+                                                onChange={(e) => {
+                                                   const newStay = [...(formData.stayDetails || [])];
+                                                   newStay[idx] = { ...newStay[idx], name: e.target.value };
+                                                   setFormData({ ...formData, stayDetails: newStay });
+                                                }}
+                                                placeholder="مثال: فندق هيلتون، ريكسوس..."
+                                             />
+                                          </div>
+                                          <div className="space-y-1.5">
+                                             <Label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">التفاصيل / المميزات</Label>
+                                             <Textarea 
+                                                className="min-h-[140px] rounded-2xl border-border shadow-sm font-bold text-muted-foreground resize-none text-xs leading-relaxed"
+                                                value={stay.details} 
+                                                onChange={(e) => {
+                                                   const newStay = [...(formData.stayDetails || [])];
+                                                   newStay[idx] = { ...newStay[idx], details: e.target.value };
+                                                   setFormData({ ...formData, stayDetails: newStay });
+                                                }}
+                                                placeholder="أهم المميزات، نوع الغرفة، الوجبات، المرافق المتاحة..."
+                                             />
+                                          </div>
+                                       </div>
+                                   </div>
+                                </motion.div>
+                             ))}
+                          </AnimatePresence>
+                          <Button type="button" className="w-full h-16 rounded-[1.5rem] bg-blue-50 text-blue-600 hover:bg-blue-100 border-2 border-dashed border-blue-200 font-black text-sm gap-2 transition-all active:scale-[0.98]" onClick={() => {
+                              if (!formData.stayDetails) {
+                                  setFormData({...formData, stayDetails: [{ name: "", details: "", images: [] }]});
+                              } else {
+                                  addArrayItem('stayDetails', { name: "", details: "", images: [] });
+                              }
+                          }}>
+                             <Plus className="w-5 h-5" /> إضافة مكان إقامة يدوي
+                          </Button>
+                       </div>
+                    )}
+
                     {activeTab === 'images' && (
                        <div className="space-y-10">
                           <div>
@@ -802,16 +1142,7 @@ const CompanyTripFormDialog = ({ open, onOpenChange, onSuccess, initialData }: C
                                                       className="hidden" 
                                                       id={`transportation-upload-${idx}`}
                                                       accept="image/*"
-                                                      onChange={(e) => {
-                                                        const file = e.target.files?.[0];
-                                                        if (file) {
-                                                            const reader = new FileReader();
-                                                            reader.onloadend = () => {
-                                                                handleArrayChange('transportationImages', idx, reader.result as string);
-                                                            };
-                                                            reader.readAsDataURL(file);
-                                                        }
-                                                      }}
+                                                      onChange={(e) => handleImageUpload(e, idx, true)}
                                                    />
                                                    <Label htmlFor={`transportation-upload-${idx}`} className="block w-full py-2 bg-orange-50 text-orange-600 rounded-xl text-xs font-bold cursor-pointer hover:bg-orange-100 transition-colors">
                                                        رفع صورة من الجهاز

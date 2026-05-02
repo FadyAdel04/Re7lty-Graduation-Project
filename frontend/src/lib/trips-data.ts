@@ -1,5 +1,6 @@
 export interface Comment {
   id: string;
+  _id?: string; // Support MongoDB IDs
   author: string;
   authorId?: string;
   authorAvatar?: string;

@@ -182,7 +182,8 @@ const TripComments = ({
       
       setCommentsList((prev) =>
         prev.map((c) => {
-          if (c.id === parentCommentId) {
+          const currentId = c.id || c._id;
+          if (currentId === parentCommentId) {
             return {
               ...c,
               replies: [...(c.replies || []), addedReply],
@@ -232,7 +233,8 @@ const TripComments = ({
       
       setCommentsList((prev) =>
         prev.map((c) => {
-          if (c.id === commentId) {
+          const currentId = c.id || c._id;
+          if (currentId === commentId) {
             return {
               ...c,
               likes: result.likes,
@@ -273,8 +275,8 @@ const TripComments = ({
       if (!token) {
         throw new Error("يرجى إعادة تسجيل الدخول");
       }
-      await deleteTripComment(tripId, commentId, token);
-      setCommentsList((prev) => prev.filter((comment) => comment.id !== commentId));
+      await (isCorporate ? deleteCorporateTripComment(tripId, commentId, token) : deleteTripComment(tripId, commentId, token));
+      setCommentsList((prev) => prev.filter((comment) => (comment.id || comment._id) !== commentId));
       onCommentDeleted?.(commentId);
       toast({
         title: "تم حذف التعليق",
@@ -304,9 +306,9 @@ const TripComments = ({
     const parts = content.split(/(@\w+)/g);
     return parts.map((part, i) => {
       if (part.startsWith('@')) {
-        return <span key={i} className="text-indigo-600 font-bold">{part}</span>;
+        return <span key={`mention-${i}`} className="text-indigo-600 font-bold">{part}</span>;
       }
-      return part;
+      return <span key={`text-${i}`}>{part}</span>;
     });
   };
 
@@ -315,8 +317,8 @@ const TripComments = ({
       {/* Scrollable Comments Area */}
       <div className="flex-1 overflow-y-auto px-1 py-4 space-y-4 min-h-[300px]">
         {commentsList.length > 0 ? (
-          commentsList.map((comment) => (
-            <div key={comment.id} className="space-y-4">
+          commentsList.map((comment, idx) => (
+            <div key={comment.id || comment._id || `comment-${idx}`} className="space-y-4">
               <div
                 className={cn(
                   "flex gap-3 group transition-all animate-in fade-in slide-in-from-bottom-2",
@@ -346,10 +348,10 @@ const TripComments = ({
                             variant="ghost"
                             size="icon"
                             className="h-7 w-7 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 rounded-full"
-                            onClick={() => handleDeleteComment(comment.id)}
-                            disabled={deletingCommentId === comment.id}
+                            onClick={() => handleDeleteComment(comment._id || comment.id)}
+                            disabled={deletingCommentId === (comment._id || comment.id)}
                           >
-                            {deletingCommentId === comment.id ? (
+                            {deletingCommentId === (comment._id || comment.id) ? (
                               <Loader2 className="h-3 w-3 animate-spin" />
                             ) : (
                               <Trash2 className="h-3.5 w-3.5" />
@@ -367,8 +369,8 @@ const TripComments = ({
                     
                     <div className="flex items-center gap-3 mt-1">
                       <button
-                        onClick={() => handleLikeComment(comment.id)}
-                        disabled={pendingCommentId === comment.id}
+                        onClick={() => handleLikeComment(comment._id || comment.id)}
+                        disabled={pendingCommentId === (comment._id || comment.id)}
                         className={cn(
                           "flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-bold transition-all",
                           comment.viewerHasLiked 
@@ -381,7 +383,7 @@ const TripComments = ({
                       </button>
 
                       <button
-                        onClick={() => setReplyToId(replyToId === comment.id ? null : comment.id)}
+                        onClick={() => setReplyToId(replyToId === (comment._id || comment.id) ? null : (comment._id || comment.id))}
                         className="text-[10px] font-bold text-muted-foreground hover:text-primary transition-colors"
                       >
                         رد
@@ -390,7 +392,7 @@ const TripComments = ({
                   </div>
 
                   {/* Reply Input */}
-                  {replyToId === comment.id && (
+                  {replyToId === (comment._id || comment.id) && (
                     <div className="mt-3 space-y-2 animate-in slide-in-from-top-1">
                       <Textarea
                         placeholder={`الرد على ${comment.author}...`}
@@ -414,7 +416,7 @@ const TripComments = ({
                         <Button
                           size="sm"
                           disabled={!replyContent.trim() || isReplying}
-                          onClick={() => handleAddReply(comment.id)}
+                          onClick={() => handleAddReply(comment._id || comment.id)}
                           className="h-7 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-[10px] px-4 rounded-lg"
                         >
                           {isReplying ? <Loader2 className="h-3 w-3 animate-spin" /> : "نشر الرد"}
@@ -426,8 +428,8 @@ const TripComments = ({
                   {/* Render Nested Replies */}
                   {comment.replies && comment.replies.length > 0 && (
                     <div className="mt-4 space-y-4 mr-6 border-r-2 border-border pr-4">
-                      {comment.replies.map((reply: any) => (
-                        <div key={reply.id} className="flex gap-3">
+                      {comment.replies.map((reply: any, rIdx: number) => (
+                        <div key={reply.id || reply._id || `reply-${rIdx}`} className="flex gap-3">
                           <Avatar className="h-7 w-7 shrink-0 border-2 border-background shadow-sm">
                             {reply.authorAvatar && (
                               <AvatarImage src={reply.authorAvatar} alt={reply.author} />

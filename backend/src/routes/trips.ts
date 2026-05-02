@@ -965,7 +965,19 @@ router.post('/:id/comments', requireAuthStrict, async (req, res) => {
       ? { fullName: 'Demo User', imageUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde', username: 'demo_user' }
       : await clerkClient.users.getUser(userId);
 
-    const authorName = (clerkUser as any).fullName || (clerkUser as any).firstName || (clerkUser as any).username || 'مستخدم';
+    const dbUser = await User.findOne({ clerkId: userId });
+    let authorName = (clerkUser as any).fullName || (clerkUser as any).firstName || (clerkUser as any).username || 'مستخدم';
+    let authorAvatar = clerkUser.imageUrl;
+
+    // If the commenter is a company owner, use company identity
+    if (dbUser && dbUser.role === 'company_owner' && dbUser.companyId) {
+      const { CorporateCompany } = await import('../models/CorporateCompany');
+      const company = await CorporateCompany.findById(dbUser.companyId);
+      if (company) {
+        authorName = company.name;
+        if (company.logo) authorAvatar = company.logo;
+      }
+    }
 
     // We no longer block synchronously. We schedule a check.
     // Use a flag to track if we should schedule (after successful save)
@@ -977,7 +989,7 @@ router.post('/:id/comments', requireAuthStrict, async (req, res) => {
       _id: newCommentId,
       authorId: userId,
       author: authorName,
-      authorAvatar: clerkUser.imageUrl || undefined,
+      authorAvatar: authorAvatar || undefined,
       content,
       date: new Date().toISOString(),
       likes: 0,
@@ -996,7 +1008,7 @@ router.post('/:id/comments', requireAuthStrict, async (req, res) => {
           recipientId: trip.ownerId,
           actorId: userId,
           actorName: authorName,
-          actorImage: clerkUser.imageUrl,
+          actorImage: authorAvatar,
           type: "comment",
           message: `${authorName} علق على رحلتك "${trip.title}"`,
           tripId: trip._id,
@@ -1024,7 +1036,7 @@ router.post('/:id/comments', requireAuthStrict, async (req, res) => {
               recipientId: mentionedUser.clerkId,
               actorId: userId,
               actorName: authorName,
-              actorImage: clerkUser.imageUrl,
+              actorImage: authorAvatar,
               type: "tag", // using existing 'tag' type for mentions
               message: `${authorName} ذكرك في تعليق: "${content.substring(0, 40)}${content.length > 40 ? '...' : ''}"`,
               tripId: trip._id,
@@ -1079,14 +1091,26 @@ router.post('/:id/comments/:commentId/replies', requireAuthStrict, async (req, r
       ? { fullName: 'Demo User', imageUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde', username: 'demo_user' }
       : await clerkClient.users.getUser(userId);
 
-    const authorName = (clerkUser as any).fullName || (clerkUser as any).firstName || (clerkUser as any).username || 'مستخدم';
+    const dbUser = await User.findOne({ clerkId: userId });
+    let authorName = (clerkUser as any).fullName || (clerkUser as any).firstName || (clerkUser as any).username || 'مستخدم';
+    let authorAvatar = clerkUser.imageUrl;
+
+    // If the replier is a company owner, use company identity
+    if (dbUser && dbUser.role === 'company_owner' && dbUser.companyId) {
+      const { CorporateCompany } = await import('../models/CorporateCompany');
+      const company = await CorporateCompany.findById(dbUser.companyId);
+      if (company) {
+        authorName = company.name;
+        if (company.logo) authorAvatar = company.logo;
+      }
+    }
     
     const replyId = new mongoose.Types.ObjectId();
     const newReply = {
       _id: replyId,
       authorId: userId,
       author: authorName,
-      authorAvatar: clerkUser.imageUrl || undefined,
+      authorAvatar: authorAvatar || undefined,
       content: content.trim(),
       date: new Date().toISOString(),
       likes: 0,
@@ -1106,7 +1130,7 @@ router.post('/:id/comments/:commentId/replies', requireAuthStrict, async (req, r
           recipientId: parentComment.authorId,
           actorId: userId,
           actorName: authorName,
-          actorImage: clerkUser.imageUrl,
+          actorImage: authorAvatar,
           type: "comment", // Reuse comment type
           message: `${authorName} رد على تعليقك`,
           tripId: trip._id,

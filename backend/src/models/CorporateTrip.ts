@@ -13,6 +13,12 @@ const TransportationUnitSchema = new Schema({
     count: { type: Number, default: 1 }
 }, { _id: false });
 
+const StayDetailSchema = new Schema({
+    name: { type: String, required: true },
+    details: { type: String },
+    images: [{ type: String }]
+}, { _id: false });
+
 const SeatBookingSchema = new Schema({
     busIndex: { type: Number, default: 0 }, // 0-indexed reference to transportations array
     seatNumber: { type: String, required: true },
@@ -63,6 +69,7 @@ const CorporateTripSchema = new Schema({
     transportationType: { type: String, enum: ['bus-48', 'minibus-28', 'van-14', 'bus-50'], default: 'bus-48' },
     transportations: [TransportationUnitSchema],
     seatBookings: [SeatBookingSchema],
+    stayDetails: [StayDetailSchema],
     comments: [new Schema({
       authorId: { type: String, index: true },
       author: String,

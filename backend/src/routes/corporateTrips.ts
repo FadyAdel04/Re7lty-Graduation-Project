@@ -1003,12 +1003,25 @@ router.post('/:id/comments', ClerkExpressRequireAuth(), async (req: any, res: an
         if (!trip) return res.status(404).json({ error: 'Trip not found' });
 
         const clerkUser = await clerkClient.users.getUser(req.auth.userId);
+        const dbUser = await User.findOne({ clerkId: req.auth.userId });
+        
+        let authorName = clerkUser.fullName || clerkUser.username || 'Anonymous';
+        let authorAvatar = clerkUser.imageUrl;
+
+        // IMPROVED: If the commenter is a company owner, use company identity regardless of which trip it is
+        if (dbUser && dbUser.role === 'company_owner' && dbUser.companyId) {
+            const company = await CorporateCompany.findById(dbUser.companyId);
+            if (company) {
+                authorName = company.name;
+                if (company.logo) authorAvatar = company.logo;
+            }
+        }
         
         const newComment = {
             _id: new mongoose.Types.ObjectId(),
             authorId: req.auth.userId,
-            author: clerkUser.fullName || clerkUser.username || 'Anonymous',
-            authorAvatar: clerkUser.imageUrl,
+            author: authorName,
+            authorAvatar: authorAvatar,
             content,
             date: new Date().toISOString(),
             likes: 0,
@@ -1036,16 +1049,32 @@ router.post('/:id/comments/:commentId/replies', ClerkExpressRequireAuth(), async
         const trip = await CorporateTrip.findById(id);
         if (!trip) return res.status(404).json({ error: 'Trip not found' });
 
-        const comment = (trip.comments as any).id(commentId);
+        // Robust comment lookup (supports both _id and id)
+        const comment = (trip.comments as any).find((c: any) => 
+            (c._id && c._id.toString() === commentId) || (c.id && c.id === commentId)
+        );
         if (!comment) return res.status(404).json({ error: 'Comment not found' });
 
         const clerkUser = await clerkClient.users.getUser(req.auth.userId);
+        const dbUser = await User.findOne({ clerkId: req.auth.userId });
+
+        let authorName = clerkUser.fullName || clerkUser.username || 'Anonymous';
+        let authorAvatar = clerkUser.imageUrl;
+
+        // IMPROVED: If the replier is a company owner, use company identity
+        if (dbUser && dbUser.role === 'company_owner' && dbUser.companyId) {
+            const company = await CorporateCompany.findById(dbUser.companyId);
+            if (company) {
+                authorName = company.name;
+                if (company.logo) authorAvatar = company.logo;
+            }
+        }
 
         const newReply = {
             _id: new mongoose.Types.ObjectId(),
             authorId: req.auth.userId,
-            author: clerkUser.fullName || clerkUser.username || 'Anonymous',
-            authorAvatar: clerkUser.imageUrl,
+            author: authorName,
+            authorAvatar: authorAvatar,
             content,
             date: new Date().toISOString(),
             likes: 0,
@@ -1061,8 +1090,8 @@ router.post('/:id/comments/:commentId/replies', ClerkExpressRequireAuth(), async
             await createNotification({
                 recipientId: comment.authorId,
                 actorId: req.auth.userId,
-                actorName: clerkUser.fullName || 'مسافر',
-                actorImage: clerkUser.imageUrl,
+                actorName: authorName, // Use the determined author name (company or person)
+                actorImage: authorAvatar,
                 type: 'comment',
                 message: `رد على تعليقك: "${content.substring(0, 30)}..."`,
                 tripId: trip._id,
