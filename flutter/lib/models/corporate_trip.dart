@@ -73,6 +73,30 @@ class CorporateTrip {
       companyId: cId,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      '_id': id,
+      'title': title,
+      'slug': slug,
+      'destination': destination,
+      'duration': duration,
+      'price': price,
+      'rating': rating,
+      'images': images,
+      'shortDescription': shortDescription,
+      'fullDescription': fullDescription,
+      'itinerary': itinerary.map((i) => i.toJson()).toList(),
+      'includedServices': includedServices,
+      'excludedServices': excludedServices,
+      'meetingLocation': meetingLocation,
+      'companyId': {
+        'name': companyName,
+        'logo': companyLogo,
+        '_id': companyId,
+      },
+    };
+  }
 }
 
 class ItineraryDay {
@@ -95,5 +119,14 @@ class ItineraryDay {
       description: json['description'] ?? '',
       activities: List<String>.from(json['activities'] ?? []),
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'day': day,
+      'title': title,
+      'description': description,
+      'activities': activities,
+    };
   }
 }

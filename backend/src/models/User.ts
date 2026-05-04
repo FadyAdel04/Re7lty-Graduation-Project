@@ -36,6 +36,9 @@ const UserSchema = new Schema({
   isOnboarded: { type: Boolean, default: false },
   companyId: { type: Schema.Types.ObjectId, ref: "CorporateCompany" }, // Linked company profile
 
+  // Wallet
+  walletBalance: { type: Number, default: 0 },
+
   // Subscription
   subscription: {
     plan: { type: String, enum: ["free_trial", "basic", "premium", "enterprise"], default: "free_trial" },

@@ -1,6 +1,9 @@
+import 'package:dio/dio.dart';
 import '../models/user.dart';
 import '../models/trip.dart';
+import '../models/notification.dart';
 import 'api_service.dart';
+import '../core/exceptions.dart';
 
 class UserService {
   final ApiService _apiService;
@@ -8,10 +11,15 @@ class UserService {
   UserService(this._apiService);
 
   Future<User> getUserById(String id) async {
-    // If id is 'me', we can either use a token or for now use a default ID for demo
-    final path = id == 'me' ? '/users/me' : '/users/$id';
-    final response = await _apiService.get(path);
-    return User.fromJson(response.data);
+    try {
+      final path = id == 'me' ? '/users/me' : '/users/$id';
+      final response = await _apiService.get(path);
+      return User.fromJson(response.data);
+    } on DioException catch (e) {
+      throw handleDioError(e);
+    } catch (e) {
+      throw ServerException('خطأ في تحميل بيانات المستخدم');
+    }
   }
 
   Future<void> toggleFollow(String userId) async {
@@ -60,6 +68,19 @@ class UserService {
     } catch (e) {
       return false;
     }
+  }
+  Future<List<AppNotification>> getNotifications() async {
+    final response = await _apiService.get('/notifications');
+    final List items = response.data is List ? response.data : (response.data['items'] ?? []);
+    return items.map((e) => AppNotification.fromJson(e)).toList();
+  }
+
+  Future<void> markNotificationAsRead(String id) async {
+    await _apiService.post('/notifications/$id/read', data: {});
+  }
+
+  Future<void> markAllNotificationsAsRead() async {
+    await _apiService.post('/notifications/read-all', data: {});
   }
 }
 

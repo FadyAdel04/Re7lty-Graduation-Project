@@ -990,7 +990,7 @@ export function createApp() {
                             num_reviews: numReviews,
                             review_word: parseFloat(rating) >= 4.5 ? 'ممتاز' : parseFloat(rating) >= 4 ? 'رائع' : 'جيد',
                             price,
-                            website: '', 
+                            website: '',
                             star_rating: Math.floor(parseFloat(rating)) || 4,
                             is_free_cancellable: h.primaryInfo?.includes('Free cancellation') || false,
                             distance_to_center: '',
@@ -1063,12 +1063,12 @@ export function createApp() {
 
     // RapidAPI proxies to prevent CORS issues on the frontend
     const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY || '2ed4a558c2mshe06fddea2ff2dd5p196f5ejsne6f896119af2';
-    
+
     app.get("/api/proxy/search", async (req, res) => {
         try {
             const { query } = req.query;
             console.log(`[Search Proxy] Dual-search for: ${query}`);
-            
+
             let taLocationId: string | null = null;
             let taName: string | null = null;
             let taLat: string | null = null;
@@ -1135,7 +1135,7 @@ export function createApp() {
                     }
                 }]
             });
-        } catch(error: any) { 
+        } catch (error: any) {
             console.error("Proxy search error:", error.message);
             res.status(500).json({ error: error.message });
         }
@@ -1182,7 +1182,7 @@ export function createApp() {
                     }
                 }
             }
-            
+
             const results = Array.isArray(rawData) ? rawData.filter((item: any) => item && (item.name || item.title)) : [];
 
             console.log(`[Attractions Proxy] Found ${results.length} attractions`);
@@ -1215,7 +1215,7 @@ export function createApp() {
             });
 
             res.json({ data: normalized });
-        } catch(error: any) { 
+        } catch (error: any) {
             console.error("Proxy attractions error:", error.message);
             res.status(500).json({ error: error.message });
         }
@@ -1262,7 +1262,7 @@ export function createApp() {
                     }
                 }
             }
-            
+
             const results = Array.isArray(rawData) ? rawData.filter((item: any) => item && (item.name || item.title)) : [];
 
             console.log(`[Restaurants Proxy] Found ${results.length} restaurants`);
@@ -1296,7 +1296,7 @@ export function createApp() {
             });
 
             res.json({ data: normalized });
-        } catch(error: any) { 
+        } catch (error: any) {
             console.error("Proxy restaurants error:", error.message);
             res.status(500).json({ error: error.message });
         }
@@ -1305,17 +1305,17 @@ export function createApp() {
     app.get("/api/proxy/hotels-by-location", async (req, res) => {
         try {
             const { latitude, longitude, checkIn, checkOut } = req.query;
-            
+
             if (!latitude || !longitude || !checkIn || !checkOut) {
                 return res.status(400).json({ error: "Missing required parameters: latitude, longitude, checkIn, checkOut" });
             }
 
             const RAPID_API_KEY = process.env.RAPIDAPI_KEY || '8887399421msh0d6d70328fb0fa5p1da174jsn2a02cf1627bc';
-            
+
             const tripAdvisorUrl = `https://tripadvisor16.p.rapidapi.com/api/v1/hotels/searchHotelsByLocation?latitude=${latitude}&longitude=${longitude}&checkIn=${checkIn}&checkOut=${checkOut}`;
-            
+
             console.log(`[Proxy] Searching TripAdvisor hotels near ${latitude}, ${longitude}`);
-            
+
             const response = await axios.get(tripAdvisorUrl, {
                 headers: {
                     'X-RapidAPI-Key': RAPID_API_KEY,
@@ -1323,9 +1323,9 @@ export function createApp() {
                 },
                 timeout: 15000
             });
-            
+
             const hotelList = response.data?.data?.data || [];
-            
+
             const normalized = hotelList.map((h: any) => {
                 // Clean title
                 const rawTitle = h.title || 'فندق';
@@ -1381,9 +1381,9 @@ export function createApp() {
                     is_free_cancellable: h.primaryInfo?.includes('Free cancellation') || false,
                 };
             });
-            
+
             res.json({ data: normalized });
-        } catch(error: any) { 
+        } catch (error: any) {
             console.error("Proxy hotels-by-location error:", error.message);
             res.status(500).json({ error: error.message });
         }

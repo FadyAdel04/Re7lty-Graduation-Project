@@ -89,12 +89,12 @@ router.get("/cloudinary-signature", requireAuthStrict, (req, res) => {
 async function getActorSnapshot(userId: string) {
   // Handle demo user bypass
   if (userId.startsWith('user_2r9nE5R8r7TzK6pM9wL1vQ3xH4j')) {
-    return { 
-      actorName: "Demo User", 
-      actorImage: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde" 
+    return {
+      actorName: "Demo User",
+      actorImage: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde"
     };
   }
-  
+
   const user = await clerkClient.users.getUser(userId);
   const actorName = user.fullName || user.firstName || user.username || "مستخدم";
   const actorImage = user.imageUrl;
@@ -157,7 +157,7 @@ async function getActorSnapshot(userId: string) {
  */
 router.get('/', async (req, res) => {
   try {
-    const { q, city, season, type, authorId, sort = 'recent', page = '1', limit = '20' } = req.query as any;
+    const { q, city, season, type, authorId, postType, sort = 'recent', page = '1', limit = '20' } = req.query as any;
     const filter: any = {};
     const authInfo = getAuth(req);
     const viewerId = authInfo.userId || undefined;
@@ -172,6 +172,10 @@ router.get('/', async (req, res) => {
       const users = await User.find({ profileType: type === 'company' ? 'company' : 'user' }).select('clerkId');
       const ownerIds = users.map(u => u.clerkId);
       filter.ownerId = { $in: ownerIds };
+    }
+
+    if (postType) {
+      filter.postType = postType;
     }
 
     // Enhanced search - search in title, destination, city, description, and author
@@ -413,7 +417,7 @@ router.post('/', requireAuthStrict, async (req, res) => {
 
     // Fetch user details from Clerk to get author information
     let clerkUser;
-    
+
     // Check if it's a demo user
     if (userId.startsWith('user_2r9nE5R8r7TzK6pM9wL1vQ3xH4j')) {
       clerkUser = {
@@ -961,7 +965,7 @@ router.post('/:id/comments', requireAuthStrict, async (req, res) => {
       return res.status(404).json({ error: 'Trip not found' });
     }
 
-    const clerkUser = (req.headers['x-demo-user'] && process.env.NODE_ENV !== 'production') 
+    const clerkUser = (req.headers['x-demo-user'] && process.env.NODE_ENV !== 'production')
       ? { fullName: 'Demo User', imageUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde', username: 'demo_user' }
       : await clerkClient.users.getUser(userId);
 

@@ -24,7 +24,7 @@ router.post("/", requireAuthStrict, async (req, res) => {
         if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
         const user = await clerkClient.users.getUser(userId);
-        const { tripId, numberOfPeople, bookingDate, userPhone, specialRequests, firstName, lastName, email, selectedSeats } = req.body;
+        const { tripId, numberOfPeople, bookingDate, userPhone, specialRequests, firstName, lastName, email, selectedSeats, paymentMethod } = req.body;
 
         if (!tripId || !numberOfPeople || !bookingDate || !userPhone) {
             return res.status(400).json({ error: "Missing required fields" });
@@ -90,6 +90,18 @@ router.post("/", requireAuthStrict, async (req, res) => {
         const commissionAmount = parseFloat((totalPrice * 0.05).toFixed(2));
         const netAmount = parseFloat((totalPrice - commissionAmount).toFixed(2));
 
+        // Wallet Payment Logic
+        let paymentStatus: "pending" | "paid" = "pending";
+        if (paymentMethod === 'wallet') {
+            const userProfile = await User.findOne({ clerkId: userId });
+            if (!userProfile || (userProfile.walletBalance || 0) < totalPrice) {
+                return res.status(400).json({ error: "رصيد المحفظة غير كافٍ" });
+            }
+            userProfile.walletBalance = (userProfile.walletBalance || 0) - totalPrice;
+            await userProfile.save();
+            paymentStatus = "paid";
+        }
+
         const userName = (firstName && lastName) ? `${firstName} ${lastName}` : ((user.firstName ? user.firstName + " " : "") + (user.lastName || "") || "User");
 
         const timestamp = Date.now().toString(36).toUpperCase();
@@ -101,7 +113,8 @@ router.post("/", requireAuthStrict, async (req, res) => {
             tripId: trip._id, tripTitle: trip.title, tripDestination: trip.destination, tripPrice: trip.price,
             companyId: company._id, companyName: company.name, numberOfPeople,
             bookingDate: new Date(bookingDate), specialRequests: specialRequests || "",
-            totalPrice, commissionAmount, netAmount, status: "pending",
+            totalPrice, commissionAmount, netAmount, status: paymentStatus === "paid" ? "accepted" : "pending",
+            paymentStatus: paymentStatus, paymentMethod: paymentMethod || "card",
             selectedSeats: selectedSeats || [], transportationType: trip.transportationType || 'bus-48',
             seatNumber: (selectedSeats && selectedSeats.length > 0) ? selectedSeats[0] : undefined,
             couponId: (couponId as any) || undefined, discountApplied

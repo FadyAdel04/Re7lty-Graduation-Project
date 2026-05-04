@@ -25,6 +25,9 @@ class Trip {
   final bool isAIGenerated;
   final String postType;
   final bool isLoved;
+  final bool isSaved;
+  final String authorBadge;
+  final bool viewerFollowsAuthor;
 
   Trip({
     required this.id,
@@ -53,6 +56,9 @@ class Trip {
     this.isAIGenerated = false,
     this.postType = 'detailed',
     this.isLoved = false,
+    this.isSaved = false,
+    this.authorBadge = 'none',
+    this.viewerFollowsAuthor = false,
   });
 
   factory Trip.fromJson(Map<String, dynamic> json) {
@@ -95,6 +101,9 @@ class Trip {
       isAIGenerated: json['isAIGenerated'] ?? false,
       postType: json['postType'] ?? 'detailed',
       isLoved: json['viewerLoved'] ?? false,
+      isSaved: json['viewerSaved'] ?? false,
+      authorBadge: json['authorBadge'] ?? 'none',
+      viewerFollowsAuthor: json['viewerFollowsAuthor'] ?? false,
     );
   }
 
@@ -123,6 +132,7 @@ class Trip {
       'ownerId': ownerId,
       'isAIGenerated': isAIGenerated,
       'postType': postType,
+      'isSaved': isSaved,
     };
   }
 }
@@ -134,6 +144,7 @@ class Activity {
   final double? lat;
   final double? lng;
   final int day;
+  final String? note;
 
   Activity({
     required this.name,
@@ -142,6 +153,7 @@ class Activity {
     this.lat,
     this.lng,
     required this.day,
+    this.note,
   });
 
   factory Activity.fromJson(Map<String, dynamic> json) {
@@ -152,6 +164,7 @@ class Activity {
       lat: json['coordinates']?['lat']?.toDouble(),
       lng: json['coordinates']?['lng']?.toDouble(),
       day: json['day'] ?? 1,
+      note: json['note'],
     );
   }
 
@@ -162,6 +175,7 @@ class Activity {
       'videos': videos,
       'coordinates': {'lat': lat, 'lng': lng},
       'day': day,
+      'note': note,
     };
   }
 }

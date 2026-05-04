@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:io';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../core/exceptions.dart';
 
 class ApiService {
   late Dio _dio;
@@ -13,12 +14,15 @@ class ApiService {
     ? dotenv.get('API_BASE_URL_ANDROID', fallback: 'http://10.0.2.2:5000/api') 
     : dotenv.get('API_BASE_URL_IOS', fallback: 'http://localhost:5000/api');
 
+  String? _token;
+  Future<String?> Function()? tokenGetter;
+
   ApiService() {
     _dio = Dio(BaseOptions(
       baseUrl: baseUrl,
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 20),
-      sendTimeout: const Duration(seconds: 15),
+      connectTimeout: const Duration(seconds: 15),
+      receiveTimeout: const Duration(seconds: 30),
+      sendTimeout: const Duration(seconds: 20),
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -26,31 +30,37 @@ class ApiService {
     ));
 
     _dio.interceptors.add(InterceptorsWrapper(
-      onRequest: (options, handler) {
+      onRequest: (options, handler) async {
+        // If we have a token getter, get a fresh token before each request
+        if (tokenGetter != null) {
+          final freshToken = await tokenGetter!();
+          if (freshToken != null) {
+            print('🔑 ApiService: Using fresh token from getter (starts with: ${freshToken.substring(0, 10)}...)');
+            options.headers['Authorization'] = 'Bearer $freshToken';
+          } else {
+            print('⚠️ ApiService: tokenGetter returned null');
+          }
+        } else if (_token != null) {
+          print('🔑 ApiService: Using stored token');
+          options.headers['Authorization'] = 'Bearer $_token';
+        } else {
+          print('⚠️ ApiService: No token available for request to ${options.path}');
+        }
         return handler.next(options);
       },
       onResponse: (response, handler) {
         return handler.next(response);
       },
       onError: (DioException e, handler) {
-        if (e.type == DioExceptionType.connectionTimeout) {
-          print('⚠️ API Timeout: Could not connect to $baseUrl — is the server running?');
-        } else if (e.type == DioExceptionType.receiveTimeout) {
-          print('⚠️ API Receive Timeout: Server took too long to respond.');
-        } else {
-          print('❌ API Error [${e.type.name}]: ${e.message}');
-        }
-        return handler.next(e);
+        final appException = handleDioError(e);
+        print('❌ ApiService Error: ${appException.message}');
+        return handler.next(e); // Still pass the original error for Dio compatibility if needed
       },
     ));
   }
 
   void setToken(String? token) {
-    if (token != null && token.isNotEmpty) {
-      _dio.options.headers['Authorization'] = 'Bearer $token';
-    } else {
-      _dio.options.headers.remove('Authorization');
-    }
+    _token = token;
   }
 
   Future<Response> get(String path, {Map<String, dynamic>? queryParameters}) async {

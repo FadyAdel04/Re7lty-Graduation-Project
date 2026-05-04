@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'dart:io';
+import 'dart:convert';
 import 'package:image_picker/image_picker.dart' as picker;
-import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' hide ImageSource;
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mb hide ImageSource;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../../providers/trip_draft_provider.dart';
+import '../../providers/trip_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../theme/app_colors.dart';
 
@@ -20,6 +22,92 @@ class CreateTripPage extends ConsumerStatefulWidget {
 
 class _CreateTripPageState extends ConsumerState<CreateTripPage> {
   int _currentStep = 1; // 1-indexed
+  bool _isPublishing = false;
+
+  Future<void> _publishTrip(TripPostType type, [Map<String, dynamic>? extraData]) async {
+    if (_isPublishing) return;
+    setState(() => _isPublishing = true);
+
+    try {
+      final tripService = ref.read(tripServiceProvider);
+      Map<String, dynamic> payload = {};
+
+      if (type == TripPostType.detailed) {
+        final draft = ref.read(tripDraftProvider);
+        String? base64Image;
+        if (draft.coverImageUrl.isNotEmpty) {
+          try {
+            final file = File(draft.coverImageUrl);
+            if (await file.exists()) {
+              final bytes = await file.readAsBytes();
+              final ext = draft.coverImageUrl.split('.').last.toLowerCase();
+              final mimeType = ext == 'png' ? 'image/png' : 'image/jpeg';
+              base64Image = 'data:$mimeType;base64,${base64Encode(bytes)}';
+            }
+          } catch (e) {
+            print('Error reading image: $e');
+          }
+        }
+        
+        payload = {
+          'title': draft.title.isNotEmpty ? draft.title : 'رحلة مفصلة',
+          'destination': draft.destination,
+          'duration': draft.duration,
+          'budget': draft.budget,
+          'season': draft.season,
+          'description': draft.description,
+          'postType': 'detailed',
+          'activities': draft.activities.map((a) => {
+            'name': a.name,
+            'coordinates': {'lat': a.lat, 'lng': a.lng},
+          }).toList(),
+          'days': draft.days.map((d) => {
+            'title': d.title,
+            'activities': d.activityIndices,
+          }).toList(),
+          'image': base64Image ?? 'https://images.unsplash.com/photo-1503220317375-aaad61436b1b?w=500',
+        };
+      } else if (type == TripPostType.quick) {
+        payload = {
+           'title': extraData?['title'] ?? 'لحظات سريعة',
+           'description': extraData?['description'] ?? '',
+           'destination': extraData?['destination'] ?? '',
+           'postType': 'quick',
+           'image': extraData?['image'] ?? 'https://images.unsplash.com/photo-1527631746610-bca00a040d60?w=500',
+        };
+      } else if (type == TripPostType.ask) {
+        payload = {
+           'title': extraData?['title'] ?? 'سؤال',
+           'description': extraData?['description'] ?? '',
+           'destination': extraData?['destination'] ?? '',
+           'postType': 'ask',
+        };
+      }
+
+      await tripService.createTrip(payload);
+      
+      // Refresh feed
+      ref.invalidate(feedProvider);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم النشر بنجاح!'), backgroundColor: Colors.green),
+        );
+        ref.read(tripCreationTypeProvider.notifier).state = null;
+        context.pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('حدث خطأ أثناء النشر: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isPublishing = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -70,13 +158,26 @@ class _CreateTripPageState extends ConsumerState<CreateTripPage> {
       case TripPostType.detailed:
         return _DetailedTripWorkflow(
           step: _currentStep,
-          onNext: () => setState(() => _currentStep++),
+          isPublishing: _isPublishing,
+          onNext: () {
+            if (_currentStep == 4) {
+              _publishTrip(TripPostType.detailed);
+            } else {
+              setState(() => _currentStep++);
+            }
+          },
           onPrev: () => setState(() => _currentStep--),
         );
       case TripPostType.quick:
-        return const _QuickPostForm();
+        return _QuickPostForm(
+          isPublishing: _isPublishing,
+          onPublish: (data) => _publishTrip(TripPostType.quick, data),
+        );
       case TripPostType.ask:
-        return const _AskPostForm();
+        return _AskPostForm(
+          isPublishing: _isPublishing,
+          onPublish: (data) => _publishTrip(TripPostType.ask, data),
+        );
     }
   }
 }
@@ -87,11 +188,13 @@ class _DetailedTripWorkflow extends ConsumerWidget {
   final int step;
   final VoidCallback onNext;
   final VoidCallback onPrev;
+  final bool isPublishing;
 
   const _DetailedTripWorkflow({
     required this.step,
     required this.onNext,
     required this.onPrev,
+    required this.isPublishing,
   });
 
   @override
@@ -110,6 +213,7 @@ class _DetailedTripWorkflow extends ConsumerWidget {
           step: step,
           onNext: onNext,
           onPrev: onPrev,
+          isPublishing: isPublishing,
         ),
       ],
     );
@@ -317,11 +421,13 @@ class _WorkflowNavigation extends StatelessWidget {
   final int step;
   final VoidCallback onNext;
   final VoidCallback onPrev;
+  final bool isPublishing;
 
   const _WorkflowNavigation({
     required this.step,
     required this.onNext,
     required this.onPrev,
+    this.isPublishing = false,
   });
 
   @override
@@ -337,7 +443,7 @@ class _WorkflowNavigation extends StatelessWidget {
           if (step > 1)
             Expanded(
               child: OutlinedButton(
-                onPressed: onPrev,
+                onPressed: isPublishing ? null : onPrev,
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
@@ -349,14 +455,16 @@ class _WorkflowNavigation extends StatelessWidget {
           Expanded(
             flex: 2,
             child: ElevatedButton(
-              onPressed: onNext,
+              onPressed: isPublishing ? null : onNext,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.orange,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
               ),
-              child: Text(step == 4 ? 'نشر الرحلة' : 'التالي'),
+              child: isPublishing
+                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : Text(step == 4 ? 'نشر الرحلة' : 'التالي'),
             ),
           ),
         ],
@@ -373,6 +481,58 @@ class _StepMapActivities extends ConsumerStatefulWidget {
 }
 
 class _StepMapActivitiesState extends ConsumerState<_StepMapActivities> {
+  mb.MapboxMap? _mapController;
+  mb.PointAnnotationManager? _pointManager;
+  int? _selectedActivityIndex;
+
+  void _onMapCreated(mb.MapboxMap controller) async {
+    _mapController = controller;
+    _pointManager = await controller.annotations.createPointAnnotationManager();
+    _updateMarkers();
+  }
+
+  void _updateMarkers() async {
+    if (_pointManager == null) return;
+    final draft = ref.read(tripDraftProvider);
+    final annotations = <mb.PointAnnotationOptions>[];
+
+    for (int i = 0; i < draft.activities.length; i++) {
+      final act = draft.activities[i];
+      if (act.lat != null && act.lng != null) {
+        annotations.add(mb.PointAnnotationOptions(
+          geometry: mb.Point(coordinates: mb.Position(act.lng!, act.lat!)),
+          textField: "${i + 1}",
+          textColor: Colors.white.value,
+          iconImage: "rocket-15",
+          iconColor: Colors.blue.value,
+          textSize: 14.0,
+        ));
+      }
+    }
+    _pointManager!.deleteAll();
+    if (annotations.isNotEmpty) {
+      _pointManager!.createMulti(annotations);
+    }
+  }
+
+  void _onMapTap(mb.MapContentGestureContext context) {
+    if (_selectedActivityIndex == null) return;
+    
+    final point = context.point;
+    final draft = ref.read(tripDraftProvider);
+    final notifier = ref.read(tripDraftProvider.notifier);
+    
+    final newActivities = List<DraftActivity>.from(draft.activities);
+    newActivities[_selectedActivityIndex!] = DraftActivity(
+      name: newActivities[_selectedActivityIndex!].name,
+      lat: point.coordinates.lat.toDouble(),
+      lng: point.coordinates.lng.toDouble(),
+    );
+    
+    notifier.setActivities(newActivities);
+    _updateMarkers();
+  }
+
   @override
   Widget build(BuildContext context) {
     final draft = ref.watch(tripDraftProvider);
@@ -385,28 +545,34 @@ class _StepMapActivitiesState extends ConsumerState<_StepMapActivities> {
           height: 300,
           child: Stack(
             children: [
-              MapWidget(
-                key: ValueKey("create_trip_mapbox"),
-                cameraOptions: CameraOptions(
-                  center: Point(coordinates: Position(31.2357, 30.0444)),
+              mb.MapWidget(
+                key: const ValueKey("create_trip_mapbox"),
+                cameraOptions: mb.CameraOptions(
+                  center: mb.Point(coordinates: mb.Position(31.2357, 30.0444)),
                   zoom: 10.0,
                 ),
-                styleUri: MapboxStyles.OUTDOORS,
-                onTapListener: (latLng) {
-                  // In mapbox_maps_flutter, onMapTap gives a Point
-                  // For now, let's add a placeholder activity to show it works
-                  final newActivities = List<DraftActivity>.from(draft.activities)
-                    ..add(DraftActivity(name: 'موقع جديد', lat: 30.0444, lng: 31.2357));
-                  notifier.setActivities(newActivities);
-                },
+                styleUri: mb.MapboxStyles.OUTDOORS,
+                onMapCreated: _onMapCreated,
+                onTapListener: _onMapTap,
               ),
               Positioned(
                 top: 10,
                 right: 10,
+                left: 10,
                 child: Container(
                   padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
-                  child: const Text('اضغط على الخريطة لإضافة معلم', style: TextStyle(fontSize: 10)),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.9), 
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
+                  ),
+                  child: Text(
+                    _selectedActivityIndex == null 
+                        ? 'اختر نشاطاً من القائمة ثم اضغط على الخريطة لتحديد موقعه' 
+                        : 'جاري تحديد موقع: ${draft.activities[_selectedActivityIndex!].name}',
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blue),
+                    textAlign: TextAlign.center,
+                  ),
                 ),
               ),
             ],
@@ -414,40 +580,75 @@ class _StepMapActivitiesState extends ConsumerState<_StepMapActivities> {
         ),
         // List of activities
         Expanded(
-          child: ReorderableListView(
+          child: ListView.builder(
             padding: const EdgeInsets.all(16),
-            onReorder: (oldIndex, newIndex) {
-              if (newIndex > oldIndex) newIndex -= 1;
-              final items = List<DraftActivity>.from(draft.activities);
-              final item = items.removeAt(oldIndex);
-              items.insert(newIndex, item);
-              notifier.setActivities(items);
-            },
-            header: const Padding(
-              padding: EdgeInsets.only(bottom: 16),
-              child: Text('الأنشطة المحددة', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            ),
-            children: [
-              for (int i = 0; i < draft.activities.length; i++)
-                Card(
-                  key: ValueKey('activity_$i'),
-                  margin: const EdgeInsets.only(bottom: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                  child: ListTile(
-                    leading: CircleAvatar(backgroundColor: Colors.orange[100], child: Text('${i + 1}', style: const TextStyle(color: Colors.orange))),
-                    title: TextFormField(
-                      initialValue: draft.activities[i].name,
-                      onChanged: (v) {
-                        final items = List<DraftActivity>.from(draft.activities);
-                        items[i].name = v;
-                        notifier.setActivities(items);
-                      },
-                      decoration: const InputDecoration(hintText: 'اسم المعلم / النشاط', border: InputBorder.none),
+            itemCount: draft.activities.length + 1,
+            itemBuilder: (context, i) {
+              if (i == draft.activities.length) {
+                return Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      final newActivities = List<DraftActivity>.from(draft.activities)
+                        ..add(DraftActivity(name: 'نشاط جديد ${draft.activities.length + 1}'));
+                      notifier.setActivities(newActivities);
+                      setState(() => _selectedActivityIndex = newActivities.length - 1);
+                    },
+                    icon: const Icon(Icons.add),
+                    label: const Text('إضافة نشاط جديد'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue[50],
+                      foregroundColor: Colors.blue,
+                      elevation: 0,
                     ),
-                    trailing: const Icon(Icons.drag_handle),
+                  ),
+                );
+              }
+
+              final isSelected = _selectedActivityIndex == i;
+              return Card(
+                key: ValueKey('activity_$i'),
+                margin: const EdgeInsets.only(bottom: 12),
+                elevation: isSelected ? 4 : 1,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                  side: isSelected ? const BorderSide(color: Colors.blue, width: 2) : BorderSide.none,
+                ),
+                child: ListTile(
+                  onTap: () => setState(() => _selectedActivityIndex = i),
+                  leading: CircleAvatar(
+                    backgroundColor: draft.activities[i].lat != null ? Colors.blue[100] : Colors.grey[200],
+                    child: Text('${i + 1}', style: TextStyle(color: draft.activities[i].lat != null ? Colors.blue : Colors.grey)),
+                  ),
+                  title: TextFormField(
+                    initialValue: draft.activities[i].name,
+                    onChanged: (v) {
+                      final items = List<DraftActivity>.from(draft.activities);
+                      items[i].name = v;
+                      notifier.setActivities(items);
+                    },
+                    decoration: const InputDecoration(hintText: 'اسم المعلم / النشاط', border: InputBorder.none),
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (draft.activities[i].lat != null)
+                        const Icon(Icons.location_on, color: Colors.blue, size: 20),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                        onPressed: () {
+                          final items = List<DraftActivity>.from(draft.activities);
+                          items.removeAt(i);
+                          notifier.setActivities(items);
+                          if (_selectedActivityIndex == i) _selectedActivityIndex = null;
+                          _updateMarkers();
+                        },
+                      ),
+                    ],
                   ),
                 ),
-            ],
+              );
+            },
           ),
         ),
       ],
@@ -566,16 +767,179 @@ class _StepFinalReview extends ConsumerWidget {
   }
 }
 
-class _QuickPostForm extends StatelessWidget {
-  const _QuickPostForm();
+class _QuickPostForm extends StatefulWidget {
+  final Function(Map<String, dynamic>) onPublish;
+  final bool isPublishing;
+  const _QuickPostForm({super.key, required this.onPublish, required this.isPublishing});
+
   @override
-  Widget build(BuildContext context) => const Center(child: Text('المنشور السريع قريباً'));
+  State<_QuickPostForm> createState() => _QuickPostFormState();
 }
 
-class _AskPostForm extends StatelessWidget {
-  const _AskPostForm();
+class _QuickPostFormState extends State<_QuickPostForm> {
+  String description = '';
+  File? _selectedImage;
+  String? _base64Image;
+
+  Future<void> _pickImage() async {
+    final pickerObj = picker.ImagePicker();
+    final pickedFile = await pickerObj.pickImage(source: picker.ImageSource.gallery);
+    if (pickedFile != null) {
+      final bytes = await pickedFile.readAsBytes();
+      final ext = pickedFile.path.split('.').last.toLowerCase();
+      final mimeType = ext == 'png' ? 'image/png' : 'image/jpeg';
+      setState(() {
+        _selectedImage = File(pickedFile.path);
+        _base64Image = 'data:$mimeType;base64,${base64Encode(bytes)}';
+      });
+    }
+  }
+
   @override
-  Widget build(BuildContext context) => const Center(child: Text('السؤال والاستفسار قريباً'));
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(24.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text('شارك لحظة سريعة', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 24),
+          TextFormField(
+            maxLines: 5,
+            onChanged: (v) => setState(() => description = v),
+            decoration: InputDecoration(
+              hintText: 'بم تفكر؟ شارك تفاصيل سريعة...',
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: Colors.grey[200]!)),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: Colors.grey[200]!)),
+            ),
+          ),
+          const SizedBox(height: 16),
+          if (_selectedImage != null)
+            Stack(
+              children: [
+                Container(
+                  height: 150,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(15),
+                    image: DecorationImage(
+                      image: FileImage(_selectedImage!),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () => setState(() {
+                      _selectedImage = null;
+                      _base64Image = null;
+                    }),
+                    style: IconButton.styleFrom(backgroundColor: Colors.black54),
+                  ),
+                ),
+              ],
+            )
+          else
+            ElevatedButton.icon(
+              onPressed: _pickImage,
+              icon: const Icon(Icons.add_a_photo, color: Colors.orange),
+              label: const Text('إضافة صورة', style: TextStyle(color: Colors.orange)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange[50],
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+              ),
+            ),
+          const Spacer(),
+          ElevatedButton(
+            onPressed: widget.isPublishing || description.trim().isEmpty
+                ? null
+                : () => widget.onPublish({'description': description, 'image': _base64Image}),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+            ),
+            child: widget.isPublishing
+                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                : const Text('نشر الان'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AskPostForm extends StatefulWidget {
+  final Function(Map<String, dynamic>) onPublish;
+  final bool isPublishing;
+  const _AskPostForm({super.key, required this.onPublish, required this.isPublishing});
+
+  @override
+  State<_AskPostForm> createState() => _AskPostFormState();
+}
+
+class _AskPostFormState extends State<_AskPostForm> {
+  String description = '';
+  String destination = '';
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(24.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text('اسأل المجتمع', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 24),
+          TextFormField(
+            onChanged: (v) => setState(() => destination = v),
+            decoration: InputDecoration(
+              hintText: 'عن أي وجهة تسأل؟',
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: Colors.grey[200]!)),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: Colors.grey[200]!)),
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            maxLines: 5,
+            onChanged: (v) => setState(() => description = v),
+            decoration: InputDecoration(
+              hintText: 'اكتب سؤالك هنا...',
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: Colors.grey[200]!)),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: Colors.grey[200]!)),
+            ),
+          ),
+          const Spacer(),
+          ElevatedButton(
+            onPressed: widget.isPublishing || description.trim().isEmpty || destination.trim().isEmpty
+                ? null
+                : () => widget.onPublish({'description': description, 'destination': destination}),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.teal,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+            ),
+            child: widget.isPublishing
+                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                : const Text('اطرح السؤال'),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _PostTypeSelection extends StatelessWidget {
