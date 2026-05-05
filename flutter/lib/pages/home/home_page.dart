@@ -120,7 +120,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                     children: [
                       const Icon(Icons.cloud_off, size: 48, color: Colors.grey),
                       const SizedBox(height: 12),
-                      Text('تأكد من تشغيل السيرفر يا فادي! 🚀', style: TextStyle(color: Colors.grey[600])),
+                      Text('تأكد من تشغيل السيرفر يا فادي! 🚀', style: TextStyle(color: isDark ? Colors.white70 : Colors.grey[600])),
                       TextButton(
                         onPressed: () => ref.read(feedProvider(filter).notifier).refresh(),
                         child: const Text('إعادة المحاولة'),

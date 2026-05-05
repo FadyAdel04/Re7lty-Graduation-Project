@@ -203,12 +203,12 @@ class _TripPostCardState extends ConsumerState<TripPostCard> {
                       const SizedBox(width: 4),
                       Text(
                         '${widget.trip.city ?? widget.trip.destination ?? ""}',
-                        style: TextStyle(color: Colors.grey.shade500, fontSize: 11, fontWeight: FontWeight.w600),
+                        style: TextStyle(color: isDark ? Colors.white70 : Colors.grey.shade500, fontSize: 11, fontWeight: FontWeight.w600),
                       ),
                     ],
                     Text(
                       ' • ${_getTimeAgo(widget.trip.postedAt)}',
-                      style: TextStyle(color: Colors.grey.shade400, fontSize: 11),
+                      style: TextStyle(color: isDark ? Colors.white38 : Colors.grey.shade400, fontSize: 11),
                     ),
                   ],
                 ),
@@ -216,6 +216,56 @@ class _TripPostCardState extends ConsumerState<TripPostCard> {
             ),
           ),
           _buildPostTypeBadge(widget.trip.postType, isDark),
+          if (ClerkAuth.of(context).user?.id == widget.trip.ownerId)
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert, size: 20),
+              onSelected: (value) {
+                if (value == 'delete') {
+                  _showDeleteConfirmation(context);
+                }
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                      SizedBox(width: 8),
+                      Text('حذف المنشور', style: TextStyle(color: Colors.red)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('حذف المنشور'),
+        content: const Text('هل أنت متأكد من حذف هذا المنشور نهائياً؟'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
+          ElevatedButton(
+            onPressed: () async {
+              final success = await ref.read(tripServiceProvider).deleteTrip(widget.trip.id);
+              if (mounted) {
+                Navigator.pop(context);
+                if (success) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم حذف المنشور بنجاح')));
+                  ref.invalidate(feedProvider);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فشل حذف المنشور')));
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            child: const Text('حذف'),
+          ),
         ],
       ),
     );
@@ -368,6 +418,7 @@ class _TripPostCardState extends ConsumerState<TripPostCard> {
   }
 
   Widget _buildContent() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
       child: Column(
@@ -380,7 +431,7 @@ class _TripPostCardState extends ConsumerState<TripPostCard> {
           const SizedBox(height: 8),
           Text(
             widget.trip.description ?? 'استعد لرحلة تأخذك إلى عالم من السحر والجمال...',
-            style: TextStyle(color: Colors.grey.shade600, fontSize: 13, height: 1.4),
+            style: TextStyle(color: isDark ? Colors.white60 : Colors.grey.shade600, fontSize: 13, height: 1.4),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
@@ -434,14 +485,15 @@ class _TripPostCardState extends ConsumerState<TripPostCard> {
   }
 
   Widget _statIcon(IconData icon, String count, VoidCallback onTap, {Color? color}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
       child: Row(
         children: [
-          Icon(icon, size: 22, color: color ?? Colors.grey.shade500),
+          Icon(icon, size: 22, color: color ?? (isDark ? Colors.white54 : Colors.grey.shade500)),
           if (count.isNotEmpty && count != '0') ...[
             const SizedBox(width: 4),
-            Text(count, style: TextStyle(color: Colors.grey.shade500, fontSize: 12, fontWeight: FontWeight.w500)),
+            Text(count, style: TextStyle(color: isDark ? Colors.white54 : Colors.grey.shade500, fontSize: 12, fontWeight: FontWeight.w500)),
           ],
         ],
       ),

@@ -76,16 +76,18 @@ class TripDraft {
 class DraftActivity {
   String name;
   String description;
-  double lat;
-  double lng;
-  List<dynamic> images; // File or String
-  List<dynamic> videos; // File or String
+  double? lat;
+  double? lng;
+  String? imagePath;
+  List<dynamic> images;
+  List<dynamic> videos;
 
   DraftActivity({
     this.name = '',
     this.description = '',
-    this.lat = 0.0,
-    this.lng = 0.0,
+    this.lat,
+    this.lng,
+    this.imagePath,
     this.images = const [],
     this.videos = const [],
   });

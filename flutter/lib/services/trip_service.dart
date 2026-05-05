@@ -122,6 +122,26 @@ class TripService {
     }
   }
 
+  Future<bool> deleteTrip(String tripId) async {
+    try {
+      final response = await _apiService.delete('/trips/$tripId');
+      return response.statusCode == 200 || response.statusCode == 204;
+    } catch (e) {
+      print('❌ TripService.deleteTrip error: $e');
+      return false;
+    }
+  }
+
+  Future<bool> deleteComment(String tripId, String commentId) async {
+    try {
+      final response = await _apiService.delete('/trips/$tripId/comments/$commentId');
+      return response.statusCode == 200 || response.statusCode == 204;
+    } catch (e) {
+      print('❌ TripService.deleteComment error: $e');
+      return false;
+    }
+  }
+
   Future<List<CorporateTrip>> getCorporateTrips({String? destination}) async {
     try {
       final response = await _apiService.get('/corporate/trips', queryParameters: {

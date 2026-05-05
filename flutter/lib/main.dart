@@ -56,14 +56,22 @@ void main() async {
   );
 }
 
-class Re7ltyApp extends ConsumerWidget {
-  Re7ltyApp({super.key});
+class Re7ltyApp extends ConsumerStatefulWidget {
+  const Re7ltyApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final themeMode = ref.watch(themeProvider);
+  ConsumerState<Re7ltyApp> createState() => _Re7ltyAppState();
+}
 
-    final GoRouter router = GoRouter(
+class _Re7ltyAppState extends ConsumerState<Re7ltyApp> {
+  GoRouter? _router;
+
+  @override
+  Widget build(BuildContext context) {
+    final themeMode = ref.watch(themeProvider);
+    
+    // Initialize router only once
+    _router ??= GoRouter(
       initialLocation: '/splash',
       refreshListenable: ClerkAuth.of(context),
       redirect: (context, state) {
@@ -71,18 +79,24 @@ class Re7ltyApp extends ConsumerWidget {
         
         final loggingIn = state.matchedLocation == '/login';
         final isSplash = state.matchedLocation == '/splash';
-        final isHome = state.matchedLocation == '/';
 
-        if (isSplash) return null;
-
-        // If authenticated and on login page, go to home
-        if (auth.session != null && loggingIn) {
-          return '/';
+        // 1. If on splash, allow it (SplashPage has its own logic)
+        if (isSplash) {
+          // But if we're already logged in, skip splash and go home
+          if (auth.session != null) return '/';
+          return null;
         }
 
-        // If NOT authenticated and NOT on login page
-        if (auth.session == null && !loggingIn && !isSplash) {
+        // 2. If NOT authenticated and NOT on login page, force login
+        if (auth.session == null && !loggingIn) {
+          print('🛡️ Auth Redirect: No session, redirecting to /login');
           return '/login';
+        }
+
+        // 3. If authenticated and on login page, go home
+        if (auth.session != null && loggingIn) {
+          print('🛡️ Auth Redirect: Session found, redirecting to /');
+          return '/';
         }
 
         return null;
@@ -230,20 +244,31 @@ class Re7ltyApp extends ConsumerWidget {
         textTheme: GoogleFonts.cairoTextTheme(Theme.of(context).textTheme),
       ),
       darkTheme: ThemeData(
+        brightness: Brightness.dark,
+        useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
           seedColor: AppColors.primaryOrange,
           primary: AppColors.primaryOrange,
           brightness: Brightness.dark,
           surface: AppColors.cardDark,
+          onSurface: Colors.white,
+          onPrimary: Colors.white,
         ),
-        useMaterial3: true,
         scaffoldBackgroundColor: AppColors.darkBackground,
-        textTheme: GoogleFonts.cairoTextTheme(Theme.of(context).textTheme).apply(
+        cardTheme: const CardThemeData(
+          color: AppColors.cardDark,
+          elevation: 0,
+        ),
+        textTheme: GoogleFonts.cairoTextTheme(
+          ThemeData.dark().textTheme,
+        ).apply(
           bodyColor: Colors.white,
           displayColor: Colors.white,
         ),
+        iconTheme: const IconThemeData(color: Colors.white70),
+        dividerTheme: DividerThemeData(color: Colors.white.withOpacity(0.1)),
       ),
-      routerConfig: router,
+      routerConfig: _router!,
       builder: (context, child) {
         return _AuthTokenSync(
           ref: ref,
@@ -275,19 +300,22 @@ class _AuthTokenSyncState extends State<_AuthTokenSync> {
     super.initState();
     // Set a dynamic token getter that fetches fresh token from Clerk
     widget.ref.read(apiServiceProvider).tokenGetter = () async {
-      if (!mounted) {
-        print('⏳ tokenGetter: Not mounted, returning null');
+      if (!mounted) return null;
+      
+      try {
+        final auth = ClerkAuth.of(context);
+        if (auth.session == null) {
+          print('⏳ tokenGetter: No session available');
+          return null;
+        }
+        
+        print('⏳ tokenGetter: Fetching session token...');
+        final token = await auth.sessionToken();
+        return token?.jwt;
+      } catch (e) {
+        print('❌ tokenGetter Error: $e');
         return null;
       }
-      final auth = ClerkAuth.of(context);
-      if (auth.session == null) {
-        print('⏳ tokenGetter: No session, returning null');
-        return null;
-      }
-      print('⏳ tokenGetter: Fetching fresh session token from Clerk...');
-      final token = await auth.sessionToken();
-      print('⏳ tokenGetter: Successfully fetched token (JWT length: ${token?.jwt?.length ?? 0})');
-      return token?.jwt;
     };
   }
 
@@ -328,13 +356,16 @@ class _SplashPageState extends State<SplashPage> {
   }
 
   Future<void> _initAuth() async {
-    // Wait for Clerk to initialize (usually very fast, but 1s is safe)
-    await Future.delayed(const Duration(milliseconds: 1000));
+    // Wait for Clerk to initialize
+    await Future.delayed(const Duration(milliseconds: 1500));
     if (mounted) {
       final auth = ClerkAuth.of(context);
+      // We rely on GoRouter's refreshListenable to trigger the actual redirect
+      // but if it's already logged in, we can move now.
       if (auth.session != null) {
         context.go('/');
       } else {
+        // If still no session after delay, go to login
         context.go('/login');
       }
     }
@@ -463,14 +494,14 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
         children: [
           Icon(
             selected ? filled : outline,
-            color: selected ? AppColors.primaryOrange : (isDark ? Colors.grey : Colors.grey.shade400),
+            color: selected ? AppColors.primaryOrange : (isDark ? Colors.white54 : Colors.grey.shade400),
             size: 26,
           ),
           const SizedBox(height: 4),
           Text(
             label.toUpperCase(),
             style: TextStyle(
-              color: selected ? AppColors.primaryOrange : (isDark ? Colors.grey : Colors.grey.shade400),
+              color: selected ? AppColors.primaryOrange : (isDark ? Colors.white54 : Colors.grey.shade400),
               fontSize: 10,
               fontWeight: selected ? FontWeight.bold : FontWeight.normal,
             ),
