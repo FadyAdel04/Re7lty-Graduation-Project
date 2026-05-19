@@ -4,6 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:clerk_flutter/clerk_flutter.dart';
+import 'package:device_preview/device_preview.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 import 'pages/home/home_page.dart';
 import 'pages/auth/login_page.dart';
@@ -19,6 +22,7 @@ import 'pages/drawer/support_page.dart';
 import 'pages/drawer/settings_page.dart';
 import 'pages/company/company_page.dart';
 import 'pages/home/notifications_page.dart';
+import 'pages/corporate/corporate_trip_details_page.dart';
 import 'pages/auth/onboarding_page.dart';
 import 'pages/auth/company_registration_page.dart';
 import 'pages/search/friends_list_page.dart';
@@ -33,30 +37,79 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
   
-  MapboxOptions.setAccessToken(dotenv.get('MAPBOX_ACCESS_TOKEN', fallback: ''));
+  if (!kIsWeb) {
+    MapboxOptions.setAccessToken(dotenv.get('MAPBOX_ACCESS_TOKEN', fallback: ''));
+  }
 
   runApp(
-    ProviderScope(
-      child: ClerkAuth(
-        config: ClerkAuthConfig(
-          publishableKey: dotenv.get('CLERK_PUBLISHABLE_KEY', fallback: ''),
+    DevicePreview(
+      enabled: !kReleaseMode,
+      builder: (context) => ProviderScope(
+        child: ClerkAuth(
+          config: ClerkAuthConfig(
+            publishableKey: dotenv.get('CLERK_PUBLISHABLE_KEY', fallback: ''),
+          ),
+          child: Re7ltyApp(),
         ),
-        child: Re7ltyApp(),
       ),
     ),
   );
 }
 
-class Re7ltyApp extends ConsumerWidget {
-  Re7ltyApp({super.key});
+class Re7ltyApp extends ConsumerStatefulWidget {
+  const Re7ltyApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final themeMode = ref.watch(themeProvider);
+  ConsumerState<Re7ltyApp> createState() => _Re7ltyAppState();
+}
 
-    final GoRouter router = GoRouter(
-      initialLocation: '/',
+class _Re7ltyAppState extends ConsumerState<Re7ltyApp> {
+  GoRouter? _router;
+
+  @override
+  Widget build(BuildContext context) {
+    final themeMode = ref.watch(themeProvider);
+    
+    // Initialize router only once
+    _router ??= GoRouter(
+      initialLocation: '/splash',
+      refreshListenable: ClerkAuth.of(context),
+      redirect: (context, state) {
+        final auth = ClerkAuth.of(context);
+        
+        final loggingIn = state.matchedLocation == '/login';
+        final isSplash = state.matchedLocation == '/splash';
+
+        // 1. If on splash, allow it (SplashPage has its own logic)
+        if (isSplash) {
+          // But if we're already logged in, skip splash and go home
+          if (auth.session != null) return '/';
+          return null;
+        }
+
+        // 2. If NOT authenticated and NOT on login page, force login
+        if (auth.session == null && !loggingIn) {
+          print('🛡️ Auth Redirect: No session, redirecting to /login');
+          return '/login';
+        }
+
+        // 3. If authenticated and on login page, go home
+        if (auth.session != null && loggingIn) {
+          print('🛡️ Auth Redirect: Session found, redirecting to /');
+          return '/';
+        }
+
+        return null;
+      },
       routes: [
+        GoRoute(
+          path: '/splash',
+          builder: (context, state) => const SplashPage(),
+        ),
+        GoRoute(
+          path: '/login',
+          builder: (context, state) => const LoginPage(),
+        ),
         GoRoute(
           path: '/onboarding',
           builder: (context, state) => OnboardingPage(),
@@ -117,10 +170,6 @@ class Re7ltyApp extends ConsumerWidget {
           ],
         ),
         GoRoute(
-          path: '/login',
-          builder: (context, state) => LoginPage(),
-        ),
-        GoRoute(
           path: '/user/:id',
           builder: (context, state) {
             final id = state.pathParameters['id']!;
@@ -136,6 +185,13 @@ class Re7ltyApp extends ConsumerWidget {
           builder: (context, state) {
             final id = state.pathParameters['id']!;
             return TripDetailPage(tripId: id);
+          },
+        ),
+        GoRoute(
+          path: '/corporate-trip/:id',
+          builder: (context, state) {
+            final trip = state.extra as Map<String, dynamic>;
+            return CorporateTripDetailsPage(trip: trip);
           },
         ),
         GoRoute(
@@ -171,58 +227,166 @@ class Re7ltyApp extends ConsumerWidget {
       ],
     );
 
-    return ClerkAuthBuilder(
-      signedInBuilder: (context, authState) {
-        ClerkAuth.of(context).sessionToken().then((token) {
-          ref.read(apiServiceProvider).setToken(token.jwt);
-        });
-
-        return MaterialApp.router(
-          title: 'Re7lty',
-          debugShowCheckedModeBanner: false,
-          themeMode: themeMode,
-          theme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: AppColors.primaryOrange,
-              primary: AppColors.primaryOrange,
-              surface: Colors.white,
-            ),
-            useMaterial3: true,
-            scaffoldBackgroundColor: const Color(0xFFF8FAFC),
-            textTheme: GoogleFonts.cairoTextTheme(Theme.of(context).textTheme),
-          ),
-          darkTheme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: AppColors.primaryOrange,
-              primary: AppColors.primaryOrange,
-              brightness: Brightness.dark,
-              surface: AppColors.cardDark,
-            ),
-            useMaterial3: true,
-            scaffoldBackgroundColor: AppColors.darkBackground,
-            textTheme: GoogleFonts.cairoTextTheme(Theme.of(context).textTheme).apply(
-              bodyColor: Colors.white,
-              displayColor: Colors.white,
-            ),
-          ),
-          routerConfig: router,
-          builder: (context, child) {
-            if (child == null) return const SizedBox.shrink();
-            return Directionality(textDirection: TextDirection.rtl, child: child);
-          },
-        );
-      },
-      signedOutBuilder: (context, authState) {
-        ref.read(apiServiceProvider).setToken(null);
-        return MaterialApp(
-          debugShowCheckedModeBanner: false,
-          theme: ThemeData(fontFamily: GoogleFonts.cairo().fontFamily),
-          home: Directionality(
+    return MaterialApp.router(
+      useInheritedMediaQuery: true,
+      locale: DevicePreview.locale(context),
+      title: 'Re7lty',
+      debugShowCheckedModeBanner: false,
+      themeMode: themeMode,
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: AppColors.primaryOrange,
+          primary: AppColors.primaryOrange,
+          surface: Colors.white,
+        ),
+        useMaterial3: true,
+        scaffoldBackgroundColor: const Color(0xFFF8FAFC),
+        textTheme: GoogleFonts.cairoTextTheme(Theme.of(context).textTheme),
+      ),
+      darkTheme: ThemeData(
+        brightness: Brightness.dark,
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: AppColors.primaryOrange,
+          primary: AppColors.primaryOrange,
+          brightness: Brightness.dark,
+          surface: AppColors.cardDark,
+          onSurface: Colors.white,
+          onPrimary: Colors.white,
+        ),
+        scaffoldBackgroundColor: AppColors.darkBackground,
+        cardTheme: const CardThemeData(
+          color: AppColors.cardDark,
+          elevation: 0,
+        ),
+        textTheme: GoogleFonts.cairoTextTheme(
+          ThemeData.dark().textTheme,
+        ).apply(
+          bodyColor: Colors.white,
+          displayColor: Colors.white,
+        ),
+        iconTheme: const IconThemeData(color: Colors.white70),
+        dividerTheme: DividerThemeData(color: Colors.white.withOpacity(0.1)),
+      ),
+      routerConfig: _router!,
+      builder: (context, child) {
+        return _AuthTokenSync(
+          ref: ref,
+          child: Directionality(
             textDirection: TextDirection.rtl,
-            child: LoginPage(),
+            child: DevicePreview.appBuilder(context, child),
           ),
         );
       },
+    );
+  }
+}
+
+/// Helper widget to sync Clerk token with ApiService efficiently
+class _AuthTokenSync extends StatefulWidget {
+  final Widget child;
+  final WidgetRef ref;
+  const _AuthTokenSync({required this.child, required this.ref});
+
+  @override
+  State<_AuthTokenSync> createState() => _AuthTokenSyncState();
+}
+
+class _AuthTokenSyncState extends State<_AuthTokenSync> {
+  String? _lastSessionId;
+
+  @override
+  void initState() {
+    super.initState();
+    // Set a dynamic token getter that fetches fresh token from Clerk
+    widget.ref.read(apiServiceProvider).tokenGetter = () async {
+      if (!mounted) return null;
+      
+      try {
+        final auth = ClerkAuth.of(context);
+        if (auth.session == null) {
+          print('⏳ tokenGetter: No session available');
+          return null;
+        }
+        
+        print('⏳ tokenGetter: Fetching session token...');
+        final token = await auth.sessionToken();
+        return token?.jwt;
+      } catch (e) {
+        print('❌ tokenGetter Error: $e');
+        return null;
+      }
+    };
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _syncToken();
+  }
+
+  Future<void> _syncToken() async {
+    final auth = ClerkAuth.of(context);
+    final sessionId = auth.session?.id;
+
+    if (sessionId != _lastSessionId) {
+      _lastSessionId = sessionId;
+      if (sessionId == null) {
+        widget.ref.read(apiServiceProvider).setToken(null);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
+}
+
+class SplashPage extends StatefulWidget {
+  const SplashPage({super.key});
+
+  @override
+  State<SplashPage> createState() => _SplashPageState();
+}
+
+class _SplashPageState extends State<SplashPage> {
+  @override
+  void initState() {
+    super.initState();
+    _initAuth();
+  }
+
+  Future<void> _initAuth() async {
+    // Wait for Clerk to initialize
+    await Future.delayed(const Duration(milliseconds: 1500));
+    if (mounted) {
+      final auth = ClerkAuth.of(context);
+      // We rely on GoRouter's refreshListenable to trigger the actual redirect
+      // but if it's already logged in, we can move now.
+      if (auth.session != null) {
+        context.go('/');
+      } else {
+        // If still no session after delay, go to login
+        context.go('/login');
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Image.asset('assets/images/logo.png', height: 100)
+              .animate()
+              .fadeIn(duration: 800.ms)
+              .scale(begin: const Offset(0.8, 0.8)),
+            const SizedBox(height: 24),
+            const CircularProgressIndicator(color: AppColors.primaryOrange),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -330,14 +494,14 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
         children: [
           Icon(
             selected ? filled : outline,
-            color: selected ? AppColors.primaryOrange : (isDark ? Colors.grey : Colors.grey.shade400),
+            color: selected ? AppColors.primaryOrange : (isDark ? Colors.white54 : Colors.grey.shade400),
             size: 26,
           ),
           const SizedBox(height: 4),
           Text(
             label.toUpperCase(),
             style: TextStyle(
-              color: selected ? AppColors.primaryOrange : (isDark ? Colors.grey : Colors.grey.shade400),
+              color: selected ? AppColors.primaryOrange : (isDark ? Colors.white54 : Colors.grey.shade400),
               fontSize: 10,
               fontWeight: selected ? FontWeight.bold : FontWeight.normal,
             ),

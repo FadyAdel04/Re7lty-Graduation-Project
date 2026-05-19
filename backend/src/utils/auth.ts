@@ -34,7 +34,18 @@ export const requireAuthStrict: RequestHandler = (req, res, next) => {
     };
     return next();
   }
-  return clerkRequireAuth()(req, res, next);
+  
+  try {
+    const auth = clerkGetAuth(req);
+    if (!auth || !auth.userId) {
+      console.log('requireAuthStrict failed: No userId found in auth', auth);
+      return res.status(401).json({ error: 'Unauthorized', message: 'Not authenticated' });
+    }
+    return next();
+  } catch (err: any) {
+    console.error('requireAuthStrict error:', err.message);
+    return res.status(401).json({ error: 'Unauthorized', message: err.message });
+  }
 };
 
 /**

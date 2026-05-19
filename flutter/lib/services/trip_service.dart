@@ -15,6 +15,9 @@ class TripService {
     String? authorId,
     String sort = 'recent',
     String? type,
+    String? postType,
+    bool followingOnly = false,
+    bool suggestedOnly = false,
     int page = 1,
     int limit = 20,
   }) async {
@@ -25,6 +28,9 @@ class TripService {
         if (season != null) 'season': season,
         if (authorId != null) 'authorId': authorId,
         if (type != null) 'type': type,
+        if (postType != null) 'postType': postType,
+        if (followingOnly) 'followingOnly': 'true',
+        if (suggestedOnly) 'suggestedOnly': 'true',
         'sort': sort,
         'page': page,
         'limit': limit,
@@ -89,6 +95,18 @@ class TripService {
     }
   }
 
+  Future<bool> toggleSave(String tripId) async {
+    try {
+      final response = await _apiService.post('/trips/$tripId/save');
+      if (response.statusCode == 200) {
+        return response.data['saved'];
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
   Future<bool> addComment(String tripId, String content) async {
     try {
       final response = await _apiService.post('/trips/$tripId/comments', data: {
@@ -100,6 +118,26 @@ class TripService {
       if (e is DioException) {
         print('Response data: ${e.response?.data}');
       }
+      return false;
+    }
+  }
+
+  Future<bool> deleteTrip(String tripId) async {
+    try {
+      final response = await _apiService.delete('/trips/$tripId');
+      return response.statusCode == 200 || response.statusCode == 204;
+    } catch (e) {
+      print('❌ TripService.deleteTrip error: $e');
+      return false;
+    }
+  }
+
+  Future<bool> deleteComment(String tripId, String commentId) async {
+    try {
+      final response = await _apiService.delete('/trips/$tripId/comments/$commentId');
+      return response.statusCode == 200 || response.statusCode == 204;
+    } catch (e) {
+      print('❌ TripService.deleteComment error: $e');
       return false;
     }
   }

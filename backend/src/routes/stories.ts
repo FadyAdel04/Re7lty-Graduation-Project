@@ -89,6 +89,27 @@ router.get("/me", requireAuthStrict, async (req, res) => {
   }
 });
 
+// Get my story archive (all stories ever posted)
+router.get("/archive", requireAuthStrict, async (req, res) => {
+  try {
+    const { userId } = getAuth(req);
+    const stories = await Story.find({ userId }).sort({ createdAt: -1 }).lean();
+    
+    // Group by date (YYYY-MM-DD)
+    const grouped = stories.reduce((acc: any, story: any) => {
+      const date = new Date(story.createdAt).toISOString().split('T')[0];
+      if (!acc[date]) acc[date] = [];
+      acc[date].push(story);
+      return acc;
+    }, {});
+
+    res.json(grouped);
+  } catch (error: any) {
+    console.error("Error fetching story archive:", error);
+    res.status(500).json({ error: "Failed to fetch archive" });
+  }
+});
+
 // Get stories from people I follow
 router.get("/following", requireAuthStrict, async (req, res) => {
   try {

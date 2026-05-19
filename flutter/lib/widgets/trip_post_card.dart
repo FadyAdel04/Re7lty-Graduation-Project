@@ -7,6 +7,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:intl/intl.dart' as intl;
+import 'dart:convert';
 import '../models/trip.dart';
 import '../providers/theme_provider.dart';
 import '../services/trip_service.dart';
@@ -47,14 +48,20 @@ class _TripPostCardState extends ConsumerState<TripPostCard> {
 
   void _handleLike() async {
     final previouslyLiked = _isLiked;
+    setState(() {
+      _isLiked = !_isLiked;
+      if (_isLiked) _likeCount++;
+      else _likeCount = (_likeCount > 0) ? _likeCount - 1 : 0;
+    });
+
     final success = await ref.read(tripServiceProvider).toggleLike(widget.trip.id);
     
-    if (mounted) {
+    if (mounted && !success) {
+      // Revert if API fails
       setState(() {
-        _isLiked = success;
-        // Adjust count based on actual change to avoid double counting
-        if (success && !previouslyLiked) _likeCount++; 
-        else if (!success && previouslyLiked) _likeCount = (_likeCount > 0) ? _likeCount - 1 : 0;
+        _isLiked = previouslyLiked;
+        if (_isLiked) _likeCount++;
+        else _likeCount = (_likeCount > 0) ? _likeCount - 1 : 0;
       });
     }
   }
@@ -71,12 +78,6 @@ class _TripPostCardState extends ConsumerState<TripPostCard> {
           const SnackBar(content: Text('تم إرسال تعليقك بنجاح!')),
         );
       }
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('فشل إرسال التعليق. حاول مرة أخرى.')),
-        );
-      }
     }
   }
 
@@ -91,28 +92,25 @@ class _TripPostCardState extends ConsumerState<TripPostCard> {
         color: isDark ? AppColors.cardDark : Colors.white,
         borderRadius: BorderRadius.circular(30),
         boxShadow: [
-          if (!isDark) BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
+          if (!isDark) BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 8)),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. Header with Avatar and Location
-          _buildHeader(context),
+          // 1. Header with Avatar and Badges
+          _buildHeader(context, isDark),
 
-          // 2. Main Image with Badges
-          _buildMainImage(images),
+          // 2. Main Image Carousel
+          _buildImageCarousel(images),
 
-          // 3. Horizontal Thumbnails List
-          if (images.length > 1) _buildThumbnails(images),
-
-          // 4. Title and Description
+          // 3. Title and Description
           _buildContent(),
 
-          // 5. Actions Footer
-          _buildFooter(),
+          // 4. Actions Footer
+          _buildFooter(isDark),
 
-          // 6. Inline Comment Input
+          // 5. Inline Comment Input
           _buildCommentInput(context, isDark),
         ],
       ),
@@ -170,113 +168,244 @@ class _TripPostCardState extends ConsumerState<TripPostCard> {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, bool isDark) {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 22,
-            backgroundImage: NetworkImage(widget.trip.authorImage ?? 'https://images.unsplash.com/photo-1519046904884-53103b34b206'),
+          GestureDetector(
+             onTap: () => context.push('/profile/${widget.trip.ownerId}'),
+             child: CircleAvatar(
+               radius: 24,
+               backgroundImage: NetworkImage(widget.trip.authorImage ?? 'https://images.unsplash.com/photo-1519046904884-53103b34b206'),
+             ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  widget.trip.author ?? 'فارس محمود',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                Row(
+                  children: [
+                    Text(
+                      widget.trip.author ?? 'مستكشف رحلتي',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                    ),
+                    const SizedBox(width: 4),
+                    if (widget.trip.authorBadge != 'none')
+                      _buildUserBadge(widget.trip.authorBadge),
+                  ],
                 ),
                 Row(
                   children: [
-                    const Icon(Icons.location_on, size: 12, color: AppColors.primaryOrange),
-                    const SizedBox(width: 4),
+                    if (widget.trip.city != null || widget.trip.destination != null) ...[
+                      const Icon(Icons.location_on, size: 12, color: AppColors.primaryOrange),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${widget.trip.city ?? widget.trip.destination ?? ""}',
+                        style: TextStyle(color: isDark ? Colors.white70 : Colors.grey.shade500, fontSize: 11, fontWeight: FontWeight.w600),
+                      ),
+                    ],
                     Text(
-                      '${widget.trip.city ?? "دهب"} | ${_getTimeAgo(widget.trip.postedAt)}',
-                      style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
+                      ' • ${_getTimeAgo(widget.trip.postedAt)}',
+                      style: TextStyle(color: isDark ? Colors.white38 : Colors.grey.shade400, fontSize: 11),
                     ),
                   ],
                 ),
               ],
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.person_add_outlined, size: 20, color: AppColors.primaryOrange),
+          _buildPostTypeBadge(widget.trip.postType, isDark),
+          if (ClerkAuth.of(context).user?.id == widget.trip.ownerId)
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert, size: 20),
+              onSelected: (value) {
+                if (value == 'delete') {
+                  _showDeleteConfirmation(context);
+                }
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                      SizedBox(width: 8),
+                      Text('حذف المنشور', style: TextStyle(color: Colors.red)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('حذف المنشور'),
+        content: const Text('هل أنت متأكد من حذف هذا المنشور نهائياً؟'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
+          ElevatedButton(
             onPressed: () async {
-              await ref.read(userServiceProvider).toggleFollow(widget.trip.ownerId ?? '');
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('تمت متابعة المستخدم')),
-                );
+              final success = await ref.read(tripServiceProvider).deleteTrip(widget.trip.id);
+              if (mounted) {
+                Navigator.pop(context);
+                if (success) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم حذف المنشور بنجاح')));
+                  ref.invalidate(feedProvider);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فشل حذف المنشور')));
+                }
               }
             },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            child: const Text('حذف'),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildMainImage(List<String> images) {
-    if (images.isEmpty) return const SizedBox.shrink();
+  Widget _buildUserBadge(String type) {
+    Color color = Colors.blue;
+    IconData icon = Icons.check;
+    
+    if (type == 'pro') { color = Colors.deepPurple; icon = Icons.bolt; }
+    if (type == 'top_traveler') { color = Colors.orange; icon = Icons.workspace_premium; }
+    if (type == 'company') { color = Colors.teal; icon = Icons.business; }
+
     return Container(
-      height: 250,
-      margin: const EdgeInsets.symmetric(horizontal: 12),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(25),
-        child: Stack(
-          children: [
-            GestureDetector(
-              onDoubleTap: () {
-                if (!_isLiked) _handleLike();
-                setState(() => _showHeartOverlay = true);
-                Future.delayed(const Duration(milliseconds: 800), () {
-                  if (mounted) setState(() => _showHeartOverlay = false);
-                });
-              },
-              child: CachedNetworkImage(
-                imageUrl: images[_currentImageIndex],
-                width: double.infinity,
-                height: double.infinity,
-                fit: BoxFit.cover,
-              ),
-            ),
-            if (_showHeartOverlay)
-              Center(
-                child: Icon(
-                  Icons.favorite,
-                  color: Colors.white.withOpacity(0.9),
-                  size: 100,
-                ).animate().scale(duration: 400.ms, curve: Curves.elasticOut).fadeOut(delay: 400.ms),
-              ),
-            Positioned(
-              top: 12,
-              right: 12,
-              child: _floatingBadge(
-                icon: Icons.star,
-                text: widget.trip.rating.toString(),
-                color: Colors.black54,
-              ),
-            ),
-            Positioned(
-              bottom: 12,
-              right: 12,
-              child: _floatingBadge(
-                icon: Icons.calendar_today,
-                text: widget.trip.season ?? 'ربيع',
-                color: AppColors.primaryOrange,
-              ),
-            ),
-          ],
-        ),
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+      child: Icon(icon, size: 8, color: Colors.white),
+    );
+  }
+
+  Widget _buildPostTypeBadge(String type, bool isDark) {
+    String label = 'رحلة';
+    Color color = AppColors.primaryOrange;
+    if (type == 'quick') { label = 'سريع'; color = Colors.blue; }
+    if (type == 'ask') { label = 'سؤال'; color = Colors.green; }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(10),
       ),
+      child: Text(
+        label,
+        style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold),
+      ),
+    );
+  }
+
+  Widget _buildImageCarousel(List<String> images) {
+    return Stack(
+      alignment: Alignment.bottomCenter,
+      children: [
+        CarouselSlider(
+          options: CarouselOptions(
+            height: 300,
+            viewportFraction: 0.95,
+            enlargeCenterPage: true,
+            enableInfiniteScroll: images.length > 1,
+            onPageChanged: (index, reason) => setState(() => _currentImageIndex = index),
+          ),
+          items: images.map((url) {
+            return Builder(
+              builder: (BuildContext context) {
+                return GestureDetector(
+                  onDoubleTap: () {
+                    if (!_isLiked) _handleLike();
+                    setState(() => _showHeartOverlay = true);
+                    Future.delayed(const Duration(milliseconds: 800), () {
+                      if (mounted) setState(() => _showHeartOverlay = false);
+                    });
+                  },
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(25),
+                    child: Stack(
+                      children: [
+                        if (url.startsWith('data:'))
+                          Image.memory(
+                            base64Decode(url.split(',').last),
+                            width: double.infinity,
+                            height: double.infinity,
+                            fit: BoxFit.cover,
+                          )
+                        else
+                          CachedNetworkImage(
+                            imageUrl: url,
+                            width: double.infinity,
+                            height: double.infinity,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => Container(color: Colors.grey[200]),
+                            errorWidget: (context, url, error) => Container(color: Colors.grey[300], child: const Icon(Icons.broken_image, color: Colors.grey)),
+                          ),
+                        if (_showHeartOverlay)
+                          Center(
+                            child: const Icon(
+                              Icons.favorite,
+                              color: Colors.white,
+                              size: 100,
+                            ).animate().scale(duration: 400.ms, curve: Curves.elasticOut).fadeOut(delay: 400.ms),
+                          ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            );
+          }).toList(),
+        ),
+        if (images.length > 1)
+          Positioned(
+            bottom: 20,
+            child: AnimatedSmoothIndicator(
+              activeIndex: _currentImageIndex,
+              count: images.length,
+              effect: ExpandingDotsEffect(
+                dotWidth: 8,
+                dotHeight: 8,
+                activeDotColor: AppColors.primaryOrange,
+                dotColor: Colors.white.withOpacity(0.5),
+              ),
+            ),
+          ),
+        // Floating Badges
+        Positioned(
+          top: 15,
+          right: 25,
+          child: _floatingBadge(
+            icon: Icons.star,
+            text: widget.trip.rating.toString(),
+            color: Colors.black54,
+          ),
+        ),
+        Positioned(
+          bottom: 40,
+          right: 25,
+          child: _floatingBadge(
+            icon: Icons.calendar_today,
+            text: widget.trip.season ?? 'ربيع',
+            color: AppColors.primaryOrange,
+          ),
+        ),
+      ],
     );
   }
 
   Widget _floatingBadge({required IconData icon, required String text, required Color color}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(15)),
+      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(15), 
+        boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)]),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -288,47 +417,21 @@ class _TripPostCardState extends ConsumerState<TripPostCard> {
     );
   }
 
-  Widget _buildThumbnails(List<String> images) {
-    if (images.length < 2) return const SizedBox.shrink();
-    return Container(
-      height: 60,
-      margin: const EdgeInsets.only(top: 12, right: 12, left: 12),
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: images.length,
-        itemBuilder: (context, index) => GestureDetector(
-          onTap: () => setState(() => _currentImageIndex = index),
-          child: Container(
-            width: 60,
-            margin: const EdgeInsets.only(left: 8),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: _currentImageIndex == index ? AppColors.primaryOrange : Colors.transparent,
-                width: 2,
-              ),
-              image: DecorationImage(image: NetworkImage(images[index]), fit: BoxFit.cover),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildContent() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             widget.trip.title,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           Text(
             widget.trip.description ?? 'استعد لرحلة تأخذك إلى عالم من السحر والجمال...',
-            style: TextStyle(color: Colors.grey.shade500, fontSize: 13, height: 1.5),
+            style: TextStyle(color: isDark ? Colors.white60 : Colors.grey.shade600, fontSize: 13, height: 1.4),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
@@ -337,18 +440,26 @@ class _TripPostCardState extends ConsumerState<TripPostCard> {
     );
   }
 
-  Widget _buildFooter() {
+  Widget _buildFooter(bool isDark) {
     return Padding(
-      padding: const EdgeInsets.only(left: 16, right: 16, bottom: 20),
+      padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
       child: Row(
         children: [
-          GestureDetector(
-            onTap: () => context.push('/trip/${widget.trip.id}'),
-            child: const Text(
-              'المزيد',
-              style: TextStyle(color: AppColors.primaryOrange, fontWeight: FontWeight.bold),
+          if (widget.trip.postType == 'detailed')
+            GestureDetector(
+              onTap: () => context.push('/trip/${widget.trip.id}'),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white10 : Colors.grey[100],
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Text(
+                  'عرض التفاصيل',
+                  style: TextStyle(color: AppColors.primaryOrange, fontWeight: FontWeight.bold, fontSize: 12),
+                ),
+              ),
             ),
-          ),
           const Spacer(),
           _statIcon(Icons.share_outlined, '', () {
             Share.share('تحقق من هذه الرحلة الرائعة: ${widget.trip.title}\nhttps://re7lty.com/trip/${widget.trip.id}');
@@ -356,7 +467,7 @@ class _TripPostCardState extends ConsumerState<TripPostCard> {
           const SizedBox(width: 16),
           _statIcon(_isSaved ? Icons.bookmark : Icons.bookmark_border, '', () {
             setState(() => _isSaved = !_isSaved);
-          }),
+          }, color: _isSaved ? AppColors.primaryOrange : null),
           const SizedBox(width: 16),
           _statIcon(Icons.chat_bubble_outline, widget.trip.comments.length.toString(), () {
             context.push('/trip/${widget.trip.id}/comments');
@@ -374,14 +485,15 @@ class _TripPostCardState extends ConsumerState<TripPostCard> {
   }
 
   Widget _statIcon(IconData icon, String count, VoidCallback onTap, {Color? color}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
       child: Row(
         children: [
-          Icon(icon, size: 22, color: color ?? Colors.grey.shade500),
-          if (count.isNotEmpty) ...[
+          Icon(icon, size: 22, color: color ?? (isDark ? Colors.white54 : Colors.grey.shade500)),
+          if (count.isNotEmpty && count != '0') ...[
             const SizedBox(width: 4),
-            Text(count, style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
+            Text(count, style: TextStyle(color: isDark ? Colors.white54 : Colors.grey.shade500, fontSize: 12, fontWeight: FontWeight.w500)),
           ],
         ],
       ),
@@ -390,26 +502,29 @@ class _TripPostCardState extends ConsumerState<TripPostCard> {
 
   String _getTimeAgo(DateTime date) {
     final diff = DateTime.now().difference(date);
-    if (diff.inDays > 7) return intl.DateFormat('d MMMM').format(date);
-    if (diff.inDays > 0) return 'منذ ${diff.inDays} يوم';
-    if (diff.inHours > 0) return 'منذ ${diff.inHours} ساعة';
-    if (diff.inMinutes > 0) return 'منذ ${diff.inMinutes} دقيقة';
+    if (diff.inDays > 7) return intl.DateFormat('d MMM').format(date);
+    if (diff.inDays > 0) return 'منذ ${diff.inDays}ي';
+    if (diff.inHours > 0) return 'منذ ${diff.inHours}س';
+    if (diff.inMinutes > 0) return 'منذ ${diff.inMinutes}د';
     return 'الآن';
   }
 
   List<String> _getAllTripImages() {
     List<String> images = [];
-    if (widget.trip.image != null) images.add(widget.trip.image!);
-    if (widget.trip.activities != null) {
-      for (var activity in widget.trip.activities) {
-        if (activity.images != null) images.addAll(activity.images!);
+    if (widget.trip.image != null && widget.trip.image!.isNotEmpty) images.add(widget.trip.image!);
+    
+    // Add activity images
+    for (var activity in widget.trip.activities) {
+      if (activity.images.isNotEmpty) {
+        images.addAll(activity.images);
       }
     }
+    
+    // Fallback if no images
     if (images.isEmpty) {
       images.add('https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?q=80&w=800');
     }
-    return images.take(10).toList();
+    
+    return images.take(5).toList(); // Limit to 5 for performance in feed
   }
 }
-
-

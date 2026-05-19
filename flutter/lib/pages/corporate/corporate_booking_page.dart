@@ -1,26 +1,41 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:dio/dio.dart';
 import '../../theme/app_colors.dart';
+import '../../core/exceptions.dart';
 
-class CorporateBookingPage extends StatefulWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../services/api_service.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+class CorporateBookingPage extends ConsumerStatefulWidget {
   final Map<String, dynamic> trip;
-  CorporateBookingPage({super.key, required this.trip}); // Removed const
+  CorporateBookingPage({super.key, required this.trip});
 
   @override
-  State<CorporateBookingPage> createState() => _CorporateBookingPageState();
+  ConsumerState<CorporateBookingPage> createState() => _CorporateBookingPageState();
 }
 
-class _CorporateBookingPageState extends State<CorporateBookingPage> {
+class _CorporateBookingPageState extends ConsumerState<CorporateBookingPage> {
   int _currentStep = 0;
   int _passengers = 1;
-  int? _selectedSeat;
+  List<int> _selectedSeats = [];
+  List<int> _occupiedSeats = [];
+  bool _isLoading = false;
   
   late TextEditingController _phoneController;
   late TextEditingController _emailController;
   late TextEditingController _firstNameController;
   late TextEditingController _lastNameController;
   late TextEditingController _notesController;
+  late TextEditingController _cardNumberController;
+  late TextEditingController _expiryController;
+  late TextEditingController _cvvController;
+  
+  String _paymentMethod = 'card';
+  double _userBalance = 0.0;
 
   @override
   void initState() {
@@ -30,6 +45,24 @@ class _CorporateBookingPageState extends State<CorporateBookingPage> {
     _firstNameController = TextEditingController();
     _lastNameController = TextEditingController();
     _notesController = TextEditingController();
+    _cardNumberController = TextEditingController();
+    _expiryController = TextEditingController();
+    _cvvController = TextEditingController();
+    _fetchUserBalance();
+  }
+
+  Future<void> _fetchUserBalance() async {
+    try {
+      final api = ref.read(apiServiceProvider);
+      final response = await api.get('/users/me'); 
+      if (response.statusCode == 200) {
+        setState(() {
+          _userBalance = (response.data['walletBalance'] ?? 0.0).toDouble();
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching balance: $e');
+    }
   }
 
   @override
@@ -39,6 +72,9 @@ class _CorporateBookingPageState extends State<CorporateBookingPage> {
     _firstNameController.dispose();
     _lastNameController.dispose();
     _notesController.dispose();
+    _cardNumberController.dispose();
+    _expiryController.dispose();
+    _cvvController.dispose();
     super.dispose();
   }
 
@@ -52,17 +88,19 @@ class _CorporateBookingPageState extends State<CorporateBookingPage> {
     return Scaffold(
       backgroundColor: bgColor,
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(100),
+        preferredSize: const Size.fromHeight(130), // Increased height
         child: Container(
-          decoration: BoxDecoration( // Removed const
-            color: Color(0xFF4F46E5), // Indigo blue header
-            borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
+          padding: const EdgeInsets.only(bottom: 15),
+          decoration: const BoxDecoration(
+            color: Color(0xFF4F46E5),
+            borderRadius: BorderRadius.vertical(bottom: Radius.circular(25)),
           ),
           child: SafeArea(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 _buildHeader(widget.trip['title'] ?? 'تأكيد الحجز'),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 _buildStepIndicator(),
               ],
             ),
@@ -213,7 +251,7 @@ class _CorporateBookingPageState extends State<CorporateBookingPage> {
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController ctrl, String hint, bool isDark, Color textColor, {int maxLines = 1}) {
+  Widget _buildTextField(String label, TextEditingController ctrl, String hint, bool isDark, Color textColor, {int maxLines = 1, List<TextInputFormatter>? formatters, TextInputType? keyboardType}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -222,6 +260,8 @@ class _CorporateBookingPageState extends State<CorporateBookingPage> {
         TextField(
           controller: ctrl,
           maxLines: maxLines,
+          inputFormatters: formatters,
+          keyboardType: keyboardType,
           style: GoogleFonts.cairo(fontSize: 13, color: textColor),
           decoration: InputDecoration(
             hintText: hint,
@@ -240,49 +280,98 @@ class _CorporateBookingPageState extends State<CorporateBookingPage> {
 
   // --- STEP 2: SEATS ---
   Widget _buildSeatSelectionStep(bool isDark, Color textColor, Color cardColor) {
+    // 50 seats bus layout
+    final totalSeats = 50;
+    final bookedSeats = _occupiedSeats;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
           Text('اختر مقاعدك', style: GoogleFonts.cairo(fontSize: 18, fontWeight: FontWeight.bold, color: textColor)),
-          Text('اختر $_passengers مقعد (تم اختيار ${_selectedSeat != null ? 1 : 0})', style: GoogleFonts.cairo(color: Colors.blue, fontSize: 13)),
+          Text('اختر $_passengers مقعد (تم اختيار ${_selectedSeats.length})', style: GoogleFonts.cairo(color: _selectedSeats.length == _passengers ? Colors.green : Colors.blue, fontSize: 13)),
           const SizedBox(height: 24),
           _buildSeatLegend(textColor),
           const SizedBox(height: 30),
           Container(
-            padding: const EdgeInsets.all(30),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
             decoration: BoxDecoration(
               color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade50,
               borderRadius: BorderRadius.circular(40),
               border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
             ),
-            child: Wrap(
-              spacing: 15,
-              runSpacing: 15,
-              alignment: WrapAlignment.center,
-              children: List.generate(28, (index) {
-                bool isSelected = _selectedSeat == index;
-                bool isBooked = index == 14; // Mock booked seat
-                return GestureDetector(
-                  onTap: () => !isBooked ? setState(() => _selectedSeat = index) : null,
-                  child: Container(
-                    width: 45,
-                    height: 45,
-                    decoration: BoxDecoration(
-                      color: isBooked ? (isDark ? Colors.white12 : Colors.grey[300]) : (isSelected ? const Color(0xFFF97316) : (isDark ? Colors.white10 : Colors.white)),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: isSelected ? const Color(0xFFF97316) : (isDark ? Colors.white12 : Colors.grey.shade300)),
+            child: Column(
+              children: [
+                // Driver area indicator
+                Container(
+                  width: 60,
+                  height: 30,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.drive_eta, color: Colors.black54),
+                ),
+                const SizedBox(height: 20),
+                ...List.generate(13, (rowIndex) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(5, (colIndex) {
+                        // The bus aisle is colIndex == 2, except for the last row (rowIndex == 12)
+                        if (rowIndex < 12 && colIndex == 2) return const SizedBox(width: 30);
+                        
+                        int seatNum = 0;
+                        if (rowIndex < 12) {
+                          if (colIndex < 2) seatNum = rowIndex * 4 + colIndex + 1;
+                          if (colIndex > 2) seatNum = rowIndex * 4 + colIndex;
+                        } else {
+                          // Last row has 5 seats (49 to 53)
+                          seatNum = 12 * 4 + colIndex + 1;
+                        }
+                        
+                        if (seatNum > totalSeats) return const SizedBox(width: 45); // Hide extra seats
+                        
+                        bool isBooked = bookedSeats.contains(seatNum);
+                        bool isSelected = _selectedSeats.contains(seatNum);
+
+                        return GestureDetector(
+                          onTap: () {
+                            if (isBooked) return;
+                            setState(() {
+                              if (isSelected) {
+                                _selectedSeats.remove(seatNum);
+                              } else {
+                                if (_selectedSeats.length < _passengers) {
+                                  _selectedSeats.add(seatNum);
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('لقد اخترت الحد الأقصى للمقاعد ($_passengers)')));
+                                }
+                              }
+                            });
+                          },
+                          child: Container(
+                            width: 40,
+                            height: 40,
+                            margin: const EdgeInsets.symmetric(horizontal: 4),
+                            decoration: BoxDecoration(
+                              color: isBooked ? (isDark ? Colors.white12 : Colors.grey[300]) : (isSelected ? const Color(0xFFF97316) : (isDark ? Colors.white10 : Colors.white)),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: isSelected ? const Color(0xFFF97316) : (isDark ? Colors.white12 : Colors.grey.shade300)),
+                            ),
+                            child: Center(
+                              child: Text('$seatNum', 
+                                style: TextStyle(
+                                  color: isSelected ? Colors.white : (isBooked ? Colors.grey : textColor),
+                                  fontWeight: FontWeight.bold,
+                                )),
+                            ),
+                          ),
+                        );
+                      }),
                     ),
-                    child: Center(
-                      child: Text('${index + 1}', 
-                        style: TextStyle(
-                          color: isSelected ? Colors.white : (isBooked ? Colors.grey : textColor),
-                          fontWeight: FontWeight.bold,
-                        )),
-                    ),
-                  ),
-                );
-              }),
+                  );
+                }),
+              ],
             ),
           ),
         ],
@@ -322,15 +411,68 @@ class _CorporateBookingPageState extends State<CorporateBookingPage> {
           const SizedBox(height: 20),
           _buildPaymentToggle(isDark, textColor),
           const SizedBox(height: 24),
-          _buildTextField('رقم البطاقة', TextEditingController(), '0000 0000 0000 0000', isDark, textColor),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(child: _buildTextField('MM/YY', TextEditingController(), '12/26', isDark, textColor)),
-              const SizedBox(width: 12),
-              Expanded(child: _buildTextField('CVV', TextEditingController(), '***', isDark, textColor)),
-            ],
-          ),
+          if (_paymentMethod == 'card') ...[
+            _buildTextField(
+              'رقم البطاقة', 
+              _cardNumberController, 
+              '0000 0000 0000 0000', 
+              isDark, 
+              textColor,
+              keyboardType: TextInputType.number,
+              formatters: [_CardNumberFormatter()],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(child: _buildTextField(
+                  'MM/YY', 
+                  _expiryController, 
+                  '12/26', 
+                  isDark, 
+                  textColor,
+                  keyboardType: TextInputType.number,
+                  formatters: [_ExpiryDateFormatter()],
+                )),
+                const SizedBox(width: 12),
+                Expanded(child: _buildTextField(
+                  'CVV', 
+                  _cvvController, 
+                  '***', 
+                  isDark, 
+                  textColor,
+                  keyboardType: TextInputType.number,
+                  formatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(3)],
+                )),
+              ],
+            ),
+          ] else ...[
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppColors.primaryOrange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(15),
+                border: Border.all(color: AppColors.primaryOrange.withOpacity(0.3)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.account_balance_wallet, color: AppColors.primaryOrange, size: 30),
+                  const SizedBox(width: 15),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('رصيدك الحالي', style: GoogleFonts.cairo(fontSize: 12, color: textColor.withOpacity(0.7))),
+                      Text('${_userBalance.toStringAsFixed(2)} ج.م', style: GoogleFonts.cairo(fontSize: 18, fontWeight: FontWeight.bold, color: textColor)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            if (_userBalance < _totalPrice)
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Text('رصيدك غير كافٍ لإتمام العملية', style: GoogleFonts.cairo(color: Colors.red, fontSize: 12)),
+              ),
+          ],
           const SizedBox(height: 32),
           _buildPriceSummary(isDark, textColor, cardColor),
         ],
@@ -344,12 +486,34 @@ class _CorporateBookingPageState extends State<CorporateBookingPage> {
       decoration: BoxDecoration(color: isDark ? Colors.white10 : Colors.grey.shade100, borderRadius: BorderRadius.circular(15)),
       child: Row(
         children: [
-          Expanded(child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            decoration: BoxDecoration(color: isDark ? AppColors.cardDark : Colors.white, borderRadius: BorderRadius.circular(12)),
-            child: Center(child: Text('بطاقة بنكية', style: TextStyle(fontWeight: FontWeight.bold, color: textColor))),
-          )),
-          Expanded(child: Center(child: Text('محفظة', style: TextStyle(color: textColor.withOpacity(0.5))))),
+          Expanded(
+            child: GestureDetector(
+              onTap: () => setState(() => _paymentMethod = 'card'),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: _paymentMethod == 'card' ? (isDark ? AppColors.cardDark : Colors.white) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: _paymentMethod == 'card' ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)] : null,
+                ),
+                child: Center(child: Text('بطاقة بنكية', style: TextStyle(fontWeight: _paymentMethod == 'card' ? FontWeight.bold : FontWeight.normal, color: _paymentMethod == 'card' ? textColor : textColor.withOpacity(0.5)))),
+              ),
+            ),
+          ),
+          Expanded(
+            child: GestureDetector(
+              onTap: () => setState(() => _paymentMethod = 'wallet'),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: _paymentMethod == 'wallet' ? (isDark ? AppColors.cardDark : Colors.white) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: _paymentMethod == 'wallet' ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)] : null,
+                ),
+                child: Center(child: Text('محفظة', style: TextStyle(fontWeight: _paymentMethod == 'wallet' ? FontWeight.bold : FontWeight.normal, color: _paymentMethod == 'wallet' ? textColor : textColor.withOpacity(0.5)))),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -403,7 +567,7 @@ class _CorporateBookingPageState extends State<CorporateBookingPage> {
           if (_currentStep > 0)
             Expanded(
               child: OutlinedButton(
-                onPressed: () => setState(() => _currentStep--),
+                onPressed: _isLoading ? null : () => setState(() => _currentStep--),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
@@ -416,11 +580,23 @@ class _CorporateBookingPageState extends State<CorporateBookingPage> {
           Expanded(
             flex: 2,
             child: ElevatedButton(
-              onPressed: () {
-                if (_currentStep < 2) {
+              onPressed: _isLoading ? null : () async {
+                if (_currentStep == 0) {
+                  // Validate step 0
+                  if (_phoneController.text.isEmpty || _firstNameController.text.isEmpty || _lastNameController.text.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('برجاء إكمال جميع البيانات المطلوبة')));
+                    return;
+                  }
+                  await _fetchOccupiedSeats();
+                  setState(() => _currentStep++);
+                } else if (_currentStep == 1) {
+                  if (_selectedSeats.length != _passengers) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('الرجاء اختيار $_passengers مقاعد')));
+                    return;
+                  }
                   setState(() => _currentStep++);
                 } else {
-                  _showSuccess();
+                  await _submitBooking();
                 }
               },
               style: ElevatedButton.styleFrom(
@@ -429,10 +605,12 @@ class _CorporateBookingPageState extends State<CorporateBookingPage> {
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
               ),
-              child: Text(
-                _currentStep == 2 ? 'تأكيد الحجز والدفع الآن' : 'الخطوة التالية',
-                style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
-              ),
+              child: _isLoading 
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : Text(
+                      _currentStep == 2 ? 'تأكيد الحجز والدفع الآن' : 'الخطوة التالية',
+                      style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+                    ),
             ),
           ),
         ],
@@ -440,20 +618,224 @@ class _CorporateBookingPageState extends State<CorporateBookingPage> {
     );
   }
 
-  void _showSuccess() {
+  Future<void> _submitBooking() async {
+    // Basic Frontend Validation
+    if (_phoneController.text.isEmpty || _firstNameController.text.isEmpty || _lastNameController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('برجاء إكمال جميع البيانات المطلوبة (الاسم والهاتف)')));
+      return;
+    }
+
+    if (_phoneController.text.length < 11) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('رقم الهاتف يجب أن يكون 11 رقماً')));
+      return;
+    }
+
+    if (_paymentMethod == 'card') {
+      if (_cardNumberController.text.replaceAll(' ', '').length < 16) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('رقم البطاقة غير مكتمل')));
+        return;
+      }
+      if (_expiryController.text.length < 5) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تاريخ انتهاء البطاقة غير صحيح')));
+        return;
+      }
+      if (_cvvController.text.length < 3) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('رقم CVV غير صحيح')));
+        return;
+      }
+    } else if (_paymentMethod == 'wallet') {
+      if (_userBalance < _totalPrice) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('رصيد المحفظة غير كافٍ')));
+        return;
+      }
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      final api = ref.read(apiServiceProvider);
+      
+      // 1. Create Booking
+      final bookingResponse = await api.post('/bookings', data: {
+        'tripId': widget.trip['_id'],
+        'numberOfPeople': _passengers,
+        'bookingDate': widget.trip['startDate'] ?? DateTime.now().toIso8601String(),
+        'userPhone': _phoneController.text.trim(),
+        'firstName': _firstNameController.text.trim(),
+        'lastName': _lastNameController.text.trim(),
+        'email': _emailController.text.trim(),
+        'specialRequests': _notesController.text.trim(),
+        'selectedSeats': _selectedSeats.map((s) => s.toString()).toList(),
+        'paymentMethod': _paymentMethod,
+      });
+
+      if (bookingResponse.statusCode == 201) {
+        if (_paymentMethod == 'wallet') {
+          _showSuccess(isPaymentPending: false);
+          return;
+        }
+
+        final bookingId = bookingResponse.data['booking']['_id'];
+        
+        // 2. Create Payment Intention (Paymob)
+        final paymobResponse = await api.post('/paymob/create-payment-intention', data: {
+          'bookingId': bookingId,
+          'paymentMethod': 'card',
+        });
+
+        if (paymobResponse.statusCode == 200) {
+          final iframeId = paymobResponse.data['iframeId'] ?? 870420; 
+          final paymentKey = paymobResponse.data['paymentKey'];
+          final url = Uri.parse('https://accept.paymob.com/api/acceptance/iframes/$iframeId?payment_token=$paymentKey');
+          
+          if (await canLaunchUrl(url)) {
+            await launchUrl(url, mode: LaunchMode.externalApplication);
+            _showSuccess(isPaymentPending: true);
+          } else {
+            throw Exception('لا يمكن فتح صفحة الدفع');
+          }
+        } else {
+          throw Exception('حدث خطأ في تهيئة الدفع');
+        }
+      } else {
+         // Show specific error from backend if available
+         final errorMsg = bookingResponse.data != null && bookingResponse.data['error'] != null 
+            ? bookingResponse.data['error'] 
+            : 'حدث خطأ غير متوقع (400)';
+         throw Exception(errorMsg);
+      }
+    } catch (e) {
+      if (mounted) {
+        String msg;
+        if (e is DioException) {
+          msg = handleDioError(e).message;
+        } else {
+          msg = e.toString().replaceAll('Exception: ', '');
+        }
+        
+        _showErrorSnackBar(msg);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+
+
+  Future<void> _fetchOccupiedSeats() async {
+    setState(() => _isLoading = true);
+    try {
+      final api = ref.read(apiServiceProvider);
+      final response = await api.get('/bookings/trip/${widget.trip['_id']}');
+      if (response.statusCode == 200) {
+        final List bookings = response.data;
+        final List<int> occupied = [];
+        for (var b in bookings) {
+          if (b['selectedSeats'] != null) {
+            for (var s in b['selectedSeats']) {
+              final seatNum = int.tryParse(s.toString());
+              if (seatNum != null) occupied.add(seatNum);
+            }
+          }
+        }
+        setState(() {
+          _occupiedSeats = occupied;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching occupied seats: $e');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(child: Text(message, style: GoogleFonts.cairo(color: Colors.white, fontWeight: FontWeight.bold))),
+          ],
+        ),
+        backgroundColor: Colors.red.shade800,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
+
+  void _showSuccess({bool isPaymentPending = false}) {
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Icon(Icons.check_circle, color: Colors.green, size: 60),
-        content: Text('تم تأكيد حجزك بنجاح! شكراً لاختيارك رحلتي.', textAlign: TextAlign.center, style: GoogleFonts.cairo()),
+        title: Icon(isPaymentPending ? Icons.hourglass_top : Icons.check_circle, color: isPaymentPending ? Colors.orange : Colors.green, size: 60),
+        content: Text(
+          isPaymentPending 
+            ? 'تم حفظ حجزك وهو بانتظار إتمام عملية الدفع. يرجى إتمام الدفع عبر الصفحة التي فُتحت.'
+            : 'تم تأكيد حجزك بنجاح! شكراً لاختيارك رحلتي.', 
+          textAlign: TextAlign.center, 
+          style: GoogleFonts.cairo()
+        ),
         actions: [
           TextButton(onPressed: () {
-            Navigator.pop(context);
-            Navigator.pop(context);
+            Navigator.pop(context); // Close dialog
+            Navigator.pop(context); // Go back from booking page
           }, child: const Text('حسناً')),
         ],
       ),
+    );
+  }
+}
+
+class _CardNumberFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    var text = newValue.text.replaceAll(' ', '');
+    if (text.length > 16) text = text.substring(0, 16);
+    
+    var buffer = StringBuffer();
+    for (int i = 0; i < text.length; i++) {
+      buffer.write(text[i]);
+      var nonZeroIndex = i + 1;
+      if (nonZeroIndex % 4 == 0 && nonZeroIndex != text.length) {
+        buffer.write(' ');
+      }
+    }
+    
+    var string = buffer.toString();
+    return newValue.copyWith(
+      text: string,
+      selection: TextSelection.collapsed(offset: string.length),
+    );
+  }
+}
+
+class _ExpiryDateFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    var text = newValue.text.replaceAll('/', '');
+    if (text.length > 4) text = text.substring(0, 4);
+    
+    var buffer = StringBuffer();
+    for (int i = 0; i < text.length; i++) {
+      buffer.write(text[i]);
+      var nonZeroIndex = i + 1;
+      if (nonZeroIndex == 2 && nonZeroIndex != text.length) {
+        buffer.write('/');
+      }
+    }
+    
+    var string = buffer.toString();
+    return newValue.copyWith(
+      text: string,
+      selection: TextSelection.collapsed(offset: string.length),
     );
   }
 }

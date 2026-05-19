@@ -143,7 +143,7 @@ class CorporateTripCard extends StatelessWidget {
                     children: [
                       CircleAvatar(
                         radius: 12,
-                        backgroundImage: NetworkImage(trip.companyLogo ?? 'https://via.placeholder.com/150'),
+                        backgroundImage: NetworkImage(trip.companyLogo ?? 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=150'),
                         backgroundColor: Colors.grey.shade100,
                       ),
                       const SizedBox(width: 8),

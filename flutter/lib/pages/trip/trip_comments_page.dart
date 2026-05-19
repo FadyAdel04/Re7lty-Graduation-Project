@@ -5,6 +5,7 @@ import '../../providers/api_provider.dart';
 import '../../providers/trip_provider.dart';
 import '../../theme/app_colors.dart';
 import 'package:intl/intl.dart';
+import 'package:clerk_flutter/clerk_flutter.dart';
 
 class TripCommentsPage extends ConsumerStatefulWidget {
   final String tripId;
@@ -80,25 +81,32 @@ class _TripCommentsPageState extends ConsumerState<TripCommentsPage> {
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: isDark ? AppColors.cardDark : Colors.grey[100],
-                                borderRadius: BorderRadius.circular(15),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    comment.author,
-                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    comment.content,
-                                    style: const TextStyle(fontSize: 14),
-                                  ),
-                                ],
+                            child: GestureDetector(
+                              onLongPress: () {
+                                if (ClerkAuth.of(context).user?.id == comment.authorId) {
+                                  _showDeleteCommentDialog(comment.id);
+                                }
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: isDark ? AppColors.cardDark : Colors.grey[100],
+                                  borderRadius: BorderRadius.circular(15),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      comment.author,
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      comment.content,
+                                      style: const TextStyle(fontSize: 14),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
@@ -143,6 +151,35 @@ class _TripCommentsPageState extends ConsumerState<TripCommentsPage> {
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteCommentDialog(String commentId) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('حذف التعليق'),
+        content: const Text('هل تريد حذف هذا التعليق؟'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
+          ElevatedButton(
+            onPressed: () async {
+              final success = await ref.read(tripServiceProvider).deleteComment(widget.tripId, commentId);
+              if (mounted) {
+                Navigator.pop(context);
+                if (success) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم حذف التعليق')));
+                  ref.invalidate(tripDetailProvider(widget.tripId));
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فشل حذف التعليق')));
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            child: const Text('حذف'),
           ),
         ],
       ),

@@ -2,191 +2,391 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/trip_provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mb;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:go_router/go_router.dart';
+import '../../models/trip.dart';
+import '../../providers/api_provider.dart';
+import '../../services/api_service.dart';
 
-class TripDetailPage extends ConsumerWidget {
+class TripDetailPage extends ConsumerStatefulWidget {
   final String tripId;
 
   const TripDetailPage({super.key, required this.tripId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final tripAsync = ref.watch(tripDetailProvider(tripId));
+  ConsumerState<TripDetailPage> createState() => _TripDetailPageState();
+}
 
-    return Scaffold(
-      body: tripAsync.when(
-        data: (trip) => CustomScrollView(
-          slivers: [
-            SliverAppBar(
-              expandedHeight: 300,
-              pinned: true,
-              flexibleSpace: FlexibleSpaceBar(
-                title: Text(
-                  trip.title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    shadows: [Shadow(color: Colors.black45, blurRadius: 10)],
-                  ),
-                ),
-                background: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    CachedNetworkImage(
-                      imageUrl: trip.image ?? '',
-                      fit: BoxFit.cover,
-                      errorWidget: (context, url, error) => Container(color: Colors.grey),
-                    ),
-                    const DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [Colors.transparent, Colors.black54],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+class _TripDetailPageState extends ConsumerState<TripDetailPage> {
+  final Set<int> _expandedDays = {0};
+  
+  bool _isFollowing = false;
+  bool _isLoved = false;
+  bool _isSaved = false;
+  int _likesCount = 0;
+  int _savesCount = 0;
+  bool _initialized = false;
+
+  void _initializeState(Trip trip) {
+    if (_initialized) return;
+    _isFollowing = trip.viewerFollowsAuthor;
+    _isLoved = trip.isLoved;
+    _isSaved = trip.isSaved;
+    _likesCount = trip.likes;
+    _savesCount = trip.saves;
+    _initialized = true;
+  }
+
+  Future<void> _toggleLove(String tripId) async {
+    final oldState = _isLoved;
+    final oldCount = _likesCount;
+    setState(() {
+      _isLoved = !_isLoved;
+      _likesCount += _isLoved ? 1 : -1;
+    });
+    try {
+      await ref.read(tripServiceProvider).toggleLike(tripId);
+    } catch (e) {
+      setState(() {
+        _isLoved = oldState;
+        _likesCount = oldCount;
+      });
+    }
+  }
+
+  Future<void> _toggleSave(String tripId) async {
+    final oldState = _isSaved;
+    final oldCount = _savesCount;
+    setState(() {
+      _isSaved = !_isSaved;
+      _savesCount += _isSaved ? 1 : -1;
+    });
+    try {
+      await ref.read(tripServiceProvider).toggleSave(tripId);
+    } catch (e) {
+      setState(() {
+        _isSaved = oldState;
+        _savesCount = oldCount;
+      });
+    }
+  }
+
+  Future<void> _toggleFollow(String userId) async {
+    final oldState = _isFollowing;
+    setState(() {
+      _isFollowing = !_isFollowing;
+    });
+    try {
+      await ref.read(userServiceProvider).toggleFollow(userId);
+    } catch (e) {
+      setState(() {
+        _isFollowing = oldState;
+      });
+    }
+  }
+
+  void _toggleDay(int index) {
+    setState(() {
+      if (_expandedDays.contains(index)) {
+        _expandedDays.remove(index);
+      } else {
+        _expandedDays.add(index);
+      }
+    });
+  }
+
+  void _showImageDetails(String imageUrl) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: EdgeInsets.zero,
+        child: Stack(
+          children: [
+            InteractiveViewer(
+              child: Center(
+                child: CachedNetworkImage(imageUrl: imageUrl, fit: BoxFit.contain),
               ),
-              actions: [
-                IconButton(icon: const Icon(Icons.share, color: Colors.white), onPressed: () {}),
-                IconButton(icon: const Icon(Icons.favorite_border, color: Colors.white), onPressed: () {}),
-              ],
             ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildAuthorCell(context, trip),
-                    const SizedBox(height: 24),
-                    _buildStatsGrid(trip),
-                    const SizedBox(height: 32),
-                    _buildSectionHeader('عن الرحلة'),
-                    const SizedBox(height: 8),
-                    Text(trip.description ?? 'لا يوجد وصف متاح.', style: const TextStyle(fontSize: 15, height: 1.6)),
-                    const SizedBox(height: 32),
-                    if (trip.activities.isNotEmpty) ...[
-                      _buildSectionHeader('المواقع على الخريطة'),
-                      const SizedBox(height: 12),
-                      _buildMapView(trip),
-                      const SizedBox(height: 32),
-                    ],
-                    if (trip.days.isNotEmpty) ...[
-                      _buildSectionHeader('برنامج الرحلة'),
-                      const SizedBox(height: 12),
-                      _buildItinerary(trip),
-                      const SizedBox(height: 32),
-                    ],
-                    if (trip.foodAndRestaurants.isNotEmpty) ...[
-                      _buildSectionHeader('أفضل المطاعم والأكلات'),
-                      const SizedBox(height: 12),
-                      _buildFoodSection(trip),
-                      const SizedBox(height: 32),
-                    ],
-                    if (trip.hotels.isNotEmpty) ...[
-                      _buildSectionHeader('أماكن الإقامة'),
-                      const SizedBox(height: 12),
-                      _buildHotelSection(trip),
-                    ],
-                    const SizedBox(height: 100),
-                  ],
-                ),
+            Positioned(
+              top: 40,
+              right: 20,
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                onPressed: () => Navigator.pop(context),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showFullScreenMap(Trip trip) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          appBar: AppBar(
+            title: Text(trip.title, style: const TextStyle(fontSize: 16)),
+            backgroundColor: Colors.white,
+            foregroundColor: Colors.black,
+            elevation: 0,
+          ),
+          body: _buildMapView(trip, isFullScreen: true),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tripAsync = ref.watch(tripDetailProvider(widget.tripId));
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+      body: tripAsync.when(
+        data: (trip) {
+          _initializeState(trip);
+          return CustomScrollView(
+            slivers: [
+              SliverAppBar(
+                expandedHeight: 320,
+                pinned: true,
+                backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+                leading: const BackButton(color: Colors.white),
+                flexibleSpace: FlexibleSpaceBar(
+                  background: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      GestureDetector(
+                        onTap: () => _showImageDetails(trip.image ?? ''),
+                        child: CachedNetworkImage(
+                          imageUrl: trip.image ?? '',
+                          fit: BoxFit.cover,
+                          errorWidget: (context, url, error) => Container(color: Colors.grey),
+                        ),
+                      ),
+                      const DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [Colors.transparent, Colors.black87],
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        bottom: 20,
+                        left: 12,
+                        right: 12,
+                        child: _buildFloatingActionBar(context, trip, isDark),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 10),
+                      _buildSectionHeader('نظرة عامة على المغامرة'),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(30),
+                          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)],
+                        ),
+                        child: Text(
+                          trip.description ?? 'لا يوجد وصف متاح.',
+                          style: TextStyle(
+                            fontSize: 16, 
+                            height: 1.8, 
+                            color: isDark ? Colors.white70 : Colors.black87,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                      _buildActivitiesHighlights(trip),
+                      if (trip.activities.isNotEmpty) ...[
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            _buildSectionHeader('الخريطة التفاعلية للمسار'),
+                            IconButton(
+                              icon: const Icon(Icons.fullscreen, color: Colors.blue),
+                              onPressed: () => _showFullScreenMap(trip),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        _buildMapView(trip),
+                        const SizedBox(height: 40),
+                      ],
+                      if (trip.days.isNotEmpty) ...[
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('خط السير التفصيلي', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFFF59E0B))),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                              child: Text('${trip.duration}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.orange)),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        _buildItinerary(trip),
+                      ],
+                      if (trip.foodAndRestaurants.isNotEmpty) ...[
+                        const SizedBox(height: 40),
+                        _buildSectionHeader('أفضل المطاعم والأكلات المحلية'),
+                        const SizedBox(height: 16),
+                        _buildFoodSection(trip),
+                      ],
+                      const SizedBox(height: 100),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
         loading: () => const Scaffold(body: Center(child: CircularProgressIndicator(color: Colors.orange))),
         error: (err, stack) => Scaffold(
           appBar: AppBar(backgroundColor: Colors.white, elevation: 0),
-          body: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(32),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.cloud_off_rounded, size: 72, color: Colors.orange),
-                  const SizedBox(height: 20),
-                  const Text('تعذّر تحميل الرحلة', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  const Text('تحقق من اتصالك أو تشغيل السيرفر', style: TextStyle(color: Colors.grey)),
-                  const SizedBox(height: 24),
-                  ElevatedButton.icon(
-                    onPressed: () => ref.refresh(tripDetailProvider(tripId)),
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('إعادة المحاولة'),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.white),
-                  ),
-                ],
-              ),
-            ),
-          ),
+          body: Center(child: Text('Error: $err')),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {},
-        backgroundColor: Colors.orange,
-        label: const Text('خطط لرحلة مشابهة', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        icon: const Icon(Icons.explore, color: Colors.white),
-      ),
     );
   }
 
-  Widget _buildAuthorCell(BuildContext context, dynamic trip) {
-    return InkWell(
-      onTap: () => context.push('/user/${trip.ownerId}'),
+  Widget _buildFloatingActionBar(BuildContext context, Trip trip, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B).withOpacity(0.9) : Colors.white.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 20, offset: const Offset(0, 8))],
+      ),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 25,
-            backgroundImage: trip.image != null ? NetworkImage(trip.image!) : null,
-            child: trip.image == null ? const Icon(Icons.person) : null,
-          ),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Stack(
+            clipBehavior: Clip.none,
             children: [
-              Text(trip.author ?? 'مستخدم', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-              Text('${trip.authorFollowers} متابع', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+              GestureDetector(
+                onTap: () => context.push('/profile/${trip.ownerId}'),
+                child: CircleAvatar(
+                  radius: 24,
+                  backgroundColor: Colors.orange,
+                  backgroundImage: trip.authorImage != null && trip.authorImage!.isNotEmpty ? NetworkImage(trip.authorImage!) : null,
+                  child: (trip.authorImage == null || trip.authorImage!.isEmpty) ? const Icon(Icons.person, color: Colors.white) : null,
+                ),
+              ),
+              Positioned(
+                bottom: -4,
+                right: -4,
+                child: GestureDetector(
+                  onTap: () => _toggleFollow(trip.ownerId ?? ''),
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                    child: CircleAvatar(
+                      radius: 10,
+                      backgroundColor: _isFollowing ? Colors.grey : Colors.red,
+                      child: Icon(_isFollowing ? Icons.check : Icons.add, size: 14, color: Colors.white),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
-          const Spacer(),
-          ElevatedButton(
-            onPressed: () {},
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.white, elevation: 0),
-            child: const Text('متابعة'),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('رحلة بواسطة', style: TextStyle(color: Colors.grey[600], fontSize: 10)),
+                Text(trip.author ?? 'مستخدم رحلتي', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+              ],
+            ),
           ),
+          _actionWithCount(Icons.favorite, _likesCount.toString(), _isLoved ? Colors.red : (isDark ? Colors.white70 : Colors.black54), () => _toggleLove(trip.id)),
+          const SizedBox(width: 20),
+          _actionWithCount(Icons.bookmark, _savesCount.toString(), _isSaved ? Colors.orange : (isDark ? Colors.white70 : Colors.black54), () => _toggleSave(trip.id)),
+          const SizedBox(width: 20),
+          _actionWithCount(Icons.share, 'مشاركة', isDark ? Colors.white70 : Colors.black54, () {}),
         ],
       ),
     );
   }
 
-  Widget _buildStatsGrid(dynamic trip) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: Colors.grey[50], borderRadius: BorderRadius.circular(25)),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
+  Widget _actionWithCount(IconData icon, String count, Color color, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          _statItem(Icons.calendar_today, 'المدة', trip.duration ?? '-'),
-          _statItem(Icons.attach_money, 'الميزانية', trip.budget ?? '-'),
-          _statItem(Icons.star, 'التقييم', trip.rating.toString()),
+          Icon(icon, color: color, size: 24),
+          const SizedBox(height: 2),
+          Text(count, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
         ],
       ),
     );
   }
 
-  Widget _statItem(IconData icon, String label, String value) {
+  Widget _buildActivitiesHighlights(Trip trip) {
+    final activitiesWithImages = trip.activities.where((a) => a.images.isNotEmpty).toList();
+    if (activitiesWithImages.isEmpty) return const SizedBox.shrink();
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, color: Colors.orange, size: 24),
-        const SizedBox(height: 6),
-        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 10)),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+        _buildSectionHeader('أبرز المعالم والأنشطة'),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 180,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: activitiesWithImages.length,
+            itemBuilder: (context, idx) {
+              final activity = activitiesWithImages[idx];
+              return GestureDetector(
+                onTap: () => _showImageDetails(activity.images.first),
+                child: Container(
+                  width: 200,
+                  margin: const EdgeInsets.only(left: 16),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10)],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        CachedNetworkImage(imageUrl: activity.images.first, fit: BoxFit.cover),
+                        const DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.transparent, Colors.black87]),
+                          ),
+                        ),
+                        Positioned(bottom: 12, right: 12, left: 12, child: Text(activity.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 32),
       ],
     );
   }
@@ -195,50 +395,123 @@ class TripDetailPage extends ConsumerWidget {
     return Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold));
   }
 
-  Widget _buildMapView(dynamic trip) {
-    // Note: In mapbox_maps_flutter, markers are handled via AnnotationManagers.
-    // For this static-styled description view, we'll initialize the MapWidget with the center.
-    final firstPoint = trip.activities.isNotEmpty 
-        ? [trip.activities.first.lng ?? 31.2357, trip.activities.first.lat ?? 30.0444]
-        : [31.2357, 30.0444];
+  Widget _buildMapView(Trip trip, {bool isFullScreen = false}) {
+    final points = trip.activities
+        .where((a) => a.lat != null && a.lng != null)
+        .map((a) => mb.Point(coordinates: mb.Position(a.lng!, a.lat!)))
+        .toList();
+
+    if (points.isEmpty) return const SizedBox.shrink();
 
     return Container(
-      height: 200,
+      height: isFullScreen ? double.infinity : 250,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20), 
-        border: Border.all(color: Colors.grey[200]!)
+        borderRadius: isFullScreen ? BorderRadius.zero : BorderRadius.circular(24), 
+        border: isFullScreen ? null : Border.all(color: Colors.grey[200]!)
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: MapWidget(
-          key: const ValueKey("mapbox_view"),
-          cameraOptions: CameraOptions(
-            center: Point(coordinates: Position(firstPoint[0], firstPoint[1])),
+        borderRadius: isFullScreen ? BorderRadius.zero : BorderRadius.circular(24),
+        child: mb.MapWidget(
+          key: ValueKey("mapbox_${trip.id}_${isFullScreen ? 'full' : 'small'}"),
+          cameraOptions: mb.CameraOptions(
+            center: points.first,
             zoom: 12.0,
           ),
-          styleUri: MapboxStyles.OUTDOORS,
+          styleUri: mb.MapboxStyles.OUTDOORS,
+          onMapCreated: (controller) async {
+            // 1. Add Circle Annotations (Blue dots)
+            final circleManager = await controller.annotations.createCircleAnnotationManager();
+            final circles = <mb.CircleAnnotationOptions>[];
+            for (var p in points) {
+              circles.add(mb.CircleAnnotationOptions(
+                geometry: p,
+                circleRadius: 18.0, // Increased size
+                circleColor: Colors.blue.value,
+                circleStrokeWidth: 3.0,
+                circleStrokeColor: Colors.white.value,
+              ));
+            }
+            circleManager.createMulti(circles);
+
+            // 2. Add Point Annotations (White Numbers)
+            final pointManager = await controller.annotations.createPointAnnotationManager();
+            final labels = <mb.PointAnnotationOptions>[];
+            for (var i = 0; i < points.length; i++) {
+              labels.add(mb.PointAnnotationOptions(
+                geometry: points[i],
+                textField: "${i + 1}",
+                textColor: Colors.white.value,
+                textSize: 16.0, // Increased size
+                textOffset: [0.0, 0.0],
+                textAnchor: mb.TextAnchor.CENTER,
+              ));
+            }
+            pointManager.createMulti(labels);
+
+            // 3. Add Polyline (Connecting lines)
+            final lineManager = await controller.annotations.createPolylineAnnotationManager();
+            lineManager.create(mb.PolylineAnnotationOptions(
+              geometry: mb.LineString(coordinates: points.map((e) => e.coordinates).toList()),
+              lineColor: Colors.blue.withOpacity(0.8).value,
+              lineWidth: 4.0, // Thicker line
+              lineJoin: mb.LineJoin.ROUND,
+            ));
+
+            // 4. Auto-fit camera
+            if (points.length > 1) {
+              final camera = await controller.cameraForCoordinates(
+                points,
+                mb.MbxEdgeInsets(top: 50, left: 50, bottom: 50, right: 50),
+                null,
+                null,
+              );
+              controller.setCamera(camera);
+            }
+          },
         ),
       ),
     );
   }
 
-  Widget _buildItinerary(dynamic trip) {
+  Widget _buildItinerary(Trip trip) {
     return Column(
-      children: List.generate(trip.days.length, (idx) {
-        final day = trip.days[idx];
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.grey[100]!)),
-          child: ExpansionTile(
-            title: Text('اليوم ${idx + 1}: ${day.title}', style: const TextStyle(fontWeight: FontWeight.bold)),
-            leading: const Icon(Icons.event, color: Colors.orange),
+      children: List.generate(trip.days.length, (dayIdx) {
+        final day = trip.days[dayIdx];
+        final isExpanded = _expandedDays.contains(dayIdx);
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              for (var actIdx in day.activities)
-                if (actIdx < trip.activities.length)
-                  ListTile(
-                    leading: const Icon(Icons.location_on, color: Colors.grey, size: 16),
-                    title: Text(trip.activities[actIdx].name),
+              GestureDetector(
+                onTap: () => _toggleDay(dayIdx),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: isExpanded ? Colors.orange.withOpacity(0.05) : Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: isExpanded ? Colors.orange.withOpacity(0.3) : Colors.grey[200]!),
                   ),
+                  child: Row(
+                    children: [
+                      Container(width: 40, height: 40, decoration: const BoxDecoration(color: Colors.orange, shape: BoxShape.circle), child: Center(child: Text('${dayIdx + 1}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)))),
+                      const SizedBox(width: 12),
+                      Expanded(child: Text('اليوم ${dayIdx + 1}: ${day.title}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
+                      Icon(isExpanded ? Icons.expand_less : Icons.expand_more, color: Colors.orange),
+                    ],
+                  ),
+                ),
+              ),
+              if (isExpanded) ...[
+                const SizedBox(height: 16),
+                ...List.generate(day.activities.length, (actIdx) {
+                  final globalActIdx = day.activities[actIdx];
+                  if (globalActIdx >= trip.activities.length) return const SizedBox.shrink();
+                  final activity = trip.activities[globalActIdx];
+                  return _buildActivityTimelineItem(activity, actIdx == day.activities.length - 1);
+                }),
+                if (dayIdx < trip.hotels.length) _buildAccommodationCard(trip.hotels[dayIdx]),
+              ],
             ],
           ),
         );
@@ -246,66 +519,155 @@ class TripDetailPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildFoodSection(dynamic trip) {
+  Widget _buildActivityTimelineItem(Activity activity, bool isLast) {
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 40,
+            child: Column(
+              children: [
+                Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.orange, width: 2),
+                  ),
+                ),
+                if (!isLast)
+                  Expanded(
+                    child: Container(
+                      width: 1.5,
+                      color: Colors.orange.withOpacity(0.2),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8)],
+                border: Border.all(color: Colors.grey[100]!),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          activity.name,
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (activity.note != null && activity.note!.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              activity.note!,
+                              style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.tips_and_updates, color: Colors.orange, size: 14),
+                              const SizedBox(width: 6),
+                              Text(
+                                'نصيحة: ينصح بالزيارة مبكراً',
+                                style: TextStyle(color: Colors.orange[900], fontSize: 10, fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (activity.images.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: GestureDetector(
+                        onTap: () => _showImageDetails(activity.images.first),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(15),
+                          child: CachedNetworkImage(
+                            imageUrl: activity.images.first,
+                            width: 80,
+                            height: 80,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAccommodationCard(Hotel hotel) {
+    return Container(
+      margin: const EdgeInsets.only(right: 40, top: 4),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.orange.withOpacity(0.2))),
+      child: Row(
+        children: [
+          GestureDetector(onTap: () => _showImageDetails(hotel.image), child: ClipRRect(borderRadius: BorderRadius.circular(15), child: CachedNetworkImage(imageUrl: hotel.image, width: 70, height: 70, fit: BoxFit.cover))),
+          const SizedBox(width: 12),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('إقامة مقترحة', style: TextStyle(color: Colors.orange, fontSize: 10, fontWeight: FontWeight.bold)), Text(hotel.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis), Row(children: [const Icon(Icons.star, color: Colors.orange, size: 12), Text(' ${hotel.rating}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)), const Spacer(), Text(hotel.priceRange, style: const TextStyle(color: Colors.grey, fontSize: 11))])])),
+          const SizedBox(width: 8),
+          ElevatedButton(onPressed: () {}, style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.white, elevation: 0, minimumSize: const Size(60, 36), padding: const EdgeInsets.symmetric(horizontal: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))), child: const Text('حجز', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold))),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFoodSection(Trip trip) {
     return SizedBox(
-      height: 150,
+      height: 200,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: trip.foodAndRestaurants.length,
         itemBuilder: (context, idx) {
           final food = trip.foodAndRestaurants[idx];
-          return Container(
-            width: 130,
-            margin: const EdgeInsets.only(left: 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(15),
-                  child: CachedNetworkImage(imageUrl: food.image, height: 90, width: 130, fit: BoxFit.cover, errorWidget: (c, u, e) => Container(color: Colors.grey[200])),
-                ),
-                const SizedBox(height: 4),
-                Text(food.name, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold), maxLines: 2),
-              ],
+          return GestureDetector(
+            onTap: () => _showImageDetails(food.image),
+            child: Container(
+              width: 160,
+              margin: const EdgeInsets.only(left: 16),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ClipRRect(borderRadius: BorderRadius.circular(20), child: CachedNetworkImage(imageUrl: food.image, height: 120, width: 160, fit: BoxFit.cover, errorWidget: (c, u, e) => Container(color: Colors.grey[200]))),
+                  Padding(padding: const EdgeInsets.all(12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(food.name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis), const SizedBox(height: 4), Row(children: [const Icon(Icons.restaurant_menu, color: Colors.orange, size: 12), const SizedBox(width: 4), Text('طبق مميز', style: TextStyle(color: Colors.grey[600], fontSize: 10))])])),
+                ],
+              ),
             ),
           );
         },
       ),
     );
   }
-
-  Widget _buildHotelSection(dynamic trip) {
-    return Column(
-      children: [
-        for (var hotel in trip.hotels)
-          Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: Colors.indigo[50], borderRadius: BorderRadius.circular(15)),
-            child: Row(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: CachedNetworkImage(imageUrl: hotel.image, width: 60, height: 60, fit: BoxFit.cover, errorWidget: (c, u, e) => Container(color: Colors.grey[200])),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(hotel.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                      Text(hotel.priceRange, style: const TextStyle(fontSize: 12, color: Colors.indigo)),
-                    ],
-                  ),
-                ),
-                const Icon(Icons.star, color: Colors.orange, size: 16),
-                Text(hotel.rating.toString(), style: const TextStyle(fontWeight: FontWeight.bold)),
-              ],
-            ),
-          ),
-      ],
-    );
-  }
 }
-
-

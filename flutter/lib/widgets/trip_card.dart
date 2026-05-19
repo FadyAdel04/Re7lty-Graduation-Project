@@ -36,7 +36,7 @@ class TripCard extends StatelessWidget {
               Stack(
                 children: [
                   CachedNetworkImage(
-                    imageUrl: trip.image ?? 'https://via.placeholder.com/400x300',
+                    imageUrl: trip.image ?? 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=400',
                     height: isLarge ? 200 : 150,
                     width: double.infinity,
                     fit: BoxFit.cover,

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/trip_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../widgets/trip_post_card.dart';
+import '../../widgets/trip_post_shimmer.dart';
 import '../../widgets/corporate_trip_card.dart';
 import '../../models/corporate_trip.dart';
 import 'package:go_router/go_router.dart';
@@ -11,20 +12,46 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../theme/app_colors.dart';
 import 'package:clerk_flutter/clerk_flutter.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 
-final homeFilterProvider = StateProvider<String>((ref) => 'all');
+final homeFilterProvider = StateProvider<TripFilter>((ref) => const TripFilter());
 
-class HomePage extends ConsumerWidget {
+class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final selectedFilter = ref.watch(homeFilterProvider);
-    final corporateTripsAsync = ref.watch(corporateTripsProvider(null));
-    final tripsAsync = ref.watch(tripsProvider(TripFilter(
-      type: selectedFilter == 'all' ? null : selectedFilter,
-      sort: 'recent',
-    )));
+  ConsumerState<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends ConsumerState<HomePage> {
+  final ScrollController _scrollController = ScrollController();
+  final ImagePicker _picker = ImagePicker();
+  bool _isUploadingStory = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      final currentFilter = ref.read(homeFilterProvider);
+      ref.read(feedProvider(currentFilter).notifier).loadMore();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final filter = ref.watch(homeFilterProvider);
+    final feedState = ref.watch(feedProvider(filter));
     final storiesAsync = ref.watch(followingStoriesProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
@@ -38,65 +65,185 @@ class HomePage extends ConsumerWidget {
         backgroundColor: AppColors.primaryOrange,
         child: const Icon(Icons.add, color: Colors.white),
       ),
-      drawer: Drawer(
-        child: Container(
-          color: isDark ? AppColors.darkBackground : Colors.white,
-          child: Column(
-            children: [
-              UserAccountsDrawerHeader(
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.cardDark : AppColors.primaryOrange,
+      appBar: _buildAppBar(context, isDark),
+      body: RefreshIndicator(
+        onRefresh: () => ref.read(feedProvider(filter).notifier).refresh(),
+        color: AppColors.primaryOrange,
+        child: CustomScrollView(
+          controller: _scrollController,
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            // Stories Section
+            SliverToBoxAdapter(
+              child: Container(
+                height: 120,
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  children: [
+                    _buildYourStory(userAvatar),
+                    const SizedBox(width: 12),
+                    storiesAsync.when(
+                      data: (groups) => Row(
+                        children: groups.map((group) => _StoryCircle(group: group)).toList(),
+                      ),
+                      loading: () => const SizedBox.shrink(),
+                      error: (_, __) => const SizedBox.shrink(),
+                    ),
+                  ],
                 ),
-                currentAccountPicture: CircleAvatar(
-                  backgroundImage: userAvatar != null ? NetworkImage(userAvatar) : null,
-                  child: userAvatar == null ? const Icon(Icons.person, size: 40) : null,
+              ),
+            ),
+
+            // Simplified Filters Bar
+            SliverToBoxAdapter(
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: _buildPostTypeFilters(ref, filter),
+              ),
+            ),
+
+            // Main Feed
+            if (feedState.isLoading && feedState.trips.isEmpty)
+              SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) => const TripPostShimmer(),
+                  childCount: 3,
                 ),
-                accountName: Text(clerkUser?.name ?? 'مستكشف رحلتي'),
-                accountEmail: Text(clerkUser?.email ?? ''),
-              ),
-              ListTile(
-                leading: Icon(isDark ? Icons.dark_mode : Icons.light_mode, color: AppColors.primaryOrange),
-                title: const Text('الوضع الليلي'),
-                trailing: Switch(
-                  value: isDark,
-                  activeColor: AppColors.primaryOrange,
-                  onChanged: (val) => ref.read(themeProvider.notifier).toggleTheme(),
+              )
+            else if (feedState.errorMessage != null && feedState.trips.isEmpty)
+              SliverFillRemaining(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.cloud_off, size: 48, color: Colors.grey),
+                      const SizedBox(height: 12),
+                      Text('تأكد من تشغيل السيرفر يا فادي! 🚀', style: TextStyle(color: isDark ? Colors.white70 : Colors.grey[600])),
+                      TextButton(
+                        onPressed: () => ref.read(feedProvider(filter).notifier).refresh(),
+                        child: const Text('إعادة المحاولة'),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
+              SliverPadding(
+                padding: const EdgeInsets.only(top: 8, bottom: 20),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      if (index == feedState.trips.length) {
+                        return feedState.hasMore 
+                            ? const Padding(
+                                padding: EdgeInsets.all(16.0),
+                                child: Center(child: CircularProgressIndicator(color: AppColors.primaryOrange)),
+                              )
+                            : const Padding(
+                                padding: EdgeInsets.all(32.0),
+                                child: Center(child: Text('وصلت للنهاية! 🎉', style: TextStyle(color: Colors.grey))),
+                              );
+                      }
+                      return TripPostCard(trip: feedState.trips[index])
+                        .animate()
+                        .fadeIn(duration: 400.ms, delay: (index % 5 * 100).ms)
+                        .slideY(begin: 0.1, end: 0);
+                    },
+                    childCount: feedState.trips.length + (feedState.trips.isEmpty ? 0 : 1),
+                  ),
                 ),
               ),
-              const Divider(),
-              ListTile(
-                leading: const Icon(Icons.person_outline),
-                title: const Text('الملف الشخصي'),
-                onTap: () => context.push('/profile'),
-              ),
-              ListTile(
-                leading: const Icon(Icons.settings_outlined),
-                title: const Text('الإعدادات'),
-                onTap: () => context.push('/settings'),
-              ),
-              const Spacer(),
-              ListTile(
-                leading: const Icon(Icons.logout, color: Colors.red),
-                title: const Text('تسجيل الخروج', style: TextStyle(color: Colors.red)),
-                onTap: () => ClerkAuth.of(context).signOut(),
-              ),
-              const SizedBox(height: 20),
-            ],
+            
+            const SliverToBoxAdapter(child: SizedBox(height: 80)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPostTypeFilters(WidgetRef ref, TripFilter filter) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          _filterBadge(ref, 'الكل', null, filter.postType == null),
+          _filterBadge(ref, 'رحلة مفصلة', 'detailed', filter.postType == 'detailed'),
+          _filterBadge(ref, 'منشور سريع', 'quick', filter.postType == 'quick'),
+          _filterBadge(ref, 'سؤال', 'ask', filter.postType == 'ask'),
+        ],
+      ),
+    );
+  }
+
+  Widget _filterBadge(WidgetRef ref, String label, String? value, bool selected) {
+    final isDark = Theme.of(ref.context).brightness == Brightness.dark;
+    return GestureDetector(
+      onTap: () {
+        final current = ref.read(homeFilterProvider);
+        if (value == null) {
+          ref.read(homeFilterProvider.notifier).state = current.copyWith(clearPostType: true);
+        } else {
+          ref.read(homeFilterProvider.notifier).state = current.copyWith(postType: value, clearPostType: false);
+        }
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        margin: const EdgeInsets.only(left: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primaryOrange : (isDark ? AppColors.cardDark : Colors.white),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: selected ? [BoxShadow(color: AppColors.primaryOrange.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 4))] : null,
+          border: Border.all(
+            color: selected ? AppColors.primaryOrange : (isDark ? Colors.white10 : Colors.black12),
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? Colors.white : (isDark ? Colors.white70 : Colors.black54),
+            fontSize: 13,
+            fontWeight: selected ? FontWeight.bold : FontWeight.normal,
           ),
         ),
       ),
-      appBar: AppBar(
-        leading: Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(Icons.menu),
-            onPressed: () => Scaffold.of(context).openDrawer(),
+    );
+  }
+
+  AppBar _buildAppBar(BuildContext context, bool isDark) {
+    return AppBar(
+      leading: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.notifications_none_outlined, size: 24),
+            onPressed: () => context.push('/notifications'),
           ),
-        ),
-        title: Hero(
+          IconButton(
+            icon: const Icon(Icons.people_outline, size: 24),
+            onPressed: () => context.push('/friends'),
+          ),
+        ],
+      ),
+      leadingWidth: 100,
+      title: GestureDetector(
+        onTap: () {
+          _scrollController.animateTo(
+            0,
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeInOut,
+          );
+        },
+        child: Hero(
           tag: 'logo',
           child: Image.asset(
             'assets/images/logo.png',
-            height: 35,
+            height: 50,
+            width: 80,
+            fit: BoxFit.contain,
             errorBuilder: (c, e, s) => Text(
               'Re7lty',
               style: GoogleFonts.grandHotel(
@@ -106,223 +253,103 @@ class HomePage extends ConsumerWidget {
             ),
           ),
         ),
-        centerTitle: true,
-        elevation: 0,
-        backgroundColor: isDark ? AppColors.darkBackground : Colors.white,
-        actions: [
-          Container(
-            margin: const EdgeInsets.symmetric(vertical: 10),
-            child: ElevatedButton.icon(
-              onPressed: () => context.push('/create-trip'),
-              icon: const Icon(Icons.add, size: 16),
-              label: const Text('Trip', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: isDark ? AppColors.cardDark : Colors.grey[100],
-                foregroundColor: isDark ? Colors.white : Colors.black,
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.person_search_outlined),
-            onPressed: () => context.push('/friends'),
-          ),
-          IconButton(
-            icon: const Icon(Icons.notifications_none_outlined),
-            onPressed: () => context.push('/notifications'),
-          ),
-          const SizedBox(width: 8),
-        ],
       ),
-      body: CustomScrollView(
-        slivers: [
-          // Stories Section
-          SliverToBoxAdapter(
-            child: Container(
-              height: 120,
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: [
-                  _buildYourStory(userAvatar),
-                  const SizedBox(width: 12),
-                  storiesAsync.when(
-                    data: (groups) => Row(
-                      children: groups.map((group) => _StoryCircle(group: group)).toList(),
-                    ),
-                    loading: () => const SizedBox.shrink(),
-                    error: (_, __) => const SizedBox.shrink(),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // Search & Filter Bar
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    _filterChip(ref, 'كل الرحلات', 'all'),
-                    _filterChip(ref, 'شركات سياحة', 'company'),
-                    _filterChip(ref, 'رحلات أفراد', 'user'),
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          // Featured Corporate Trips - Only show if current filter allows
-          if (selectedFilter == 'all' || selectedFilter == 'company')
-            SliverToBoxAdapter(
-              child: _buildFeaturedCorporateTrips(ref, corporateTripsAsync),
-            ),
-
-          // Main Feed
-          tripsAsync.when(
-            data: (trips) => SliverPadding(
-              padding: const EdgeInsets.only(top: 8, bottom: 100),
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) => TripPostCard(trip: trips[index]),
-                  childCount: trips.length,
-                ),
-              ),
-            ),
-            loading: () => const SliverFillRemaining(
-              child: Center(child: CircularProgressIndicator(color: AppColors.primaryOrange)),
-            ),
-            error: (err, _) => SliverFillRemaining(
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.cloud_off, size: 48, color: Colors.grey),
-                    const SizedBox(height: 12),
-                    Text('تأكد من تشغيل السيرفر يا فادي! 🚀', style: TextStyle(color: Colors.grey[600])),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _filterChip(WidgetRef ref, String label, String value) {
-    final selected = ref.watch(homeFilterProvider) == value;
-    final isDark = Theme.of(ref.context).brightness == Brightness.dark;
-    
-    return GestureDetector(
-      onTap: () => ref.read(homeFilterProvider.notifier).state = value,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        margin: const EdgeInsets.only(left: 10),
-        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.primaryOrange : (isDark ? AppColors.cardDark : Colors.white),
-          borderRadius: BorderRadius.circular(30),
-          boxShadow: selected ? [
-            BoxShadow(
-              color: AppColors.primaryOrange.withOpacity(0.3),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            )
-          ] : null,
-          border: Border.all(
-            color: selected ? AppColors.primaryOrange : (isDark ? Colors.white12 : Colors.black12),
-          ),
+      centerTitle: true,
+      elevation: 0,
+      backgroundColor: isDark ? AppColors.darkBackground : Colors.white,
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.emoji_events_outlined, color: Colors.orange, size: 28),
+          onPressed: () => context.push('/leaderboard'),
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: selected ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
-            fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFeaturedCorporateTrips(WidgetRef ref, AsyncValue<List<CorporateTrip>> corporateTripsAsync) {
-    final isDark = Theme.of(ref.context).brightness == Brightness.dark;
-
-    return corporateTripsAsync.when(
-      data: (trips) {
-        if (trips.isEmpty) return const SizedBox.shrink();
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 8),
-            SizedBox(
-              height: 480, // Increased height
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 0), // No padding on horizontal list
-                itemCount: trips.length,
-                itemBuilder: (context, index) {
-                  return SizedBox(
-                    width: MediaQuery.of(context).size.width, // FULL WIDTH like a post
-                    child: CorporateTripCard(trip: trips[index]),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 16),
-          ],
-        );
-      },
-      loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
+        const SizedBox(width: 8),
+      ],
     );
   }
 
   Widget _buildYourStory(String? avatarUrl) {
-    return Column(
-      children: [
-        Stack(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(3),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: const LinearGradient(
-                  colors: [Colors.grey, Colors.blueGrey],
-                ),
-              ),
-              child: CircleAvatar(
-                radius: 35,
-                backgroundColor: Colors.grey[900],
-                backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
-                child: avatarUrl == null ? const Icon(Icons.person, color: Colors.white, size: 30) : null,
-              ),
-            ),
-            Positioned(
-              bottom: 0,
-              right: 2,
-              child: Container(
-                padding: const EdgeInsets.all(4),
-                decoration: const BoxDecoration(
-                  color: AppColors.primaryOrange,
+    return GestureDetector(
+      onTap: _isUploadingStory ? null : _pickAndUploadStory,
+      child: Column(
+        children: [
+          Stack(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
                   shape: BoxShape.circle,
+                  gradient: const LinearGradient(
+                    colors: [Colors.grey, Colors.blueGrey],
+                  ),
                 ),
-                child: const Icon(Icons.add, size: 14, color: Colors.white),
+                child: CircleAvatar(
+                  radius: 35,
+                  backgroundColor: Colors.grey[900],
+                  backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
+                  child: _isUploadingStory 
+                    ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                    : (avatarUrl == null ? const Icon(Icons.person, color: Colors.white, size: 30) : null),
+                ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        const Text('قصتك', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500)),
-      ],
+              if (!_isUploadingStory)
+                Positioned(
+                  bottom: 0,
+                  right: 2,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: AppColors.primaryOrange,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.add, size: 14, color: Colors.white),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          const Text('قصتك', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500)),
+        ],
+      ),
     );
+  }
+
+  Future<void> _pickAndUploadStory() async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 70,
+      );
+
+      if (image == null) return;
+
+      setState(() => _isUploadingStory = true);
+
+      // In a real app, you would upload to S3/Firebase here.
+      // We simulate by using the local path or a dummy URL for now.
+      // Since our backend expects a URL, we'll use a placeholder that identifies it as a new story.
+      final dummyUrl = "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?t=${DateTime.now().millisecondsSinceEpoch}";
+      
+      await ref.read(storyServiceProvider).createStory(
+        dummyUrl,
+        'image',
+        caption: 'قصة جديدة من رحلتي',
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم رفع القصة بنجاح! ✨')),
+        );
+        ref.invalidate(followingStoriesProvider);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('فشل رفع القصة: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isUploadingStory = false);
+    }
   }
 }
 

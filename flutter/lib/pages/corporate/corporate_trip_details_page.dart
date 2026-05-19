@@ -34,7 +34,7 @@ class CorporateTripDetailsPage extends ConsumerWidget {
                 children: [
                    _buildHeader(trip, companyName, isDark),
                    const SizedBox(height: 16),
-                   _buildContactCompanyButton(trip),
+                   _buildContactCompanyButton(context, trip),
                    const SizedBox(height: 24),
                    _buildDescription(trip['fullDescription'] ?? trip['shortDescription']),
                    const SizedBox(height: 32),
@@ -125,20 +125,85 @@ class CorporateTripDetailsPage extends ConsumerWidget {
           'بواسطة: $companyName',
           style: GoogleFonts.cairo(color: AppColors.primaryOrange, fontWeight: FontWeight.w600, fontSize: 14),
         ),
+        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _buildQuickStat(Icons.timer_outlined, 'المدة', trip['duration'] ?? '3 أيام', isDark),
+            _buildQuickStat(Icons.people_alt_outlined, 'الأفراد', '${trip['maxParticipants'] ?? 50} فرد', isDark),
+            _buildQuickStat(Icons.calendar_month_outlined, 'الإنطلاق', 'غداً 7 ص', isDark),
+            _buildQuickStat(Icons.verified_outlined, 'الحالة', 'مؤكدة', isDark, color: Colors.green),
+          ],
+        ),
       ],
     );
   }
 
-  Widget _buildContactCompanyButton(Map<String, dynamic> trip) {
-    return OutlinedButton.icon(
-      onPressed: () {},
-      icon: const Icon(Icons.chat_outlined, color: Colors.green),
-      label: Text('تواصل مع الشركة', style: GoogleFonts.cairo(color: Colors.green, fontWeight: FontWeight.bold)),
-      style: OutlinedButton.styleFrom(
-        side: const BorderSide(color: Colors.green),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        minimumSize: const Size(double.infinity, 50),
-      ),
+  Widget _buildQuickStat(IconData icon, String label, String value, bool isDark, {Color? color}) {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: (color ?? AppColors.primaryOrange).withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: color ?? AppColors.primaryOrange, size: 20),
+        ),
+        const SizedBox(height: 6),
+        Text(label, style: GoogleFonts.cairo(fontSize: 10, color: Colors.grey)),
+        Text(value, style: GoogleFonts.cairo(fontSize: 12, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black)),
+      ],
+    );
+  }
+
+  Widget _buildContactCompanyButton(BuildContext context, Map<String, dynamic> trip) {
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: () {
+              // Future: Navigation to direct chat
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('ميزة المراسلة المباشرة ستتوفر قريباً! يمكنك التواصل عبر واتساب حالياً.')),
+              );
+            },
+            icon: const Icon(Icons.chat_bubble_outline, color: AppColors.primaryOrange),
+            label: Text('مراسلة الشركة', style: GoogleFonts.cairo(color: AppColors.primaryOrange, fontWeight: FontWeight.bold, fontSize: 13)),
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(color: AppColors.primaryOrange),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: ElevatedButton.icon(
+            onPressed: () async {
+              String phone = (trip['companyId'] as Map?)?['phone'] ?? '201015985881';
+              phone = phone.replaceAll(RegExp(r'[^0-9]'), '');
+              if (!phone.startsWith('+') && phone.length == 11) phone = '2$phone';
+              
+              final url = Uri.parse('https://wa.me/$phone?text=${Uri.encodeComponent('استفسار بخصوص رحلة: ${trip['title']}')}');
+              try {
+                if (await canLaunchUrl(url)) {
+                  await launchUrl(url, mode: LaunchMode.externalApplication);
+                }
+              } catch (e) {
+                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تعذر فتح واتساب')));
+              }
+            },
+            icon: const Icon(Icons.message, color: Colors.white), 
+            label: Text('واتساب', style: GoogleFonts.cairo(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF25D366), 
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
