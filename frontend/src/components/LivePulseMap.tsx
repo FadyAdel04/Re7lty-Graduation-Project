@@ -317,26 +317,26 @@ const LivePulseMap: React.FC<LivePulseMapProps> = ({
               'interpolate',
               ['linear'],
               ['zoom'],
-              0, 1,
-              isMobile ? 6 : 9, isMobile ? 2 : 3
+              0, 1.5,
+              isMobile ? 6 : 9, isMobile ? 3 : 5
             ],
             'heatmap-color': [
               'interpolate',
               ['linear'],
               ['heatmap-density'],
-              0, 'rgba(255,255,255,0)',
-              0.1, 'rgba(255,245,230,0.3)',
-              0.3, 'rgba(255,200,100,0.4)',
-              0.5, 'rgba(255,140,50,0.6)',
-              0.7, 'rgba(255,70,0,0.7)',
-              1, 'rgba(230,0,0,0.9)'
+              0, 'rgba(0,0,0,0)',
+              0.15, 'rgba(255,183,77,0.4)',   // Soft Orange
+              0.35, 'rgba(255,138,101,0.6)',  // Warm Peach
+              0.55, 'rgba(255,87,34,0.8)',    // Deep Orange
+              0.75, 'rgba(229,57,53,0.9)',    // Vibrant Red
+              1, 'rgba(183,28,28,1)'          // Dark Red
             ],
             'heatmap-radius': [
               'interpolate',
               ['linear'],
               ['zoom'],
-              0, isMobile ? 30 : 40,
-              isMobile ? 6 : 9, isMobile ? 50 : 80
+              0, isMobile ? 40 : 50,
+              isMobile ? 6 : 9, isMobile ? 70 : 100
             ],
             'heatmap-opacity': 0.7
           }

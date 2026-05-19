@@ -42,7 +42,8 @@ import {
   Wind,
   Bed,
   Sparkles,
-  MessageCircle
+  MessageCircle,
+  X
 } from "lucide-react";
 import BusSeatLayout from "@/components/company/BusSeatLayout";
 import { Button } from "@/components/ui/button";
@@ -139,6 +140,7 @@ const TripDetailsPage = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [currentBusIndex, setCurrentBusIndex] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
+  const [showGallery, setShowGallery] = useState(false);
 
   const [availableSeats, setAvailableSeats] = useState<number>(0);
   const [tripBookings, setTripBookings] = useState<any[]>([]);
@@ -297,88 +299,103 @@ const TripDetailsPage = () => {
     <div className="min-h-screen bg-background font-cairo" dir="rtl">
       <Header />
       
-      {/* Hero Section */}
-      <section className="relative w-full h-[60vh] md:h-[80vh] overflow-hidden">
-        <AnimatePresence mode="wait">
-          <motion.img
-            key={currentImageIndex}
-            src={trip.images[currentImageIndex]}
-            alt={trip.title}
-            initial={{ opacity: 0, scale: 1.1 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-            className="w-full h-full object-cover"
-          />
-        </AnimatePresence>
-        
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
-        
-        {/* Hero Content Overlay */}
-        <div className="absolute bottom-0 left-0 right-0 p-8 md:p-16">
-          <div className="container mx-auto space-y-6">
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex flex-wrap items-center gap-3"
-            >
-              <Link to={`/companies/${company.id}`}>
-                <Badge className="bg-primary/20 hover:bg-primary/30 text-primary border-primary/30 backdrop-blur-xl font-black px-5 py-2 rounded-2xl transition-all flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4" />
-                  {company.name}
+      {/* Modern UX/UI Hero Section */}
+      <section className="container mx-auto px-4 pt-8 md:pt-12 pb-6">
+        <div className="space-y-8">
+          {/* Header Info */}
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div className="space-y-5">
+
+              
+              <motion.h1 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="text-4xl md:text-5xl lg:text-6xl font-black text-foreground tracking-tight leading-tight max-w-4xl"
+              >
+                {trip.title}
+              </motion.h1>
+            </div>
+
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex flex-wrap items-center gap-3"
+              >
+                <Link to={`/companies/${company.id}`}>
+                  <Badge className="bg-primary/10 hover:bg-primary/20 text-primary border-primary/20 font-black px-4 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-sm">
+                    <ShieldCheck className="w-4 h-4" />
+                    {company.name}
+                  </Badge>
+                </Link>
+                <Badge variant="outline" className="gap-1.5 px-4 py-2 rounded-xl bg-card text-muted-foreground border-border font-bold shadow-sm hover:bg-muted transition-colors">
+                  <MapPin className="h-4 w-4 text-primary" />
+                  {trip.destination}
                 </Badge>
-              </Link>
-              <Badge variant="outline" className="gap-2 px-5 py-2 rounded-2xl bg-white/10 backdrop-blur-xl text-white border-white/20 font-bold">
-                <MapPin className="h-4 w-4 text-primary" />
-                {trip.destination}
-              </Badge>
-            </motion.div>
-            
-            <motion.h1 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="text-5xl md:text-8xl font-black text-foreground tracking-tight leading-[1] max-w-4xl"
-            >
-              {trip.title}
-            </motion.h1>
+                <Badge variant="outline" className="gap-1.5 px-4 py-2 rounded-xl bg-amber-500/10 text-amber-600 border-amber-500/20 font-bold shadow-sm hover:bg-amber-500/20 transition-colors">
+                  <Star className="h-4 w-4 fill-amber-500" />
+                  {trip.rating} / 5
+                </Badge>
+                {trip.startDate && (
+                  <Badge variant="outline" className="gap-1.5 px-4 py-2 rounded-xl bg-card text-muted-foreground border-border font-bold shadow-sm hover:bg-muted transition-colors">
+                    <Calendar className="h-4 w-4 text-primary" />
+                    {new Date(trip.startDate).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}
+                  </Badge>
+                )}
+              </motion.div>
           </div>
-        </div>
 
-        {/* Hero Controls */}
-        <div className="absolute top-1/2 -translate-y-1/2 left-8 right-8 flex justify-between pointer-events-none">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="pointer-events-auto bg-white/10 hover:bg-white/20 backdrop-blur-xl text-white h-16 w-16 rounded-full border border-white/20 shadow-2xl"
-            onClick={prevImage}
+          {/* Image Grid */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="grid grid-cols-1 md:grid-cols-4 grid-rows-2 gap-3 h-[50vh] md:h-[65vh] rounded-[2.5rem] overflow-hidden relative group shadow-2xl border border-border"
           >
-            <ChevronRight className="h-10 w-10" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="pointer-events-auto bg-white/10 hover:bg-white/20 backdrop-blur-xl text-white h-16 w-16 rounded-full border border-white/20 shadow-2xl"
-            onClick={nextImage}
-          >
-            <ChevronLeft className="h-10 w-10" />
-          </Button>
-        </div>
+            {/* Main Image */}
+            <div className="md:col-span-2 md:row-span-2 relative overflow-hidden group/main" onClick={() => { setCurrentImageIndex(0); setShowGallery(true); }}>
+              <img 
+                src={trip.images[0] || '/placeholder.svg'} 
+                alt={trip.title} 
+                className="w-full h-full object-cover transition-transform duration-1000 group-hover/main:scale-105 cursor-pointer"
+              />
+              <div className="absolute inset-0 bg-black/10 group-hover/main:bg-transparent transition-colors duration-500 cursor-pointer" />
+            </div>
+            
+            {/* Secondary Images */}
+            {trip.images.slice(1, 5).map((img, idx) => (
+              <div key={idx} className="hidden md:block relative overflow-hidden group/sub" onClick={() => { setCurrentImageIndex(idx + 1); setShowGallery(true); }}>
+                <img 
+                  src={img} 
+                  alt={`${trip.title} - ${idx + 1}`} 
+                  className="w-full h-full object-cover transition-transform duration-1000 group-hover/sub:scale-110 cursor-pointer"
+                />
+                <div className="absolute inset-0 bg-black/10 group-hover/sub:bg-transparent transition-colors duration-500 cursor-pointer" />
+              </div>
+            ))}
+            
+            {/* If there are less than 5 images, fill the rest with the main image or placeholder */}
+            {Array.from({ length: Math.max(0, 4 - (trip.images.length - 1)) }).map((_, idx) => (
+               <div key={`empty-${idx}`} className="hidden md:block relative overflow-hidden bg-muted group/sub" onClick={() => { setCurrentImageIndex(0); setShowGallery(true); }}>
+                  <img 
+                    src={trip.images[0] || '/placeholder.svg'} 
+                    alt="placeholder" 
+                    className="w-full h-full object-cover opacity-60 transition-transform duration-1000 group-hover/sub:scale-110 cursor-pointer"
+                  />
+                  <div className="absolute inset-0 bg-black/10 group-hover/sub:bg-transparent transition-colors duration-500 cursor-pointer" />
+               </div>
+            ))}
 
-        {/* Thumbnail Track */}
-        <div className="absolute bottom-8 right-8 flex gap-3 z-10 overflow-hidden p-2">
-          {trip.images.map((img, idx) => (
-            <button
-              key={idx}
-              onClick={() => setCurrentImageIndex(idx)}
-              className={cn(
-                "w-20 h-20 rounded-2xl overflow-hidden border-2 transition-all shrink-0",
-                idx === currentImageIndex ? "border-primary scale-110 shadow-xl" : "border-white/20 opacity-50 hover:opacity-100"
-              )}
+            {/* Show All Photos Button */}
+            <Button 
+              variant="secondary" 
+              className="absolute bottom-6 right-6 gap-2 rounded-2xl h-12 px-6 font-black shadow-2xl backdrop-blur-xl bg-white/95 hover:bg-white text-gray-900 border border-black/5 hover:scale-105 transition-all"
+              onClick={() => setShowGallery(true)}
             >
-              <img src={img} className="w-full h-full object-cover" />
-            </button>
-          ))}
+              <ImageIcon className="w-5 h-5 text-primary" />
+              عرض كل الصور ({trip.images.length})
+            </Button>
+          </motion.div>
         </div>
       </section>
 
@@ -388,6 +405,37 @@ const TripDetailsPage = () => {
           {/* Main Content (Left) */}
           <div className="lg:col-span-8 space-y-20">
             
+            {/* Countdown Timer */}
+            {timeRemaining && !timeRemaining.expired && (
+              <div className="bg-gradient-to-l from-primary/10 to-transparent border border-primary/20 rounded-[2.5rem] p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full blur-3xl animate-pulse" />
+                <div className="relative z-10 flex flex-col items-center md:items-start text-center md:text-right gap-2">
+                  <div className="flex items-center gap-2 text-primary font-black text-sm uppercase tracking-widest">
+                    <Timer className="w-5 h-5 animate-pulse" /> الوقت المتبقي للرحلة
+                  </div>
+                  <p className="text-muted-foreground font-bold text-sm">سارع بحجز مقعدك قبل اكتمال العدد!</p>
+                </div>
+                <div className="relative z-10 flex gap-3 md:gap-5" dir="ltr">
+                  {[
+                    { label: "يوم", value: timeRemaining.details.days },
+                    { label: "ساعة", value: timeRemaining.details.hours },
+                    { label: "دقيقة", value: timeRemaining.details.minutes },
+                    { label: "ثانية", value: timeRemaining.details.seconds, isSeconds: true }
+                  ].map((unit, idx) => (
+                    <div key={idx} className="flex flex-col items-center gap-2">
+                      <div className={cn(
+                        "w-14 h-14 md:w-20 md:h-20 flex items-center justify-center rounded-2xl md:rounded-3xl shadow-lg border backdrop-blur-xl",
+                        unit.isSeconds ? "bg-primary text-primary-foreground border-primary/20 shadow-primary/20" : "bg-card text-foreground border-border"
+                      )}>
+                        <span className="text-2xl md:text-4xl font-black tabular-nums">{unit.value.toString().padStart(2, '0')}</span>
+                      </div>
+                      <span className="text-[10px] md:text-xs font-black text-muted-foreground">{unit.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Quick Stats Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               {[
@@ -771,6 +819,87 @@ const TripDetailsPage = () => {
 
 
       </motion.div>
+
+      {/* Full-Screen Image Gallery Modal */}
+      <AnimatePresence>
+        {showGallery && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center"
+            dir="rtl"
+          >
+            {/* Header controls */}
+            <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-center z-50">
+              <div className="text-white font-black text-lg">
+                {currentImageIndex + 1} / {trip.images.length}
+              </div>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="text-white hover:bg-white/10 rounded-full h-12 w-12"
+                onClick={() => setShowGallery(false)}
+              >
+                <X className="w-8 h-8" />
+              </Button>
+            </div>
+
+            {/* Main Image */}
+            <div className="relative w-full max-w-5xl h-[70vh] flex items-center justify-center px-4">
+              <AnimatePresence mode="wait">
+                <motion.img
+                  key={currentImageIndex}
+                  src={trip.images[currentImageIndex]}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 1.1 }}
+                  transition={{ duration: 0.3 }}
+                  className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl"
+                  alt={`Gallery Image ${currentImageIndex + 1}`}
+                />
+              </AnimatePresence>
+
+              {/* Navigation Arrows */}
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="absolute right-4 md:right-8 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white rounded-full h-14 w-14 border border-white/20 shadow-2xl z-50"
+                onClick={(e) => { e.stopPropagation(); prevImage(); }}
+              >
+                <ChevronRight className="w-8 h-8" />
+              </Button>
+              
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="absolute left-4 md:left-8 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white rounded-full h-14 w-14 border border-white/20 shadow-2xl z-50"
+                onClick={(e) => { e.stopPropagation(); nextImage(); }}
+              >
+                <ChevronLeft className="w-8 h-8" />
+              </Button>
+            </div>
+
+            {/* Thumbnail Strip */}
+            <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-3 px-4 overflow-x-auto pb-4 no-scrollbar">
+              {trip.images.map((img, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setCurrentImageIndex(idx)}
+                  className={cn(
+                    "w-20 h-20 rounded-2xl overflow-hidden border-2 transition-all shrink-0",
+                    idx === currentImageIndex 
+                      ? "border-primary scale-110 shadow-xl" 
+                      : "border-white/20 opacity-50 hover:opacity-100"
+                  )}
+                >
+                  <img src={img} className="w-full h-full object-cover" alt={`Thumb ${idx + 1}`} />
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
