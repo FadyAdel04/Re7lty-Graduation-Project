@@ -440,23 +440,23 @@ const TripMapEditor = ({ locations, route, onLocationsChange, onRouteChange, des
         </div>
         
         {searchResults.length > 0 && (
-          <div className="absolute z-[100] w-full mt-2 bg-white/95 backdrop-blur-md border border-gray-100 rounded-2xl shadow-2xl max-h-60 overflow-y-auto">
+          <div className="absolute z-[100] w-full mt-2 bg-popover/95 backdrop-blur-md border border-border rounded-2xl shadow-2xl max-h-60 overflow-y-auto text-popover-foreground">
             {searchResults.map((result, index) => (
               <button
                 key={index}
                 type="button"
                 onClick={() => handleSelectPlace(result)}
-                className="w-full text-right px-4 py-4 hover:bg-indigo-50 transition-colors border-b border-gray-50 last:border-b-0 flex items-center justify-between"
+                className="w-full text-right px-4 py-4 hover:bg-accent transition-colors border-b border-border last:border-b-0 flex items-center justify-between text-foreground"
               >
-                <span className="text-sm font-bold text-gray-800">{result.place_name}</span>
-                <MapPin className="h-4 w-4 text-indigo-500 flex-shrink-0" />
+                <span className="text-sm font-bold text-foreground">{result.place_name}</span>
+                <MapPin className="h-4 w-4 text-primary flex-shrink-0" />
               </button>
             ))}
           </div>
         )}
         
         {isSearching && (
-          <div className="absolute z-[100] w-full mt-2 bg-white border border-gray-100 rounded-2xl shadow-xl p-4 text-center text-sm text-gray-400">
+          <div className="absolute z-[100] w-full mt-2 bg-popover border border-border rounded-2xl shadow-xl p-4 text-center text-sm text-muted-foreground">
             <Loader2 className="w-5 h-5 animate-spin mx-auto mb-1" />
             جاري البحث...
           </div>

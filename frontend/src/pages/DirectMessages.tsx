@@ -29,7 +29,8 @@ import {
   Pause,
   Clock,
   Music,
-  Users
+  Users,
+  Building2
 } from "lucide-react";
 import EmojiPicker, { Theme } from "emoji-picker-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -42,8 +43,11 @@ import {
   searchChatUsers,
   startDirectChat,
   getCloudinarySignature,
-  toggleMessageReaction
+  toggleMessageReaction,
+  getMyTravelCompanyRequests,
 } from "@/lib/api";
+import { chatService, Conversation as CompanyConversation, Message as CompanyMessage } from "@/services/chatService";
+import { TravelRequestDetailsCard } from "@/components/TravelRequestDetailsCard";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -89,6 +93,35 @@ const DirectMessages = () => {
   const audioRefs = useRef<{ [key: string]: HTMLAudioElement }>({});
 
   const pusherRef = useRef<Pusher | null>(null);
+  const activeConversationRef = useRef<any>(null);
+
+  type MessageTab = "direct" | "company";
+  const messageTabRef = useRef<MessageTab>("direct");
+  const [messageTab, setMessageTab] = useState<MessageTab>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("tab") === "company" ? "company" : "direct";
+  });
+  const [companyConversations, setCompanyConversations] = useState<CompanyConversation[]>([]);
+  const [travelRequests, setTravelRequests] = useState<any[]>([]);
+  const [isLoadingCompanyConvs, setIsLoadingCompanyConvs] = useState(false);
+
+  const isCompanyTab = messageTab === "company";
+  const isCompanyChatActive =
+    isCompanyTab || activeConversation?._chatType === "company";
+  const activeTravelRequest =
+    isCompanyChatActive && activeConversation?._id
+      ? travelRequests.find(
+          (r) => String(r.conversationId) === String(activeConversation._id)
+        )
+      : null;
+
+  useEffect(() => {
+    activeConversationRef.current = activeConversation;
+  }, [activeConversation]);
+
+  useEffect(() => {
+    messageTabRef.current = messageTab;
+  }, [messageTab]);
 
   const playSound = () => {
     try {
@@ -97,17 +130,58 @@ const DirectMessages = () => {
     } catch (err) {}
   };
 
-  // Parse conversation ID from URL
+  // Parse conversation ID and tab from URL
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const convId = params.get('conv');
-    if (convId && conversations.length > 0) {
-      const found = conversations.find(c => c._id === convId);
-      if (found && activeConversation?._id !== found._id) {
+    const tab = params.get("tab");
+    if (tab === "company") {
+      setMessageTab("company");
+    } else if (tab !== "company" && tab !== null) {
+      setMessageTab("direct");
+    }
+
+    const convId = params.get("conv");
+    if (!convId) return;
+
+    if (tab === "company") {
+      const found = companyConversations.find((c) => String(c._id) === String(convId));
+      const linkedRequest = travelRequests.find(
+        (r) => String(r.conversationId) === String(convId)
+      );
+
+      const nextConversation = found
+        ? { ...found, _chatType: "company" as const }
+        : {
+            _id: convId,
+            _chatType: "company" as const,
+            companyId: linkedRequest?.company || {
+              name: linkedRequest?.companyName || "شركة سياحية",
+              logo: linkedRequest?.company?.logo || "",
+            },
+            lastMessage: linkedRequest?.destination
+              ? `طلب رحلة: ${linkedRequest.destination}`
+              : "",
+          };
+
+      const currentId = activeConversation?._id ? String(activeConversation._id) : null;
+      const hasFullCompanyProfile =
+        typeof activeConversation?.companyId === "object" &&
+        Boolean(activeConversation.companyId?.name);
+      const needsUpdate =
+        currentId !== String(convId) ||
+        activeConversation?._chatType !== "company" ||
+        (Boolean(found) && !hasFullCompanyProfile);
+
+      if (needsUpdate) {
+        setActiveConversation(nextConversation);
+      }
+    } else if (conversations.length > 0) {
+      const found = conversations.find((c) => String(c._id) === String(convId));
+      if (found && String(activeConversation?._id) !== String(found._id)) {
         setActiveConversation(found);
       }
     }
-  }, [location.search, conversations, activeConversation?._id]);
+  }, [location.search, conversations, companyConversations, travelRequests, activeConversation?._id, activeConversation?._chatType]);
 
   // Initial Load
   useEffect(() => {
@@ -116,7 +190,68 @@ const DirectMessages = () => {
       return;
     }
     loadConversations();
+    loadCompanyData();
   }, [isLoaded, isSignedIn]);
+
+  const loadCompanyMessages = async (convId: string) => {
+    try {
+      setIsLoadingMessages(true);
+      const token = await getToken();
+      if (!token) return;
+      const data = await chatService.getMessages(convId, token);
+      setMessages(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Failed to load company messages:", error);
+    } finally {
+      setIsLoadingMessages(false);
+    }
+  };
+
+  const appendCompanyMessage = (incoming: CompanyMessage) => {
+    if (!incoming?._id) return;
+    setMessages((prev) =>
+      prev.some((m) => m._id === incoming._id) ? prev : [...prev, incoming]
+    );
+  };
+
+  const markCompanyAsRead = async (convId: string) => {
+    try {
+      const token = await getToken();
+      if (!token) return;
+      await chatService.markAsRead(convId, token);
+      setCompanyConversations((prev) =>
+        prev.map((c) => (c._id === convId ? { ...c, unreadCount: 0 } : c))
+      );
+    } catch (error) {
+      console.error("Failed to mark company chat as read:", error);
+    }
+  };
+
+  const loadCompanyData = async () => {
+    try {
+      setIsLoadingCompanyConvs(true);
+      const token = await getToken();
+      if (!token) return;
+      const [convs, requests] = await Promise.all([
+        chatService.getConversations(token, false),
+        getMyTravelCompanyRequests(token),
+      ]);
+      setCompanyConversations(convs);
+      setTravelRequests(requests);
+
+      const active = activeConversationRef.current;
+      const tab = new URLSearchParams(window.location.search).get("tab");
+      const isCompanyChat =
+        tab === "company" || active?._chatType === "company" || messageTabRef.current === "company";
+      if (isCompanyChat && active?._id) {
+        await loadCompanyMessages(String(active._id));
+      }
+    } catch (error) {
+      console.error("Failed to load company conversations:", error);
+    } finally {
+      setIsLoadingCompanyConvs(false);
+    }
+  };
 
   const loadConversations = async () => {
     try {
@@ -134,16 +269,46 @@ const DirectMessages = () => {
 
   // Load Messages when active conversation ID changes
   useEffect(() => {
-    if (activeConversation?._id) {
-      loadMessages(activeConversation._id);
-      markAsRead(activeConversation._id);
-      setActiveConvId(activeConversation._id);
-    } else {
+    if (!activeConversation?._id) {
       setActiveConvId(null);
+      return;
     }
 
+    const urlTabCompany = new URLSearchParams(location.search).get("tab") === "company";
+    const isCompanyConversation =
+      urlTabCompany || isCompanyTab || activeConversation._chatType === "company";
+
+    if (isCompanyConversation) {
+      loadCompanyMessages(String(activeConversation._id));
+      markCompanyAsRead(String(activeConversation._id));
+    } else {
+      loadMessages(activeConversation._id);
+      markAsRead(activeConversation._id);
+    }
+    setActiveConvId(activeConversation._id);
+
     return () => setActiveConvId(null);
-  }, [activeConversation?._id]);
+  }, [activeConversation?._id, activeConversation?._chatType, isCompanyTab, location.search]);
+
+  // Refresh company messages when the tab becomes visible (Pusher may be unavailable)
+  useEffect(() => {
+    const convId = activeConversation?._id ? String(activeConversation._id) : null;
+    if (!convId) return;
+
+    const urlTabCompany = new URLSearchParams(location.search).get("tab") === "company";
+    const isCompanyConversation =
+      urlTabCompany || isCompanyTab || activeConversation?._chatType === "company";
+    if (!isCompanyConversation) return;
+
+    function handleVisibilityChange() {
+      if (document.visibilityState === "visible") {
+        loadCompanyMessages(convId);
+      }
+    }
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [activeConversation?._id, activeConversation?._chatType, isCompanyTab, location.search]);
 
   const loadMessages = async (convId: string) => {
     try {
@@ -219,39 +384,106 @@ const DirectMessages = () => {
     };
   }, [isSignedIn, user?.id]);
 
-  // Specific conversation channel
+  // Company chat list updates (Pusher)
   useEffect(() => {
-    if (!activeConversation) return;
+    if (!isSignedIn || !user?.id) return;
 
+    if (!pusherRef.current) {
+      pusherRef.current = createPusherClient(PUSHER_KEY, PUSHER_CLUSTER);
+    }
     const client = pusherRef.current;
     if (!client) return;
 
-    const convChannel = client.subscribe(`direct-conversation-${activeConversation._id}`);
-    convChannel.bind('new-message', (data: any) => {
-        if (data.message.senderId !== user?.id) {
-            setMessages(prev => [...prev, data.message]);
-            // Automatically mark as read if it's the active conversation
-            markAsRead(activeConversation._id);
-            playSound();
-        }
-    });
+    const companyChannel = client.subscribe(`user-chats-${user.id}`);
+    companyChannel.bind("update-conversation", (data: { message?: CompanyMessage; conversation?: { _id: string } }) => {
+      loadCompanyData();
+      const active = activeConversationRef.current;
+      const onCompanyTab =
+        messageTabRef.current === "company" || active?._chatType === "company";
+      const activeId = active?._id ? String(active._id) : null;
+      const eventConvId = data.conversation?._id ? String(data.conversation._id) : null;
 
-    convChannel.bind('messages-read', (data: any) => {
-        if (data.readerId !== user?.id) {
-            setMessages(prev => prev.map(m => ({ ...m, readBy: [...(m.readBy || []), data.readerId] })));
+      if (onCompanyTab && activeId && (!eventConvId || eventConvId === activeId)) {
+        if (data.message?._id) {
+          appendCompanyMessage(data.message);
+          if (data.message.senderType === "company") {
+            markCompanyAsRead(activeId);
+          }
+        } else {
+          loadCompanyMessages(activeId);
         }
-    });
-
-    convChannel.bind('message-reaction', (data: any) => {
-        setMessages(prev => prev.map(m => 
-            m._id === data.messageId ? { ...m, reactions: data.reactions } : m
-        ));
+      }
+      playSound();
     });
 
     return () => {
-        client.unsubscribe(`direct-conversation-${activeConversation._id}`);
+      client.unsubscribe(`user-chats-${user.id}`);
     };
-  }, [activeConversation, user?.id]);
+  }, [isSignedIn, user?.id]);
+
+  // Specific conversation channel
+  useEffect(() => {
+    if (!activeConversation?._id || !user?.id) return;
+
+    if (!pusherRef.current) {
+      pusherRef.current = createPusherClient(PUSHER_KEY, PUSHER_CLUSTER);
+    }
+    const client = pusherRef.current;
+    if (!client) return;
+
+    const isCompanyChat =
+      isCompanyTab || activeConversation._chatType === "company";
+    const channelName = isCompanyChat
+      ? `conversation-${activeConversation._id}`
+      : `direct-conversation-${activeConversation._id}`;
+
+    const convChannel = client.subscribe(channelName);
+
+    const onNewMessage = (data: { message: CompanyMessage & { senderId?: string } }) => {
+      if (!data?.message) return;
+
+      if (isCompanyChat) {
+        appendCompanyMessage(data.message);
+        if (data.message.senderType === "company") {
+          markCompanyAsRead(String(activeConversation._id));
+          playSound();
+        }
+      } else if (data.message.senderId !== user.id) {
+        setMessages((prev) => [...prev, data.message]);
+        markAsRead(activeConversation._id);
+        playSound();
+      }
+    };
+
+    const onMessagesRead = (data: { readerId: string }) => {
+      if (data.readerId !== user.id) {
+        setMessages((prev) =>
+          prev.map((m) => ({ ...m, readBy: [...(m.readBy || []), data.readerId] }))
+        );
+      }
+    };
+
+    const onMessageReaction = (data: { messageId: string; reactions: unknown[] }) => {
+      setMessages((prev) =>
+        prev.map((m) => (m._id === data.messageId ? { ...m, reactions: data.reactions } : m))
+      );
+    };
+
+    convChannel.bind("new-message", onNewMessage);
+    if (!isCompanyChat) {
+      convChannel.bind("messages-read", onMessagesRead);
+      convChannel.bind("message-reaction", onMessageReaction);
+    }
+
+    return () => {
+      convChannel.unbind("new-message", onNewMessage);
+      if (!isCompanyChat) {
+        convChannel.unbind("messages-read", onMessagesRead);
+        convChannel.unbind("message-reaction", onMessageReaction);
+      }
+      client.unsubscribe(channelName);
+    };
+  }, [activeConversation?._id, activeConversation?._chatType, isCompanyTab, user?.id]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -270,8 +502,23 @@ const DirectMessages = () => {
     try {
         const token = await getToken();
         if (!token) return;
-        const sentMsg = await sendDirectMessage(activeConversation._id, content, token);
-        setMessages(prev => [...prev, sentMsg]);
+
+        const urlTabCompany = new URLSearchParams(location.search).get("tab") === "company";
+        const isCompanyConversation =
+          urlTabCompany || isCompanyTab || activeConversation._chatType === "company";
+
+        if (isCompanyConversation) {
+          const sentMsg = await chatService.sendMessage(
+            activeConversation._id,
+            content,
+            "user",
+            token
+          );
+          setMessages((prev) => [...prev, sentMsg]);
+        } else {
+          const sentMsg = await sendDirectMessage(activeConversation._id, content, token);
+          setMessages(prev => [...prev, sentMsg]);
+        }
     } catch (error) {
         toast({
             title: "خطأ",
@@ -279,6 +526,23 @@ const DirectMessages = () => {
             variant: "destructive"
         });
     }
+  };
+
+  const switchTab = (tab: MessageTab) => {
+    setMessageTab(tab);
+    setActiveConversation(null);
+    setMessages([]);
+    navigate(tab === "company" ? "/messages?tab=company" : "/messages", { replace: true });
+  };
+
+  const getCompanyDisplay = (conv: CompanyConversation) => {
+    const company = conv.companyId;
+    const linkedRequest = travelRequests.find((r) => r.conversationId === conv._id);
+    return {
+      name: typeof company === "object" ? company?.name : "شركة سياحية",
+      logo: typeof company === "object" ? company?.logo : "",
+      subtitle: linkedRequest?.destination ? `طلب رحلة: ${linkedRequest.destination}` : "شركة سياحية",
+    };
   };
 
   const handleSearch = async (val: string) => {
@@ -493,7 +757,14 @@ const DirectMessages = () => {
     try {
         const token = await getToken();
         if (!token) return;
-        await toggleMessageReaction(messageId, emoji, token);
+        const urlTabCompany = new URLSearchParams(location.search).get("tab") === "company";
+        const isCompanyConversation =
+          urlTabCompany || isCompanyTab || activeConversation?._chatType === "company";
+        if (isCompanyConversation) {
+          await chatService.toggleReaction(messageId, emoji, token);
+        } else {
+          await toggleMessageReaction(messageId, emoji, token);
+        }
     } catch (error) {
         console.error("Failed to toggle reaction:", error);
     }
@@ -527,7 +798,7 @@ const DirectMessages = () => {
       <Header />
       
       <main className="container mx-auto px-0 md:px-4 py-0 md:py-8 h-[calc(100vh-80px)] md:h-[calc(100vh-120px)]">
-         <div className="bg-card backdrop-blur-xl border-y md:border border-border rounded-none md:rounded-[2.5rem] shadow-2xl h-full overflow-hidden flex flex-col md:flex-row">
+         <div className="bg-card backdrop-blur-xl border-y md:border border-border rounded-none md:rounded-[2.5rem] shadow-2xl h-full min-h-0 overflow-hidden flex flex-col md:flex-row">
             
             {/* Sidebar: Conversations List */}
             <div className={cn(
@@ -535,15 +806,31 @@ const DirectMessages = () => {
           activeConversation ? "hidden md:flex" : "flex"
         )}>
           {/* Tabs */}
-          <div className="px-6 pt-6 grid grid-cols-2 gap-2">
+          <div className="px-6 pt-6 grid grid-cols-3 gap-2">
             <Button 
                 variant="ghost" 
-                className="rounded-xl font-bold bg-indigo-50 text-indigo-700 h-11"
-                onClick={() => navigate('/messages')}
+                className={cn(
+                  "rounded-xl font-bold h-11",
+                  messageTab === "direct" ? "bg-indigo-50 text-indigo-700" : "text-muted-foreground hover:bg-muted"
+                )}
+                onClick={() => switchTab("direct")}
             >
                 <div className="flex items-center gap-2">
                     <MessageSquare className="w-4 h-4" />
-                    <span>الخاص</span>
+                    <span className="hidden sm:inline">الخاص</span>
+                </div>
+            </Button>
+            <Button 
+                variant="ghost" 
+                className={cn(
+                  "rounded-xl font-bold h-11",
+                  messageTab === "company" ? "bg-indigo-50 text-indigo-700" : "text-muted-foreground hover:bg-muted"
+                )}
+                onClick={() => switchTab("company")}
+            >
+                <div className="flex items-center gap-2">
+                    <Building2 className="w-4 h-4" />
+                    <span className="hidden sm:inline">الشركات</span>
                 </div>
             </Button>
             <Button 
@@ -553,13 +840,16 @@ const DirectMessages = () => {
             >
                 <div className="flex items-center gap-2">
                     <Users className="w-4 h-4" />
-                    <span>المجموعات</span>
+                    <span className="hidden sm:inline">المجموعات</span>
                 </div>
             </Button>
           </div>
 
           <div className="p-6 space-y-4">
-                  <h2 className="text-2xl font-black text-foreground">الرسائل</h2>
+                  <h2 className="text-2xl font-black text-foreground">
+                    {isCompanyTab ? "رسائل الشركات" : "الرسائل"}
+                  </h2>
+                  {!isCompanyTab && (
                   <div className="relative">
                      <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                      <Input 
@@ -569,10 +859,11 @@ const DirectMessages = () => {
                         className="pr-11 h-12 rounded-2xl bg-muted border-0 focus-visible:ring-indigo-600/20" 
                      />
                   </div>
+                  )}
                </div>
 
                <div className="flex-1 overflow-hidden relative">
-                  {isSearching ? (
+                  {!isCompanyTab && isSearching ? (
                      <ScrollArea className="h-full">
                         <div className="p-4 space-y-2">
                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2 mb-2">نتائج البحث</p>
@@ -580,20 +871,79 @@ const DirectMessages = () => {
                               <button 
                                 key={u.clerkId} 
                                 onClick={() => startNewChat(u)}
-                                className="w-full p-4 rounded-2xl flex items-center gap-4 hover:bg-indigo-50 transition-all text-right"
+                                className="w-full p-4 rounded-2xl flex items-center gap-4 hover:bg-accent/50 transition-all text-right"
                               >
-                                 <Avatar className="h-12 w-12 border-2 border-white shadow-sm">
+                                 <Avatar className="h-12 w-12 border-2 border-border shadow-sm">
                                     <AvatarImage src={u.imageUrl} />
-                                    <AvatarFallback>{u.fullName?.charAt(0)}</AvatarFallback>
+                                    <AvatarFallback className="text-primary">{u.fullName?.charAt(0)}</AvatarFallback>
                                  </Avatar>
                                  <div className="flex-1">
                                     <h4 className="font-bold text-foreground">{u.fullName}</h4>
-                                    <p className="text-xs text-gray-400">@{u.username}</p>
+                                    <p className="text-xs text-muted-foreground">@{u.username}</p>
                                  </div>
                               </button>
                            ))}
                            {searchResults.length === 0 && searchQuery.length > 2 && (
                               <p className="text-center py-10 text-gray-400 text-sm">لا يوجد نتائج</p>
+                           )}
+                        </div>
+                     </ScrollArea>
+                  ) : isCompanyTab ? (
+                     <ScrollArea className="h-full">
+                        <div className="p-2 space-y-1">
+                           {companyConversations.map((conv) => {
+                              const display = getCompanyDisplay(conv);
+                              const linkedRequest = travelRequests.find((r) => r.conversationId === conv._id);
+                              return (
+                              <button 
+                                key={conv._id}
+                                onClick={() => {
+                                    setActiveConversation({ ...conv, _chatType: "company" });
+                                    navigate(`/messages?tab=company&conv=${conv._id}`, { replace: true });
+                                }}
+                                className={cn(
+                                    "w-full p-4 rounded-[1.8rem] flex items-center gap-4 transition-all group relative",
+                                    activeConversation?._id === conv._id ? "bg-indigo-600 text-white shadow-xl shadow-indigo-100" : "hover:bg-muted text-foreground"
+                                )}
+                              >
+                                 <Avatar className="h-14 w-14 border-2 border-white/50">
+                                    <AvatarImage src={display.logo} />
+                                    <AvatarFallback className="bg-indigo-100 text-indigo-700">
+                                      <Building2 className="w-6 h-6" />
+                                    </AvatarFallback>
+                                 </Avatar>
+                                 <div className="flex-1 min-w-0 text-right">
+                                    <div className="flex items-center justify-between mb-1 gap-2">
+                                       <h4 className="font-black truncate">{display.name}</h4>
+                                       {linkedRequest && (
+                                         <Badge className={cn(
+                                           "text-[9px] font-black shrink-0",
+                                           activeConversation?._id === conv._id ? "bg-white/20 text-white" : "bg-indigo-100 text-indigo-700"
+                                         )}>
+                                           {linkedRequest.status === "confirmed" ? "مؤكد" : "طلب رحلة"}
+                                         </Badge>
+                                       )}
+                                    </div>
+                                    <p className={cn("text-xs truncate font-medium", activeConversation?._id === conv._id ? "text-indigo-100" : "text-muted-foreground")}>
+                                       {display.subtitle}
+                                    </p>
+                                    <p className={cn("text-[10px] truncate mt-0.5", activeConversation?._id === conv._id ? "text-indigo-200" : "text-gray-400")}>
+                                       {conv.lastMessage || "ابدأ المحادثة..."}
+                                    </p>
+                                 </div>
+                                 {conv.unreadCount > 0 && activeConversation?._id !== conv._id && (
+                                    <Badge className="absolute left-4 bg-orange-500 text-white border-0 h-6 w-6 flex items-center justify-center rounded-full p-0 text-[10px] font-black">
+                                       {conv.unreadCount}
+                                    </Badge>
+                                 )}
+                              </button>
+                           );})}
+                           {companyConversations.length === 0 && !isLoadingCompanyConvs && (
+                              <div className="text-center py-20 px-6">
+                                 <Building2 className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                                 <p className="text-sm font-bold text-gray-400">لا توجد محادثات مع شركات</p>
+                                 <p className="text-[10px] text-gray-300 mt-1">أرسل طلب رحلة من مساعد الذكاء الاصطناعي</p>
+                              </div>
                            )}
                         </div>
                      </ScrollArea>
@@ -654,23 +1004,47 @@ const DirectMessages = () => {
 
             {/* Main Chat Window */}
             <section className={cn(
-               "flex-1 flex-col h-full bg-card relative",
+               "flex-1 flex flex-col min-h-0 overflow-hidden bg-card relative",
                activeConversation ? "flex" : "hidden md:flex"
             )}>
                 {activeConversation ? (
                     <>
                         {/* Chat Header */}
-                        <header className="p-6 border-b border-border flex items-center justify-between bg-card/50 backdrop-blur-md z-10 sticky top-0">
+                        <header className="shrink-0 p-6 border-b border-border flex items-center justify-between bg-card z-10">
                            <div className="flex items-center gap-4">
                               <Avatar className="h-12 w-12 border-2 border-indigo-100 shadow-sm">
-                                 <AvatarImage src={activeConversation.otherParticipant?.imageUrl} />
-                                 <AvatarFallback>{activeConversation.otherParticipant?.fullName?.charAt(0)}</AvatarFallback>
+                                 {isCompanyTab || activeConversation._chatType === "company" ? (
+                                   <>
+                                     <AvatarImage src={getCompanyDisplay(activeConversation).logo} />
+                                     <AvatarFallback className="bg-indigo-100 text-indigo-700">
+                                       <Building2 className="w-5 h-5" />
+                                     </AvatarFallback>
+                                   </>
+                                 ) : (
+                                   <>
+                                     <AvatarImage src={activeConversation.otherParticipant?.imageUrl} />
+                                     <AvatarFallback>{activeConversation.otherParticipant?.fullName?.charAt(0)}</AvatarFallback>
+                                   </>
+                                 )}
                               </Avatar>
                               <div>
-                                 <h3 className="text-lg font-black text-foreground">{activeConversation.otherParticipant?.fullName}</h3>
+                                 <h3 className="text-lg font-black text-foreground">
+                                   {isCompanyTab || activeConversation._chatType === "company"
+                                     ? getCompanyDisplay(activeConversation).name
+                                     : activeConversation.otherParticipant?.fullName}
+                                 </h3>
                                  <div className="flex items-center gap-1.5">
-                                    <Circle className="w-2 h-2 fill-emerald-400 text-emerald-400" />
-                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">نشط الآن</span>
+                                    {!isCompanyTab && (
+                                      <>
+                                        <Circle className="w-2 h-2 fill-emerald-400 text-emerald-400" />
+                                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">نشط الآن</span>
+                                      </>
+                                    )}
+                                    {isCompanyTab && activeTravelRequest && (
+                                      <span className="text-[10px] font-black text-indigo-600">
+                                        طلب رحلة إلى {activeTravelRequest.destination}
+                                      </span>
+                                    )}
                                  </div>
                               </div>
                            </div>
@@ -681,7 +1055,7 @@ const DirectMessages = () => {
                                 className="rounded-2xl text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
                                 onClick={() => {
                                    setActiveConversation(null);
-                                   navigate('/messages', { replace: true });
+                                   navigate(isCompanyTab ? '/messages?tab=company' : '/messages', { replace: true });
                                 }}
                               >
                                  <X className="w-5 h-5" />
@@ -692,12 +1066,26 @@ const DirectMessages = () => {
                            </div>
                         </header>
 
-                        {/* Messages Area */}
-                        <ScrollArea className="flex-1 p-6">
-                           <div className="space-y-6">
+                        {/* Messages Area (trip details scroll with messages) */}
+                        <ScrollArea className="flex-1 min-h-0">
+                           <div className="p-6 space-y-6">
+                              {activeTravelRequest && (
+                                <TravelRequestDetailsCard
+                                  request={activeTravelRequest}
+                                  compact
+                                  collapsible
+                                />
+                              )}
                               {messages.map((msg, i) => {
-                                 const isMe = msg.senderId === user?.id;
+                                 const isCompanyChat = isCompanyTab || activeConversation._chatType === "company";
+                                 const isMe = isCompanyChat ? msg.senderType === "user" : msg.senderId === user?.id;
                                  const showDate = i === 0 || format(new Date(messages[i-1].createdAt), 'yyyy-MM-dd') !== format(new Date(msg.createdAt), 'yyyy-MM-dd');
+                                 const otherAvatar = isCompanyChat
+                                   ? getCompanyDisplay(activeConversation).logo
+                                   : activeConversation.otherParticipant?.imageUrl;
+                                 const otherName = isCompanyChat
+                                   ? getCompanyDisplay(activeConversation).name
+                                   : activeConversation.otherParticipant?.fullName;
 
                                  return (
                                     <div key={msg._id} className="space-y-4">
@@ -710,8 +1098,10 @@ const DirectMessages = () => {
                                        )}
                                        <div className={cn("flex items-end gap-3", isMe ? "flex-row-reverse" : "flex-row")}>
                                           <Avatar className="h-8 w-8 shrink-0 mb-1 border border-white shadow-sm">
-                                             <AvatarImage src={isMe ? user?.imageUrl : activeConversation.otherParticipant?.imageUrl} />
-                                             <AvatarFallback>{isMe ? user?.fullName?.charAt(0) : activeConversation.otherParticipant?.fullName?.charAt(0)}</AvatarFallback>
+                                             <AvatarImage src={isMe ? user?.imageUrl : otherAvatar} />
+                                             <AvatarFallback>
+                                               {isMe ? user?.fullName?.charAt(0) : (isCompanyChat ? <Building2 className="w-4 h-4" /> : otherName?.charAt(0))}
+                                             </AvatarFallback>
                                           </Avatar>
                                           <div className={cn(
                                              "max-w-[75%] space-y-1",
@@ -795,8 +1185,8 @@ const DirectMessages = () => {
                                                         />
                                                      </div>
                                                   )}
-                                                  {msg.type === 'text' && (
-                                                     <p className="text-[15px] font-medium leading-[1.7] tracking-wide font-cairo">{msg.content}</p>
+                                                  {(msg.type === 'text' || !msg.type || msg.senderType === 'company' || msg.senderType === 'user') && msg.content && (
+                                                     <p className="text-[15px] font-medium leading-[1.7] tracking-wide font-cairo whitespace-pre-wrap">{msg.content}</p>
                                                   )}
                                                </div>
 
@@ -815,7 +1205,7 @@ const DirectMessages = () => {
                                                      <button 
                                                        key={emoji}
                                                        onClick={() => handleToggleReaction(msg._id, emoji)}
-                                                       className="bg-card border border-border rounded-full px-1.5 py-0.5 shadow-sm flex items-center gap-1 hover:bg-muted transition-colors"
+                                                       className="bg-card border border-border rounded-full px-1.5 py-0.5 shadow-sm flex items-center gap-1 hover:bg-accent/50 transition-colors"
                                                      >
                                                        <span className="text-xs">{emoji}</span>
                                                        {count > 1 && <span className="text-[9px] font-black text-indigo-500">{count}</span>}
@@ -826,7 +1216,7 @@ const DirectMessages = () => {
 
                                                {/* Reaction Picker on Hover */}
                                                <div className={cn(
-                                                 "absolute -top-11 opacity-0 group-hover/msg:opacity-100 transition-opacity z-30 flex items-center gap-1 bg-white/90 backdrop-blur-md border border-border p-1 rounded-full shadow-xl",
+                                                 "absolute -top-11 opacity-0 group-hover/msg:opacity-100 transition-opacity z-30 flex items-center gap-1 bg-popover/90 backdrop-blur-md border border-border p-1 rounded-full shadow-xl text-popover-foreground",
                                                  isMe ? "right-0" : "left-0"
                                                )}>
                                                  {REACTION_EMOJIS.map(emoji => {
@@ -836,8 +1226,8 @@ const DirectMessages = () => {
                                                        key={emoji}
                                                        onClick={() => handleToggleReaction(msg._id, emoji)}
                                                        className={cn(
-                                                         "w-7 h-7 flex items-center justify-center rounded-full hover:bg-indigo-50 transition-all hover:scale-125",
-                                                         hasReacted && "bg-indigo-50"
+                                                         "w-7 h-7 flex items-center justify-center rounded-full hover:bg-accent transition-all hover:scale-125",
+                                                         hasReacted && "bg-accent"
                                                        )}
                                                      >
                                                        <span className="text-sm">{emoji}</span>
@@ -849,7 +1239,7 @@ const DirectMessages = () => {
 
                                              <div className={cn("flex items-center gap-1.5 px-1 mt-2", isMe ? "justify-end" : "justify-start")}>
                                                 <span className="text-[9px] font-black text-gray-400">{format(new Date(msg.createdAt), 'hh:mm a')}</span>
-                                                {isMe && (
+                                                {isMe && !isCompanyChat && (
                                                    msg.readBy?.includes(activeConversation.otherParticipant?.clerkId) 
                                                       ? <CheckCheck className="w-3 h-3 text-indigo-500" />
                                                       : <Check className="w-3 h-3 text-gray-300" />
@@ -864,7 +1254,7 @@ const DirectMessages = () => {
                            </div>
                         </ScrollArea>
 
-                        <footer className="p-6 bg-card border-t border-border">
+                        <footer className="shrink-0 p-6 bg-card border-t border-border">
                            {/* Pending Files Preview */}
                            {pendingFiles.length > 0 && (
                               <div className="flex flex-wrap gap-3 mb-4 p-4 bg-muted/50 rounded-3xl border border-border overflow-x-auto custom-scrollbar">
@@ -948,6 +1338,8 @@ const DirectMessages = () => {
                                     multiple
                                     onChange={handleFileUpload}
                                  />
+                                 {!(isCompanyTab || activeConversation?._chatType === "company") && (
+                                 <>
                                  <Button 
                                     type="button" 
                                     disabled={isUploading}
@@ -968,6 +1360,8 @@ const DirectMessages = () => {
                                  >
                                     {isUploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <ImageIcon className="w-5 h-5" />}
                                  </Button>
+                                 </>
+                                 )}
                                  <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
                                     <PopoverTrigger asChild>
                                        <Button type="button" variant="ghost" size="icon" className="rounded-full text-indigo-600 hover:bg-card shrink-0">
@@ -990,7 +1384,7 @@ const DirectMessages = () => {
                                  <Input 
                                     value={newMessage}
                                     onChange={(e) => setNewMessage(e.target.value)}
-                                    placeholder="اكتب رسالتك هنا..." 
+                                    placeholder={isCompanyTab ? "رد على الشركة..." : "اكتب رسالتك هنا..."} 
                                     disabled={isUploading}
                                     className="flex-1 bg-transparent border-0 focus-visible:ring-0 text-[15px] font-medium h-12 placeholder:text-gray-400 font-cairo"
                                  />
@@ -1008,12 +1402,20 @@ const DirectMessages = () => {
                 ) : (
                     <div className="flex-1 flex flex-col items-center justify-center p-10 text-center">
                         <div className="w-32 h-32 bg-indigo-50 rounded-[3rem] flex items-center justify-center mb-8 relative">
-                           <MessageSquare className="w-16 h-16 text-indigo-600" />
+                           {isCompanyTab ? (
+                             <Building2 className="w-16 h-16 text-indigo-600" />
+                           ) : (
+                             <MessageSquare className="w-16 h-16 text-indigo-600" />
+                           )}
                            <div className="absolute -top-4 -right-4 w-12 h-12 bg-orange-500 rounded-full border-4 border-white animate-bounce" />
                         </div>
-                        <h2 className="text-3xl font-black text-foreground mb-4">مرحباً بك في عالم تواصل رحلتى!</h2>
+                        <h2 className="text-3xl font-black text-foreground mb-4">
+                          {isCompanyTab ? "محادثات شركات السياحة" : "مرحباً بك في عالم تواصل رحلتى!"}
+                        </h2>
                         <p className="text-gray-400 max-w-md mx-auto leading-relaxed font-bold">
-                           اختر محادثة من القائمة الجانبية أو ابحث عن رحالة جديد لبدء تبادل الخبرات ومشاركة المغامرات.
+                           {isCompanyTab
+                             ? "اختر محادثة شركة من القائمة لعرض طلب رحلتك والرد على الشركة."
+                             : "اختر محادثة من القائمة الجانبية أو ابحث عن رحالة جديد لبدء تبادل الخبرات ومشاركة المغامرات."}
                         </p>
                     </div>
                 )}

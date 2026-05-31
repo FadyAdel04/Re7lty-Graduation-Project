@@ -35,7 +35,8 @@ import {
   Navigation,
   Compass,
   Globe,
-  Wallet
+  Wallet,
+  Building2
 } from "lucide-react";
 import { getTripPlan, type TripPlan } from "@/lib/travel-advisor-api";
 import { useToast } from "@/hooks/use-toast";
@@ -48,6 +49,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { MapboxTripMap } from "@/components/MapboxTripMap";
+import TravelPreferenceModal from "@/components/TravelPreferenceModal";
+import TravelAgencyRecommendations from "@/components/TravelAgencyRecommendations";
 import { useTheme } from "@/contexts/ThemeContext";
 import { sendMessageToAI, generateItinerary, type AIResponse, type ItineraryDay, type GeneratedItineraryResponse } from "@/lib/openrouter-client";
 import { buildSmartItinerary, normalizePlaces, calculateTransportOptions } from "@/lib/itinerary-engine";
@@ -281,7 +284,11 @@ const TripAIChat = () => {
   const [isFetchingCityData, setIsFetchingCityData] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // ─── Initial Data Loading ───
+  // ─── Travel Preference Integration State ───
+  const [travelPreference, setTravelPreference] = useState<'company' | 'independent' | null>(null);
+  const [showTravelPreferenceModal, setShowTravelPreferenceModal] = useState(false);
+  const [showAgencyRecommendations, setShowAgencyRecommendations] = useState(false);
+
   useEffect(() => {
     const fetchTrips = async () => {
       try {
@@ -458,6 +465,19 @@ const TripAIChat = () => {
     }, 1500);
   };
 
+  const filterAttractionsByCity = (cityName: string, items: any[]) => {
+    const coords = GOVERNORATES_COORDINATES[cityName];
+    if (!coords) return items;
+    return items.filter(item => {
+      const lat = parseFloat(item.latitude || item.lat);
+      const lng = parseFloat(item.longitude || item.lng);
+      if (isNaN(lat) || isNaN(lng)) return true;
+      const latDiff = Math.abs(lat - coords.lat);
+      const lngDiff = Math.abs(lng - coords.lng);
+      return latDiff <= 0.8 && lngDiff <= 0.8;
+    });
+  };
+
   // ─── Custom Trip – Confirm & Generate ───
   const handleConfirmTrip = async () => {
     if (!trip.destination || !trip.days) return;
@@ -489,6 +509,10 @@ const TripAIChat = () => {
       );
 
       if (plan) {
+        // Strict coordinate-based validation to keep only attractions in the selected city area
+        plan.attractions = filterAttractionsByCity(trip.destination, plan.attractions);
+        plan.restaurants = filterAttractionsByCity(trip.destination, plan.restaurants);
+
         setTripPlan(plan);
         if (isSignedIn) {
           try {
@@ -763,7 +787,7 @@ const TripAIChat = () => {
         destination: trip.destination, city: trip.destination, duration: `${numDays} أيام`,
         rating: 4.8,
         description: generatedItinerary?.description || `رحلة ممتعة تم إنشاؤها بالذكاء الاصطناعي إلى ${trip.destination}`,
-        image: selectedAttractionsList[0]?.photo?.images?.large?.url || selectedAttractionsList[0]?.photo?.images?.medium?.url || "",
+        image: selectedAttractionsList[0]?.photo?.images?.large?.url || selectedAttractionsList[0]?.photo?.images?.medium?.url || "/assets/egypt-map.png",
         budget: budgetMap[trip.budget as keyof typeof budgetMap] || "متوسطة",
         season: normalizedSeason, activities, days: finalDays,
         foodAndRestaurants: selectedRestaurantsList.slice(0, 5).map(r => ({ name: r.name, image: r.photo?.images?.large?.url || r.photo?.images?.medium?.url || "", rating: parseFloat(r.rating || "4.5"), description: r.cuisine?.[0]?.name ? `مطعم ${r.cuisine[0].name}` : "مطعم رائع" })),
@@ -789,7 +813,8 @@ const TripAIChat = () => {
         isAIGenerated: true, postType: 'detailed', startCity: trip.startCity,
         transportationPrice: trip.transportation?.price || (trip.transportOptions.length > 0 ? trip.transportOptions[0].price : 0),
         totalEstimatedPrice: estimatedPrice || undefined,
-        transportOptions: trip.transportOptions.length > 0 ? trip.transportOptions.map(o => ({ type: o.type, price: o.price, label: o.label })) : undefined,
+        selectedTransportType: trip.transportation?.type || (trip.transportOptions.length > 0 ? trip.transportOptions[0].type : undefined),
+        transportOptions: trip.transportOptions.length > 0 ? trip.transportOptions.map(o => ({ type: o.type, price: o.price, label: o.label, icon: o.icon, duration: o.duration })) : undefined,
       };
 
       let createdTrip;
@@ -892,6 +917,9 @@ const TripAIChat = () => {
     setGeneratedItinerary(null);
     setFilteredTrips([]);
     setMobileView('wizard');
+    setTravelPreference(null);
+    setShowTravelPreferenceModal(false);
+    setShowAgencyRecommendations(false);
   };
 
   /* ═════════════════════════════════════════════
@@ -933,7 +961,7 @@ const TripAIChat = () => {
               className={cn(
                 "flex items-center gap-2 px-3 py-2 rounded-xl border-2 font-bold text-sm transition-all duration-200",
                 trip.destination === city.name
-                  ? "border-indigo-500 bg-indigo-50 text-indigo-700 shadow-md"
+                  ? "border-indigo-500 bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 shadow-md"
                   : "border-border bg-card text-muted-foreground hover:border-indigo-200"
               )}>
               <span>{city.emoji}</span><span>{city.name}</span>
@@ -943,13 +971,13 @@ const TripAIChat = () => {
 
         <div className="relative group">
           <div className="relative">
-            <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-indigo-500 z-10 transition-transform group-focus-within:scale-110" />
+            <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary z-10 transition-transform group-focus-within:scale-110" />
             <input
               id="ai-chat-input"
               placeholder="ابحث عن أي مدينة..."
               className={cn(
                 "h-14 w-full rounded-2xl pr-12 pl-4 text-base font-bold border-2 transition-all duration-300 outline-none shadow-sm bg-card text-foreground",
-                showDestList ? "border-indigo-400 ring-4 ring-indigo-50 shadow-indigo-100" : "border-border focus:border-indigo-400"
+                showDestList ? "border-indigo-400 ring-4 ring-indigo-500/10 shadow-indigo-500/5 focus:border-indigo-500/50" : "border-border focus:border-indigo-400"
               )}
               value={destSearch || (trip.destination && !showDestList ? trip.destination : "")}
               onChange={e => { 
@@ -965,34 +993,34 @@ const TripAIChat = () => {
               dir="rtl"
             />
             {trip.destination && !showDestList && (
-              <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-2 bg-indigo-50 text-indigo-600 px-3 py-1 rounded-lg text-xs font-black animate-in fade-in zoom-in">
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-2 bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 px-3 py-1 rounded-lg text-xs font-black animate-in fade-in zoom-in">
                 <span>📍 مدينة مختارة</span>
               </div>
             )}
           </div>
 
           {showDestList && (
-            <div className="absolute top-[calc(100%+8px)] right-0 left-0 z-[100] bg-white/95 backdrop-blur-xl border border-border rounded-3xl shadow-[0_20px_50px_rgba(79,70,229,0.15)] overflow-hidden max-h-72 overflow-y-auto animate-in slide-in-from-top-2 duration-300">
+            <div className="absolute top-[calc(100%+8px)] right-0 left-0 z-[100] bg-popover/95 backdrop-blur-xl border border-border rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] overflow-hidden max-h-72 overflow-y-auto animate-in slide-in-from-top-2 duration-300 text-popover-foreground">
               {filteredDest.length === 0 ? (
-                <div className="px-4 py-6 text-center text-sm font-bold text-gray-400">لا توجد نتائج مطابقة</div>
+                <div className="px-4 py-6 text-center text-sm font-bold text-muted-foreground">لا توجد نتائج مطابقة</div>
               ) : (
                 filteredDest.map(city => (
                   <button
                     key={city.name}
                     onMouseDown={() => handleSelectDest(city.name)}
                     className={cn(
-                      "flex items-center gap-3 w-full px-4 py-3 text-right text-sm font-bold transition-colors hover:bg-indigo-50",
-                      trip.destination === city.name && "bg-indigo-50 text-indigo-700"
+                      "flex items-center gap-3 w-full px-4 py-3 text-right text-sm font-bold transition-colors hover:bg-accent",
+                      trip.destination === city.name ? "bg-indigo-500/15 text-indigo-600 dark:text-indigo-400" : "text-foreground"
                     )}
                   >
                     <span className="text-lg shrink-0">{city.emoji}</span>
                     <span className="flex-1">{city.name}</span>
                     <span className={cn(
                       "text-[9px] font-black px-2 py-0.5 rounded-md",
-                      city.category === 'beach' ? 'bg-sky-50 text-sky-500' :
-                      city.category === 'historical' ? 'bg-amber-50 text-amber-600' :
-                      city.category === 'desert' ? 'bg-orange-50 text-orange-500' :
-                      'bg-muted text-gray-400'
+                      city.category === 'beach' ? 'bg-sky-500/15 text-sky-600 dark:text-sky-400' :
+                      city.category === 'historical' ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400' :
+                      city.category === 'desert' ? 'bg-orange-500/15 text-orange-600 dark:text-orange-400' :
+                      'bg-muted text-muted-foreground'
                     )}>
                       {city.category === 'beach' ? 'شواطئ' : city.category === 'historical' ? 'تاريخية' : city.category === 'desert' ? 'صحراء' : 'محافظة'}
                     </span>
@@ -1043,7 +1071,7 @@ const TripAIChat = () => {
               className={cn(
                 "flex items-center gap-2 px-3 py-2 rounded-xl border-2 font-bold text-sm transition-all duration-200",
                 trip.startCity === city.name
-                  ? "border-emerald-500 bg-emerald-50 text-emerald-700 shadow-md"
+                  ? "border-emerald-500 bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 shadow-md"
                   : "border-border bg-card text-muted-foreground hover:border-emerald-200"
               )}>
               <span>{city.emoji}</span><span>{city.name}</span>
@@ -1053,7 +1081,7 @@ const TripAIChat = () => {
 
         <div className="relative">
           <div className="relative">
-            <MapPin className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
+            <MapPin className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground z-10" />
             <input
               placeholder="ابحث عن محافظتك..."
               className="h-12 w-full rounded-2xl pr-11 pl-4 text-sm font-bold border-2 border-border focus:border-emerald-400 focus:outline-none transition-colors bg-card text-foreground"
@@ -1070,22 +1098,28 @@ const TripAIChat = () => {
           </div>
 
           {showOriginList && (
-            <div className="absolute top-[calc(100%+6px)] right-0 left-0 z-50 bg-card border border-border rounded-2xl shadow-2xl shadow-emerald-100/60 overflow-hidden max-h-64 overflow-y-auto">
+            <div className="absolute top-[calc(100%+6px)] right-0 left-0 z-50 bg-popover border border-border rounded-2xl shadow-2xl overflow-hidden max-h-64 overflow-y-auto text-popover-foreground">
               {filteredOrigin.length === 0 ? (
-                <div className="px-4 py-6 text-center text-sm font-bold text-gray-400">لا توجد نتائج</div>
+                <div className="px-4 py-6 text-center text-sm font-bold text-muted-foreground">لا توجد نتائج</div>
               ) : (
                 filteredOrigin.map(city => (
                   <button
                     key={city.name}
                     onMouseDown={() => handleSelectOrigin(city.name)}
                     className={cn(
-                      "flex items-center gap-3 w-full px-4 py-3 text-right text-sm font-bold transition-colors hover:bg-emerald-50",
-                      trip.startCity === city.name && "bg-emerald-50 text-emerald-700"
+                      "flex items-center gap-3 w-full px-4 py-3 text-right text-sm font-bold transition-colors hover:bg-accent",
+                      trip.startCity === city.name ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" : "text-foreground"
                     )}
                   >
                     <span className="text-lg shrink-0">{city.emoji}</span>
                     <span className="flex-1">{city.name}</span>
-                    <span className="text-[9px] font-black px-2 py-0.5 rounded-md bg-muted text-gray-400">
+                    <span className={cn(
+                      "text-[9px] font-black px-2 py-0.5 rounded-md",
+                      city.category === 'beach' ? 'bg-sky-500/15 text-sky-600 dark:text-sky-400' :
+                      city.category === 'historical' ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400' :
+                      city.category === 'desert' ? 'bg-orange-500/15 text-orange-600 dark:text-orange-400' :
+                      'bg-muted text-muted-foreground'
+                    )}>
                       {city.category === 'beach' ? 'شواطئ' : city.category === 'historical' ? 'تاريخية' : city.category === 'desert' ? 'صحراء' : 'محافظة'}
                     </span>
                   </button>
@@ -1122,12 +1156,12 @@ const TripAIChat = () => {
               className={cn(
                 "w-full flex items-center gap-4 p-5 rounded-2xl border-2 transition-all duration-200 text-right",
                 trip.transportation?.type === opt.type
-                  ? "border-orange-500 bg-orange-50 shadow-lg shadow-orange-100"
-                  : "border-border bg-card hover:border-orange-200 hover:bg-orange-50/30"
+                  ? "border-orange-500 bg-orange-500/10 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 shadow-lg"
+                  : "border-border bg-card hover:border-orange-200 hover:bg-orange-50/10"
               )}>
               <div className={cn(
                 "w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shrink-0",
-                trip.transportation?.type === opt.type ? "bg-orange-500 shadow-md" : "bg-muted"
+                trip.transportation?.type === opt.type ? "bg-orange-500 text-white shadow-md" : "bg-muted text-foreground"
               )}>
                 {opt.icon}
               </div>
@@ -1180,7 +1214,7 @@ const TripAIChat = () => {
             className={cn(
               "flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all",
               trip.days === d.value
-                ? "border-sky-500 bg-sky-50 shadow-md shadow-sky-100"
+                ? "border-sky-500 bg-sky-500/10 dark:bg-sky-500/20 text-sky-600 dark:text-sky-400 shadow-md"
                 : "border-border bg-card hover:border-sky-200"
             )}>
             <span className="text-2xl font-black text-sky-600">{d.value}</span>
@@ -1230,10 +1264,11 @@ const TripAIChat = () => {
               className={cn(
                 "w-full flex items-center gap-4 p-5 rounded-2xl border-2 transition-all duration-200",
                 trip.budget === b.key
-                  ? `border-${b.color}-500 bg-${b.color}-50 shadow-md`
-                  : "border-border bg-card hover:border-border"
-              )}
-              style={trip.budget === b.key ? { borderColor: b.color === 'emerald' ? '#10b981' : b.color === 'blue' ? '#3b82f6' : '#8b5cf6', backgroundColor: b.color === 'emerald' ? '#ecfdf5' : b.color === 'blue' ? '#eff6ff' : '#f5f3ff' } : {}}>
+                  ? b.color === 'emerald' ? "border-emerald-500 bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 shadow-md"
+                    : b.color === 'blue' ? "border-blue-500 bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 shadow-md"
+                    : "border-purple-500 bg-purple-500/10 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 shadow-md"
+                  : "border-border bg-card text-muted-foreground hover:border-border"
+              )}>
               <span className="text-2xl">{b.emoji}</span>
               <div className="flex-1 text-right">
                 <div className="font-black text-foreground">{b.label}</div>
@@ -1281,18 +1316,18 @@ const TripAIChat = () => {
           className={cn(
             "flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all",
             trip.hotelNeeded === true
-              ? "border-violet-500 bg-violet-50 shadow-lg shadow-violet-100"
+              ? "border-violet-500 bg-violet-500/10 dark:bg-violet-500/20 text-violet-600 dark:text-violet-400 shadow-lg"
               : "border-border bg-card hover:border-violet-200"
           )}>
           <span className="text-4xl">👍</span>
           <span className="font-black text-foreground">نعم</span>
-          <span className="text-[10px] font-bold text-gray-400">أدور لك على فنادق</span>
+          <span className="text-[10px] font-bold text-muted-foreground">أدور لك على فنادق</span>
         </button>
         <button onClick={() => updateTrip({ hotelNeeded: false, hotel: { checkIn: "", checkOut: "", stars: "", roomType: "" } })}
           className={cn(
             "flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all",
             trip.hotelNeeded === false
-              ? "border-rose-500 bg-rose-50 shadow-lg shadow-rose-100"
+              ? "border-rose-500 bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 shadow-lg"
               : "border-border bg-card hover:border-rose-200"
           )}>
           <span className="text-4xl">👎</span>
@@ -1389,8 +1424,8 @@ const TripAIChat = () => {
                     className={cn(
                       "flex gap-4 p-3 rounded-2xl border-2 transition-all cursor-pointer group",
                       trip.selectedHotel?.location_id === h.location_id 
-                        ? "border-violet-500 bg-violet-100 shadow-sm" 
-                        : "border-gray-50 bg-card hover:border-violet-200"
+                        ? "border-violet-500 bg-violet-500/10 dark:bg-violet-500/20 text-violet-600 dark:text-violet-400 shadow-sm" 
+                        : "border-border bg-card hover:border-violet-200"
                     )}
                   >
                     <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0 shadow-sm relative">
@@ -1457,14 +1492,14 @@ const TripAIChat = () => {
         <p className="text-sm text-muted-foreground font-medium">راجع التفاصيل وأكّد رحلتك</p>
       </div>
 
-      <div className="bg-gradient-to-br from-indigo-50 to-violet-50 border border-indigo-100 rounded-3xl p-6 space-y-4">
+      <div className="bg-gradient-to-br from-indigo-50 dark:from-indigo-950/20 to-violet-50 dark:to-violet-950/20 border border-indigo-100 dark:border-indigo-500/20 rounded-3xl p-6 space-y-4">
         {mode === 'smart' ? (
           <>
             {[
               { icon: "📍", label: "الوجهة المطلوبة", value: trip.destination },
               { icon: "💰", label: "الميزانية المحددة", value: trip.budget === 'low' ? 'اقتصادية' : trip.budget === 'high' ? 'فاخرة' : 'متوسطة' },
             ].map((item, idx) => (
-              <div key={idx} className="flex items-center justify-between py-3 border-b border-indigo-100/50 last:border-0">
+              <div key={idx} className="flex items-center justify-between py-3 border-b border-indigo-500/10 dark:border-indigo-500/20 last:border-0">
                 <span className="flex items-center gap-2 text-sm font-bold text-indigo-500">
                   <span>{item.icon}</span> {item.label}
                 </span>
@@ -1482,8 +1517,8 @@ const TripAIChat = () => {
               { icon: "💰", label: "الميزانية", value: trip.budget === 'low' ? 'اقتصادية' : trip.budget === 'high' ? 'فاخرة' : 'متوسطة' },
               { icon: "🏨", label: "فندق", value: trip.hotelNeeded ? "نعم" : "لا" },
             ].map((item, idx) => (
-              <div key={idx} className="flex items-center justify-between py-2 border-b border-indigo-100/50 last:border-0">
-                <span className="flex items-center gap-2 text-sm font-bold text-indigo-500">
+              <div key={idx} className="flex items-center justify-between py-2 border-b border-indigo-500/10 dark:border-indigo-500/20 last:border-0">
+                <span className="flex items-center gap-2 text-sm font-bold text-indigo-500 dark:text-indigo-400">
                   <span>{item.icon}</span> {item.label}
                 </span>
                 <span className="font-black text-foreground text-sm text-left max-w-[55%] truncate">{item.value}</span>
@@ -1491,16 +1526,16 @@ const TripAIChat = () => {
             ))}
 
             {trip.hotelNeeded && trip.hotel.checkIn && (
-              <div className="flex items-center justify-between py-2 border-b border-indigo-100/50">
-                <span className="flex items-center gap-2 text-sm font-bold text-indigo-500">📅 التواريخ</span>
+              <div className="flex items-center justify-between py-2 border-b border-indigo-500/10 dark:border-indigo-500/20">
+                <span className="flex items-center gap-2 text-sm font-bold text-indigo-500 dark:text-indigo-400">📅 التواريخ</span>
                 <span className="font-black text-foreground text-sm">{trip.hotel.checkIn} ➔ {trip.hotel.checkOut}</span>
               </div>
             )}
 
-            <div className="flex items-center justify-between pt-4 border-t-2 border-indigo-200/60">
+            <div className="flex items-center justify-between pt-4 border-t-2 border-indigo-200/60 dark:border-indigo-500/30">
               <div>
-                <span className="text-[10px] font-black text-indigo-600 uppercase block mb-0.5 tracking-widest">التكلفة التقديرية</span>
-                <span className="text-[9px] font-bold text-indigo-400">مواصلات + إقامة + أنشطة</span>
+                <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase block mb-0.5 tracking-widest">التكلفة التقديرية</span>
+                <span className="text-[9px] font-bold text-indigo-400 dark:text-indigo-300">مواصلات + إقامة + أنشطة</span>
               </div>
               <span className="font-black text-emerald-600 text-2xl">{estimatedTotal.toLocaleString()} <span className="text-sm">ج.م</span></span>
             </div>
@@ -1536,8 +1571,8 @@ const TripAIChat = () => {
         
         {/* Animated Background Layers */}
         <div className="fixed inset-0 pointer-events-none z-0">
-          <div className="absolute top-[-10%] right-[-10%] w-[800px] h-[800px] bg-indigo-50/50 rounded-full blur-[150px] animate-pulse" />
-          <div className="absolute bottom-[-10%] left-[-10%] w-[800px] h-[800px] bg-sky-50/50 rounded-full blur-[150px] animate-pulse delay-1000" />
+          <div className="absolute top-[-10%] right-[-10%] w-[800px] h-[800px] bg-indigo-50/30 dark:bg-indigo-950/20 rounded-full blur-[150px] animate-pulse" />
+          <div className="absolute bottom-[-10%] left-[-10%] w-[800px] h-[800px] bg-sky-50/30 dark:bg-sky-950/20 rounded-full blur-[150px] animate-pulse delay-1000" />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full opacity-[0.03] pointer-events-none" 
                style={{ backgroundImage: 'radial-gradient(#4f46e5 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
         </div>
@@ -1591,7 +1626,7 @@ const TripAIChat = () => {
               </div>
 
               {aiQuota !== null && isSignedIn && (
-                <div className="flex items-center gap-3 p-4 rounded-2xl bg-white/50 backdrop-blur-sm border border-white shadow-sm inline-flex">
+                <div className="flex items-center gap-3 p-4 rounded-2xl bg-white/50 backdrop-blur-sm border border-white shadow-sm">
                   <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center">
                     <Wallet className="w-5 h-5 text-indigo-600" />
                   </div>
@@ -1617,7 +1652,7 @@ const TripAIChat = () => {
                 whileHover={{ scale: 1.02, y: -8 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => setMode("custom")}
-                className="group relative bg-card border border-border rounded-[2.5rem] p-10 text-right hover:border-violet-200 hover:shadow-[0_40px_80px_-20px_rgba(139,92,246,0.15)] transition-all duration-500 overflow-hidden text-right flex items-center gap-8"
+                className="group relative bg-card border border-border rounded-[2.5rem] p-10 text-right hover:border-violet-200 hover:shadow-[0_40px_80px_-20px_rgba(139,92,246,0.15)] transition-all duration-500 overflow-hidden flex items-center gap-8"
               >
                 <div className="absolute top-0 left-0 w-2 h-full bg-gradient-to-b from-violet-500 to-pink-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                 
@@ -1735,7 +1770,27 @@ const TripAIChat = () => {
           )}>
             <ScrollArea className="flex-1 min-h-0">
               <div className="p-4 sm:p-6 lg:p-10">
-                {isGeneratingPlan || isSearching ? (
+                {showAgencyRecommendations ? (
+                  <TravelAgencyRecommendations
+                    destination={trip.destination}
+                    days={trip.days}
+                    budget={trip.budget}
+                    tripSummary={{
+                      attractionsCount: selectedAttractions.size,
+                      restaurantsCount: selectedRestaurants.size,
+                      startCity: trip.startCity || "القاهرة",
+                      hotelNeeded: trip.hotelNeeded,
+                      checkIn: trip.hotel.checkIn,
+                      checkOut: trip.hotel.checkOut,
+                      estimatedCost: estimatedTotal,
+                    }}
+                    onBack={() => {
+                      setShowAgencyRecommendations(false);
+                      setTravelPreference(null);
+                    }}
+                    onSaveIndependent={handleCreateTrip}
+                  />
+                ) : isGeneratingPlan || isSearching ? (
                   <div className="flex flex-col items-center justify-center h-full py-32 space-y-8">
                     <div className="relative">
                       <div className="w-24 h-24 rounded-full bg-indigo-50 flex items-center justify-center shadow-xl shadow-indigo-100">
@@ -1818,22 +1873,20 @@ const TripAIChat = () => {
                 ) : tripPlan ? (
                   /* Custom Trip Results */
                   <div className="space-y-12 animate-in fade-in duration-500">
-                    <div className="relative rounded-xl lg:rounded-[2rem] overflow-hidden group h-48 sm:h-64 lg:h-80">
-                      <div className="absolute inset-0 z-0">
-                        <MapboxTripMap 
-                          positions={generatedItinerary 
-                            ? generatedItinerary.days.flatMap(d => d.activities.map(a => a.coordinates)) 
-                            : tripPlan.attractions.map(a => ({ lat: parseFloat(a.latitude || "0"), lng: parseFloat(a.longitude || "0") }))
-                          }
-                          height="100%"
+                    <div className="relative rounded-xl lg:rounded-[2rem] overflow-hidden group h-48 sm:h-64 lg:h-80 shadow-2xl">
+                      <div className="absolute inset-0 z-0 bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900">
+                        <img 
+                          src="/assets/egypt-map.png" 
+                          alt={tripPlan.location.name}
+                          className="w-full h-full object-cover opacity-45 mix-blend-overlay scale-105 group-hover:scale-100 transition-transform duration-700"
                         />
                       </div>
-                      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent z-10" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-black/30 z-10" />
                       <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 lg:bottom-10 lg:right-10 z-20">
                         <Badge className="bg-indigo-600 text-white border-0 mb-2 sm:mb-3 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full font-black uppercase text-[9px] sm:text-[10px] tracking-widest shadow-lg">وجهة مقترحة</Badge>
-                        <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-foreground mb-2 leading-tight">{tripPlan.location.name}</h1>
-                        <div className="flex items-center gap-4 text-muted-foreground font-bold">
-                          <span className="flex items-center gap-2 bg-background/50 backdrop-blur-md px-4 py-2 rounded-xl border border-border"><Clock className="w-4 h-4 text-sky-400" /> {trip.days} أيام</span>
+                        <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-white mb-2 leading-tight drop-shadow-md">{tripPlan.location.name}</h1>
+                        <div className="flex items-center gap-4 text-white/95 font-bold">
+                          <span className="flex items-center gap-2 bg-black/45 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10 shadow-lg"><Clock className="w-4 h-4 text-indigo-300" /> {trip.days} أيام</span>
                         </div>
                       </div>
                     </div>
@@ -2125,7 +2178,7 @@ const TripAIChat = () => {
 
             {/* Bottom Action Bar when results visible */}
             <AnimatePresence>
-              {tripPlan && (
+              {tripPlan && !showAgencyRecommendations && (
                 <motion.div initial={{ y: 100 }} animate={{ y: 0 }} className="p-4 sm:p-6 border-t border-border bg-card shadow-[0_-10px_40px_rgba(0,0,0,0.02)] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 relative z-50">
                   <div>
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{generatedItinerary ? "البرنامج جاهز" : "الخطة المختارة"}</p>
@@ -2134,7 +2187,32 @@ const TripAIChat = () => {
                   <div className="flex gap-3 w-full md:w-auto">
                     <Button variant="ghost" className="rounded-2xl font-black text-gray-400" onClick={resetWizard}>إعادة البدء</Button>
                     {!generatedItinerary && <Button className="flex-1 md:min-w-[180px] h-12 rounded-2xl bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-200 font-black text-sm gap-2 shadow-sm disabled:opacity-60" onClick={handleGenerateItineraryAction} disabled={isGeneratingItinerary || (selectedAttractions.size === 0 && selectedRestaurants.size === 0)}>{isGeneratingItinerary ? <Loader2 className="w-5 h-5 animate-spin" /> : <Zap className="w-5 h-5" />}تنظيم ذكياً</Button>}
-                    <Button className="flex-1 md:min-w-[200px] h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm gap-2 shadow-xl shadow-indigo-100 disabled:opacity-60" onClick={handleCreateTrip} disabled={isCreatingTrip || (aiQuota !== null && !aiQuota?.isAdmin && aiQuota.remaining <= 0)}>{isCreatingTrip ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}{generatedItinerary ? "حفظ المنظمة" : "حفظ الرحلة"}</Button>
+                    {travelPreference === null ? (
+                      <Button 
+                        className="flex-1 md:min-w-[200px] h-12 rounded-2xl bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white font-black text-sm gap-2 shadow-xl shadow-indigo-100" 
+                        onClick={() => setShowTravelPreferenceModal(true)}
+                        disabled={isCreatingTrip}
+                      >
+                        أعجبتني هذه الرحلة 🎉
+                      </Button>
+                    ) : travelPreference === "company" ? (
+                      <Button 
+                        className="flex-1 md:min-w-[200px] h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm gap-2 shadow-xl shadow-indigo-100" 
+                        onClick={() => setShowAgencyRecommendations(true)}
+                        disabled={isCreatingTrip}
+                      >
+                        <Building2 className="w-5 h-5" /> عرض شركات السياحة 🏢
+                      </Button>
+                    ) : (
+                      <Button 
+                        className="flex-1 md:min-w-[200px] h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm gap-2 shadow-xl shadow-indigo-100 disabled:opacity-60" 
+                        onClick={handleCreateTrip} 
+                        disabled={isCreatingTrip || (aiQuota !== null && !aiQuota?.isAdmin && aiQuota.remaining <= 0)}
+                      >
+                        {isCreatingTrip ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
+                        {generatedItinerary ? "حفظ المنظمة وحجز مستقل 💾" : "حفظ الرحلة وحجز مستقل 💾"}
+                      </Button>
+                    )}
                   </div>
                 </motion.div>
               )}
@@ -2237,6 +2315,23 @@ const TripAIChat = () => {
             </motion.button>
           </div>
         )}
+        {/* Travel Preference Modal overlay */}
+        <TravelPreferenceModal
+          open={showTravelPreferenceModal}
+          onClose={() => setShowTravelPreferenceModal(false)}
+          onSelectCompany={() => {
+            setTravelPreference('company');
+            setShowTravelPreferenceModal(false);
+            setShowAgencyRecommendations(true);
+          }}
+          onSelectIndependent={() => {
+            setTravelPreference('independent');
+            setShowTravelPreferenceModal(false);
+            handleCreateTrip();
+          }}
+          destination={trip.destination}
+          days={trip.days}
+        />
       </main>
 
       <Footer />

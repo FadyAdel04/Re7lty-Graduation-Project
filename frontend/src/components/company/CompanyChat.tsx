@@ -52,12 +52,15 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { TripCountdown } from "@/components/TripCountdown";
+import { getCompanyTravelRequests } from "@/lib/api";
+import { TravelRequestDetailsCard, type TravelRequestDetails } from "@/components/TravelRequestDetailsCard";
 
 interface CompanyChatProps {
     onUnreadChange?: (total: number) => void;
+    initialConversationId?: string | null;
 }
 
-export const CompanyChat = ({ onUnreadChange }: CompanyChatProps) => {
+export const CompanyChat = ({ onUnreadChange, initialConversationId }: CompanyChatProps) => {
     const { getToken } = useAuth();
     const { toast } = useToast();
     const { user: clerkUser } = useUser();
@@ -81,17 +84,35 @@ export const CompanyChat = ({ onUnreadChange }: CompanyChatProps) => {
     const [isUploading, setIsUploading] = useState(false);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [travelRequests, setTravelRequests] = useState<TravelRequestDetails[]>([]);
+
+    const activeTravelRequest =
+        activeSubTab === "direct" && selectedConversation
+            ? travelRequests.find((r: any) => r.conversationId === selectedConversation._id)
+            : null;
 
     // Fetch conversations
     useEffect(() => {
         const loadAll = async () => {
             await Promise.all([
                 fetchConversations(),
-                fetchGroups()
+                fetchGroups(),
+                fetchTravelRequests(),
             ]);
         };
         loadAll();
     }, []);
+
+    const fetchTravelRequests = async () => {
+        try {
+            const token = await getToken();
+            if (!token) return;
+            const data = await getCompanyTravelRequests(token);
+            setTravelRequests(data);
+        } catch {
+            /* ignore */
+        }
+    };
 
     // Auto-switch to groups if direct is empty
     useEffect(() => {
@@ -99,6 +120,16 @@ export const CompanyChat = ({ onUnreadChange }: CompanyChatProps) => {
             setActiveSubTab('groups');
         }
     }, [loading, loadingGroups, conversations.length, groups.length]);
+
+    // Open conversation from travel request or URL param
+    useEffect(() => {
+        if (!initialConversationId || conversations.length === 0) return;
+        const found = conversations.find((c) => c._id === initialConversationId);
+        if (found && selectedConversation?._id !== found._id) {
+            setActiveSubTab('direct');
+            setSelectedConversation(found);
+        }
+    }, [initialConversationId, conversations, selectedConversation?._id]);
 
     const fetchConversations = async (isManual = false) => {
         try {
@@ -704,7 +735,7 @@ return (
 
         {/* Chat Area - full width when a chat is selected */}
         <div className={cn(
-            "flex-1 flex flex-col bg-card min-w-0",
+            "flex-1 flex flex-col bg-card min-w-0 min-h-0 overflow-hidden",
             (!selectedConversation && !selectedGroup) ? "hidden md:flex md:items-center md:justify-center" : "flex"
         )}>
             {(activeSubTab === 'direct' ? selectedConversation : selectedGroup) ? (
@@ -902,8 +933,15 @@ return (
                     </div>
 
                     {/* Messages Area */}
-                    <ScrollArea ref={scrollAreaRef} className="flex-1 p-4 md:p-6 bg-muted/50">
+                    <ScrollArea ref={scrollAreaRef} className="flex-1 min-h-0 p-4 md:p-6 bg-muted/50">
                         <div className="space-y-4">
+                            {activeTravelRequest && (
+                                <TravelRequestDetailsCard
+                                    request={activeTravelRequest}
+                                    compact
+                                    collapsible
+                                />
+                            )}
                             {messagesLoading ? (
                                 <div className="flex justify-center py-10">
                                     <div className="flex items-center gap-2 text-indigo-600">

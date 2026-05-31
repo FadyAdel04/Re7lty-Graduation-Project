@@ -275,48 +275,48 @@ const Header = ({ onSearch }: HeaderProps) => {
                       initial={{ opacity: 0, y: 10, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      className="absolute top-full right-0 mt-3 w-full bg-gray-50/80 backdrop-blur-xl rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-white/20 overflow-hidden z-50 py-2"
+                      className="absolute top-full right-0 mt-3 w-full bg-popover/95 backdrop-blur-xl rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-border overflow-hidden z-50 py-2 text-popover-foreground"
                     >
                       {isSearching ? (
                         <div className="p-8 text-center flex flex-col items-center gap-3">
                            <div className="w-8 h-8 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin" />
-                           <p className="text-sm font-black text-gray-400">نبحث لك عن الأفضل...</p>
+                           <p className="text-sm font-black text-muted-foreground">نبحث لك عن الأفضل...</p>
                         </div>
                       ) : (searchResults.length > 0 || userResults.length > 0) ? (
                         <div className="max-h-[60vh] overflow-y-auto custom-scrollbar">
                           {searchResults.length > 0 && (
                             <div className="mb-2">
-                              <span className="px-5 py-2 text-[10px] font-black text-indigo-400 uppercase tracking-widest">الرحلات الأكثر طلباً</span>
+                              <span className="px-5 py-2 text-[10px] font-black text-primary uppercase tracking-widest">الرحلات الأكثر طلباً</span>
                               {searchResults.map((trip) => (
                                 <button
                                   key={trip._id || trip.id}
                                   onClick={() => handleTripClick(String(trip._id || trip.id))}
-                                  className="w-full px-5 py-3 hover:bg-indigo-50/50 transition-all flex items-center gap-4 text-right group/res"
+                                  className="w-full px-5 py-3 hover:bg-accent/50 transition-all flex items-center gap-4 text-right group/res"
                                 >
-                                  <div className="h-12 w-12 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0 shadow-inner group-hover/res:scale-110 transition-transform">
-                                    {trip.image ? <img src={trip.image} className="h-full w-full object-cover" /> : <MapPin className="h-6 w-6 m-auto text-gray-300" />}
+                                  <div className="h-12 w-12 rounded-xl bg-muted overflow-hidden flex-shrink-0 shadow-inner group-hover/res:scale-110 transition-transform">
+                                    {trip.image ? <img src={trip.image} className="h-full w-full object-cover" /> : <MapPin className="h-6 w-6 m-auto text-muted-foreground" />}
                                   </div>
                                   <div className="flex-1">
-                                    <p className="text-sm font-black text-gray-800 truncate">{trip.title}</p>
-                                    <p className="text-xs text-indigo-500 font-bold">{trip.destination || trip.city}</p>
+                                    <p className="text-sm font-black text-foreground truncate">{trip.title}</p>
+                                    <p className="text-xs text-primary font-bold">{trip.destination || trip.city}</p>
                                   </div>
                                 </button>
                               ))}
                             </div>
                           )}
                           {userResults.length > 0 && (
-                            <div className="pt-2 border-t border-gray-50">
-                              <span className="px-5 py-2 text-[10px] font-black text-orange-400 uppercase tracking-widest">المستكشفون</span>
+                            <div className="pt-2 border-t border-border">
+                              <span className="px-5 py-2 text-[10px] font-black text-secondary-hover uppercase tracking-widest">المستكشفون</span>
                               {userResults.map((u) => (
                                 <button
                                   key={u.clerkId}
                                   onClick={() => handleUserClick(u.clerkId)}
-                                  className="w-full px-5 py-3 hover:bg-orange-50/50 transition-all flex items-center gap-4 text-right"
+                                  className="w-full px-5 py-3 hover:bg-accent/50 transition-all flex items-center gap-4 text-right"
                                 >
-                                  <div className="h-10 w-10 rounded-full bg-orange-100 border-2 border-white shadow-sm overflow-hidden flex-shrink-0">
-                                    {u.imageUrl ? <img src={u.imageUrl} className="h-full w-full object-cover" /> : <span className="m-auto font-black text-orange-600">{u.fullName?.[0]}</span>}
+                                  <div className="h-10 w-10 rounded-full bg-muted border-2 border-border shadow-sm overflow-hidden flex-shrink-0">
+                                    {u.imageUrl ? <img src={u.imageUrl} className="h-full w-full object-cover" /> : <span className="m-auto font-black text-primary">{u.fullName?.[0]}</span>}
                                   </div>
-                                  <p className="text-sm font-black text-gray-800">{u.fullName || u.username}</p>
+                                  <p className="text-sm font-black text-foreground">{u.fullName || u.username}</p>
                                 </button>
                               ))}
                             </div>
@@ -324,10 +324,10 @@ const Header = ({ onSearch }: HeaderProps) => {
                         </div>
                       ) : (
                         <div className="p-10 text-center space-y-3">
-                           <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto">
-                              <Search className="h-8 w-8 text-gray-200" />
+                           <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto">
+                              <Search className="h-8 w-8 text-muted-foreground" />
                            </div>
-                           <p className="text-sm font-black text-gray-400">لم نجد ما تبحث عنه، جرب كلمات أخرى</p>
+                           <p className="text-sm font-black text-muted-foreground">لم نجد ما تبحث عنه، جرب كلمات أخرى</p>
                         </div>
                       )}
                     </motion.div>
@@ -419,7 +419,7 @@ const Header = ({ onSearch }: HeaderProps) => {
 
                   <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button id="nav-profile" className="flex items-center gap-2 sm:gap-3 pl-1 pr-1 sm:pr-4 py-1 rounded-2xl bg-muted/50 border border-border/50 hover:bg-indigo-50 transition-all group outline-none" aria-label="قائمة الملف الشخصي">
+                    <button id="nav-profile" className="flex items-center gap-2 sm:gap-3 pl-1 pr-1 sm:pr-4 py-1 rounded-2xl bg-muted/50 border border-border/50 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-all group outline-none" aria-label="قائمة الملف الشخصي">
                       <div className="text-right hidden xl:block">
                         <p className="text-[10px] font-black text-indigo-500 leading-none mb-1">مرحباً بك</p>
                         <p className="text-xs font-black text-foreground leading-none truncate max-w-[100px]">{user?.fullName || user?.username}</p>
@@ -614,7 +614,7 @@ const Header = ({ onSearch }: HeaderProps) => {
 
                   <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button id="nav-profile" className="flex items-center gap-2 sm:gap-3 pl-1 pr-1 sm:pr-4 py-1 rounded-2xl bg-muted/50 border border-border/50 hover:bg-indigo-50 transition-all group outline-none" aria-label="قائمة الملف الشخصي">
+                    <button id="nav-profile" className="flex items-center gap-2 sm:gap-3 pl-1 pr-1 sm:pr-4 py-1 rounded-2xl bg-muted/50 border border-border/50 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-all group outline-none" aria-label="قائمة الملف الشخصي">
                       <div className="text-right hidden xl:block">
                         <p className="text-[10px] font-black text-indigo-500 leading-none mb-1">مرحباً بك</p>
                         <p className="text-xs font-black text-foreground leading-none truncate max-w-[100px]">{user?.fullName || user?.username}</p>
@@ -725,7 +725,7 @@ const Header = ({ onSearch }: HeaderProps) => {
             {/* Mobile Sidebar */}
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="lg:hidden h-12 w-12 rounded-2xl bg-gray-50 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600" aria-label="القائمة الجانبية">
+                <Button variant="ghost" size="icon" className="lg:hidden h-12 w-12 rounded-2xl bg-muted text-muted-foreground hover:bg-accent hover:text-foreground" aria-label="القائمة الجانبية">
                   <Menu className="h-6 w-6" />
                 </Button>
               </SheetTrigger>
@@ -751,8 +751,8 @@ const Header = ({ onSearch }: HeaderProps) => {
                           className={cn(
                             "flex items-center gap-4 p-3 rounded-2xl transition-all duration-300",
                             isActive 
-                              ? "bg-indigo-50 text-indigo-600 font-black shadow-sm" 
-                              : "text-gray-500 font-bold hover:bg-gray-50 hover:text-gray-900"
+                              ? "bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 font-black shadow-sm" 
+                              : "text-muted-foreground font-bold hover:bg-muted hover:text-foreground"
                           )}
                         >
                           <item.icon className={cn("h-6 w-6", isActive ? "scale-110" : "")} />
@@ -806,13 +806,13 @@ const Header = ({ onSearch }: HeaderProps) => {
 
                     {/* Weather or other tools can go here */}
                     <SignedIn>
-                       <div className="px-2 py-2 mb-2 border-b border-gray-50">
+                       <div className="px-2 py-2 mb-2 border-b border-border">
                           {user && !isCompany && !isAdmin && (
                             <Link 
                               to={`/user/${user.id}`} 
-                              className="flex items-center gap-3 p-3 rounded-2xl text-indigo-600 font-black bg-indigo-50 shadow-sm"
+                              className="flex items-center gap-3 p-3 rounded-2xl text-indigo-600 dark:text-indigo-400 font-black bg-indigo-50 dark:bg-indigo-950/30 shadow-sm"
                             >
-                              <Avatar className="h-10 w-10 border-2 border-white shadow-sm">
+                              <Avatar className="h-10 w-10 border-2 border-background shadow-sm">
                                 <AvatarImage src={dbUser?.imageUrl || user.imageUrl} alt="الصورة الشخصية" />
                                 <AvatarFallback className="bg-white text-indigo-600 uppercase">
                                   {user.firstName?.charAt(0) || user.username?.charAt(0)}
@@ -897,75 +897,75 @@ const Header = ({ onSearch }: HeaderProps) => {
         </div>
       </div>
 
-      {/* Mobile Search Overlay - always light bg, dark text for readability */}
+      {/* Mobile Search Overlay - supports dark mode dynamically */}
       <AnimatePresence>
         {mobileSearchOpen && (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="mobile-search-overlay fixed inset-0 bg-white z-[6000] p-4 sm:p-6 lg:hidden"
+            className="mobile-search-overlay fixed inset-0 bg-background z-[6000] p-4 sm:p-6 lg:hidden"
           >
             <div className="flex items-center gap-2 sm:gap-3 mb-6 sm:mb-8">
                <div className="flex-1 min-w-0 relative">
-                  <Search className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-indigo-500 pointer-events-none" />
+                  <Search className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-primary pointer-events-none" />
                   <Input
                     autoFocus
                     placeholder="ابحث عن رحلة..."
                     value={searchValue}
                     onChange={(e) => handleSearch(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') handleSearchSubmit(); }}
-                    className="mobile-search-input h-12 sm:h-14 pl-4 pr-12 sm:pr-14 rounded-xl sm:rounded-2xl bg-gray-50 border border-gray-100 text-gray-900 placeholder:text-gray-500 text-base font-bold focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/50"
+                    className="mobile-search-input h-12 sm:h-14 pl-4 pr-12 sm:pr-14 rounded-xl sm:rounded-2xl bg-muted border border-border text-foreground placeholder:text-muted-foreground text-base font-bold focus:ring-2 focus:ring-primary/20 focus:border-primary/50"
                   />
                </div>
-               <Button variant="ghost" size="icon" onClick={() => setMobileSearchOpen(false)} className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl sm:rounded-2xl bg-gray-50 hover:bg-gray-100 text-gray-600 shrink-0">
+               <Button variant="ghost" size="icon" onClick={() => setMobileSearchOpen(false)} className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl sm:rounded-2xl bg-muted hover:bg-accent text-muted-foreground shrink-0">
                   <X className="h-5 w-5 sm:h-6 sm:w-6" />
                </Button>
             </div>
             {/* Mobile Results - same design as desktop dropdown */}
-            <div className="mobile-search-results overflow-y-auto h-[calc(100vh-160px)] sm:h-[calc(100vh-180px)] custom-scrollbar bg-gray-50/80 backdrop-blur-xl rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-white/20 py-2">
+            <div className="mobile-search-results overflow-y-auto h-[calc(100vh-160px)] sm:h-[calc(100vh-180px)] custom-scrollbar bg-popover/90 backdrop-blur-xl rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-border py-2 text-popover-foreground">
                {isSearching ? (
                  <div className="p-8 text-center flex flex-col items-center gap-3">
                     <div className="w-8 h-8 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin" />
-                    <p className="text-sm font-black text-gray-400">نبحث لك عن الأفضل...</p>
+                    <p className="text-sm font-black text-muted-foreground">نبحث لك عن الأفضل...</p>
                  </div>
                ) : (searchResults.length > 0 || userResults.length > 0) ? (
                  <div className="max-h-full overflow-y-auto">
                   {searchResults.length > 0 && (
                     <div className="mb-2">
-                      <span className="px-5 py-2 text-[10px] font-black text-indigo-400 uppercase tracking-widest">الرحلات الأكثر طلباً</span>
+                      <span className="px-5 py-2 text-[10px] font-black text-primary uppercase tracking-widest">الرحلات الأكثر طلباً</span>
                       {searchResults.map(trip => (
                         <button
                           key={trip._id || trip.id}
                           type="button"
                           onClick={() => handleTripClick(String(trip._id || trip.id))}
-                          className="w-full px-5 py-3 hover:bg-indigo-50/50 active:bg-indigo-50 transition-all flex items-center gap-4 text-right"
+                          className="w-full px-5 py-3 hover:bg-accent/50 active:bg-accent transition-all flex items-center gap-4 text-right"
                         >
-                          <div className="h-12 w-12 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0 shadow-inner">
-                            {trip.image ? <img src={trip.image} alt="" className="h-full w-full object-cover" /> : <MapPin className="h-6 w-6 m-auto text-gray-300" />}
+                          <div className="h-12 w-12 rounded-xl bg-muted overflow-hidden flex-shrink-0 shadow-inner">
+                            {trip.image ? <img src={trip.image} alt="" className="h-full w-full object-cover" /> : <MapPin className="h-6 w-6 m-auto text-muted-foreground" />}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-black text-gray-800 truncate">{trip.title}</p>
-                            <p className="text-xs text-indigo-500 font-bold">{trip.destination || trip.city}</p>
+                            <p className="text-sm font-black text-foreground truncate">{trip.title}</p>
+                            <p className="text-xs text-primary font-bold">{trip.destination || trip.city}</p>
                           </div>
                         </button>
                       ))}
                     </div>
                   )}
                   {userResults.length > 0 && (
-                    <div className="pt-2 border-t border-gray-50">
-                      <span className="px-5 py-2 text-[10px] font-black text-orange-400 uppercase tracking-widest">المستكشفون</span>
+                    <div className="pt-2 border-t border-border">
+                      <span className="px-5 py-2 text-[10px] font-black text-secondary-hover uppercase tracking-widest">المستكشفون</span>
                       {userResults.map(u => (
                         <button
                           key={u.clerkId}
                           type="button"
                           onClick={() => handleUserClick(u.clerkId)}
-                          className="w-full px-5 py-3 hover:bg-orange-50/50 active:bg-orange-50 transition-all flex items-center gap-4 text-right"
+                          className="w-full px-5 py-3 hover:bg-accent/50 active:bg-accent transition-all flex items-center gap-4 text-right"
                         >
-                          <div className="h-10 w-10 rounded-full bg-orange-100 border-2 border-white shadow-sm overflow-hidden flex-shrink-0">
-                            {u.imageUrl ? <img src={u.imageUrl} alt="" className="h-full w-full object-cover" /> : <span className="flex h-full w-full items-center justify-center font-black text-orange-600 text-sm">{u.fullName?.[0]}</span>}
+                          <div className="h-10 w-10 rounded-full bg-muted border-2 border-border shadow-sm overflow-hidden flex-shrink-0">
+                            {u.imageUrl ? <img src={u.imageUrl} alt="" className="h-full w-full object-cover" /> : <span className="flex h-full w-full items-center justify-center font-black text-primary text-sm">{u.fullName?.[0]}</span>}
                           </div>
-                          <p className="text-sm font-black text-gray-800">{u.fullName || u.username}</p>
+                          <p className="text-sm font-black text-foreground">{u.fullName || u.username}</p>
                         </button>
                       ))}
                     </div>
@@ -973,10 +973,10 @@ const Header = ({ onSearch }: HeaderProps) => {
                  </div>
                ) : (
                  <div className="p-10 text-center space-y-3">
-                    <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto">
-                      <Search className="h-8 w-8 text-gray-200" />
+                    <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto">
+                      <Search className="h-8 w-8 text-muted-foreground" />
                     </div>
-                    <p className="text-sm font-black text-gray-400">ابدأ الكتابة للبحث عن مغامرتك</p>
+                    <p className="text-sm font-black text-muted-foreground">ابدأ الكتابة للبحث عن مغامرتك</p>
                  </div>
                )}
             </div>

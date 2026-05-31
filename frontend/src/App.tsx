@@ -3,7 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { useState, useEffect, useRef, lazy, Suspense } from "react";
 
 // Lazy-loaded components
@@ -136,6 +136,7 @@ const AppContent = () => {
           <Route path="/user/:id" element={<UserProfile />} />
           <Route path="/user/:id/network" element={<UserConnectionsPage />} />
           <Route path="/messages" element={<ProtectedRoute><DirectMessages /></ProtectedRoute>} />
+          <Route path="/company-messages" element={<Navigate to="/messages?tab=company" replace />} />
           <Route path="/trip-groups" element={<ProtectedRoute><TripGroupMessages /></ProtectedRoute>} />
           
           {/* Protected Routes */}

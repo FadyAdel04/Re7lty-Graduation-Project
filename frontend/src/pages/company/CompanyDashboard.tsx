@@ -21,6 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { ResponsiveContainer, BarChart as ReBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, Legend, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
 import { companyService } from "@/services/companyService";
 import { CompanyChat } from "@/components/company/CompanyChat";
+import { CompanyTravelRequests } from "@/components/company/CompanyTravelRequests";
 import { chatService } from "@/services/chatService";
 import { getTripGroups } from "@/lib/tripGroupApi";
 import { createPusherClient } from "@/lib/pusher-client";
@@ -168,6 +169,7 @@ const CompanyDashboard = () => {
 
     // Messages unread count
     const [messagesUnreadCount, setMessagesUnreadCount] = useState(0);
+    const [chatConversationId, setChatConversationId] = useState<string | null>(null);
 
     // Fetch Company Data & Trips
     useEffect(() => {
@@ -1066,6 +1068,19 @@ const CompanyDashboard = () => {
 
                                 <TabsContent value="bookings" className="p-6 m-0 focus-visible:outline-none">
                                     <>
+                                        <div className="mb-10">
+                                            <div className="flex items-center gap-4 mb-6">
+                                                <h2 className="text-2xl font-black text-foreground">طلبات رحلات مخصصة</h2>
+                                                <Badge className="bg-indigo-100 text-indigo-700 font-black">من مساعد الذكاء الاصطناعي</Badge>
+                                            </div>
+                                            <CompanyTravelRequests
+                                                onOpenChat={(conversationId) => {
+                                                    setChatConversationId(conversationId);
+                                                    setActiveTab("contact");
+                                                }}
+                                            />
+                                        </div>
+
                                         <div className="flex flex-col lg:flex-row items-center justify-between gap-4 mb-8">
                                             <div className="flex items-center gap-4">
                                                 <h2 className="text-2xl font-black text-foreground">طلبات الحجز</h2>
@@ -1260,7 +1275,10 @@ const CompanyDashboard = () => {
                                 </TabsContent>
 
                                 <TabsContent value="contact" className="p-6 m-0 focus-visible:outline-none">
-                                    <CompanyChat onUnreadChange={setMessagesUnreadCount} />
+                                    <CompanyChat
+                                        onUnreadChange={setMessagesUnreadCount}
+                                        initialConversationId={chatConversationId}
+                                    />
                                 </TabsContent>
 
                                 <TabsContent value="reports" className="p-6 m-0 focus-visible:outline-none">

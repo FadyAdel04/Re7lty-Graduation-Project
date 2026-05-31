@@ -862,3 +862,84 @@ export async function searchHotelsByLocation(latitude: string, longitude: string
   }
   return await res.json();
 }
+
+export async function getTravelCompanies(destination: string) {
+  const res = await fetch(`${BASE}/api/trips/travel-companies?destination=${encodeURIComponent(destination)}`);
+  if (!res.ok) {
+    throw new Error('Failed to fetch travel companies');
+  }
+  return res.json();
+}
+
+export async function sendTripRequestToCompany(data: any, token: string) {
+  const res = await fetch(`${BASE}/api/trips/travel-company-requests`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.message || errorData.error || 'Failed to send trip request to company');
+  }
+  return res.json();
+}
+
+export async function getCompanyTravelRequests(token: string) {
+  const res = await fetch(`${BASE}/api/trips/travel-company-requests/company`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Failed to fetch travel requests');
+  return res.json();
+}
+
+export async function updateTravelCompanyRequest(
+  requestId: string,
+  data: { status?: string; companyNotes?: string; quotedPrice?: number },
+  token: string
+) {
+  const res = await fetch(`${BASE}/api/trips/travel-company-requests/${requestId}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || 'Failed to update request');
+  }
+  return res.json();
+}
+
+export async function confirmTravelCompanyRequest(
+  requestId: string,
+  data: { quotedPrice?: number; companyNotes?: string; replyMessage?: string },
+  token: string
+) {
+  const res = await fetch(`${BASE}/api/trips/travel-company-requests/${requestId}/confirm`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || 'Failed to confirm request');
+  }
+  return res.json();
+}
+
+export async function getMyTravelCompanyRequests(token: string) {
+  const res = await fetch(`${BASE}/api/trips/travel-company-requests`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Failed to fetch your travel requests');
+  return res.json();
+}
+

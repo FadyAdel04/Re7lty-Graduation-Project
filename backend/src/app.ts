@@ -134,9 +134,11 @@ export function createApp() {
         })
     );
 
-    // Clerk middleware
+    // Clerk middleware — explicit secretKey ensures Bearer tokens are verified
     try {
-        app.use(clerkMiddleware());
+        app.use(clerkMiddleware({
+            secretKey: process.env.CLERK_SECRET_KEY,
+        }));
         console.log("Clerk middleware initialized successfully");
     } catch (error: any) {
         console.error("Failed to initialize Clerk middleware:", error.message);

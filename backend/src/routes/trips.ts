@@ -11,6 +11,35 @@ import { createNotification } from "../utils/notificationDispatcher";
 import { v2 as cloudinary } from "cloudinary";
 import { toxicityService } from "../utils/toxicity";
 import ContentReport from "../models/ContentReport";
+import { TravelCompanyRequest } from "../models/TravelCompanyRequest";
+import { CorporateCompany } from "../models/CorporateCompany";
+import { CorporateTrip } from "../models/CorporateTrip";
+import {
+  createTravelRequestWithChat,
+  sendCompanyChatMessage,
+} from "../utils/travelCompanyRequestChat";
+
+async function resolveCompanyIdForOwner(userId: string) {
+  const user = await User.findOne({ clerkId: userId });
+  let companyId = user?.companyId;
+
+  if (!companyId) {
+    const company = await CorporateCompany.findOne({
+      $or: [{ ownerId: userId }, { createdBy: userId }],
+    });
+    if (company) companyId = company._id as typeof companyId;
+  }
+
+  return companyId;
+}
+
+async function assertCompanyOwnsRequest(userId: string, request: { companyId: string }) {
+  const companyId = await resolveCompanyIdForOwner(userId);
+  if (!companyId || companyId.toString() !== request.companyId.toString()) {
+    return null;
+  }
+  return companyId;
+}
 
 // Configure Cloudinary if credentials are available
 if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
@@ -260,6 +289,329 @@ router.get('/', async (req, res) => {
   } catch (error: any) {
     console.error('Error fetching trips:', error);
     res.status(500).json({ error: 'Failed to fetch trips', message: error.message });
+  }
+});
+
+/**
+ * GET /api/travel-companies
+ * Returns a list of travel companies serving a specific destination
+ */
+router.get("/travel-companies", async (req, res) => {
+  try {
+    const { destination } = req.query;
+    if (!destination) {
+      return res.status(400).json({ error: "Destination parameter is required" });
+    }
+
+    const destStr = String(destination).trim();
+
+    // 1. Find active corporate trips matching this destination
+    const trips = await CorporateTrip.find({
+      destination: { $regex: destStr, $options: "i" },
+      isActive: true,
+    }).select("companyId");
+
+    const companyIdsFromTrips = trips.map(t => t.companyId.toString());
+
+    // 2. Find all active companies
+    const allCompanies = await CorporateCompany.find({ isActive: true });
+
+    // 3. Map companies to the format expected by the frontend
+    const mappedCompanies = allCompanies.map((c: any) => {
+      const hasMatchingTrip = companyIdsFromTrips.includes(c._id.toString());
+      
+      const textMatches =
+        c.name.toLowerCase().includes(destStr.toLowerCase()) ||
+        c.description.toLowerCase().includes(destStr.toLowerCase()) ||
+        (c.tags && c.tags.some((tag: string) => tag.toLowerCase().includes(destStr.toLowerCase())));
+
+      const isMatch = hasMatchingTrip || textMatches;
+      const establishedYear = c.createdAt ? new Date(c.createdAt).getFullYear() : 2024;
+
+      return {
+        id: c._id.toString(),
+        name: c.name,
+        nameAr: c.name, // Return original name
+        rating: c.rating || 4.5,
+        reviewCount: Math.round((c.rating || 4.5) * 12 + 10),
+        website: c.contactInfo?.website || "",
+        phone: c.contactInfo?.phone || "",
+        email: c.contactInfo?.email || "",
+        whatsapp: c.contactInfo?.whatsapp || "",
+        services: c.tags || [],
+        logo: c.logo || "",
+        color: c.color || "from-blue-500 to-cyan-500",
+        destinations: [destStr], // Return matching destination to pass frontend filter
+        logoEmoji: "🏢",
+        specialties: c.tags?.slice(0, 3) || [],
+        city: c.contactInfo?.address || "مصر",
+        established: establishedYear,
+        isMatch,
+      };
+    });
+
+    // 4. Filter to only matching companies, or if none match, return all active companies as general recommendations
+    let filtered = mappedCompanies.filter(c => c.isMatch);
+    if (filtered.length === 0) {
+      filtered = mappedCompanies;
+    }
+
+    filtered.sort((a, b) => b.rating - a.rating);
+
+    res.json(filtered);
+  } catch (error: any) {
+    console.error("Error fetching travel companies:", error);
+    res.status(500).json({ error: "Failed to fetch travel companies", message: error.message });
+  }
+});
+
+/**
+ * POST /api/travel-company-requests
+ * Stores a request, opens a company chat, and sends the trip summary as the first message
+ */
+router.post("/travel-company-requests", requireAuthStrict, async (req, res) => {
+  try {
+    const { userId } = getAuth(req);
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const {
+      companyId,
+      companyName,
+      destination,
+      travelDates,
+      numberOfTravelers,
+      budget,
+      tripDetails,
+      message,
+    } = req.body;
+
+    if (!companyId || !companyName || !destination) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(companyId)) {
+      return res.status(400).json({ error: "Invalid company ID" });
+    }
+
+    const company = await CorporateCompany.findById(companyId);
+    if (!company) {
+      return res.status(404).json({ error: "Company not found" });
+    }
+
+    const payload = {
+      companyId,
+      companyName,
+      destination,
+      travelDates,
+      numberOfTravelers: numberOfTravelers || 1,
+      budget,
+      tripDetails,
+      message,
+    };
+
+    const { conversation } = await createTravelRequestWithChat(userId, payload);
+
+    const newRequest = new TravelCompanyRequest({
+      userId,
+      companyId,
+      companyName,
+      destination,
+      travelDates,
+      numberOfTravelers: numberOfTravelers || 1,
+      budget,
+      tripDetails,
+      message,
+      status: "pending",
+      conversationId: conversation._id,
+    });
+
+    await newRequest.save();
+
+    res.status(201).json({
+      message: "Trip request sent successfully to the travel company!",
+      request: newRequest,
+      conversationId: conversation._id,
+    });
+  } catch (error: any) {
+    console.error("Error creating travel company request:", error);
+    res.status(500).json({ error: "Failed to submit request", message: error.message });
+  }
+});
+
+/**
+ * GET /api/travel-company-requests/company
+ * Lists trip requests for the logged-in company owner
+ */
+router.get("/travel-company-requests/company", requireAuthStrict, async (req, res) => {
+  try {
+    const { userId } = getAuth(req);
+    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+    const companyId = await resolveCompanyIdForOwner(userId);
+    if (!companyId) {
+      return res.status(404).json({ error: "Company not found for this user" });
+    }
+
+    const requests = await TravelCompanyRequest.find({ companyId: companyId.toString() })
+      .sort({ requestedAt: -1 })
+      .lean();
+
+    const userIds = [...new Set(requests.map((r) => r.userId))];
+    const users = await User.find({ clerkId: { $in: userIds } }).select("clerkId fullName imageUrl").lean();
+    const userMap = Object.fromEntries(users.map((u) => [u.clerkId, u]));
+
+    const enriched = requests.map((r) => ({
+      ...r,
+      user: userMap[r.userId] || null,
+    }));
+
+    res.json(enriched);
+  } catch (error: any) {
+    console.error("Error fetching company travel requests:", error);
+    res.status(500).json({ error: "Failed to retrieve requests", message: error.message });
+  }
+});
+
+/**
+ * GET /api/travel-company-requests
+ * Retrieves all requests sent by the logged-in user to travel companies
+ */
+router.get("/travel-company-requests", requireAuthStrict, async (req, res) => {
+  try {
+    const { userId } = getAuth(req);
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const requests = await TravelCompanyRequest.find({ userId }).sort({ requestedAt: -1 }).lean();
+
+    const companyIds = [...new Set(requests.map((r) => r.companyId).filter(Boolean))].filter((id) =>
+      mongoose.Types.ObjectId.isValid(id)
+    );
+    const companies = await CorporateCompany.find({ _id: { $in: companyIds } })
+      .select("name logo")
+      .lean();
+    const companyMap = Object.fromEntries(companies.map((c) => [c._id.toString(), c]));
+
+    const enriched = requests.map((r) => ({
+      ...r,
+      company: companyMap[r.companyId] || { name: r.companyName, logo: "" },
+    }));
+
+    res.json(enriched);
+  } catch (error: any) {
+    console.error("Error retrieving travel company requests:", error);
+    res.status(500).json({ error: "Failed to retrieve requests", message: error.message });
+  }
+});
+
+/**
+ * PATCH /api/travel-company-requests/:requestId
+ * Company updates request status (viewed / responded / declined)
+ */
+router.patch("/travel-company-requests/:requestId", requireAuthStrict, async (req, res) => {
+  try {
+    const { userId } = getAuth(req);
+    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+    const request = await TravelCompanyRequest.findById(req.params.requestId);
+    if (!request) return res.status(404).json({ error: "Request not found" });
+
+    const companyId = await assertCompanyOwnsRequest(userId, request);
+    if (!companyId) return res.status(403).json({ error: "Unauthorized" });
+
+    const { status, companyNotes, quotedPrice } = req.body;
+    const allowed = ["viewed", "responded", "declined"];
+    if (status && !allowed.includes(status)) {
+      return res.status(400).json({ error: "Invalid status" });
+    }
+
+    if (status) request.status = status;
+    if (companyNotes !== undefined) request.companyNotes = companyNotes;
+    if (quotedPrice !== undefined) request.quotedPrice = quotedPrice;
+
+    await request.save();
+    res.json(request);
+  } catch (error: any) {
+    console.error("Error updating travel company request:", error);
+    res.status(500).json({ error: "Failed to update request", message: error.message });
+  }
+});
+
+/**
+ * POST /api/travel-company-requests/:requestId/confirm
+ * Company confirms the custom trip booking and notifies the traveler in chat
+ */
+router.post("/travel-company-requests/:requestId/confirm", requireAuthStrict, async (req, res) => {
+  try {
+    const { userId } = getAuth(req);
+    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+    const request = await TravelCompanyRequest.findById(req.params.requestId);
+    if (!request) return res.status(404).json({ error: "Request not found" });
+
+    const companyId = await assertCompanyOwnsRequest(userId, request);
+    if (!companyId) return res.status(403).json({ error: "Unauthorized" });
+
+    if (request.status === "confirmed") {
+      return res.status(400).json({ error: "Request already confirmed" });
+    }
+
+    const company = await CorporateCompany.findById(companyId);
+    if (!company) return res.status(404).json({ error: "Company not found" });
+
+    const { quotedPrice, companyNotes, replyMessage } = req.body;
+    const finalPrice = quotedPrice ?? request.quotedPrice;
+    const notes = companyNotes ?? request.companyNotes;
+
+    request.status = "confirmed";
+    request.confirmedAt = new Date();
+    if (finalPrice != null) request.quotedPrice = finalPrice;
+    if (notes) request.companyNotes = notes;
+    await request.save();
+
+    const confirmationLines = [
+      "✅ **تم تأكيد حجز رحلتك!**",
+      "",
+      `🏢 ${company.name}`,
+      `📍 الوجهة: ${request.destination}`,
+      `👥 عدد المسافرين: ${request.numberOfTravelers || 1}`,
+    ];
+    if (finalPrice != null) {
+      confirmationLines.push(`💰 السعر المعتمد: ${Number(finalPrice).toLocaleString()} ج.م`);
+    }
+    if (notes) {
+      confirmationLines.push(`📝 ملاحظات: ${notes}`);
+    }
+    if (replyMessage) {
+      confirmationLines.push("", replyMessage);
+    }
+    confirmationLines.push("", "سيتواصل معك فريق الشركة لإتمام التفاصيل. نتمنى لك رحلة سعيدة! 🌴");
+
+    const conversationId = request.conversationId;
+    if (conversationId) {
+      await sendCompanyChatMessage(conversationId, userId, "company", confirmationLines.join("\n"));
+    }
+
+    await createNotification({
+      recipientId: request.userId,
+      actorId: userId,
+      actorName: company.name,
+      type: "system",
+      message: `🎉 ${company.name} أكّدت حجز رحلتك إلى ${request.destination}!`,
+      metadata: {
+        conversationId: request.conversationId,
+        action: "travel_request_confirmed",
+        requestId: request._id,
+      },
+    });
+
+    res.json({ success: true, request });
+  } catch (error: any) {
+    console.error("Error confirming travel company request:", error);
+    res.status(500).json({ error: "Failed to confirm request", message: error.message });
   }
 });
 

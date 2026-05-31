@@ -1,11 +1,15 @@
 import express from 'express';
 import { Conversation, Message } from '../models/Chat';
 import { CorporateCompany } from '../models/CorporateCompany';
-import { ClerkExpressRequireAuth } from '@clerk/clerk-sdk-node';
+import { requireAuthStrict, getAuth } from '../utils/auth';
 import { createNotification } from '../utils/notificationDispatcher';
 import { getPusher } from '../services/pusher';
 
 const router = express.Router();
+
+function serializeMessage(message: InstanceType<typeof Message>) {
+  return message.toObject ? message.toObject() : message;
+}
 
 /**
  * @swagger
@@ -13,9 +17,9 @@ const router = express.Router();
  *   post:
  *     summary: Start or get existing conversation
  */
-router.post('/start', ClerkExpressRequireAuth(), async (req, res) => {
+router.post('/start', requireAuthStrict, async (req, res) => {
     try {
-        const userId = req.auth?.userId;
+        const { userId } = getAuth(req);
         let { companyId, tripId } = req.body;
 
         if (!userId || !companyId) {
@@ -75,9 +79,9 @@ router.post('/start', ClerkExpressRequireAuth(), async (req, res) => {
  *   get:
  *     summary: Get conversations for current user (or company owner)
  */
-router.get('/conversations', ClerkExpressRequireAuth(), async (req, res) => {
+router.get('/conversations', requireAuthStrict, async (req, res) => {
     try {
-        const userId = req.auth?.userId;
+        const { userId } = getAuth(req);
         const { asCompany } = req.query; // If true, finding conversations for my company
 
         if (!userId) return res.status(401).json({ error: 'Unauthorized' });
@@ -100,7 +104,8 @@ router.get('/conversations', ClerkExpressRequireAuth(), async (req, res) => {
         const conversations = await Conversation.find(query)
             .populate('companyId', 'name logo')
             .populate('tripId', 'title slug')
-            .sort({ lastMessageAt: -1 });
+            .sort({ lastMessageAt: -1 })
+            .lean();
 
         // If I am the company, I might want to populate user details too? 
         // Typically we would need a User model reference or fetch from Clerk.
@@ -113,9 +118,9 @@ router.get('/conversations', ClerkExpressRequireAuth(), async (req, res) => {
             // Let's do manual lookup for simplicity.
             const { User } = await import('../models/User');
             const conversationsWithUsers = await Promise.all(conversations.map(async (conv) => {
-                const user = await User.findOne({ clerkId: conv.userId }).select('fullName imageUrl');
+                const user = await User.findOne({ clerkId: conv.userId }).select('fullName imageUrl').lean();
                 return {
-                    ...conv.toObject(),
+                    ...conv,
                     user
                 };
             }));
@@ -135,11 +140,33 @@ router.get('/conversations', ClerkExpressRequireAuth(), async (req, res) => {
  *   get:
  *     summary: Get messages for a conversation
  */
-router.get('/:conversationId/messages', ClerkExpressRequireAuth(), async (req, res) => {
+router.get('/:conversationId/messages', requireAuthStrict, async (req, res) => {
     try {
+        const { userId } = getAuth(req);
         const { conversationId } = req.params;
+
+        const conversation = await Conversation.findById(conversationId);
+        if (!conversation) {
+            return res.status(404).json({ error: 'Conversation not found' });
+        }
+
+        // User or company owner may read this thread
+        if (conversation.userId !== userId) {
+            const { User } = await import('../models/User');
+            const user = await User.findOne({ clerkId: userId });
+            const company = await CorporateCompany.findById(conversation.companyId);
+            const isCompanyOwner =
+                (user?.companyId && user.companyId.toString() === conversation.companyId.toString()) ||
+                company?.ownerId === userId ||
+                company?.createdBy === userId;
+            if (!isCompanyOwner) {
+                return res.status(403).json({ error: 'Unauthorized' });
+            }
+        }
+
         const messages = await Message.find({ conversationId })
-            .sort({ createdAt: 1 });
+            .sort({ createdAt: 1 })
+            .lean();
 
         res.json(messages);
     } catch (error) {
@@ -154,11 +181,11 @@ router.get('/:conversationId/messages', ClerkExpressRequireAuth(), async (req, r
  *   post:
  *     summary: Send a message
  */
-router.post('/:conversationId/messages', ClerkExpressRequireAuth(), async (req, res) => {
+router.post('/:conversationId/messages', requireAuthStrict, async (req, res) => {
     try {
         const { conversationId } = req.params;
         const { content, senderType } = req.body; // senderType: 'user' or 'company'
-        const userId = req.auth?.userId;
+        const { userId } = getAuth(req);
 
         if (!content || !userId) {
             return res.status(400).json({ error: 'Missing content' });
@@ -198,8 +225,9 @@ router.post('/:conversationId/messages', ClerkExpressRequireAuth(), async (req, 
         // Trigger Pusher for real-time update
         const pusher = getPusher();
         if (pusher) {
+            const serializedMessage = serializeMessage(message);
             pusher.trigger(`conversation-${conversationId}`, 'new-message', {
-                message
+                message: serializedMessage
             });
 
             // Recipient: when user sends, company owner (Clerk ID) gets update on dashboard
@@ -207,12 +235,14 @@ router.post('/:conversationId/messages', ClerkExpressRequireAuth(), async (req, 
                 const company = await CorporateCompany.findById(conversation.companyId);
                 if (company?.ownerId) {
                     pusher.trigger(`user-chats-${company.ownerId}`, 'update-conversation', {
-                        conversation: conversation.toObject ? conversation.toObject() : conversation
+                        conversation: conversation.toObject ? conversation.toObject() : conversation,
+                        message: serializedMessage,
                     });
                 }
             } else {
                 pusher.trigger(`user-chats-${conversation.userId}`, 'update-conversation', {
-                    conversation: conversation.toObject ? conversation.toObject() : conversation
+                    conversation: conversation.toObject ? conversation.toObject() : conversation,
+                    message: serializedMessage,
                 });
             }
         }
@@ -259,7 +289,7 @@ router.post('/:conversationId/messages', ClerkExpressRequireAuth(), async (req, 
             }
         }
 
-        res.json(message);
+        res.json(serializeMessage(message));
     } catch (error) {
         console.error('Error sending message:', error);
         res.status(500).json({ error: 'Failed to send message' });
@@ -269,10 +299,10 @@ router.post('/:conversationId/messages', ClerkExpressRequireAuth(), async (req, 
 /**
  * Mark conversation as read
  */
-router.post('/:conversationId/read', ClerkExpressRequireAuth(), async (req, res) => {
+router.post('/:conversationId/read', requireAuthStrict, async (req, res) => {
     try {
         const { conversationId } = req.params;
-        const myId = req.auth?.userId;
+        const { userId: myId } = getAuth(req);
 
         if (!myId) return res.status(401).json({ error: 'Unauthorized' });
 
@@ -308,11 +338,11 @@ router.post('/:conversationId/read', ClerkExpressRequireAuth(), async (req, res)
 /**
  * Toggle reaction on a message
  */
-router.post('/messages/:messageId/reaction', ClerkExpressRequireAuth(), async (req, res) => {
+router.post('/messages/:messageId/reaction', requireAuthStrict, async (req, res) => {
     try {
         const { messageId } = req.params;
         const { emoji } = req.body;
-        const myId = req.auth?.userId;
+        const { userId: myId } = getAuth(req);
 
         if (!myId) return res.status(401).json({ error: 'Unauthorized' });
 

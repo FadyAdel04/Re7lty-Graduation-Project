@@ -94,6 +94,7 @@ const TripSchema = new Schema({
   transportationPrice: Number,
   totalEstimatedPrice: Number,
   transportOptions: Schema.Types.Mixed,
+  selectedTransportType: String,
 }, { timestamps: true });
 
 TripSchema.index({ postedAt: -1 });

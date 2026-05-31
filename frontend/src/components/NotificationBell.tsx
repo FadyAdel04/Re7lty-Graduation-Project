@@ -102,6 +102,37 @@ const NotificationBell = () => {
       return;
     }
 
+    // ── 3b. Company travel chat (user ↔ travel agency) ───────────────────
+    if (
+      metadata?.conversationId &&
+      (metadata?.action === 'travel_request_sent' ||
+        metadata?.action === 'travel_request_confirmed' ||
+        metadata?.action === 'chat_reply')
+    ) {
+      navigate(`/messages?tab=company&conv=${metadata.conversationId}`);
+      return;
+    }
+
+    if (metadata?.action === 'travel_request' && metadata?.conversationId) {
+      const role = (user?.publicMetadata as any)?.role;
+      if (role === 'company_owner' || role === 'admin') {
+        navigate(`/company/dashboard?tab=bookings`);
+      } else {
+        navigate(`/messages?tab=company&conv=${metadata.conversationId}`);
+      }
+      return;
+    }
+
+    if (metadata?.action === 'chat_message' && metadata?.conversationId) {
+      const role = (user?.publicMetadata as any)?.role;
+      if (role === 'company_owner' || role === 'admin') {
+        navigate(`/company/dashboard?tab=contact`);
+      } else {
+        navigate(`/messages?tab=company&conv=${metadata.conversationId}`);
+      }
+      return;
+    }
+
     // ── 4. Trip group chat ───────────────────────────────────────────────
     if (metadata?.type === 'trip_group' && metadata?.groupId) {
       navigate(`/trip-groups?id=${metadata.groupId}`);

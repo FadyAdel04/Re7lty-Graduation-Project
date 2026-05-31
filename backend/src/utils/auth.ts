@@ -1,5 +1,5 @@
 import type { RequestHandler } from "express";
-import { requireAuth as clerkRequireAuth, getAuth as clerkGetAuth } from "@clerk/express";
+import { getAuth as clerkGetAuth } from "@clerk/express";
 import { clerkClient } from "@clerk/clerk-sdk-node";
 
 // Define a custom getAuth that returns the demo user correctly without crashing clerkGetAuth
@@ -20,31 +20,28 @@ export { clerkClient };
 
 /**
  * Middleware to require authentication
- * Uses Clerk's requireAuth which automatically verifies Bearer tokens
- * In development, allows a fallback 'demo_user' via header
+ * Returns JSON 401 for API clients (Bearer token requests)
+ * In development, allows a fallback demo user via the x-demo-user header
  */
 export const requireAuthStrict: RequestHandler = (req, res, next) => {
-  const demoHeader = req.headers['x-demo-user'];
-  if (process.env.NODE_ENV !== 'production' && demoHeader) {
-    // Inject a mock auth object
+  const demoHeader = req.headers["x-demo-user"];
+  if (process.env.NODE_ENV !== "production" && demoHeader) {
     (req as any).auth = {
-      userId: demoHeader === 'true' ? 'user_2r9nE5R8r7TzK6pM9wL1vQ3xH4j' : demoHeader, // Default demo ID or custom
-      sessionId: 'demo_session',
+      userId: demoHeader === "true" ? "user_2r9nE5R8r7TzK6pM9wL1vQ3xH4j" : demoHeader,
+      sessionId: "demo_session",
       orgId: null,
     };
     return next();
   }
-  
+
   try {
     const auth = clerkGetAuth(req);
-    if (!auth || !auth.userId) {
-      console.log('requireAuthStrict failed: No userId found in auth', auth);
-      return res.status(401).json({ error: 'Unauthorized', message: 'Not authenticated' });
+    if (!auth?.userId) {
+      return res.status(401).json({ error: "Unauthorized", message: "Not authenticated" });
     }
     return next();
   } catch (err: any) {
-    console.error('requireAuthStrict error:', err.message);
-    return res.status(401).json({ error: 'Unauthorized', message: err.message });
+    return res.status(401).json({ error: "Unauthorized", message: err.message });
   }
 };
 

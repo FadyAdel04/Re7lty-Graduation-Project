@@ -174,6 +174,7 @@ const TripDetail = () => {
             transportationPrice: apiTrip.transportationPrice,
             totalEstimatedPrice: apiTrip.totalEstimatedPrice,
             transportOptions: apiTrip.transportOptions,
+            selectedTransportType: apiTrip.selectedTransportType,
           };
           setTrip(transformedTrip);
           setLikesCount(transformedTrip.likes);
@@ -762,6 +763,148 @@ const TripDetail = () => {
                         })}
                     </div>
                  </div>
+               )}
+
+               {/* Transportation Details Section */}
+               {(trip.transportOptions || trip.transportationPrice || trip.startCity) && (
+                 <motion.div
+                   initial={{ opacity: 0, y: 30 }}
+                   whileInView={{ opacity: 1, y: 0 }}
+                   viewport={{ once: true }}
+                   className="space-y-8"
+                 >
+                   <div className="flex items-center gap-4 px-4">
+                     <div className="h-12 w-3 bg-emerald-500 rounded-full" />
+                     <h2 className="text-3xl font-black text-foreground flex items-center gap-3">
+                       <Bus className="w-8 h-8 text-emerald-500" />
+                       تفاصيل المواصلات
+                     </h2>
+                   </div>
+
+                   <Card className="border border-border/60 shadow-xl rounded-[3.5rem] bg-card overflow-hidden">
+                     {/* Header strip */}
+                     <div className="bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-transparent px-10 py-8 border-b border-border/60 flex flex-wrap items-center gap-6">
+                       {trip.startCity && (
+                         <div className="flex items-center gap-3">
+                           <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                             <Navigation className="w-5 h-5 text-emerald-500" />
+                           </div>
+                           <div>
+                             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">نقطة الانطلاق</p>
+                             <p className="font-black text-foreground text-lg">{trip.startCity}</p>
+                           </div>
+                         </div>
+                       )}
+                       {trip.startCity && trip.destination && (
+                         <div className="flex items-center gap-3 text-muted-foreground/40">
+                           <ArrowRight className="w-6 h-6 rotate-180" />
+                         </div>
+                       )}
+                       {trip.destination && (
+                         <div className="flex items-center gap-3">
+                           <div className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                             <MapPin className="w-5 h-5 text-primary" />
+                           </div>
+                           <div>
+                             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">الوجهة</p>
+                             <p className="font-black text-foreground text-lg">{trip.destination}</p>
+                           </div>
+                         </div>
+                       )}
+                       {trip.transportationPrice && (
+                         <div className="mr-auto flex items-center gap-3">
+                           <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+                             <DollarSign className="w-5 h-5 text-amber-500" />
+                           </div>
+                           <div>
+                             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">تكلفة النقل</p>
+                             <p className="font-black text-emerald-600 text-2xl tabular-nums">{trip.transportationPrice}</p>
+                           </div>
+                         </div>
+                       )}
+                     </div>
+
+                     {/* Transport Options */}
+                     {trip.transportOptions && (
+                       <div className="p-10 space-y-6">
+                         {Array.isArray(trip.transportOptions) ? (
+                           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                             {(trip.transportOptions as any[]).map((opt: any, idx: number) => {
+                               const name = typeof opt === 'string' ? opt : (opt.name || opt.type || opt.label || JSON.stringify(opt));
+                               const details = typeof opt === 'object' ? opt : null;
+                               return (
+                                 <motion.div
+                                   key={idx}
+                                   whileHover={{ y: -3 }}
+                                   className="flex items-start gap-5 bg-muted/30 hover:bg-muted/60 p-6 rounded-[2rem] border border-border/60 hover:border-emerald-500/30 transition-all group cursor-default shadow-sm hover:shadow-lg"
+                                 >
+                                   <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0 group-hover:bg-emerald-500/20 transition-colors">
+                                     <Bus className="w-6 h-6 text-emerald-500" />
+                                   </div>
+                                   <div className="flex-1 space-y-2">
+                                     <p className="font-black text-foreground text-lg leading-tight">{name}</p>
+                                     {details && details.description && (
+                                       <p className="text-sm font-bold text-muted-foreground leading-relaxed">{details.description}</p>
+                                     )}
+                                     {details && details.price && (
+                                       <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 px-3 py-1 rounded-lg font-black text-xs">
+                                         {details.price}
+                                       </Badge>
+                                     )}
+                                     {details && details.duration && (
+                                       <div className="flex items-center gap-1.5 text-xs font-black text-muted-foreground">
+                                         <Clock className="w-3 h-3" />
+                                         {details.duration}
+                                       </div>
+                                     )}
+                                   </div>
+                                 </motion.div>
+                               );
+                             })}
+                           </div>
+                         ) : typeof trip.transportOptions === 'object' ? (
+                           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                             {Object.entries(trip.transportOptions as Record<string, any>).map(([key, val], idx) => (
+                               <motion.div
+                                 key={idx}
+                                 whileHover={{ y: -3 }}
+                                 className="flex items-start gap-5 bg-muted/30 hover:bg-muted/60 p-6 rounded-[2rem] border border-border/60 hover:border-emerald-500/30 transition-all group cursor-default shadow-sm hover:shadow-lg"
+                               >
+                                 <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0 group-hover:bg-emerald-500/20 transition-colors">
+                                   <Bus className="w-6 h-6 text-emerald-500" />
+                                 </div>
+                                 <div className="flex-1 space-y-1">
+                                   <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{key}</p>
+                                   <p className="font-black text-foreground text-lg">{String(val)}</p>
+                                 </div>
+                               </motion.div>
+                             ))}
+                           </div>
+                         ) : (
+                           <div className="flex items-start gap-5 bg-muted/30 p-6 rounded-[2rem] border border-border/60">
+                             <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                               <Bus className="w-6 h-6 text-emerald-500" />
+                             </div>
+                             <div className="flex-1">
+                               <p className="font-black text-foreground text-lg">{String(trip.transportOptions)}</p>
+                             </div>
+                           </div>
+                         )}
+                       </div>
+                     )}
+
+                     {/* Total price footer */}
+                     {trip.totalEstimatedPrice && (
+                       <div className="px-10 py-6 border-t border-border/60 bg-muted/20 flex items-center justify-between">
+                         <div className="flex items-center gap-3">
+                           <TrendingUp className="w-5 h-5 text-primary" />
+                           <span className="font-black text-muted-foreground text-sm uppercase tracking-widest">إجمالي تكلفة الرحلة المتوقعة</span>
+                         </div>
+                         <span className="text-3xl font-black text-foreground tabular-nums">{trip.totalEstimatedPrice}</span>
+                       </div>
+                     )}
+                   </Card>
+                 </motion.div>
                )}
 
                {/* Hotel Cards Section */}
