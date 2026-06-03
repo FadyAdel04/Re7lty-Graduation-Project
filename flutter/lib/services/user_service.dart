@@ -22,10 +22,6 @@ class UserService {
     }
   }
 
-  Future<void> toggleFollow(String userId) async {
-    await _apiService.post('/users/$userId/follow', data: {});
-  }
-
   Future<List<Trip>> getUserTrips(String userId) async {
     final path = userId == 'me' ? '/users/me/trips' : '/users/$userId/trips';
     final response = await _apiService.get(path);
@@ -37,6 +33,27 @@ class UserService {
     final response = await _apiService.get('/users/me/saves');
     final List items = response.data is List ? response.data : (response.data['items'] ?? []);
     return items.map((e) => Trip.fromJson(e)).toList();
+  }
+
+  Future<List<Trip>> getUserLovedTrips(String clerkId) async {
+    final response = await _apiService.get('/users/$clerkId/loves');
+    final List items = response.data is List ? response.data : (response.data['items'] ?? []);
+    return items.map((e) => Trip.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<List<Trip>> getUserAiTrips() async {
+    final response = await _apiService.get('/users/me/ai-trips');
+    final List items = response.data is List ? response.data : (response.data['items'] ?? []);
+    return items.map((e) => Trip.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<({bool following, int followers})> toggleFollow(String userId) async {
+    final response = await _apiService.post('/users/$userId/follow', data: {});
+    final data = response.data as Map<String, dynamic>;
+    return (
+      following: data['following'] == true,
+      followers: (data['followers'] as num?)?.toInt() ?? 0,
+    );
   }
 
   Future<User> updateProfile(Map<String, dynamic> data) async {
@@ -51,6 +68,48 @@ class UserService {
     });
     final List items = response.data is List ? response.data : (response.data['items'] ?? []);
     return items.map((e) => User.fromJson(e)).toList();
+  }
+
+  /// Combined trips + users search (same as web /api/search).
+  Future<({List<Trip> trips, List<User> users})> searchDiscover(
+    String query, {
+    int limit = 50,
+    String sort = 'recent',
+  }) async {
+    final response = await _apiService.get('/search', queryParameters: {
+      'q': query,
+      'limit': limit,
+      'sort': sort == 'trending' ? 'likes' : 'recent',
+    });
+    final data = response.data as Map<String, dynamic>;
+    final tripItems = (data['trips'] as List?) ?? [];
+    final userItems = (data['users'] as List?) ?? [];
+    return (
+      trips: tripItems.map((e) => Trip.fromJson(e as Map<String, dynamic>)).toList(),
+      users: userItems.map((e) => User.fromJson(e as Map<String, dynamic>)).toList(),
+    );
+  }
+
+  Future<List<User>> getFollowingUsers(String clerkId) async {
+    final response = await _apiService.get('/users/$clerkId/following');
+    final dynamic data = response.data;
+    final List items = data is List ? data : (data['users'] as List? ?? []);
+    return items.map((e) => User.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<List<User>> getFollowersUsers(String clerkId) async {
+    final response = await _apiService.get('/users/$clerkId/followers');
+    final dynamic data = response.data;
+    final List items = data is List ? data : (data['users'] as List? ?? []);
+    return items.map((e) => User.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  /// Returns direct conversation document; use `_id` for chat route.
+  Future<Map<String, dynamic>> startDirectChat(String targetUserId) async {
+    final response = await _apiService.post('/direct-chat/start', data: {
+      'targetUserId': targetUserId,
+    });
+    return response.data as Map<String, dynamic>;
   }
   Future<bool> completeOnboarding(String role) async {
     try {

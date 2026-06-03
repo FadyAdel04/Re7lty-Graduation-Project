@@ -1,27 +1,29 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'dart:io';
 
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../core/env_config.dart';
 import '../core/exceptions.dart';
 
 class ApiService {
   late Dio _dio;
   
-  // Use http://10.0.2.2:5000 for Android Emulator
-  // Use http://localhost:5000 for iOS Simulator / Web
-  final String baseUrl = Platform.isAndroid 
-    ? dotenv.get('API_BASE_URL_ANDROID', fallback: 'http://10.0.2.2:5000/api') 
-    : dotenv.get('API_BASE_URL_IOS', fallback: 'http://localhost:5000/api');
+  late final String baseUrl;
 
   String? _token;
   Future<String?> Function()? tokenGetter;
 
+  // Token cache to avoid fetching a new token on every request
+  String? _cachedToken;
+  DateTime? _tokenCachedAt;
+  static const _tokenCacheDuration = Duration(seconds: 55); // Clerk tokens expire in 60s
+
   ApiService() {
+    baseUrl = EnvConfig.apiBaseUrl;
+
     _dio = Dio(BaseOptions(
       baseUrl: baseUrl,
       connectTimeout: const Duration(seconds: 15),
-      receiveTimeout: const Duration(seconds: 30),
+      receiveTimeout: const Duration(seconds: 45),
       sendTimeout: const Duration(seconds: 20),
       headers: {
         'Content-Type': 'application/json',
@@ -31,18 +33,9 @@ class ApiService {
 
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
-        // If we have a token getter, get a fresh token before each request
-        if (tokenGetter != null) {
-          final freshToken = await tokenGetter!();
-          if (freshToken != null) {
-            print('🔑 ApiService: Using fresh token from getter (starts with: ${freshToken.substring(0, 10)}...)');
-            options.headers['Authorization'] = 'Bearer $freshToken';
-          } else {
-            print('⚠️ ApiService: tokenGetter returned null');
-          }
-        } else if (_token != null) {
-          print('🔑 ApiService: Using stored token');
-          options.headers['Authorization'] = 'Bearer $_token';
+        final token = await _getToken();
+        if (token != null) {
+          options.headers['Authorization'] = 'Bearer $token';
         } else {
           print('⚠️ ApiService: No token available for request to ${options.path}');
         }
@@ -54,13 +47,57 @@ class ApiService {
       onError: (DioException e, handler) {
         final appException = handleDioError(e);
         print('❌ ApiService Error: ${appException.message}');
-        return handler.next(e); // Still pass the original error for Dio compatibility if needed
+        return handler.next(e);
       },
     ));
   }
 
+  /// Returns a valid token, using cache when possible to avoid repeated Clerk network calls.
+  Future<String?> _getToken() async {
+    // 1. Use cached token if still valid
+    if (_cachedToken != null && _tokenCachedAt != null) {
+      final age = DateTime.now().difference(_tokenCachedAt!);
+      if (age < _tokenCacheDuration) {
+        return _cachedToken;
+      }
+    }
+
+    // 2. Fetch fresh token from getter
+    if (tokenGetter != null) {
+      try {
+        final freshToken = await tokenGetter!();
+        if (freshToken != null) {
+          print('🔑 ApiService: Fresh token fetched and cached');
+          _cachedToken = freshToken;
+          _tokenCachedAt = DateTime.now();
+          return freshToken;
+        }
+      } catch (e) {
+        print('⚠️ ApiService: tokenGetter error: $e');
+      }
+    }
+
+    // 3. Fall back to stored token
+    if (_token != null) {
+      return _token;
+    }
+
+    return null;
+  }
+
+  /// Call this when user logs out to clear token cache.
   void setToken(String? token) {
     _token = token;
+    if (token == null) {
+      _cachedToken = null;
+      _tokenCachedAt = null;
+    }
+  }
+
+  /// Force-invalidate the cached token (e.g. after a 401).
+  void invalidateTokenCache() {
+    _cachedToken = null;
+    _tokenCachedAt = null;
   }
 
   Future<Response> get(String path, {Map<String, dynamic>? queryParameters}) async {

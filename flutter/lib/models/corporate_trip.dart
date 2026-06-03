@@ -37,6 +37,17 @@ class CorporateTrip {
     required this.companyId,
   });
 
+  /// Safely parse a field that may be a List<String>, a space/comma-separated String, or null.
+  static List<String> _parseStringList(dynamic raw) {
+    if (raw == null) return [];
+    if (raw is List) return raw.map((e) => e.toString().trim()).where((e) => e.isNotEmpty).toList();
+    if (raw is String) {
+      // Split by newline, comma, or multiple spaces
+      return raw.split(RegExp(r'[\n,]+')).map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    }
+    return [];
+  }
+
   factory CorporateTrip.fromJson(Map<String, dynamic> json) {
     final company = json['companyId'];
     String name = 'شركة سياحة';
@@ -44,30 +55,49 @@ class CorporateTrip {
     String cId = '';
     
     if (company is Map) {
-      name = company['name'] ?? 'شركة سياحة';
-      logo = company['logo'];
-      cId = company['_id'] ?? '';
+      name = company['name']?.toString() ?? 'شركة سياحة';
+      logo = company['logo']?.toString();
+      cId = company['_id']?.toString() ?? '';
     } else if (company is String) {
       cId = company;
     }
 
+    // Safely parse price - backend may return number or string
+    final priceStr = json['price']?.toString() ?? '0';
+    // Safely parse duration
+    final durationStr = json['duration']?.toString() ?? '';
+
+    // Parse images - may be List or space-separated String
+    final List<String> images = _parseStringList(json['images']);
+
+    // Parse itinerary - may be List of objects, String, or null
+    List<ItineraryDay> itinerary = [];
+    final rawItinerary = json['itinerary'];
+    if (rawItinerary is List) {
+      for (final item in rawItinerary) {
+        try {
+          if (item is Map<String, dynamic>) {
+            itinerary.add(ItineraryDay.fromJson(item));
+          }
+        } catch (_) {}
+      }
+    }
+
     return CorporateTrip(
-      id: json['_id'] ?? '',
-      title: json['title'] ?? '',
-      slug: json['slug'] ?? '',
-      destination: json['destination'] ?? '',
-      duration: json['duration'] ?? '',
-      price: json['price'] ?? '0',
-      rating: (json['rating'] ?? 4.5).toDouble(),
-      images: List<String>.from(json['images'] ?? []),
-      shortDescription: json['shortDescription'] ?? '',
-      fullDescription: json['fullDescription'] ?? '',
-      itinerary: (json['itinerary'] as List? ?? [])
-          .map((i) => ItineraryDay.fromJson(i))
-          .toList(),
-      includedServices: List<String>.from(json['includedServices'] ?? []),
-      excludedServices: List<String>.from(json['excludedServices'] ?? []),
-      meetingLocation: json['meetingLocation'] ?? '',
+      id: json['_id']?.toString() ?? '',
+      title: json['title']?.toString() ?? '',
+      slug: json['slug']?.toString() ?? '',
+      destination: json['destination']?.toString() ?? '',
+      duration: durationStr,
+      price: priceStr,
+      rating: (json['rating'] as num?)?.toDouble() ?? 4.5,
+      images: images,
+      shortDescription: json['shortDescription']?.toString() ?? '',
+      fullDescription: json['fullDescription']?.toString() ?? '',
+      itinerary: itinerary,
+      includedServices: _parseStringList(json['includedServices']),
+      excludedServices: _parseStringList(json['excludedServices']),
+      meetingLocation: json['meetingLocation']?.toString() ?? '',
       companyName: name,
       companyLogo: logo,
       companyId: cId,

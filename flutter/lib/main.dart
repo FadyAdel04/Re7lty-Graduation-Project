@@ -14,8 +14,13 @@ import 'pages/trip/trip_detail_page.dart';
 import 'pages/trip/trip_comments_page.dart';
 import 'pages/chat/ai_chat_page.dart';
 import 'pages/trip/create_trip_page.dart';
+import 'pages/trip/edit_trip_page.dart';
+import 'pages/booking/booking_verify_page.dart';
+import 'pages/booking/booking_payment_result_page.dart';
+import 'widgets/payment_resume_listener.dart';
 import 'pages/profile/profile_page.dart';
-import 'pages/search/search_page.dart';
+import 'pages/company/create_corporate_trip_page.dart';
+import 'pages/discover/discover_page.dart';
 import 'pages/drawer/corporate_trips_page.dart';
 import 'pages/drawer/leaderboard_page.dart';
 import 'pages/drawer/support_page.dart';
@@ -26,17 +31,26 @@ import 'pages/corporate/corporate_trip_details_page.dart';
 import 'pages/auth/onboarding_page.dart';
 import 'pages/auth/company_registration_page.dart';
 import 'pages/search/friends_list_page.dart';
+import 'pages/company/company_dashboard_page.dart';
+import 'pages/company/company_messages_page.dart';
+import 'pages/chat/messages_page.dart';
+import 'pages/chat/direct_chat_page.dart';
+import 'pages/chat/group_chat_page.dart';
+import 'pages/chat/company_chat_detail_page.dart';
 import 'package:re7lty_app/providers/api_provider.dart';
+import 'providers/user_provider.dart';
+import 'providers/auth_bootstrap_provider.dart';
 import 'providers/theme_provider.dart';
 import 'services/api_service.dart';
 import 'theme/app_colors.dart';
-import 'services/user_service.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
+import 'core/env_config.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
-  
+  await EnvConfig.init();
+
   if (!kIsWeb) {
     MapboxOptions.setAccessToken(dotenv.get('MAPBOX_ACCESS_TOKEN', fallback: ''));
   }
@@ -69,37 +83,59 @@ class _Re7ltyAppState extends ConsumerState<Re7ltyApp> {
   @override
   Widget build(BuildContext context) {
     final themeMode = ref.watch(themeProvider);
-    
+    ref.watch(authBootstrapProvider);
+
+    ref.listen<AuthBootstrapState>(authBootstrapProvider, (previous, next) {
+      if (previous?.status != next.status) {
+        _router?.refresh();
+      }
+    });
+
     // Initialize router only once
     _router ??= GoRouter(
       initialLocation: '/splash',
       refreshListenable: ClerkAuth.of(context),
       redirect: (context, state) {
         final auth = ClerkAuth.of(context);
-        
-        final loggingIn = state.matchedLocation == '/login';
-        final isSplash = state.matchedLocation == '/splash';
+        final bootstrap = ref.read(authBootstrapProvider);
 
-        // 1. If on splash, allow it (SplashPage has its own logic)
-        if (isSplash) {
-          // But if we're already logged in, skip splash and go home
-          if (auth.session != null) return '/';
-          return null;
-        }
+        final location = state.matchedLocation;
+        final loggingIn = location == '/login';
+        final isSplash = location == '/splash';
+        final isOnboardingFlow =
+            location == '/onboarding' || location == '/company-registration';
+        final isPaymentResult =
+            location.startsWith('/booking-payment-result');
 
-        // 2. If NOT authenticated and NOT on login page, force login
-        if (auth.session == null && !loggingIn) {
-          print('🛡️ Auth Redirect: No session, redirecting to /login');
+        if (auth.session == null) {
+          if (auth.client.sessions.isNotEmpty &&
+              !loggingIn &&
+              !isSplash &&
+              !isPaymentResult) {
+            return '/splash';
+          }
+          if (loggingIn || isSplash) return null;
           return '/login';
         }
 
-        // 3. If authenticated and on login page, go home
-        if (auth.session != null && loggingIn) {
-          print('🛡️ Auth Redirect: Session found, redirecting to /');
-          return '/';
-        }
+        // Signed in: always bootstrap via splash before home/onboarding.
+        if (loggingIn) return '/splash';
 
-        return null;
+        switch (bootstrap.status) {
+          case AuthBootstrapStatus.pending:
+          case AuthBootstrapStatus.loading:
+          case AuthBootstrapStatus.error:
+            if (!isSplash) return '/splash';
+            return null;
+
+          case AuthBootstrapStatus.needsOnboarding:
+            if (!isOnboardingFlow) return '/onboarding';
+            return null;
+
+          case AuthBootstrapStatus.ready:
+            if (isSplash || isOnboardingFlow) return '/';
+            return null;
+        }
       },
       routes: [
         GoRoute(
@@ -131,7 +167,9 @@ class _Re7ltyAppState extends ConsumerState<Re7ltyApp> {
               routes: [
                 GoRoute(
                   path: '/',
-                  builder: (context, state) => HomePage(),
+                  builder: (context, state) {
+                    return const HomePage();
+                  },
                 ),
               ],
             ),
@@ -139,7 +177,7 @@ class _Re7ltyAppState extends ConsumerState<Re7ltyApp> {
               routes: [
                 GoRoute(
                   path: '/search',
-                  builder: (context, state) => SearchPage(),
+                  builder: (context, state) => const DiscoverPage(),
                 ),
               ],
             ),
@@ -154,8 +192,10 @@ class _Re7ltyAppState extends ConsumerState<Re7ltyApp> {
             StatefulShellBranch(
               routes: [
                 GoRoute(
-                  path: '/corporate-trips',
-                  builder: (context, state) => CorporateTripsPage(),
+                  path: '/corporate',
+                  builder: (context, state) {
+                    return const CorporateTripsPage();
+                  },
                 ),
               ],
             ),
@@ -163,7 +203,11 @@ class _Re7ltyAppState extends ConsumerState<Re7ltyApp> {
               routes: [
                 GoRoute(
                   path: '/profile',
-                  builder: (context, state) => UserProfilePage(userId: 'me'),
+                  builder: (context, state) {
+                    final role = ref.watch(userRoleProvider);
+                    if (role == 'company') return const CompanyDashboardPage();
+                    return UserProfilePage(userId: 'me');
+                  },
                 ),
               ],
             ),
@@ -185,6 +229,37 @@ class _Re7ltyAppState extends ConsumerState<Re7ltyApp> {
           builder: (context, state) {
             final id = state.pathParameters['id']!;
             return TripDetailPage(tripId: id);
+          },
+        ),
+        GoRoute(
+          path: '/trip/:id/edit',
+          builder: (context, state) {
+            final id = state.pathParameters['id']!;
+            return EditTripPage(tripId: id);
+          },
+        ),
+        GoRoute(
+          path: '/booking-payment-result',
+          builder: (context, state) {
+            final q = state.uri.queryParameters;
+            return BookingPaymentResultPage(
+              success: q['success'],
+              pending: q['pending'],
+              txnResponseCode: q['txn_response_code'],
+              merchantOrderId: q['merchant_order_id'],
+              orderId: q['order'],
+            );
+          },
+        ),
+        GoRoute(
+          path: '/verify-booking',
+          builder: (context, state) => const BookingVerifyPage(),
+        ),
+        GoRoute(
+          path: '/verify-booking/:reference',
+          builder: (context, state) {
+            final reference = state.pathParameters['reference']!;
+            return BookingVerifyPage(initialReference: reference);
           },
         ),
         GoRoute(
@@ -214,6 +289,10 @@ class _Re7ltyAppState extends ConsumerState<Re7ltyApp> {
           builder: (context, state) => CreateTripPage(),
         ),
         GoRoute(
+          path: '/create-corporate-trip',
+          builder: (context, state) => const CreateCorporateTripPage(),
+        ),
+        GoRoute(
           path: '/settings',
           builder: (context, state) => SettingsPage(),
         ),
@@ -222,6 +301,36 @@ class _Re7ltyAppState extends ConsumerState<Re7ltyApp> {
           builder: (context, state) {
             final id = state.pathParameters['id']!;
             return CompanyPage(companyId: id);
+          },
+        ),
+        GoRoute(
+          path: '/messages',
+          builder: (context, state) => const MessagesPage(),
+        ),
+        GoRoute(
+          path: '/company-messages',
+          builder: (context, state) => const CompanyMessagesPage(),
+        ),
+        // Chat detail routes
+        GoRoute(
+          path: '/chat/company/:id',
+          builder: (context, state) {
+            final id = state.pathParameters['id']!;
+            return CompanyChatDetailPage(conversationId: id);
+          },
+        ),
+        GoRoute(
+          path: '/chat/direct/:id',
+          builder: (context, state) {
+            final id = state.pathParameters['id']!;
+            return DirectChatPage(conversationId: id);
+          },
+        ),
+        GoRoute(
+          path: '/chat/group/:id',
+          builder: (context, state) {
+            final id = state.pathParameters['id']!;
+            return GroupChatPage(groupId: id);
           },
         ),
       ],
@@ -272,9 +381,11 @@ class _Re7ltyAppState extends ConsumerState<Re7ltyApp> {
       builder: (context, child) {
         return _AuthTokenSync(
           ref: ref,
-          child: Directionality(
-            textDirection: TextDirection.rtl,
-            child: DevicePreview.appBuilder(context, child),
+          child: PaymentResumeListener(
+            child: Directionality(
+              textDirection: TextDirection.rtl,
+              child: DevicePreview.appBuilder(context, child),
+            ),
           ),
         );
       },
@@ -341,50 +452,105 @@ class _AuthTokenSyncState extends State<_AuthTokenSync> {
   Widget build(BuildContext context) => widget.child;
 }
 
-class SplashPage extends StatefulWidget {
+class SplashPage extends ConsumerStatefulWidget {
   const SplashPage({super.key});
 
   @override
-  State<SplashPage> createState() => _SplashPageState();
+  ConsumerState<SplashPage> createState() => _SplashPageState();
 }
 
-class _SplashPageState extends State<SplashPage> {
+class _SplashPageState extends ConsumerState<SplashPage> {
   @override
   void initState() {
     super.initState();
-    _initAuth();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _initAuth());
   }
 
   Future<void> _initAuth() async {
-    // Wait for Clerk to initialize
-    await Future.delayed(const Duration(milliseconds: 1500));
-    if (mounted) {
-      final auth = ClerkAuth.of(context);
-      // We rely on GoRouter's refreshListenable to trigger the actual redirect
-      // but if it's already logged in, we can move now.
-      if (auth.session != null) {
-        context.go('/');
-      } else {
-        // If still no session after delay, go to login
-        context.go('/login');
-      }
+    final auth = ClerkAuth.of(context);
+
+    try {
+      await auth.refreshClient();
+    } catch (_) {}
+
+    const maxWait = Duration(seconds: 8);
+    const step = Duration(milliseconds: 200);
+    final deadline = DateTime.now().add(maxWait);
+
+    while (mounted && DateTime.now().isBefore(deadline)) {
+      if (auth.session != null) break;
+      await Future.delayed(step);
     }
+
+    if (!mounted) return;
+
+    if (auth.session == null) {
+      ref.read(authBootstrapProvider.notifier).reset();
+      context.go('/login');
+      return;
+    }
+
+    await ref.read(authBootstrapProvider.notifier).resolve();
   }
 
   @override
   Widget build(BuildContext context) {
+    final bootstrap = ref.watch(authBootstrapProvider);
+    final isError = bootstrap.status == AuthBootstrapStatus.error;
+
     return Scaffold(
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Image.asset('assets/images/logo.png', height: 100)
-              .animate()
-              .fadeIn(duration: 800.ms)
-              .scale(begin: const Offset(0.8, 0.8)),
-            const SizedBox(height: 24),
-            const CircularProgressIndicator(color: AppColors.primaryOrange),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Image.asset('assets/images/logo.png', height: 100)
+                  .animate()
+                  .fadeIn(duration: 800.ms)
+                  .scale(begin: const Offset(0.8, 0.8)),
+              const SizedBox(height: 24),
+              if (isError) ...[
+                Icon(Icons.cloud_off_rounded, size: 48, color: Colors.red.shade400),
+                const SizedBox(height: 16),
+                Text(
+                  'تعذّر الاتصال بالحساب',
+                  style: GoogleFonts.cairo(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  bootstrap.errorMessage ??
+                      'تأكد من اتصال الإنترنت وتشغيل السيرفر ثم أعد المحاولة.',
+                  style: GoogleFonts.cairo(
+                    fontSize: 14,
+                    color: Colors.grey.shade700,
+                    height: 1.5,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                FilledButton.icon(
+                  onPressed: bootstrap.status == AuthBootstrapStatus.loading
+                      ? null
+                      : () => ref.read(authBootstrapProvider.notifier).resolve(),
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: Text(
+                    'إعادة المحاولة',
+                    style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+                  ),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.primaryOrange,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  ),
+                ),
+              ] else
+                const CircularProgressIndicator(color: AppColors.primaryOrange),
+            ],
+          ),
         ),
       ),
     );
@@ -400,23 +566,11 @@ class MainScaffold extends ConsumerStatefulWidget {
 
 class _MainScaffoldState extends ConsumerState<MainScaffold> {
   @override
-  void initState() {
-    super.initState();
-    _checkOnboarding();
-  }
-
-  Future<void> _checkOnboarding() async {
-    try {
-      final user = await ref.read(userServiceProvider).getUserById('me');
-      if (!user.isOnboarded && mounted) {
-        context.go('/onboarding');
-      }
-    } catch (e) {}
-  }
-
-  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final userRole = ref.watch(userRoleProvider);
+    final isCompany = userRole == 'company';
 
     return Scaffold(
       body: widget.navigationShell,
@@ -439,7 +593,9 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
             _buildCustomNavItem(1, Icons.explore_outlined, Icons.explore, 'استكشاف'),
             _buildAssistantButton(),
             _buildCustomNavItem(3, Icons.business_center_outlined, Icons.business_center_rounded, 'الشركات'),
-            _buildCustomNavItem(4, Icons.person_outline_rounded, Icons.person_rounded, 'حسابي'),
+            isCompany 
+              ? _buildCustomNavItem(4, Icons.dashboard_outlined, Icons.dashboard_rounded, 'لوحتي')
+              : _buildCustomNavItem(4, Icons.person_outline_rounded, Icons.person_rounded, 'حسابي'),
           ],
         ),
       ),

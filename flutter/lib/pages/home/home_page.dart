@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/trip_provider.dart';
+import '../../providers/user_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../widgets/trip_post_card.dart';
 import '../../widgets/trip_post_shimmer.dart';
@@ -8,6 +9,9 @@ import '../../widgets/corporate_trip_card.dart';
 import '../../models/corporate_trip.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/story_provider.dart';
+import '../../providers/api_provider.dart';
+import '../../models/story.dart';
+import '../story/story_viewer_page.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../theme/app_colors.dart';
@@ -53,14 +57,17 @@ class _HomePageState extends ConsumerState<HomePage> {
     final filter = ref.watch(homeFilterProvider);
     final feedState = ref.watch(feedProvider(filter));
     final storiesAsync = ref.watch(followingStoriesProvider);
+    final myStoriesAsync = ref.watch(myStoriesProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
     final clerkUser = ClerkAuth.of(context).user;
     final userAvatar = clerkUser?.imageUrl;
+    final myStories = myStoriesAsync.valueOrNull ?? [];
+    final activeRole = ref.watch(userRoleProvider);
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : Colors.grey.shade50,
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: activeRole == 'company' ? null : FloatingActionButton(
         onPressed: () => context.push('/create-trip'),
         backgroundColor: AppColors.primaryOrange,
         child: const Icon(Icons.add, color: Colors.white),
@@ -82,11 +89,21 @@ class _HomePageState extends ConsumerState<HomePage> {
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   children: [
-                    _buildYourStory(userAvatar),
+                    _buildYourStory(
+                      avatarUrl: userAvatar,
+                      clerkId: clerkUser?.id,
+                      displayName: clerkUser?.name ?? 'قصتك',
+                      myStories: myStories,
+                    ),
                     const SizedBox(width: 12),
                     storiesAsync.when(
                       data: (groups) => Row(
-                        children: groups.map((group) => _StoryCircle(group: group)).toList(),
+                        children: groups
+                            .map((group) => _StoryCircle(
+                                  group: group,
+                                  onTap: () => _openStoriesGroup(group, isOwn: false),
+                                ))
+                            .toList(),
                       ),
                       loading: () => const SizedBox.shrink(),
                       error: (_, __) => const SizedBox.shrink(),
@@ -259,17 +276,100 @@ class _HomePageState extends ConsumerState<HomePage> {
       backgroundColor: isDark ? AppColors.darkBackground : Colors.white,
       actions: [
         IconButton(
+          icon: Transform.rotate(
+            angle: .5,
+            child: const Icon(Icons.send_outlined, size: 26),
+          ),
+          tooltip: 'الرسائل',
+          onPressed: () {
+            final role = ref.read(userRoleProvider);
+            if (role == 'company') {
+              context.push('/company-messages');
+            } else {
+              context.push('/messages');
+            }
+          },
+        ),
+        IconButton(
           icon: const Icon(Icons.emoji_events_outlined, color: Colors.orange, size: 28),
           onPressed: () => context.push('/leaderboard'),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 4),
       ],
     );
   }
 
-  Widget _buildYourStory(String? avatarUrl) {
+  Future<void> _openStoriesGroup(UserStoriesGroup group, {required bool isOwn}) async {
+    if (group.stories.isEmpty) return;
+    final changed = await openStoryViewer(context, group: group, isOwnStories: isOwn);
+    if (changed == true && mounted) {
+      ref.invalidate(myStoriesProvider);
+      ref.invalidate(followingStoriesProvider);
+    }
+  }
+
+  void _showYourStoryOptions({
+    required bool hasStories,
+    required UserStoriesGroup? ownGroup,
+  }) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (hasStories && ownGroup != null)
+              ListTile(
+                leading: const Icon(Icons.play_circle_outline, color: AppColors.primaryOrange),
+                title: const Text('مشاهدة قصصي'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _openStoriesGroup(ownGroup, isOwn: true);
+                },
+              ),
+            ListTile(
+              leading: const Icon(Icons.add_circle_outline, color: AppColors.primaryOrange),
+              title: Text(hasStories ? 'إضافة قصة جديدة' : 'رفع قصة'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickAndUploadStory();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildYourStory({
+    required String? avatarUrl,
+    required String? clerkId,
+    required String displayName,
+    required List<Story> myStories,
+  }) {
+    final hasStories = myStories.isNotEmpty;
+    final ownGroup = hasStories && clerkId != null
+        ? UserStoriesGroup(
+            userId: clerkId,
+            fullName: displayName,
+            imageUrl: avatarUrl,
+            hasUnseen: false,
+            stories: myStories,
+          )
+        : null;
+
     return GestureDetector(
-      onTap: _isUploadingStory ? null : _pickAndUploadStory,
+      onTap: _isUploadingStory
+          ? null
+          : () {
+              if (hasStories && ownGroup != null) {
+                _openStoriesGroup(ownGroup, isOwn: true);
+              } else {
+                _pickAndUploadStory();
+              }
+            },
+      onLongPress: _isUploadingStory ? null : () => _showYourStoryOptions(hasStories: hasStories, ownGroup: ownGroup),
       child: Column(
         children: [
           Stack(
@@ -278,17 +378,19 @@ class _HomePageState extends ConsumerState<HomePage> {
                 padding: const EdgeInsets.all(3),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: const LinearGradient(
-                    colors: [Colors.grey, Colors.blueGrey],
+                  gradient: LinearGradient(
+                    colors: hasStories
+                        ? const [Colors.orange, Colors.pink, Colors.purpleAccent]
+                        : const [Colors.grey, Colors.blueGrey],
                   ),
                 ),
                 child: CircleAvatar(
                   radius: 35,
                   backgroundColor: Colors.grey[900],
                   backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
-                  child: _isUploadingStory 
-                    ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
-                    : (avatarUrl == null ? const Icon(Icons.person, color: Colors.white, size: 30) : null),
+                  child: _isUploadingStory
+                      ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                      : (avatarUrl == null ? const Icon(Icons.person, color: Colors.white, size: 30) : null),
                 ),
               ),
               if (!_isUploadingStory)
@@ -301,13 +403,13 @@ class _HomePageState extends ConsumerState<HomePage> {
                       color: AppColors.primaryOrange,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.add, size: 14, color: Colors.white),
+                    child: Icon(hasStories ? Icons.add : Icons.add, size: 14, color: Colors.white),
                   ),
                 ),
             ],
           ),
           const SizedBox(height: 4),
-          const Text('قصتك', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500)),
+          Text(hasStories ? 'قصتك (${myStories.length})' : 'قصتك', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500)),
         ],
       ),
     );
@@ -324,13 +426,10 @@ class _HomePageState extends ConsumerState<HomePage> {
 
       setState(() => _isUploadingStory = true);
 
-      // In a real app, you would upload to S3/Firebase here.
-      // We simulate by using the local path or a dummy URL for now.
-      // Since our backend expects a URL, we'll use a placeholder that identifies it as a new story.
-      final dummyUrl = "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?t=${DateTime.now().millisecondsSinceEpoch}";
-      
+      final mediaUrl = await ref.read(mediaUploadServiceProvider).uploadImageFile(File(image.path));
+
       await ref.read(storyServiceProvider).createStory(
-        dummyUrl,
+        mediaUrl,
         'image',
         caption: 'قصة جديدة من رحلتي',
       );
@@ -340,6 +439,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           const SnackBar(content: Text('تم رفع القصة بنجاح! ✨')),
         );
         ref.invalidate(followingStoriesProvider);
+        ref.invalidate(myStoriesProvider);
       }
     } catch (e) {
       if (mounted) {
@@ -354,15 +454,19 @@ class _HomePageState extends ConsumerState<HomePage> {
 }
 
 class _StoryCircle extends StatelessWidget {
-  final dynamic group;
-  const _StoryCircle({required this.group});
+  final UserStoriesGroup group;
+  final VoidCallback onTap;
+
+  const _StoryCircle({required this.group, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: Column(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Column(
         children: [
           Container(
             padding: const EdgeInsets.all(3),
@@ -386,11 +490,12 @@ class _StoryCircle extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            group.fullName.split(' ')[0],
+            group.fullName.split(' ').first,
             style: const TextStyle(fontSize: 11),
             overflow: TextOverflow.ellipsis,
           ),
         ],
+      ),
       ).animate().scale(delay: 100.ms, duration: 400.ms, curve: Curves.easeOutBack),
     );
   }

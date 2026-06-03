@@ -16,6 +16,7 @@ import '../providers/api_provider.dart';
 
 import '../theme/app_colors.dart';
 import 'package:clerk_flutter/clerk_flutter.dart';
+import 'report_trip_dialog.dart';
 
 class TripPostCard extends ConsumerStatefulWidget {
   final Trip trip;
@@ -216,27 +217,48 @@ class _TripPostCardState extends ConsumerState<TripPostCard> {
             ),
           ),
           _buildPostTypeBadge(widget.trip.postType, isDark),
-          if (ClerkAuth.of(context).user?.id == widget.trip.ownerId)
-            PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert, size: 20),
-              onSelected: (value) {
-                if (value == 'delete') {
-                  _showDeleteConfirmation(context);
-                }
-              },
-              itemBuilder: (context) => [
-                const PopupMenuItem(
-                  value: 'delete',
-                  child: Row(
-                    children: [
-                      Icon(Icons.delete_outline, color: Colors.red, size: 20),
-                      SizedBox(width: 8),
-                      Text('حذف المنشور', style: TextStyle(color: Colors.red)),
-                    ],
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert, size: 20),
+            onSelected: (value) {
+              if (value == 'delete') {
+                _showDeleteConfirmation(context);
+              } else if (value == 'report') {
+                ReportTripDialog.show(
+                  context,
+                  tripId: widget.trip.id,
+                  tripTitle: widget.trip.title,
+                );
+              }
+            },
+            itemBuilder: (context) {
+              final isOwner =
+                  ClerkAuth.of(context).user?.id == widget.trip.ownerId;
+              return [
+                if (!isOwner)
+                  const PopupMenuItem(
+                    value: 'report',
+                    child: Row(
+                      children: [
+                        Icon(Icons.flag_outlined, color: Colors.orange, size: 20),
+                        SizedBox(width: 8),
+                        Text('إبلاغ عن المحتوى'),
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
+                if (isOwner)
+                  const PopupMenuItem(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                        SizedBox(width: 8),
+                        Text('حذف المنشور', style: TextStyle(color: Colors.red)),
+                      ],
+                    ),
+                  ),
+              ];
+            },
+          ),
         ],
       ),
     );

@@ -19,6 +19,7 @@ class User {
   final bool isOnboarded;
   final String? companyId;
   final Subscription subscription;
+  final bool viewerFollows;
 
   User({
     required this.id,
@@ -41,7 +42,41 @@ class User {
     this.isOnboarded = false,
     this.companyId,
     required this.subscription,
+    this.viewerFollows = false,
   });
+
+  User copyWith({
+    int? followers,
+    bool? viewerFollows,
+    String? imageUrl,
+    String? coverImage,
+    String? bio,
+    String? location,
+  }) {
+    return User(
+      id: id,
+      clerkId: clerkId,
+      email: email,
+      username: username,
+      fullName: fullName,
+      imageUrl: imageUrl ?? this.imageUrl,
+      bio: bio ?? this.bio,
+      location: location ?? this.location,
+      coverImage: coverImage ?? this.coverImage,
+      trips: trips,
+      followers: followers ?? this.followers,
+      following: following,
+      totalLikes: totalLikes,
+      activityScore: activityScore,
+      badgeLevel: badgeLevel,
+      role: role,
+      profileType: profileType,
+      isOnboarded: isOnboarded,
+      companyId: companyId,
+      subscription: subscription,
+      viewerFollows: viewerFollows ?? this.viewerFollows,
+    );
+  }
 
   // Getters for compatibility and cleaner code
   int get tripsCount => trips.length;
@@ -71,6 +106,7 @@ class User {
       isOnboarded: json['isOnboarded'] ?? false,
       companyId: json['companyId'],
       subscription: Subscription.fromJson(json['subscription'] ?? {}),
+      viewerFollows: json['viewerFollows'] == true,
     );
   }
 

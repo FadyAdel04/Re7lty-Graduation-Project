@@ -18,8 +18,18 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _codeController = TextEditingController();
+  final _usernameController = TextEditingController();
   bool _isLoading = false;
   bool _isCodeSent = false;
+  bool _isMissingUsername = false;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _codeController.dispose();
+    _usernameController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -53,7 +63,37 @@ class _LoginPageState extends State<LoginPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        if (!_isCodeSent) ...[
+                        if (_isMissingUsername) ...[
+                          Text(
+                            'Fill in missing fields',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.outfit(color: Colors.black87, fontSize: 20, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Please fill in the remaining details to continue.',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.cairo(color: Colors.grey, fontSize: 13),
+                          ),
+                          const SizedBox(height: 20),
+                          const Text(
+                            'Username',
+                            style: TextStyle(
+                              color: Colors.black87,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          _buildUsernameField(),
+                          const SizedBox(height: 24),
+                          _buildSubmitUsernameButton(context),
+                          const SizedBox(height: 16),
+                          TextButton(
+                            onPressed: () => setState(() => _isMissingUsername = false),
+                            child: const Text('Back to sign in', style: TextStyle(color: Colors.grey)),
+                          ),
+                        ] else if (!_isCodeSent) ...[
                           // --- 1. Social Login (Google) ---
                           _socialButton(
                             label: 'Continue with Google',
@@ -185,10 +225,20 @@ class _LoginPageState extends State<LoginPage> {
           );
         } catch (e) {
           // If sign in verification fails, try sign up verification
-          await auth.attemptSignUp(
-            strategy: clerk.Strategy.emailCode,
-            code: code,
-          );
+          try {
+            await auth.attemptSignUp(
+              strategy: clerk.Strategy.emailCode,
+              code: code,
+            );
+          } catch (signUpError) {
+            final errorStr = signUpError.toString().toLowerCase();
+            if (errorStr.contains('username') || errorStr.contains('missing')) {
+              setState(() => _isMissingUsername = true);
+              return;
+            } else {
+              rethrow;
+            }
+          }
         }
       }
       print('🚀 LoginPage: Verification successful');
@@ -200,26 +250,40 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  // Improved: Adding more debug logs and robust handling
   Future<void> _handleSocialLogin(clerk.Strategy strategy) async {
     print('🚀 LoginPage: Starting social login with strategy: ${strategy.name}');
+
+    // If already signed in, just go home
+    final auth = ClerkAuth.of(context);
+    if (auth.session != null) {
+      if (mounted) context.go('/');
+      return;
+    }
+
     setState(() => _isLoading = true);
     try {
-      final auth = ClerkAuth.of(context);
-      // Try ssoSignIn first
       await auth.ssoSignIn(context, strategy);
       print('🚀 LoginPage: ssoSignIn call completed');
     } catch (e, stack) {
       print('❌ LoginPage Social Error: $e');
       print(stack);
       
-      // Removed invalid fallback
-
+      // If already signed in error, just navigate home
+      final errStr = e.toString().toLowerCase();
+      if (errStr.contains('already signed in') || errStr.contains('already sign')) {
+        if (mounted) context.go('/');
+        return;
+      }
+      
       String msg = 'خطأ في تسجيل الدخول';
       if (e is AppException) {
         msg = e.message;
-      } else if (e.toString().contains('cancelled')) {
+      } else if (errStr.contains('cancelled')) {
         msg = 'تم إلغاء عملية الدخول';
+        return; // Don't show error for cancellation
+      } else if (errStr.contains('username') || errStr.contains('missing')) {
+        setState(() => _isMissingUsername = true);
+        return;
       } else {
         msg = '$msg: $e';
       }
@@ -229,13 +293,11 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  // Improved: Adding Sign-Up flow or at least navigation
   Future<void> _handleSignUp() async {
-    print('🚀 LoginPage: Navigating to Sign Up (Coming Soon or implementing)');
-    _handleEmailLogin(); // Usually Clerk signup is same as login flow
+    print('🚀 LoginPage: Navigating to Sign Up');
+    _handleEmailLogin();
   }
 
-  // Improved: Adding Sign-Up flow support for Email
   Future<void> _handleEmailLogin() async {
     final email = _emailController.text.trim();
     if (email.isEmpty) {
@@ -258,10 +320,21 @@ class _LoginPageState extends State<LoginPage> {
         // 2. If Sign In fails because user not found, try Sign Up
         if (e.toString().contains('not found') || e.toString().contains('find your account')) {
           print('🚀 LoginPage: User not found, attempting SignUp...');
-          await auth.attemptSignUp(
-            strategy: clerk.Strategy.emailCode,
-            emailAddress: email,
-          );
+          try {
+            await auth.attemptSignUp(
+              strategy: clerk.Strategy.emailCode,
+              emailAddress: email,
+              username: _usernameController.text.isNotEmpty ? _usernameController.text.trim() : null,
+            );
+          } catch (signUpErr) {
+            final errStr = signUpErr.toString().toLowerCase();
+            if (errStr.contains('username') || errStr.contains('missing')) {
+              setState(() => _isMissingUsername = true);
+              return;
+            } else {
+              rethrow;
+            }
+          }
         } else {
           rethrow;
         }
@@ -307,12 +380,18 @@ class _LoginPageState extends State<LoginPage> {
       width: double.infinity,
       height: double.infinity,
       decoration: const BoxDecoration(
-        image: DecorationImage(
-          image: NetworkImage('https://images.unsplash.com/photo-1519046904884-53103b34b206?q=80&w=2070'),
-          fit: BoxFit.cover,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF0D1B4B),
+            Color(0xFF1A3561),
+            Color(0xFF0F3460),
+            Color(0xFF16213E),
+          ],
+          stops: [0.0, 0.3, 0.7, 1.0],
         ),
       ),
-      child: Container(color: Colors.black.withOpacity(0.3)),
     );
   }
 
@@ -395,6 +474,27 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  Widget _buildUsernameField() {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F5F9), 
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: TextField(
+        controller: _usernameController,
+        style: const TextStyle(color: Colors.black87),
+        decoration: const InputDecoration(
+          hintText: 'Enter your username',
+          hintStyle: TextStyle(color: Colors.grey),
+          border: InputBorder.none,
+          prefixIcon: Icon(Icons.person_outline, color: Colors.grey),
+          contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        ),
+      ),
+    );
+  }
+
   Widget _buildContinueButton(BuildContext context) {
     return ElevatedButton(
       onPressed: _handleEmailLogin,
@@ -412,6 +512,34 @@ class _LoginPageState extends State<LoginPage> {
           Text('Continue', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           SizedBox(width: 12),
           Icon(Icons.arrow_forward_rounded),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSubmitUsernameButton(BuildContext context) {
+    return ElevatedButton(
+      onPressed: () {
+        if (_usernameController.text.trim().length < 4) {
+          _showError('Username must be at least 4 characters');
+          return;
+        }
+        setState(() => _isMissingUsername = false);
+        _handleEmailLogin();
+      },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFF6C47FF), // Clerk purple color from screenshot
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        elevation: 2,
+      ),
+      child: const Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text('Continue', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          SizedBox(width: 8),
+          Icon(Icons.arrow_right_rounded, size: 24),
         ],
       ),
     );

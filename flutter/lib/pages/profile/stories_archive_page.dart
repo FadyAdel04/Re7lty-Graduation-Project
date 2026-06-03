@@ -6,6 +6,9 @@ import '../../services/api_service.dart';
 import '../../theme/app_colors.dart';
 import 'package:dio/dio.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../models/story.dart';
+import '../story/story_viewer_page.dart';
+import 'package:clerk_flutter/clerk_flutter.dart';
 
 class StoriesArchivePage extends ConsumerWidget {
   const StoriesArchivePage({super.key});
@@ -69,7 +72,20 @@ class StoriesArchivePage extends ConsumerWidget {
                     itemCount: stories.length,
                     itemBuilder: (context, sIndex) {
                       final story = stories[sIndex];
-                      return ClipRRect(
+                      return GestureDetector(
+                        onTap: () {
+                          final clerk = ClerkAuth.of(context).user;
+                          final s = Story.fromJson(Map<String, dynamic>.from(story as Map));
+                          final group = UserStoriesGroup(
+                            userId: clerk?.id ?? '',
+                            fullName: clerk?.name ?? 'أنت',
+                            imageUrl: clerk?.imageUrl,
+                            hasUnseen: false,
+                            stories: [s],
+                          );
+                          openStoryViewer(context, group: group, isOwnStories: true);
+                        },
+                        child: ClipRRect(
                         borderRadius: BorderRadius.circular(12),
                         child: Stack(
                           fit: StackFit.expand,
@@ -97,6 +113,7 @@ class StoriesArchivePage extends ConsumerWidget {
                             ),
                           ],
                         ),
+                      ),
                       );
                     },
                   ),

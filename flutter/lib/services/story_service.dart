@@ -43,6 +43,19 @@ class StoryService {
   Future<void> markAsViewed(String storyId) async {
     await _apiService.post('/stories/$storyId/view');
   }
+
+  Future<void> deleteStory(String storyId) async {
+    await _apiService.delete('/stories/$storyId');
+  }
+
+  Future<List<Map<String, dynamic>>> getViewers(String storyId) async {
+    final response = await _apiService.get('/stories/$storyId/viewers');
+    final viewers = response.data['viewers'];
+    if (viewers is List) {
+      return viewers.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    }
+    return [];
+  }
 }
 
 

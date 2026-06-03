@@ -83,6 +83,22 @@ class TripService {
     }
   }
 
+  Future<Trip> updateTrip(String id, Map<String, dynamic> tripData) async {
+    try {
+      final response = await _apiService.put('/trips/$id', data: tripData);
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data is Map && data['trip'] != null) {
+          return Trip.fromJson(Map<String, dynamic>.from(data['trip'] as Map));
+        }
+        return Trip.fromJson(Map<String, dynamic>.from(data as Map));
+      }
+      throw Exception('Failed to update trip');
+    } catch (e) {
+      throw Exception('Error updating trip: $e');
+    }
+  }
+
   Future<bool> toggleLike(String tripId) async {
     try {
       final response = await _apiService.post('/trips/$tripId/love');
@@ -142,17 +158,71 @@ class TripService {
     }
   }
 
-  Future<List<CorporateTrip>> getCorporateTrips({String? destination}) async {
-    try {
-      final response = await _apiService.get('/corporate/trips', queryParameters: {
-        if (destination != null) 'destination': destination,
-      });
-      final List items = response.data['trips'] ?? [];
-      return items.map((e) => CorporateTrip.fromJson(e)).toList();
-    } catch (e) {
-      print('⚠️ TripService.getCorporateTrips error: $e');
-      return [];
+  static bool _isRetryableNetworkError(Object e) {
+    if (e is! DioException) return false;
+    if (e.type == DioExceptionType.connectionTimeout ||
+        e.type == DioExceptionType.sendTimeout ||
+        e.type == DioExceptionType.receiveTimeout ||
+        e.type == DioExceptionType.connectionError) {
+      return true;
     }
+    if (e.type == DioExceptionType.unknown) {
+      final msg = '${e.message ?? ''} ${e.error ?? ''}'.toLowerCase();
+      return msg.contains('connection closed') ||
+          msg.contains('connection reset') ||
+          msg.contains('broken pipe') ||
+          msg.contains('socketexception');
+    }
+    return false;
+  }
+
+  Future<List<CorporateTrip>> _fetchCorporateTrips({String? destination}) async {
+    final response = await _apiService.get('/corporate/trips', queryParameters: {
+      if (destination != null) 'destination': destination,
+    });
+    print('🏗️ CorporateTrips raw response type: ${response.data.runtimeType}');
+    // Handle both response formats: list directly or {trips: []}
+    List items;
+    if (response.data is List) {
+      items = response.data as List;
+    } else {
+      items = response.data['trips'] ?? response.data['data'] ?? [];
+    }
+    print('🏗️ CorporateTrips items count: ${items.length}');
+    final result = <CorporateTrip>[];
+    for (final e in items) {
+      try {
+        result.add(CorporateTrip.fromJson(e as Map<String, dynamic>));
+      } catch (parseErr) {
+        print('⚠️ CorporateTrip parse error for item: $parseErr');
+      }
+    }
+    print('🏗️ CorporateTrips parsed: ${result.length} trips');
+    return result;
+  }
+
+  Future<List<CorporateTrip>> getCorporateTrips({String? destination}) async {
+    const maxAttempts = 2;
+    Object? lastError;
+
+    for (var attempt = 0; attempt < maxAttempts; attempt++) {
+      if (attempt > 0) {
+        print('🔄 TripService.getCorporateTrips: retrying after network error...');
+        await Future.delayed(const Duration(seconds: 1));
+        _apiService.invalidateTokenCache();
+      }
+
+      try {
+        return await _fetchCorporateTrips(destination: destination);
+      } catch (e) {
+        lastError = e;
+        print('⚠️ TripService.getCorporateTrips error (attempt ${attempt + 1}/$maxAttempts): $e');
+        final canRetry = _isRetryableNetworkError(e) && attempt < maxAttempts - 1;
+        if (!canRetry) rethrow;
+      }
+    }
+
+    throw lastError ?? Exception('Failed to load corporate trips');
   }
 }
 

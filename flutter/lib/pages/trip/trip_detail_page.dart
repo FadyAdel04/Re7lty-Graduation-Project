@@ -5,9 +5,12 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mb;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:go_router/go_router.dart';
+import 'package:clerk_flutter/clerk_flutter.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../models/trip.dart';
 import '../../providers/api_provider.dart';
 import '../../services/api_service.dart';
+import '../../widgets/report_trip_dialog.dart';
 
 class TripDetailPage extends ConsumerStatefulWidget {
   final String tripId;
@@ -156,6 +159,23 @@ class _TripDetailPageState extends ConsumerState<TripDetailPage> {
                 pinned: true,
                 backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
                 leading: const BackButton(color: Colors.white),
+                actions: [
+                  if (ClerkAuth.of(context).user?.id != trip.ownerId)
+                    IconButton(
+                      icon: const Icon(Icons.flag_outlined, color: Colors.white),
+                      tooltip: 'إبلاغ',
+                      onPressed: () => ReportTripDialog.show(
+                        context,
+                        tripId: trip.id,
+                        tripTitle: trip.title,
+                      ),
+                    ),
+                  if (ClerkAuth.of(context).user?.id == trip.ownerId)
+                    IconButton(
+                      icon: const Icon(Icons.edit_outlined, color: Colors.white),
+                      onPressed: () => context.push('/trip/${trip.id}/edit'),
+                    ),
+                ],
                 flexibleSpace: FlexibleSpaceBar(
                   background: Stack(
                     fit: StackFit.expand,
@@ -637,7 +657,20 @@ class _TripDetailPageState extends ConsumerState<TripDetailPage> {
           const SizedBox(width: 12),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('إقامة مقترحة', style: TextStyle(color: Colors.orange, fontSize: 10, fontWeight: FontWeight.bold)), Text(hotel.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis), Row(children: [const Icon(Icons.star, color: Colors.orange, size: 12), Text(' ${hotel.rating}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)), const Spacer(), Text(hotel.priceRange, style: const TextStyle(color: Colors.grey, fontSize: 11))])])),
           const SizedBox(width: 8),
-          ElevatedButton(onPressed: () {}, style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.white, elevation: 0, minimumSize: const Size(60, 36), padding: const EdgeInsets.symmetric(horizontal: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))), child: const Text('حجز', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold))),
+          ElevatedButton(
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'اقتراح إقامة: ${hotel.name} — للحجز الفعلي استخدم رحلات الشركات من التطبيق.',
+                    style: GoogleFonts.cairo(),
+                  ),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.white, elevation: 0, minimumSize: const Size(60, 36), padding: const EdgeInsets.symmetric(horizontal: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+            child: const Text('حجز', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+          ),
         ],
       ),
     );

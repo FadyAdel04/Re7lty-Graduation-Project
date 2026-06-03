@@ -3,10 +3,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../theme/app_colors.dart';
-import '../../services/api_service.dart';
 import '../../providers/api_provider.dart';
-import '../../providers/trip_provider.dart';
 import '../../models/trip.dart';
+import '../../providers/api_provider.dart';
 import 'package:dio/dio.dart';
 import '../../core/exceptions.dart';
 
@@ -21,16 +20,17 @@ class _CreateMemoryDialogState extends ConsumerState<CreateMemoryDialog> {
   bool _isLoading = false;
   final List<Trip> _selectedTrips = [];
   String _selectedMonth = '';
+  late Future<List<Trip>> _myTripsFuture;
 
   @override
   void initState() {
     super.initState();
     _selectedMonth = _getMonthLabel();
+    _myTripsFuture = ref.read(userServiceProvider).getUserTrips('me');
   }
 
   @override
   Widget build(BuildContext context) {
-    final tripsAsync = ref.watch(tripsProvider(const TripFilter(authorId: 'me')));
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Dialog(
@@ -110,9 +110,16 @@ class _CreateMemoryDialogState extends ConsumerState<CreateMemoryDialog> {
                   const SizedBox(height: 12),
                   SizedBox(
                     height: 200,
-                    child: tripsAsync.when(
-                      data: (trips) {
-                        final myTrips = trips.where((t) => !t.isAIGenerated).toList();
+                    child: FutureBuilder<List<Trip>>(
+                      future: _myTripsFuture,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const Center(child: CircularProgressIndicator());
+                        }
+                        if (snapshot.hasError) {
+                          return Center(child: Text('خطأ في تحميل الرحلات', style: GoogleFonts.cairo()));
+                        }
+                        final myTrips = (snapshot.data ?? []).where((t) => !t.isAIGenerated).toList();
                         if (myTrips.isEmpty) return Center(child: Text('لا توجد رحلات عامة لديك', style: GoogleFonts.cairo()));
                         return ListView.builder(
                           scrollDirection: Axis.horizontal,
@@ -173,8 +180,6 @@ class _CreateMemoryDialogState extends ConsumerState<CreateMemoryDialog> {
                           },
                         );
                       },
-                      loading: () => const Center(child: CircularProgressIndicator()),
-                      error: (e, s) => Center(child: Text('خطأ في تحميل الرحلات', style: GoogleFonts.cairo())),
                     ),
                   ),
                 ],
@@ -266,8 +271,6 @@ class _CreateMemoryDialogState extends ConsumerState<CreateMemoryDialog> {
   Future<void> _submit() async {
     setState(() => _isLoading = true);
     try {
-      final api = ref.read(apiServiceProvider);
-      
       final items = _selectedTrips.map((t) => {
         'url': t.image ?? 'https://images.unsplash.com/photo-1503220317375-aaad61436b1b',
         'tripTitle': t.title,
@@ -275,10 +278,11 @@ class _CreateMemoryDialogState extends ConsumerState<CreateMemoryDialog> {
         'date': t.postedAt.toIso8601String(),
       }).toList();
 
-      await api.post('/memories', data: {
-        'monthLabel': _selectedMonth,
-        'items': items,
-      });
+      await ref.read(memoryServiceProvider).saveMemory(
+        monthLabel: _selectedMonth,
+        items: items,
+        trackIndex: DateTime.now().month % 5,
+      );
 
       if (mounted) {
         Navigator.pop(context, true);
