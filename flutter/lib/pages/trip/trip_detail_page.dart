@@ -8,9 +8,11 @@ import 'package:go_router/go_router.dart';
 import 'package:clerk_flutter/clerk_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../models/trip.dart';
+import '../../core/exceptions.dart';
 import '../../providers/api_provider.dart';
 import '../../services/api_service.dart';
 import '../../widgets/report_trip_dialog.dart';
+import '../../utils/navigation_utils.dart';
 
 class TripDetailPage extends ConsumerStatefulWidget {
   final String tripId;
@@ -49,12 +51,24 @@ class _TripDetailPageState extends ConsumerState<TripDetailPage> {
       _likesCount += _isLoved ? 1 : -1;
     });
     try {
-      await ref.read(tripServiceProvider).toggleLike(tripId);
+      final loved = await ref.read(tripServiceProvider).toggleLike(tripId);
+      if (mounted) {
+        setState(() {
+          _isLoved = loved;
+          if (loved && !oldState) {
+            _likesCount = oldCount + 1;
+          } else if (!loved && oldState) {
+            _likesCount = oldCount > 0 ? oldCount - 1 : 0;
+          }
+        });
+      }
     } catch (e) {
-      setState(() {
-        _isLoved = oldState;
-        _likesCount = oldCount;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoved = oldState;
+          _likesCount = oldCount;
+        });
+      }
     }
   }
 
@@ -66,12 +80,24 @@ class _TripDetailPageState extends ConsumerState<TripDetailPage> {
       _savesCount += _isSaved ? 1 : -1;
     });
     try {
-      await ref.read(tripServiceProvider).toggleSave(tripId);
+      final saved = await ref.read(tripServiceProvider).toggleSave(tripId);
+      if (mounted) {
+        setState(() {
+          _isSaved = saved;
+          if (saved && !oldState) {
+            _savesCount = oldCount + 1;
+          } else if (!saved && oldState) {
+            _savesCount = oldCount > 0 ? oldCount - 1 : 0;
+          }
+        });
+      }
     } catch (e) {
-      setState(() {
-        _isSaved = oldState;
-        _savesCount = oldCount;
-      });
+      if (mounted) {
+        setState(() {
+          _isSaved = oldState;
+          _savesCount = oldCount;
+        });
+      }
     }
   }
 
@@ -281,7 +307,30 @@ class _TripDetailPageState extends ConsumerState<TripDetailPage> {
         loading: () => const Scaffold(body: Center(child: CircularProgressIndicator(color: Colors.orange))),
         error: (err, stack) => Scaffold(
           appBar: AppBar(backgroundColor: Colors.white, elevation: 0),
-          body: Center(child: Text('Error: $err')),
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.cloud_off_outlined, size: 48, color: Colors.orange.shade700),
+                  const SizedBox(height: 16),
+                  Text(
+                    err is AppException ? err.message : 'تعذر تحميل الرحلة',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 20),
+                  FilledButton.icon(
+                    onPressed: () => ref.invalidate(tripDetailProvider(widget.tripId)),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('إعادة المحاولة'),
+                    style: FilledButton.styleFrom(backgroundColor: Colors.orange),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -301,7 +350,7 @@ class _TripDetailPageState extends ConsumerState<TripDetailPage> {
             clipBehavior: Clip.none,
             children: [
               GestureDetector(
-                onTap: () => context.push('/profile/${trip.ownerId}'),
+                onTap: () => pushUserProfile(context, trip.ownerId),
                 child: CircleAvatar(
                   radius: 24,
                   backgroundColor: Colors.orange,

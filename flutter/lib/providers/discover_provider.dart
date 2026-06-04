@@ -50,7 +50,7 @@ final discoverDataProvider = FutureProvider.family<DiscoverData, DiscoverParams>
       .whereType<String>()
       .where((id) => id.isNotEmpty)
       .toSet()
-      .take(5)
+      .take(10)
       .toList();
 
   final users = <User>[];

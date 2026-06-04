@@ -50,6 +50,12 @@
         
         <!-- Google Maps API Key Placeholder -->
         <meta-data android:name="com.google.android.geo.API_KEY" android:value="${MAPS_API_KEY}"/>
+
+        <!-- image_cropper / UCrop -->
+        <activity
+            android:name="com.yalantis.ucrop.UCropActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar"/>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

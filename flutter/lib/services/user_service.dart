@@ -56,6 +56,38 @@ class UserService {
     );
   }
 
+  Future<Map<String, dynamic>?> getAiTripQuota() async {
+    try {
+      final response = await _apiService.get('/users/me/ai-trips-quota');
+      if (response.data is Map) {
+        return Map<String, dynamic>.from(response.data as Map);
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  Future<Map<String, dynamic>?> recordAiPlanUsage() async {
+    try {
+      final response = await _apiService.post('/users/me/ai-plan-usage', data: {});
+      if (response.data is Map) {
+        return Map<String, dynamic>.from(response.data as Map);
+      }
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 429) {
+        final data = e.response?.data;
+        if (data is Map) {
+          throw AuthException(
+            data['message']?.toString() ??
+                'لقد استخدمت الحد الأسبوعي لخطط الرحلات بالذكاء الاصطناعي (3 خطط).',
+          );
+        }
+        throw AuthException('لقد استخدمت الحد الأسبوعي لخطط الرحلات بالذكاء الاصطناعي (3 خطط).');
+      }
+      rethrow;
+    }
+    return null;
+  }
+
   Future<User> updateProfile(Map<String, dynamic> data) async {
     final response = await _apiService.patch('/users/me', data: data);
     return User.fromJson(response.data);
@@ -81,7 +113,11 @@ class UserService {
       'limit': limit,
       'sort': sort == 'trending' ? 'likes' : 'recent',
     });
-    final data = response.data as Map<String, dynamic>;
+    final raw = response.data;
+    if (raw is! Map) {
+      return (trips: <Trip>[], users: <User>[]);
+    }
+    final data = Map<String, dynamic>.from(raw);
     final tripItems = (data['trips'] as List?) ?? [];
     final userItems = (data['users'] as List?) ?? [];
     return (

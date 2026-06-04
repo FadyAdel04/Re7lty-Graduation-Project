@@ -293,7 +293,11 @@ class TripPlace {
     final images = photo?['images'] as Map<String, dynamic>?;
     final medium = images?['medium'] as Map<String, dynamic>?;
     final large = images?['large'] as Map<String, dynamic>?;
-    final imageUrl = large?['url'] ?? medium?['url'];
+    final rawUrl = large?['url'] ?? medium?['url'];
+    final seed = json['location_id']?.toString() ?? json['name']?.toString() ?? type;
+    final imageUrl = rawUrl?.toString().isNotEmpty == true
+        ? rawUrl.toString()
+        : fallbackPlaceImage(seed);
 
     List<dynamic>? cuisineList = json['cuisine'] as List<dynamic>?;
     String? cuisineStr;

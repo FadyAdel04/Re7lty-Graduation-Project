@@ -1,7 +1,10 @@
-import 'package:flutter/material.dart';
 import 'package:clerk_flutter/clerk_flutter.dart';
 import 'package:clerk_auth/clerk_auth.dart' as clerk;
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:uuid/uuid.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../theme/app_colors.dart';
@@ -250,37 +253,82 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  Future<void> _handleGoogleLogin() async {
+    setState(() => _isLoading = true);
+    try {
+      final auth = ClerkAuth.of(context);
+      final serverClientId = dotenv.get('GOOGLE_SERVER_CLIENT_ID', fallback: dotenv.get('GOOGLE_CLIENT_ID', fallback: ''));
+
+      if (serverClientId.isNotEmpty) {
+        try {
+          final google = GoogleSignIn.instance;
+          await google.initialize(serverClientId: serverClientId, nonce: const Uuid().v4());
+          final account = await google.authenticate(scopeHint: const ['openid', 'email', 'profile']);
+          final idToken = account.authentication.idToken;
+          if (idToken != null && idToken.isNotEmpty) {
+            await auth.attemptSignIn(
+              strategy: clerk.Strategy.oauthTokenGoogle,
+              token: idToken,
+            );
+            if (mounted) context.go('/splash');
+            return;
+          }
+        } catch (e) {
+          final errStr = e.toString().toLowerCase();
+          if (errStr.contains('cancel')) return;
+          debugPrint('Native Google sign-in failed, falling back to Clerk: $e');
+        }
+      }
+
+      await auth.ssoSignIn(context, clerk.Strategy.oauthGoogle);
+    } catch (e, stack) {
+      debugPrint('❌ LoginPage Google Error: $e\n$stack');
+      final errStr = e.toString().toLowerCase();
+      if (errStr.contains('already signed in') || errStr.contains('already sign')) {
+        if (mounted) context.go('/splash');
+        return;
+      }
+      if (errStr.contains('cancel')) return;
+      if (errStr.contains('username') || errStr.contains('missing')) {
+        setState(() => _isMissingUsername = true);
+        return;
+      }
+      _showError(e is AppException ? e.message : 'خطأ في تسجيل الدخول');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   Future<void> _handleSocialLogin(clerk.Strategy strategy) async {
+    if (strategy == clerk.Strategy.oauthGoogle) {
+      await _handleGoogleLogin();
+      return;
+    }
+
     print('🚀 LoginPage: Starting social login with strategy: ${strategy.name}');
 
-    // If already signed in, just go home
     final auth = ClerkAuth.of(context);
     if (auth.session != null) {
-      if (mounted) context.go('/');
+      if (mounted) context.go('/splash');
       return;
     }
 
     setState(() => _isLoading = true);
     try {
       await auth.ssoSignIn(context, strategy);
-      print('🚀 LoginPage: ssoSignIn call completed');
     } catch (e, stack) {
       print('❌ LoginPage Social Error: $e');
       print(stack);
-      
-      // If already signed in error, just navigate home
       final errStr = e.toString().toLowerCase();
       if (errStr.contains('already signed in') || errStr.contains('already sign')) {
-        if (mounted) context.go('/');
+        if (mounted) context.go('/splash');
         return;
       }
-      
       String msg = 'خطأ في تسجيل الدخول';
       if (e is AppException) {
         msg = e.message;
-      } else if (errStr.contains('cancelled')) {
-        msg = 'تم إلغاء عملية الدخول';
-        return; // Don't show error for cancellation
+      } else if (errStr.contains('cancelled') || errStr.contains('cancel')) {
+        return;
       } else if (errStr.contains('username') || errStr.contains('missing')) {
         setState(() => _isMissingUsername = true);
         return;

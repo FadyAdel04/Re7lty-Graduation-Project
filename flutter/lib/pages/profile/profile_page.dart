@@ -111,30 +111,41 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage> with TickerPr
   }
 
   Future<void> _pickAndCropImage(bool isCover) async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-    if (image == null) return;
-
-    final croppedFile = await ImageCropper().cropImage(
-      sourcePath: image.path,
-      aspectRatio: isCover ? const CropAspectRatio(ratioX: 16, ratioY: 9) : const CropAspectRatio(ratioX: 1, ratioY: 1),
-      uiSettings: [
-        AndroidUiSettings(
-          toolbarTitle: isCover ? 'قص صورة الغلاف' : 'قص صورة الملف الشخصي',
-          toolbarColor: AppColors.primaryOrange,
-          toolbarWidgetColor: Colors.white,
-          initAspectRatio: isCover ? CropAspectRatioPreset.ratio16x9 : CropAspectRatioPreset.square,
-          lockAspectRatio: true,
-        ),
-        IOSUiSettings(
-          title: isCover ? 'قص صورة الغلاف' : 'قص صورة الملف الشخصي',
-          aspectRatioLockEnabled: true,
-        ),
-      ],
+    final XFile? image = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+      maxWidth: isCover ? 1920 : 1024,
     );
+    if (image == null || !mounted) return;
 
-    if (croppedFile != null) {
-      _uploadImage(File(croppedFile.path), isCover);
+    File fileToUpload = File(image.path);
+    try {
+      final croppedFile = await ImageCropper().cropImage(
+        sourcePath: image.path,
+        aspectRatio: isCover ? const CropAspectRatio(ratioX: 16, ratioY: 9) : const CropAspectRatio(ratioX: 1, ratioY: 1),
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: isCover ? 'قص صورة الغلاف' : 'قص صورة الملف الشخصي',
+            toolbarColor: AppColors.primaryOrange,
+            toolbarWidgetColor: Colors.white,
+            initAspectRatio: isCover ? CropAspectRatioPreset.ratio16x9 : CropAspectRatioPreset.square,
+            lockAspectRatio: true,
+          ),
+          IOSUiSettings(
+            title: isCover ? 'قص صورة الغلاف' : 'قص صورة الملف الشخصي',
+            aspectRatioLockEnabled: true,
+          ),
+        ],
+      );
+      if (croppedFile != null) {
+        fileToUpload = File(croppedFile.path);
+      }
+    } catch (e) {
+      debugPrint('Image crop skipped: $e');
     }
+
+    if (!mounted) return;
+    await _uploadImage(fileToUpload, isCover);
   }
 
   bool _isOwnProfile(User user) => widget.userId == 'me';
@@ -146,16 +157,21 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage> with TickerPr
   int _followersCount(User user) => _followersOverride ?? user.followers;
 
   Future<void> _uploadImage(File file, bool isCover) async {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('جاري رفع الصورة...')));
     try {
       final url = await ref.read(mediaUploadServiceProvider).uploadImageFile(file);
       await ref.read(userServiceProvider).updateProfile({
         isCover ? 'coverImage' : 'imageUrl': url,
       });
-      ref.invalidate(userProfileProvider(widget.userId));
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم التحديث بنجاح')));
+      if (mounted) {
+        ref.invalidate(userProfileProvider(widget.userId));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم التحديث بنجاح')));
+      }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('فشل التحديث: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('فشل التحديث: $e')));
+      }
     }
   }
 
@@ -677,7 +693,7 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage> with TickerPr
           children: [
             // 1. Cover Image
             GestureDetector(
-              onTap: () => widget.userId == 'me' ? _pickAndCropImage(true) : null,
+              onTap: _isOwnProfile(user) ? () => _pickAndCropImage(true) : null,
               child: Stack(
                 children: [
                   Container(
@@ -690,32 +706,36 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage> with TickerPr
                       errorWidget: (context, url, error) => const Icon(Icons.image_not_supported),
                     ),
                   ),
-                  // Camera Icon for Cover
-                  if (widget.userId == 'me')
+                  if (_isOwnProfile(user))
                     Positioned(
                       top: 40,
                       left: 16,
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.5),
-                          shape: BoxShape.circle,
+                      child: GestureDetector(
+                        onTap: () => _pickAndCropImage(true),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.5),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
                         ),
-                        child: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
                       ),
                     ),
                 ],
               ),
             ),
-            // Dark Gradient Overlay
-            Container(
-              height: 220,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Colors.black.withOpacity(0.3), Colors.transparent, Colors.black.withOpacity(0.1)],
+            // Dark Gradient Overlay — must not block taps
+            IgnorePointer(
+              child: Container(
+                height: 220,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.black.withOpacity(0.3), Colors.transparent, Colors.black.withOpacity(0.1)],
+                  ),
                 ),
               ),
             ),
@@ -1214,18 +1234,13 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage> with TickerPr
   }
 
   Widget _buildTripsGrid(User user, bool onlyAI) {
-    final tripFuture = onlyAI && _isOwnProfile(user)
-        ? ref.read(userServiceProvider).getUserAiTrips()
-        : ref.read(userServiceProvider).getUserTrips(_isOwnProfile(user) ? 'me' : _clerkId(user));
+    final tripFuture = _loadProfileTrips(user, onlyAI);
 
     return FutureBuilder<List<Trip>>(
       future: tripFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
-        }
-        if (snapshot.hasError) {
-          return Center(child: Text('خطأ في تحميل الرحلات', style: GoogleFonts.cairo()));
         }
         final trips = snapshot.data ?? [];
         final filteredTrips = onlyAI
@@ -1257,6 +1272,17 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage> with TickerPr
         );
       },
     );
+  }
+
+  Future<List<Trip>> _loadProfileTrips(User user, bool onlyAI) async {
+    try {
+      if (onlyAI && _isOwnProfile(user)) {
+        return await ref.read(userServiceProvider).getUserAiTrips();
+      }
+      return await ref.read(userServiceProvider).getUserTrips(_isOwnProfile(user) ? 'me' : _clerkId(user));
+    } catch (_) {
+      return [];
+    }
   }
 
   String _bookingQrPayload(String reference) {

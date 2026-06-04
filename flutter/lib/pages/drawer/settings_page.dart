@@ -60,20 +60,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ),
             const Divider(),
 
-            _buildSectionHeader('الاتصال بالسيرفر'),
-            ListTile(
-              leading: const Icon(Icons.dns_outlined, color: AppColors.primaryOrange),
-              title: Text('رابط الخادم (API)', style: GoogleFonts.cairo()),
-              subtitle: Text(
-                EnvConfig.hasApiBaseUrl ? EnvConfig.apiBaseUrl : 'غير مُعد — اضغط للإعداد',
-                style: GoogleFonts.cairo(fontSize: 11),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              onTap: () => _showApiUrlSheet(context),
-            ),
-            const Divider(),
-
             _buildSectionHeader('أخرى'),
             _buildListTile(context, icon: Icons.support_agent_outlined, title: 'الدعم الفني', onTap: () => context.push('/support')),
             _buildListTile(
@@ -106,8 +92,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: ElevatedButton.icon(
                 onPressed: () async {
+                  final auth = ClerkAuth.of(context);
+                  await auth.signOut();
                   ref.read(authBootstrapProvider.notifier).reset();
-                  await ClerkAuth.of(context).signOut();
+                  if (context.mounted) context.go('/login');
                 },
                 icon: const Icon(Icons.logout),
                 label: Text('تسجيل الخروج', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),

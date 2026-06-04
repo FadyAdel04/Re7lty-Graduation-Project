@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+enum TripPostType { detailed, quick, ask }
+
 class TripDraft {
   String title;
   String destination;
@@ -146,6 +148,7 @@ class DraftHotel {
   String location;
   String bookingUrl;
   dynamic image;
+  int stayDays;
 
   DraftHotel({
     this.name = '',
@@ -153,6 +156,7 @@ class DraftHotel {
     this.location = '',
     this.bookingUrl = '',
     this.image,
+    this.stayDays = 1,
   });
 }
 

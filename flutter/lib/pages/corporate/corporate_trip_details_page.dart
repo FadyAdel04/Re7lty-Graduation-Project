@@ -6,6 +6,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../theme/app_colors.dart';
 import '../../services/api_service.dart';
+import '../../providers/api_provider.dart';
 import 'corporate_booking_page.dart';
 import '../../widgets/report_trip_dialog.dart';
 
@@ -529,5 +530,57 @@ class CorporateTripDetailsPage extends ConsumerWidget {
         ],
       ),
     );
+  }
+}
+
+class CorporateTripLoader extends ConsumerStatefulWidget {
+  final String tripId;
+  const CorporateTripLoader({super.key, required this.tripId});
+
+  @override
+  ConsumerState<CorporateTripLoader> createState() => _CorporateTripLoaderState();
+}
+
+class _CorporateTripLoaderState extends ConsumerState<CorporateTripLoader> {
+  Map<String, dynamic>? _trip;
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final api = ref.read(apiServiceProvider);
+      final response = await api.get('/corporate/trips/${widget.tripId}');
+      if (!mounted) return;
+      setState(() {
+        _trip = Map<String, dynamic>.from(response.data as Map);
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (_error != null || _trip == null) {
+      return Scaffold(
+        appBar: AppBar(),
+        body: Center(child: Text('تعذّر تحميل الرحلة', style: GoogleFonts.cairo())),
+      );
+    }
+    return CorporateTripDetailsPage(trip: _trip!);
   }
 }

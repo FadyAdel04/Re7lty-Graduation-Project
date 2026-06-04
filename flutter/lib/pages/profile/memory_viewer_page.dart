@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../models/memory.dart';
@@ -63,10 +64,28 @@ class _MemoryViewerPageState extends State<MemoryViewerPage> {
   Future<void> _playMusic() async {
     final idx = widget.memory.trackIndex.clamp(0, _tracks.length - 1);
     try {
+      await _audioPlayer.setPlayerMode(PlayerMode.mediaPlayer);
       await _audioPlayer.setReleaseMode(ReleaseMode.loop);
-      await _audioPlayer.setVolume(_muted ? 0 : 0.45);
+      await _audioPlayer.setVolume(_muted ? 0 : 0.55);
       await _audioPlayer.play(UrlSource(_tracks[idx]));
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('Memory audio error: $e');
+    }
+  }
+
+  void _goToSlide(int delta) {
+    final items = widget.memory.items;
+    if (items.isEmpty) return;
+    final next = _index + delta;
+    if (next < 0 || next >= items.length) {
+      Navigator.pop(context);
+      return;
+    }
+    _pageController.animateToPage(
+      next,
+      duration: const Duration(milliseconds: 280),
+      curve: Curves.easeOut,
+    );
   }
 
   void _startSlideshow() {
@@ -127,9 +146,17 @@ class _MemoryViewerPageState extends State<MemoryViewerPage> {
     return Scaffold(
       backgroundColor: Colors.black,
       body: GestureDetector(
-        onTapDown: (_) => setState(() => _paused = true),
-        onTapUp: (_) => setState(() => _paused = false),
-        onTapCancel: () => setState(() => _paused = false),
+        behavior: HitTestBehavior.opaque,
+        onTapUp: (details) {
+          final w = MediaQuery.of(context).size.width;
+          if (details.localPosition.dx < w * 0.35) {
+            _goToSlide(-1);
+          } else {
+            _goToSlide(1);
+          }
+        },
+        onLongPressStart: (_) => setState(() => _paused = true),
+        onLongPressEnd: (_) => setState(() => _paused = false),
         child: Stack(
           fit: StackFit.expand,
           children: [

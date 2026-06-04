@@ -3,13 +3,16 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../core/exceptions.dart';
 import '../models/trip_wizard_state.dart';
 import '../models/corporate_trip.dart';
 import '../constants/egypt_data.dart';
 import '../services/trip_plan_service.dart';
 import '../services/trip_service.dart';
+import '../services/user_service.dart';
 import '../services/itinerary_engine.dart';
 import 'trip_provider.dart';
+import 'api_provider.dart';
 
 final tripPlanServiceProvider = Provider((ref) => TripPlanService());
 
@@ -18,14 +21,17 @@ final tripWizardProvider =
   (ref) => TripWizardNotifier(
     ref.read(tripPlanServiceProvider),
     ref.read(tripServiceProvider),
+    ref.read(userServiceProvider),
   ),
 );
 
 class TripWizardNotifier extends StateNotifier<TripWizardState> {
   final TripPlanService _service;
   final TripService _tripService;
+  final UserService _userService;
 
-  TripWizardNotifier(this._service, this._tripService) : super(const TripWizardState());
+  TripWizardNotifier(this._service, this._tripService, this._userService)
+      : super(const TripWizardState());
 
   void setMode(WizardMode mode) {
     state = state.copyWith(mode: mode, currentStep: WizardStep.destination);
@@ -198,6 +204,19 @@ class TripWizardNotifier extends StateNotifier<TripWizardState> {
     state = state.copyWith(isGeneratingPlan: true, clearError: true);
 
     try {
+      final quota = await _userService.getAiTripQuota();
+      final isAdmin = quota?['isAdmin'] == true;
+      final remaining = (quota?['remaining'] as num?)?.toInt();
+      final limit = (quota?['limit'] as num?)?.toInt() ?? 3;
+      if (!isAdmin && remaining != null && remaining <= 0) {
+        state = state.copyWith(
+          isGeneratingPlan: false,
+          errorMessage:
+              'لقد استخدمت الحد الأسبوعي لخطط الرحلات المخصصة ($limit خطط في الأسبوع). حاول الأسبوع القادم.',
+        );
+        return;
+      }
+
       final plan = await _service.getTripPlan(
         state.destination,
         days: state.days ?? 3,
@@ -217,6 +236,12 @@ class TripWizardNotifier extends StateNotifier<TripWizardState> {
         selectedRestaurants: preSelectedRestaurants,
         selectedHotels: plan.hotels.isNotEmpty ? {plan.hotels.first.id} : {},
       );
+
+      try {
+        await _userService.recordAiPlanUsage();
+      } on AuthException catch (e) {
+        state = state.copyWith(errorMessage: e.message);
+      } catch (_) {}
     } catch (e) {
       state = state.copyWith(
         isGeneratingPlan: false,

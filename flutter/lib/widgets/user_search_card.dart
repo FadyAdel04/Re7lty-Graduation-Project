@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/user.dart';
 import '../providers/api_provider.dart';
+import '../providers/discover_provider.dart';
+import '../utils/user_utils.dart';
 import 'package:go_router/go_router.dart';
 
 class UserSearchCard extends ConsumerStatefulWidget {
@@ -14,27 +16,25 @@ class UserSearchCard extends ConsumerStatefulWidget {
 }
 
 class _UserSearchCardState extends ConsumerState<UserSearchCard> {
-  bool _following = false;
   bool _loading = false;
 
-  @override
-  void initState() {
-    super.initState();
-    _following = widget.user.viewerFollows;
+  String get _userId => userProfileId(widget.user);
+
+  bool get _isFollowing {
+    final ids = ref.watch(discoverFollowingIdsProvider);
+    return ids.contains(_userId) || widget.user.viewerFollows;
   }
 
   Future<void> _toggleFollow() async {
     if (_loading) return;
-    setState(() {
-      _loading = true;
-      _following = !_following;
-    });
+    final wasFollowing = _isFollowing;
+    setState(() => _loading = true);
+    ref.read(discoverFollowingIdsProvider.notifier).setFollowing(_userId, !wasFollowing);
     try {
-      final result =
-          await ref.read(userServiceProvider).toggleFollow(widget.user.id);
-      if (mounted) setState(() => _following = result.following);
+      final result = await ref.read(userServiceProvider).toggleFollow(_userId);
+      ref.read(discoverFollowingIdsProvider.notifier).setFollowing(_userId, result.following);
     } catch (_) {
-      if (mounted) setState(() => _following = !_following);
+      ref.read(discoverFollowingIdsProvider.notifier).setFollowing(_userId, wasFollowing);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -42,8 +42,9 @@ class _UserSearchCardState extends ConsumerState<UserSearchCard> {
 
   @override
   Widget build(BuildContext context) {
+    final following = _isFollowing;
     return ListTile(
-      onTap: () => context.push('/user/${widget.user.id}'),
+      onTap: () => context.push('/user/$_userId'),
       leading: CircleAvatar(
         radius: 20,
         backgroundColor: AppColors.primaryOrange.withOpacity(0.1),
@@ -64,8 +65,9 @@ class _UserSearchCardState extends ConsumerState<UserSearchCard> {
         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
       ),
       subtitle: Text(
-        widget.user.username ??
-            '@${(widget.user.fullName ?? "user").toLowerCase().replaceAll(' ', '_')}',
+        widget.user.username != null
+            ? '@${widget.user.username}'
+            : '@${(widget.user.fullName ?? "user").toLowerCase().replaceAll(' ', '_')}',
         style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
       ),
       trailing: _loading
@@ -77,16 +79,15 @@ class _UserSearchCardState extends ConsumerState<UserSearchCard> {
           : ElevatedButton(
               onPressed: _toggleFollow,
               style: ElevatedButton.styleFrom(
-                backgroundColor:
-                    _following ? Colors.grey.shade300 : AppColors.primaryOrange,
-                foregroundColor: _following ? Colors.black87 : Colors.white,
+                backgroundColor: following ? Colors.grey.shade300 : AppColors.primaryOrange,
+                foregroundColor: following ? Colors.black87 : Colors.white,
                 elevation: 0,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 minimumSize: const Size(0, 32),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
               child: Text(
-                _following ? 'متابَع' : 'متابعة',
+                following ? 'متابَع' : 'متابعة',
                 style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
               ),
             ),

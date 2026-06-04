@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../theme/app_colors.dart';
 import '../../providers/api_provider.dart';
 import '../../models/notification.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
+import '../../utils/navigation_utils.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 final notificationsProvider = FutureProvider<List<AppNotification>>((ref) async {
@@ -63,13 +64,10 @@ class NotificationsPage extends ConsumerWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Back Button
           IconButton(
             icon: Icon(Icons.arrow_back_ios_new, color: isDark ? Colors.white : const Color(0xFF1E293B), size: 20),
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => context.pop(),
           ),
-          
-          // Mark all as read button
           ElevatedButton.icon(
             onPressed: () async {
               await ref.read(userServiceProvider).markAllNotificationsAsRead();
@@ -86,8 +84,6 @@ class NotificationsPage extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             ),
           ),
-          
-          // Title
           Text(
             'الإشعارات',
             style: GoogleFonts.cairo(
@@ -96,16 +92,11 @@ class NotificationsPage extends ConsumerWidget {
               color: isDark ? Colors.white : const Color(0xFF1E293B),
             ),
           ),
-          
-          // Bell Icon Container
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: const Color(0xFF6366F1),
               borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(color: const Color(0xFF6366F1).withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 3))
-              ],
             ),
             child: const Icon(Icons.notifications_none, color: Colors.white, size: 24),
           ),
@@ -114,78 +105,121 @@ class NotificationsPage extends ConsumerWidget {
     );
   }
 
+  Future<void> _onNotificationTap(BuildContext context, WidgetRef ref, AppNotification notification) async {
+    try {
+      await ref.read(userServiceProvider).markNotificationAsRead(notification.id);
+      ref.invalidate(notificationsProvider);
+    } catch (_) {}
+
+    if (!context.mounted) return;
+
+    switch (notification.type) {
+      case 'follow':
+        pushUserProfile(context, notification.senderId);
+        break;
+      case 'comment':
+      case 'love':
+      case 'save':
+      case 'tag':
+        if (notification.tripId != null && notification.tripId!.isNotEmpty) {
+          pushTrip(context, notification.tripId);
+        } else if (notification.senderId.isNotEmpty) {
+          pushUserProfile(context, notification.senderId);
+        }
+        break;
+      case 'message':
+        if (notification.link != null && notification.link!.startsWith('/')) {
+          context.push(notification.link!);
+        } else {
+          context.push('/messages');
+        }
+        break;
+      default:
+        if (notification.tripId != null && notification.tripId!.isNotEmpty) {
+          pushTrip(context, notification.tripId);
+        } else if (notification.senderId.isNotEmpty) {
+          pushUserProfile(context, notification.senderId);
+        }
+    }
+  }
+
   Widget _buildNotificationCard(BuildContext context, WidgetRef ref, AppNotification notification, bool isDark) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.cardDark : Colors.white.withOpacity(0.8),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _onNotificationTap(context, ref, notification),
         borderRadius: BorderRadius.circular(25),
-        border: notification.isRead ? null : Border.all(color: const Color(0xFF6366F1).withOpacity(0.1), width: 1),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 15, offset: const Offset(0, 5))
-        ],
-      ),
-      child: Row(
-        children: [
-          // Avatar
-          Stack(
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.cardDark : Colors.white.withOpacity(0.8),
+            borderRadius: BorderRadius.circular(25),
+            border: notification.isRead ? null : Border.all(color: const Color(0xFF6366F1).withOpacity(0.1), width: 1),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 15, offset: const Offset(0, 5))
+            ],
+          ),
+          child: Row(
             children: [
-              Container(
-                width: 55,
-                height: 55,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
-                  boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(30),
-                  child: notification.senderAvatar != null 
-                      ? CachedNetworkImage(imageUrl: notification.senderAvatar!, fit: BoxFit.cover)
-                      : Container(color: Colors.grey[200], child: const Icon(Icons.person, color: Colors.grey)),
-                ),
-              ),
-              if (!notification.isRead)
-                Positioned(
-                  top: 0,
-                  right: 0,
-                  child: Container(
-                    width: 12,
-                    height: 12,
+              Stack(
+                children: [
+                  Container(
+                    width: 55,
+                    height: 55,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF6366F1),
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.white, width: 2),
                     ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(30),
+                      child: notification.senderAvatar != null
+                          ? CachedNetworkImage(imageUrl: notification.senderAvatar!, fit: BoxFit.cover)
+                          : Container(color: Colors.grey[200], child: const Icon(Icons.person, color: Colors.grey)),
+                    ),
                   ),
+                  if (!notification.isRead)
+                    Positioned(
+                      top: 0,
+                      right: 0,
+                      child: Container(
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF6366F1),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      notification.message,
+                      style: GoogleFonts.cairo(
+                        fontSize: 14,
+                        fontWeight: notification.isRead ? FontWeight.normal : FontWeight.bold,
+                        color: isDark ? Colors.white : const Color(0xFF334155),
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      _getTimeAgo(notification.createdAt),
+                      style: TextStyle(color: Colors.grey[400], fontSize: 11),
+                    ),
+                  ],
                 ),
+              ),
+              Icon(Icons.chevron_left, color: Colors.grey.shade400, size: 20),
             ],
           ),
-          const SizedBox(width: 16),
-          // Content
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  notification.message,
-                  style: GoogleFonts.cairo(
-                    fontSize: 14,
-                    fontWeight: notification.isRead ? FontWeight.normal : FontWeight.bold,
-                    color: isDark ? Colors.white : const Color(0xFF334155),
-                    height: 1.4,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  _getTimeAgo(notification.createdAt),
-                  style: TextStyle(color: Colors.grey[400], fontSize: 11),
-                ),
-              ],
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

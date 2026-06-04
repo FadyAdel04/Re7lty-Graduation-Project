@@ -184,6 +184,11 @@ class FeedNotifier extends FamilyNotifier<FeedState, TripFilter> {
     }
   }
 
+  void prependTrip(Trip trip) {
+    if (state.trips.any((t) => t.id == trip.id)) return;
+    state = state.copyWith(trips: [trip, ...state.trips]);
+  }
+
   Future<void> loadMore() async {
     if (state.isLoadingMore || !state.hasMore) return;
 

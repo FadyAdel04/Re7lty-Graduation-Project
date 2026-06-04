@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:clerk_flutter/clerk_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +10,7 @@ import '../../theme/app_colors.dart';
 import '../../widgets/discover/discover_hero.dart';
 import '../../widgets/discover/discover_sidebar.dart';
 import '../../widgets/discover/discover_trip_card.dart';
+import '../../widgets/user_search_card.dart';
 
 class DiscoverPage extends ConsumerStatefulWidget {
   const DiscoverPage({super.key});
@@ -28,6 +30,17 @@ class _DiscoverPageState extends ConsumerState<DiscoverPage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadFollowing());
+    _searchDebounce = Timer(Duration.zero, () {});
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  Timer? _searchDebounce;
+
+  void _onSearchChanged() {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 400), () {
+      if (mounted) _applySearch();
+    });
   }
 
   void _loadFollowing() {
@@ -37,6 +50,7 @@ class _DiscoverPageState extends ConsumerState<DiscoverPage> {
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _scrollController.dispose();
     _searchController.dispose();
     super.dispose();
@@ -134,6 +148,11 @@ class _DiscoverPageState extends ConsumerState<DiscoverPage> {
                         ),
                       )
                     else ...[
+                      if (_isSearchMode && data.users.isNotEmpty)
+                        SliverPadding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          sliver: SliverToBoxAdapter(child: _buildPeopleSection(data.users, isDark)),
+                        ),
                       SliverPadding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         sliver: SliverToBoxAdapter(child: _buildTripsGrid(data, isDark)),
@@ -155,6 +174,9 @@ class _DiscoverPageState extends ConsumerState<DiscoverPage> {
 
   Widget _buildTripsGrid(DiscoverData data, bool isDark) {
     if (data.trips.isEmpty) {
+      if (_isSearchMode && data.users.isNotEmpty) {
+        return const SizedBox.shrink();
+      }
       return _buildEmptyState(isDark);
     }
 
@@ -180,6 +202,30 @@ class _DiscoverPageState extends ConsumerState<DiscoverPage> {
           },
         );
       },
+    );
+  }
+
+  Widget _buildPeopleSection(List<User> users, bool isDark) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.cardDark : Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: isDark ? Colors.white12 : Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Text(
+              'مسافرون',
+              style: GoogleFonts.cairo(fontWeight: FontWeight.w900, fontSize: 16),
+            ),
+          ),
+          ...users.take(10).map((u) => UserSearchCard(user: u)),
+        ],
+      ),
     );
   }
 

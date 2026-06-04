@@ -1582,6 +1582,16 @@ class _AIChatPageState extends ConsumerState<AIChatPage>
               style: GoogleFonts.cairo(
                   fontSize: 13,
                   color: isDark ? Colors.white54 : Colors.black54)),
+          const SizedBox(height: 8),
+          Text(
+            'الحد الأسبوعي لخطط الرحلة المخصصة بالذكاء الاصطناعي: 3 خطط',
+            style: GoogleFonts.cairo(
+              fontSize: 11,
+              color: isDark ? Colors.amber.shade200 : Colors.orange.shade800,
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.center,
+          ),
           const SizedBox(height: 24),
 
           // Summary card
@@ -1677,6 +1687,16 @@ class _AIChatPageState extends ConsumerState<AIChatPage>
                             await notifier.searchPlatformTrips();
                           } else {
                             await notifier.generateTripPlan();
+                            if (!mounted) return;
+                            final err = ref.read(tripWizardProvider).errorMessage;
+                            if (err != null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(err, style: GoogleFonts.cairo()),
+                                  backgroundColor: Colors.redAccent,
+                                ),
+                              );
+                            }
                           }
                         },
                       ),
@@ -1760,7 +1780,7 @@ class _AIChatPageState extends ConsumerState<AIChatPage>
                 if (wizard.generatedItinerary != null) ...[
                   // ── Smart Itinerary View ──
                   ...wizard.generatedItinerary!.days.map((day) {
-                    return _buildDayTimeline(day, isDark);
+                    return _buildDayTimeline(day, isDark, wizard);
                   }).toList(),
 
                   // Re-organize button
@@ -1926,7 +1946,16 @@ class _AIChatPageState extends ConsumerState<AIChatPage>
     );
   }
 
-  Widget _buildDayTimeline(ItineraryDay day, bool isDark) {
+  Widget _buildDayTimeline(ItineraryDay day, bool isDark, TripWizardState wizard) {
+    String? imageForActivity(String name) {
+      final plan = wizard.tripPlan;
+      if (plan == null) return null;
+      for (final p in [...plan.attractions, ...plan.restaurants]) {
+        if (p.name == name) return p.imageUrl;
+      }
+      return null;
+    }
+
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
       child: Column(
@@ -1962,7 +1991,9 @@ class _AIChatPageState extends ConsumerState<AIChatPage>
             ],
           ),
           const SizedBox(height: 16),
-          ...day.activities.map((act) => Container(
+          ...day.activities.map((act) {
+            final imageUrl = imageForActivity(act.name);
+            return Container(
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
                   color: isDark ? const Color(0xFF1E1B4B) : Colors.white,
@@ -1993,8 +2024,15 @@ class _AIChatPageState extends ConsumerState<AIChatPage>
                             width: 120,
                             height: double.infinity,
                             color: Colors.grey.shade300,
-                            // Replace with real image if available
-                            child: const Icon(Icons.image, color: Colors.grey),
+                            child: imageUrl != null
+                                ? CachedNetworkImage(
+                                    imageUrl: imageUrl,
+                                    width: 120,
+                                    fit: BoxFit.cover,
+                                    errorWidget: (_, __, ___) =>
+                                        Icon(Icons.image, color: Colors.grey.shade500),
+                                  )
+                                : Icon(Icons.image, color: Colors.grey.shade500),
                           ),
                           Positioned(
                             top: 8,
@@ -2070,7 +2108,8 @@ class _AIChatPageState extends ConsumerState<AIChatPage>
                     ),
                   ],
                 ),
-              ).animate().fadeIn().slideX()),
+              ).animate().fadeIn().slideX();
+          }),
         ],
       ),
     );

@@ -253,8 +253,9 @@ class _CompanyDashboardPageState extends ConsumerState<CompanyDashboardPage> wit
                   ),
                 );
                 if (confirmed == true && mounted) {
-                  ref.read(authBootstrapProvider.notifier).reset();
                   await ClerkAuth.of(context).signOut();
+                  ref.read(authBootstrapProvider.notifier).reset();
+                  if (context.mounted) context.go('/login');
                 }
               } else if (value == 'support') {
                 ScaffoldMessenger.of(context).showSnackBar(

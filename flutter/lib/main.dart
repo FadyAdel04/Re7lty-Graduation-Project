@@ -18,6 +18,7 @@ import 'pages/trip/edit_trip_page.dart';
 import 'pages/booking/booking_verify_page.dart';
 import 'pages/booking/booking_payment_result_page.dart';
 import 'widgets/payment_resume_listener.dart';
+import 'widgets/trip_publish_banner.dart';
 import 'pages/profile/profile_page.dart';
 import 'pages/company/create_corporate_trip_page.dart';
 import 'pages/discover/discover_page.dart';
@@ -62,6 +63,7 @@ void main() async {
         child: ClerkAuth(
           config: ClerkAuthConfig(
             publishableKey: dotenv.get('CLERK_PUBLISHABLE_KEY', fallback: ''),
+            flags: const ClerkSdkFlags(clearCookiesOnSignOut: true),
           ),
           child: Re7ltyApp(),
         ),
@@ -108,12 +110,6 @@ class _Re7ltyAppState extends ConsumerState<Re7ltyApp> {
             location.startsWith('/booking-payment-result');
 
         if (auth.session == null) {
-          if (auth.client.sessions.isNotEmpty &&
-              !loggingIn &&
-              !isSplash &&
-              !isPaymentResult) {
-            return '/splash';
-          }
           if (loggingIn || isSplash) return null;
           return '/login';
         }
@@ -221,6 +217,10 @@ class _Re7ltyAppState extends ConsumerState<Re7ltyApp> {
           },
         ),
         GoRoute(
+          path: '/profile/:id',
+          redirect: (context, state) => '/user/${state.pathParameters['id']}',
+        ),
+        GoRoute(
           path: '/notifications',
           builder: (context, state) => NotificationsPage(),
         ),
@@ -265,8 +265,11 @@ class _Re7ltyAppState extends ConsumerState<Re7ltyApp> {
         GoRoute(
           path: '/corporate-trip/:id',
           builder: (context, state) {
-            final trip = state.extra as Map<String, dynamic>;
-            return CorporateTripDetailsPage(trip: trip);
+            final id = state.pathParameters['id']!;
+            if (state.extra is Map<String, dynamic>) {
+              return CorporateTripDetailsPage(trip: state.extra as Map<String, dynamic>);
+            }
+            return CorporateTripLoader(tripId: id);
           },
         ),
         GoRoute(
@@ -583,7 +586,12 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
     final isCompany = userRole == 'company';
 
     return Scaffold(
-      body: widget.navigationShell,
+      body: Column(
+        children: [
+          const TripPublishBanner(),
+          Expanded(child: widget.navigationShell),
+        ],
+      ),
       bottomNavigationBar: Container(
         height: 70,
         decoration: BoxDecoration(

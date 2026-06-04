@@ -1,3 +1,5 @@
+import '../utils/media_url.dart';
+
 class Story {
   final String id;
   final String userId;
@@ -23,7 +25,7 @@ class Story {
     return Story(
       id: json['_id']?.toString() ?? json['id']?.toString() ?? '',
       userId: json['userId']?.toString() ?? '',
-      mediaUrl: json['mediaUrl']?.toString() ?? '',
+      mediaUrl: normalizeMediaUrl(json['mediaUrl']?.toString()),
       mediaType: json['mediaType']?.toString() ?? 'image',
       caption: json['caption']?.toString(),
       createdAt: DateTime.parse(json['createdAt'].toString()),

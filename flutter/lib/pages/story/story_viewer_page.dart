@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../models/story.dart';
 import '../../providers/story_provider.dart';
+import '../../utils/media_url.dart';
 
 class StoryViewerPage extends ConsumerStatefulWidget {
   final UserStoriesGroup group;
@@ -51,7 +52,7 @@ class _StoryViewerPageState extends ConsumerState<StoryViewerPage> {
       ref.read(storyServiceProvider).markAsViewed(story.id);
     }
 
-    _timer = Timer(const Duration(seconds: 5), _goNext);
+    _timer = Timer(const Duration(seconds: 3), _goNext);
   }
 
   void _goPrev() {
@@ -151,8 +152,10 @@ class _StoryViewerPageState extends ConsumerState<StoryViewerPage> {
     return Scaffold(
       backgroundColor: Colors.black,
       body: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTapUp: (details) {
           final w = MediaQuery.of(context).size.width;
+          _timer?.cancel();
           if (details.localPosition.dx < w * 0.35) {
             _goPrev();
           } else {
@@ -167,7 +170,25 @@ class _StoryViewerPageState extends ConsumerState<StoryViewerPage> {
                 child: Text('عرض الفيديو قريباً', style: GoogleFonts.cairo(color: Colors.white70)),
               )
             else
-              CachedNetworkImage(imageUrl: story.mediaUrl, fit: BoxFit.contain),
+              CachedNetworkImage(
+                imageUrl: normalizeMediaUrl(story.mediaUrl),
+                fit: BoxFit.contain,
+                width: double.infinity,
+                height: double.infinity,
+                placeholder: (_, __) => const Center(
+                  child: CircularProgressIndicator(color: Colors.white),
+                ),
+                errorWidget: (_, __, ___) => Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.broken_image_outlined, color: Colors.white54, size: 48),
+                      const SizedBox(height: 8),
+                      Text('تعذّر تحميل الصورة', style: GoogleFonts.cairo(color: Colors.white70)),
+                    ],
+                  ),
+                ),
+              ),
 
             SafeArea(
               child: Column(

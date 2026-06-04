@@ -64,6 +64,8 @@ dependencies:
   pusher_channels_flutter: ^2.6.0
   audioplayers: ^6.1.0
   video_player: ^2.9.2
+  google_sign_in: ^7.2.0
+  uuid: ^4.5.3
 
 dev_dependencies:
   flutter_test:

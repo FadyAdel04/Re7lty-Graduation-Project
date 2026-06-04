@@ -365,14 +365,13 @@ class _HomePageState extends ConsumerState<HomePage> {
           : () {
               if (hasStories && ownGroup != null) {
                 _openStoriesGroup(ownGroup, isOwn: true);
-              } else {
-                _pickAndUploadStory();
               }
             },
       onLongPress: _isUploadingStory ? null : () => _showYourStoryOptions(hasStories: hasStories, ownGroup: ownGroup),
       child: Column(
         children: [
           Stack(
+            clipBehavior: Clip.none,
             children: [
               Container(
                 padding: const EdgeInsets.all(3),
@@ -397,13 +396,16 @@ class _HomePageState extends ConsumerState<HomePage> {
                 Positioned(
                   bottom: 0,
                   right: 2,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(
-                      color: AppColors.primaryOrange,
-                      shape: BoxShape.circle,
+                  child: GestureDetector(
+                    onTap: () => _pickAndUploadStory(),
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: AppColors.primaryOrange,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.add, size: 14, color: Colors.white),
                     ),
-                    child: Icon(hasStories ? Icons.add : Icons.add, size: 14, color: Colors.white),
                   ),
                 ),
             ],

@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import '../models/trip.dart';
 import '../models/corporate_trip.dart';
+import '../core/exceptions.dart';
 import 'api_service.dart';
 
 class TripService {
@@ -56,17 +57,43 @@ class TripService {
   }
 
   Future<Trip> getTripById(String id) async {
-    try {
-      final response = await _apiService.get('/trips/$id');
+    const maxAttempts = 3;
+    Object? lastError;
 
-      if (response.statusCode == 200) {
-        return Trip.fromJson(response.data);
-      } else {
-        throw Exception('Trip not found');
+    for (var attempt = 0; attempt < maxAttempts; attempt++) {
+      if (attempt > 0) {
+        _apiService.invalidateTokenCache();
+        await Future.delayed(Duration(seconds: attempt));
       }
-    } catch (e) {
-      throw Exception('Error fetching trip details: $e');
+      try {
+        final response = await _apiService.get('/trips/$id');
+
+        if (response.statusCode == 200) {
+          final data = response.data;
+          if (data is Map) {
+            return Trip.fromJson(Map<String, dynamic>.from(data));
+          }
+          throw ServerException('استجابة غير صالحة من السيرفر');
+        }
+
+        if (response.statusCode == 503 && attempt < maxAttempts - 1) continue;
+        throw ServerException('تعذر تحميل الرحلة (${response.statusCode})');
+      } on DioException catch (e) {
+        lastError = e;
+        final status = e.response?.statusCode;
+        if ((status == 503 || status == 502 || status == 504) && attempt < maxAttempts - 1) {
+          continue;
+        }
+        throw handleDioError(e);
+      } catch (e) {
+        lastError = e;
+        if (e is AppException) rethrow;
+        throw ServerException('تعذر تحميل تفاصيل الرحلة');
+      }
     }
+
+    if (lastError is DioException) throw handleDioError(lastError as DioException);
+    throw ServerException('السيرفر مشغول حالياً. حاول مرة أخرى بعد قليل.');
   }
 
   Future<Trip> createTrip(Map<String, dynamic> tripData) async {
@@ -103,11 +130,11 @@ class TripService {
     try {
       final response = await _apiService.post('/trips/$tripId/love');
       if (response.statusCode == 200) {
-        return response.data['loved'];
+        return response.data['loved'] == true;
       }
-      return false;
+      throw Exception('Failed to toggle like');
     } catch (e) {
-      return false;
+      rethrow;
     }
   }
 
@@ -115,11 +142,11 @@ class TripService {
     try {
       final response = await _apiService.post('/trips/$tripId/save');
       if (response.statusCode == 200) {
-        return response.data['saved'];
+        return response.data['saved'] == true;
       }
-      return false;
+      throw Exception('Failed to toggle save');
     } catch (e) {
-      return false;
+      rethrow;
     }
   }
 

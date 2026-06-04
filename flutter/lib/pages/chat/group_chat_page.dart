@@ -32,7 +32,7 @@ class _GroupChatPageState extends ConsumerState<GroupChatPage> {
     super.initState();
     _fetchMessages();
     _markAsRead();
-    _timer = Timer.periodic(const Duration(seconds: 3), (_) => _fetchMessages(silent: true));
+    _timer = Timer.periodic(const Duration(seconds: 12), (_) => _fetchMessages(silent: true));
     
     // Initialize Pusher
     final pusher = ref.read(pusherServiceProvider);
@@ -168,16 +168,7 @@ class _GroupChatPageState extends ConsumerState<GroupChatPage> {
     final companyLogo = _groupInfo?['companyLogo'] as String?;
     final memberCount = (_groupInfo?['participants'] as List?)?.length ?? 0;
 
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) async {
-        if (didPop) return;
-        final confirm = await _showExitConfirmation();
-        if (confirm && mounted) {
-          Navigator.pop(context);
-        }
-      },
-      child: Scaffold(
+    return Scaffold(
       backgroundColor: isDark ? const Color(0xFF1A1A2E) : const Color(0xFFF8FAFC),
       appBar: AppBar(
         title: Row(
@@ -213,10 +204,7 @@ class _GroupChatPageState extends ConsumerState<GroupChatPage> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, size: 18),
-          onPressed: () async {
-            final confirm = await _showExitConfirmation();
-            if (confirm && mounted) Navigator.pop(context);
-          },
+          onPressed: () => Navigator.pop(context),
         ),
         actions: [
           if (_isLocked)
@@ -289,7 +277,7 @@ class _GroupChatPageState extends ConsumerState<GroupChatPage> {
           _buildMessageInput(isDark),
         ],
       ),
-    ));
+    );
   }
 
   bool _shouldShowDate(int index) {

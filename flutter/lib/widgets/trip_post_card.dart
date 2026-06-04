@@ -13,7 +13,9 @@ import '../providers/theme_provider.dart';
 import '../services/trip_service.dart';
 import '../providers/trip_provider.dart';
 import '../providers/api_provider.dart';
+import '../pages/home/home_page.dart';
 
+import '../utils/navigation_utils.dart';
 import '../theme/app_colors.dart';
 import 'package:clerk_flutter/clerk_flutter.dart';
 import 'report_trip_dialog.dart';
@@ -49,21 +51,35 @@ class _TripPostCardState extends ConsumerState<TripPostCard> {
 
   void _handleLike() async {
     final previouslyLiked = _isLiked;
+    final previousCount = _likeCount;
     setState(() {
       _isLiked = !_isLiked;
-      if (_isLiked) _likeCount++;
-      else _likeCount = (_likeCount > 0) ? _likeCount - 1 : 0;
+      if (_isLiked) {
+        _likeCount++;
+      } else {
+        _likeCount = (_likeCount > 0) ? _likeCount - 1 : 0;
+      }
     });
 
-    final success = await ref.read(tripServiceProvider).toggleLike(widget.trip.id);
-    
-    if (mounted && !success) {
-      // Revert if API fails
-      setState(() {
-        _isLiked = previouslyLiked;
-        if (_isLiked) _likeCount++;
-        else _likeCount = (_likeCount > 0) ? _likeCount - 1 : 0;
-      });
+    try {
+      final loved = await ref.read(tripServiceProvider).toggleLike(widget.trip.id);
+      if (mounted) {
+        setState(() {
+          _isLiked = loved;
+          if (loved && !previouslyLiked) {
+            _likeCount = previousCount + 1;
+          } else if (!loved && previouslyLiked) {
+            _likeCount = (previousCount > 0) ? previousCount - 1 : 0;
+          }
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _isLiked = previouslyLiked;
+          _likeCount = previousCount;
+        });
+      }
     }
   }
 
@@ -71,12 +87,24 @@ class _TripPostCardState extends ConsumerState<TripPostCard> {
     final content = _commentController.text.trim();
     if (content.isEmpty) return;
 
-    final success = await ref.read(tripServiceProvider).addComment(widget.trip.id, content);
-    if (success) {
-      _commentController.clear();
-      if (mounted) {
+    try {
+      final success = await ref.read(tripServiceProvider).addComment(widget.trip.id, content);
+      if (!mounted) return;
+      if (success) {
+        _commentController.clear();
+        ref.invalidate(feedProvider(ref.read(homeFilterProvider)));
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('تم إرسال تعليقك بنجاح!')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('فشل إرسال التعليق'), backgroundColor: Colors.red),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('فشل إرسال التعليق'), backgroundColor: Colors.red),
         );
       }
     }
@@ -175,7 +203,7 @@ class _TripPostCardState extends ConsumerState<TripPostCard> {
       child: Row(
         children: [
           GestureDetector(
-             onTap: () => context.push('/profile/${widget.trip.ownerId}'),
+             onTap: () => pushUserProfile(context, widget.trip.ownerId),
              child: CircleAvatar(
                radius: 24,
                backgroundImage: NetworkImage(widget.trip.authorImage ?? 'https://images.unsplash.com/photo-1519046904884-53103b34b206'),
@@ -415,7 +443,7 @@ class _TripPostCardState extends ConsumerState<TripPostCard> {
           right: 25,
           child: _floatingBadge(
             icon: Icons.calendar_today,
-            text: widget.trip.season ?? 'ربيع',
+            text: translateSeason(widget.trip.season),
             color: AppColors.primaryOrange,
           ),
         ),

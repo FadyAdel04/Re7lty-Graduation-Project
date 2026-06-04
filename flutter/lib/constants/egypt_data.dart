@@ -279,3 +279,43 @@ int calcEstimatedTotal({
       (budget == 'low' ? 600 : budget == 'high' ? 3500 : 1400);
   return days * dailyRate + (transportPrice ?? 0);
 }
+
+/// Sorted governorates for map/search proximity (explicit [Map<String, dynamic>]).
+List<Map<String, dynamic>> get egyptGovernoratesList {
+  final list = governoratesCoordinates.entries
+      .map((e) => <String, dynamic>{'name': e.key, 'lat': e.value.lat, 'lng': e.value.lng})
+      .toList();
+  list.sort((a, b) => (a['name'] as String).compareTo(b['name'] as String));
+  return list;
+}
+
+Map<String, dynamic> governorateByName(String? name) {
+  final list = egyptGovernoratesList;
+  if (name != null && name.isNotEmpty) {
+    for (final g in list) {
+      if (g['name'] == name) return g;
+    }
+  }
+  return list.first;
+}
+
+/// Diverse stock images when API photos are missing or duplicated.
+const placeFallbackImages = [
+  'https://images.unsplash.com/photo-1503177119275-0aa32b3a9368?w=800&q=80',
+  'https://images.unsplash.com/photo-1544013589-447e9eba48b1?w=800&q=80',
+  'https://images.unsplash.com/photo-1553913861-c0fddf2619ee?w=800&q=80',
+  'https://images.unsplash.com/photo-1572252009286-268acec5ca0a?w=800&q=80',
+  'https://images.unsplash.com/photo-1583121274602-3e2820c69888?w=800&q=80',
+  'https://images.unsplash.com/photo-1564760055775-d63b17a55c44?w=800&q=80',
+  'https://images.unsplash.com/photo-1564937220492-6e0ef1e34dab?w=800&q=80',
+  'https://images.unsplash.com/photo-1535530992830-e25d07cfa780?w=800&q=80',
+  'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=800&q=80',
+  'https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?w=800&q=80',
+  'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80',
+  'https://images.unsplash.com/photo-1590059232387-a2267bca9c80?w=800&q=80',
+];
+
+String fallbackPlaceImage(String seed) {
+  final idx = seed.hashCode.abs() % placeFallbackImages.length;
+  return placeFallbackImages[idx];
+}

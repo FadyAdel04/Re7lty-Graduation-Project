@@ -11,16 +11,13 @@ import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mb hide ImageSo
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:dio/dio.dart';
 import '../../providers/trip_draft_provider.dart';
-import '../../providers/trip_provider.dart';
+import '../../providers/trip_publish_provider.dart';
 import '../../providers/api_provider.dart';
-import '../../services/media_upload_service.dart';
 import '../../models/user.dart';
 import '../../constants/egypt_data.dart';
 import '../../services/trip_draft_storage.dart';
 import '../../widgets/trip/video_preview_dialog.dart';
 import '../../theme/app_colors.dart';
-
-enum TripPostType { detailed, quick, ask }
 
 /// Indigo marker — matches web Mapbox `color: '#indigo'`.
 const int _kMapMarkerIndigo = 0xFF4F46E5;
@@ -68,11 +65,8 @@ class CreateTripPage extends ConsumerStatefulWidget {
 }
 
 class _CreateTripPageState extends ConsumerState<CreateTripPage> {
-  int _currentStep = 1; // 1-indexed
-  bool _isPublishing = false;
+  int _currentStep = 1;
   bool _termsAccepted = false;
-  String _uploadStatus = '';
-  double _uploadProgress = 0;
   Timer? _draftSaveDebounce;
 
   @override
@@ -162,77 +156,7 @@ class _CreateTripPageState extends ConsumerState<CreateTripPage> {
     );
   }
 
-  void _setUploadProgress(double value, String status) {
-    if (!mounted) return;
-    setState(() {
-      _uploadProgress = value;
-      _uploadStatus = status;
-    });
-  }
-
-  int _dayForActivity(TripDraft draft, int activityIndex) {
-    for (var d = 0; d < draft.days.length; d++) {
-      if (draft.days[d].activityIndices.contains(activityIndex)) return d + 1;
-    }
-    return 1;
-  }
-
-  Future<String?> _uploadPath(
-    MediaUploadService media,
-    String? path, {
-    required void Function(String label) onLabel,
-  }) async {
-    if (path == null || path.isEmpty) return null;
-    if (path.startsWith('http://') || path.startsWith('https://')) return path;
-
-    if (path.startsWith('data:')) {
-      onLabel('جاري رفع ملف...');
-      final file = await _dataUrlToTempFile(path);
-      if (file == null) return null;
-      return media.uploadMediaFile(file);
-    }
-
-    final file = File(path);
-    if (!await file.exists()) return null;
-    onLabel('جاري رفع: ${path.split(Platform.pathSeparator).last}');
-    return media.uploadMediaFile(file);
-  }
-
-  Future<File?> _dataUrlToTempFile(String dataUrl) async {
-    try {
-      final match = RegExp(r'^data:[^;]+;base64,(.+)$').firstMatch(dataUrl);
-      if (match == null) return null;
-      final bytes = base64Decode(match.group(1)!);
-      final isVideo = dataUrl.startsWith('data:video/');
-      final ext = isVideo ? 'mp4' : 'jpg';
-      final file = File('${Directory.systemTemp.path}/trip_upload_${DateTime.now().millisecondsSinceEpoch}.$ext');
-      await file.writeAsBytes(bytes);
-      return file;
-    } catch (_) {
-      return null;
-    }
-  }
-
-  Future<List<String>> _uploadMediaList(
-    MediaUploadService media,
-    List<dynamic> paths, {
-    required void Function(String label) onLabel,
-    required bool videosOnly,
-  }) async {
-    final urls = <String>[];
-    for (final item in paths) {
-      if (item is! String) continue;
-      final isVideo = _isVideoPath(item) || item.startsWith('data:video/');
-      if (videosOnly != isVideo) continue;
-      final url = await _uploadPath(media, item, onLabel: onLabel);
-      if (url != null) urls.add(url);
-    }
-    return urls;
-  }
-
   Future<void> _publishTrip(TripPostType type, [Map<String, dynamic>? extraData]) async {
-    if (_isPublishing) return;
-
     if (!_termsAccepted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -243,252 +167,59 @@ class _CreateTripPageState extends ConsumerState<CreateTripPage> {
       return;
     }
 
-    setState(() {
-      _isPublishing = true;
-      _uploadProgress = 0;
-      _uploadStatus = 'جاري التحضير...';
-    });
-
-    try {
-      final tripService = ref.read(tripServiceProvider);
-      final media = ref.read(mediaUploadServiceProvider);
-      Map<String, dynamic> payload = {};
-
-      if (type == TripPostType.detailed) {
-        final draft = ref.read(tripDraftProvider);
-        final earlyShare = extraData?['earlyShare'] == true;
-        if (!_validateDetailedDraft(draft, earlyShare: earlyShare)) {
-          setState(() {
-            _isPublishing = false;
-            _uploadStatus = '';
-          });
-          return;
-        }
-
-        int totalItems = 0;
-        if (draft.coverImageUrl.isNotEmpty && !draft.coverImageUrl.startsWith('http')) totalItems++;
-        for (final a in draft.activities) {
-          totalItems += a.images.length + a.videos.length;
-          if (a.imagePath != null && !a.imagePath!.startsWith('http')) totalItems++;
-        }
-        for (final f in draft.foodPlaces) {
-          if (f.image != null && f.image is String && !(f.image as String).startsWith('http')) totalItems++;
-        }
-        for (final h in draft.hotels) {
-          if (h.image != null && h.image is String && !(h.image as String).startsWith('http')) totalItems++;
-        }
-
-        var completed = 0;
-        void tick(String label) {
-          completed++;
-          _setUploadProgress(totalItems > 0 ? completed / totalItems : 0.5, label);
-        }
-
-        String coverImage = 'https://images.unsplash.com/photo-1503220317375-aaad61436b1b?w=500';
-        if (draft.coverImageUrl.isNotEmpty) {
-          final uploaded = await _uploadPath(media, draft.coverImageUrl, onLabel: tick);
-          if (uploaded != null) coverImage = uploaded;
-        }
-
-        final activitiesPayload = <Map<String, dynamic>>[];
-        for (var i = 0; i < draft.activities.length; i++) {
-          final a = draft.activities[i];
-          if (a.lat == null || a.lng == null) continue;
-
-          final imagePaths = <String>[
-            if (a.imagePath != null) a.imagePath!,
-            ...a.images.whereType<String>(),
-          ];
-          final images = <String>[];
-          for (final p in imagePaths) {
-            if (_isVideoPath(p)) continue;
-            final url = await _uploadPath(media, p, onLabel: tick);
-            if (url != null && !images.contains(url)) images.add(url);
-          }
-
-          final videos = await _uploadMediaList(
-            media,
-            a.videos,
-            onLabel: tick,
-            videosOnly: true,
-          );
-
-          activitiesPayload.add({
-            'name': a.name.isNotEmpty ? a.name : 'موقع',
-            if (a.description.isNotEmpty) 'note': a.description,
-            'coordinates': {'lat': a.lat, 'lng': a.lng},
-            'day': _dayForActivity(draft, i),
-            if (images.isNotEmpty) 'images': images,
-            if (videos.isNotEmpty) 'videos': videos,
-          });
-        }
-
-        final foodPayload = <Map<String, dynamic>>[];
-        for (final f in draft.foodPlaces.where((f) => f.name.isNotEmpty)) {
-          String? imageUrl;
-          if (f.image != null) {
-            imageUrl = await _uploadPath(media, f.image as String, onLabel: tick);
-          }
-          foodPayload.add({
-            'name': f.name,
-            'description': f.description,
-            'location': f.location,
-            'type': f.type,
-            if (imageUrl != null && imageUrl.isNotEmpty) 'image': imageUrl,
-          });
-        }
-
-        final hotelsPayload = <Map<String, dynamic>>[];
-        for (final h in draft.hotels.where((h) => h.name.isNotEmpty)) {
-          String? imageUrl;
-          if (h.image != null) {
-            imageUrl = await _uploadPath(media, h.image as String, onLabel: tick);
-          }
-          hotelsPayload.add({
-            'name': h.name,
-            'description': h.description,
-            'location': h.location,
-            'bookingUrl': h.bookingUrl,
-            if (imageUrl != null && imageUrl.isNotEmpty) 'image': imageUrl,
-          });
-        }
-
-        _setUploadProgress(0.95, 'جاري إرسال البيانات...');
-
-        payload = {
-          'title': draft.title.isNotEmpty ? draft.title : 'رحلة مفصلة',
-          'destination': draft.destination,
-          'city': draft.city.isNotEmpty ? draft.city : draft.destination,
-          'duration': draft.duration,
-          'budget': draft.budget,
-          'season': draft.season,
-          'description': draft.description,
-          'postType': 'detailed',
-          'activities': activitiesPayload,
-          'days': draft.days.map((d) => {
-            'title': d.title,
-            'activities': d.activityIndices,
-          }).toList(),
-          'foodAndRestaurants': foodPayload,
-          'hotels': hotelsPayload,
-          'image': coverImage,
-          if (draft.taggedUsers.isNotEmpty) 'taggedUsers': draft.taggedUsers,
-        };
-      } else if (type == TripPostType.quick) {
-        final mediaPaths = (extraData?['mediaPaths'] as List<String>?) ?? [];
-        final coverPath = extraData?['coverPath'] as String?;
-        var completed = 0;
-        final total = mediaPaths.length + (coverPath != null ? 1 : 0);
-        void tick(String label) {
-          completed++;
-          _setUploadProgress(total > 0 ? completed / total : 0.5, label);
-        }
-
-        String coverImage = 'https://images.unsplash.com/photo-1527631746610-bca00a040d60?w=500';
-        if (coverPath != null && coverPath.isNotEmpty) {
-          final u = await _uploadPath(media, coverPath, onLabel: tick);
-          if (u != null) coverImage = u;
-        }
-
-        final mediaImages = <String>[];
-        final mediaVideos = <String>[];
-        for (final p in mediaPaths) {
-          final url = await _uploadPath(media, p, onLabel: tick);
-          if (url == null) continue;
-          if (_isVideoPath(p)) {
-            mediaVideos.add(url);
-          } else {
-            mediaImages.add(url);
-          }
-        }
-
-        final dest = extraData?['destination']?.toString() ?? '';
-        final gov = _StepBasicInfoState.egyptGovernorates.firstWhere(
-          (g) => g['name'] == dest,
-          orElse: () => _StepBasicInfoState.egyptGovernorates[0],
-        );
-
-        payload = {
-          'title': extraData?['title'] ?? 'لحظات سريعة',
-          'description': extraData?['description'] ?? '',
-          'destination': dest,
-          'city': dest,
-          'postType': 'quick',
-          'image': coverImage,
-          if (mediaImages.isNotEmpty || mediaVideos.isNotEmpty)
-            'activities': [
-              {
-                'name': dest.isNotEmpty ? dest : 'رحلة سريعة',
-                'images': mediaImages,
-                'videos': mediaVideos,
-                'coordinates': {'lat': gov['lat'], 'lng': gov['lng']},
-                'day': 1,
-              },
-            ],
-          if ((extraData?['taggedUsers'] as List?)?.isNotEmpty == true)
-            'taggedUsers': extraData!['taggedUsers'],
-        };
-      } else if (type == TripPostType.ask) {
-        _setUploadProgress(0.3, 'جاري رفع الصورة...');
-        String? imageUrl;
-        final imagePath = extraData?['imagePath'] as String?;
-        if (imagePath != null && imagePath.isNotEmpty) {
-          imageUrl = await _uploadPath(media, imagePath, onLabel: (_) {});
-        }
-        final content = extraData?['description']?.toString() ?? '';
-        payload = {
-          'title': content.trim().isNotEmpty
-              ? (content.trim().length > 80 ? '${content.trim().substring(0, 80)}...' : content.trim())
-              : 'سؤال عن السفر',
-          'description': content,
-          'destination': 'عام',
-          'city': 'عام',
-          'duration': '',
-          'budget': '',
-          'rating': 4.5,
-          'postType': 'ask',
-          'activities': [],
-          'days': [],
-          'foodAndRestaurants': [],
-          'hotels': [],
-          if (imageUrl != null) 'image': imageUrl,
-        };
-      }
-
-      await tripService.createTrip(payload);
-
-      ref.invalidate(feedProvider);
-      await TripDraftStorage.clear();
-
-      if (mounted) {
-        final early = extraData?['earlyShare'] == true;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(early
-                ? 'تم النشر! يمكنك إضافة المزيد من التفاصيل لاحقاً'
-                : 'تم النشر بنجاح!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        ref.read(tripCreationTypeProvider.notifier).state = null;
-        ref.read(tripDraftProvider.notifier).reset();
-        context.pop();
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('حدث خطأ أثناء النشر: $e'), backgroundColor: Colors.red),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isPublishing = false;
-          _uploadProgress = 0;
-          _uploadStatus = '';
-        });
-      }
+    if (type == TripPostType.detailed) {
+      final draft = ref.read(tripDraftProvider);
+      final earlyShare = extraData?['earlyShare'] == true;
+      if (!_validateDetailedDraft(draft, earlyShare: earlyShare)) return;
     }
+
+    TripDraft? draftSnapshot;
+    if (type == TripPostType.detailed) {
+      final d = ref.read(tripDraftProvider);
+      draftSnapshot = TripDraft(
+        title: d.title,
+        destination: d.destination,
+        city: d.city,
+        duration: d.duration,
+        budget: d.budget,
+        season: d.season,
+        description: d.description,
+        rating: d.rating,
+        coverImage: d.coverImage,
+        coverImageUrl: d.coverImageUrl,
+        activities: List.from(d.activities),
+        days: List.from(d.days),
+        foodPlaces: List.from(d.foodPlaces),
+        hotels: List.from(d.hotels),
+        taggedUsers: List.from(d.taggedUsers),
+        route: List.from(d.route),
+      );
+    }
+
+    final extraSnapshot = extraData != null ? Map<String, dynamic>.from(extraData) : null;
+    final early = extraData?['earlyShare'] == true;
+
+    ref.read(tripCreationTypeProvider.notifier).state = null;
+    ref.read(tripDraftProvider.notifier).reset();
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(early
+              ? 'جاري النشر في الخلفية... يمكنك متابعة التصفح'
+              : 'جاري نشر رحلتك...'),
+          backgroundColor: AppColors.primaryOrange,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      context.pop();
+    }
+
+    ref.read(tripPublishProvider.notifier).publish(
+      type: type,
+      draft: draftSnapshot,
+      extraData: extraSnapshot,
+    );
   }
 
   @override
@@ -527,33 +258,6 @@ class _CreateTripPageState extends ConsumerState<CreateTripPage> {
               }
             })
               : _buildWorkflow(postType),
-          if (_isPublishing && _uploadStatus.isNotEmpty)
-            Container(
-              color: Colors.black54,
-              child: Center(
-                child: Card(
-                  margin: const EdgeInsets.all(32),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const CircularProgressIndicator(color: Colors.orange),
-                        const SizedBox(height: 16),
-                        Text(_uploadStatus, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 12),
-                        LinearProgressIndicator(
-                          value: _uploadProgress > 0 ? _uploadProgress.clamp(0.0, 1.0) : null,
-                          color: Colors.orange,
-                          backgroundColor: Colors.grey[200],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
         ],
       ),
     );
@@ -575,7 +279,7 @@ class _CreateTripPageState extends ConsumerState<CreateTripPage> {
       case TripPostType.detailed:
         return _DetailedTripWorkflow(
           step: _currentStep,
-          isPublishing: _isPublishing,
+          isPublishing: false,
           termsAccepted: _termsAccepted,
           onTermsChanged: (v) => setState(() => _termsAccepted = v),
           onEarlyPublish: _termsAccepted
@@ -601,14 +305,14 @@ class _CreateTripPageState extends ConsumerState<CreateTripPage> {
         );
       case TripPostType.quick:
         return _QuickPostForm(
-          isPublishing: _isPublishing,
+          isPublishing: false,
           termsAccepted: _termsAccepted,
           onTermsChanged: (v) => setState(() => _termsAccepted = v),
           onPublish: (data) => _publishTrip(TripPostType.quick, data),
         );
       case TripPostType.ask:
         return _AskPostForm(
-          isPublishing: _isPublishing,
+          isPublishing: false,
           termsAccepted: _termsAccepted,
           onTermsChanged: (v) => setState(() => _termsAccepted = v),
           onPublish: (data) => _publishTrip(TripPostType.ask, data),
@@ -756,13 +460,7 @@ class _StepBasicInfoState extends ConsumerState<_StepBasicInfo> {
   List<User> _userSearchResults = [];
   bool _isSearchingUsers = false;
 
-  static List<Map<String, dynamic>> get egyptGovernorates {
-    final list = governoratesCoordinates.entries
-        .map((e) => {'name': e.key, 'lat': e.value.lat, 'lng': e.value.lng})
-        .toList();
-    list.sort((a, b) => (a['name'] as String).compareTo(b['name'] as String));
-    return list;
-  }
+  static List<Map<String, dynamic>> get egyptGovernorates => egyptGovernoratesList;
 
   @override
   void dispose() {
@@ -1146,14 +844,71 @@ class _StepMapActivitiesState extends ConsumerState<_StepMapActivities> {
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _latController = TextEditingController();
   final TextEditingController _lngController = TextEditingController();
+  final Map<int, TextEditingController> _nameControllers = {};
+  final Map<int, TextEditingController> _descControllers = {};
   bool _isSearching = false;
   List<Map<String, dynamic>> _searchResults = [];
+
+  void _syncActivityControllers(List<DraftActivity> activities) {
+    final keys = _nameControllers.keys.toList();
+    for (final k in keys) {
+      if (k >= activities.length) {
+        _nameControllers.remove(k)?.dispose();
+        _descControllers.remove(k)?.dispose();
+      }
+    }
+    for (var i = 0; i < activities.length; i++) {
+      final nameCtrl = _nameControllers.putIfAbsent(i, () => TextEditingController());
+      final descCtrl = _descControllers.putIfAbsent(i, () => TextEditingController());
+      if (nameCtrl.text != activities[i].name) nameCtrl.text = activities[i].name;
+      if (descCtrl.text != activities[i].description) descCtrl.text = activities[i].description;
+    }
+  }
+
+  Future<void> _openFullscreenMap() async {
+    final draft = ref.read(tripDraftProvider);
+    final gov = governorateByName(draft.destination.isNotEmpty ? draft.destination : null);
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (ctx) => Scaffold(
+          appBar: AppBar(
+            title: const Text('الخريطة — اضغط لإضافة موقع'),
+            backgroundColor: Colors.orange,
+            foregroundColor: Colors.white,
+          ),
+          body: mb.MapWidget(
+            cameraOptions: mb.CameraOptions(
+              center: mb.Point(coordinates: mb.Position(gov['lng'] as double, gov['lat'] as double)),
+              zoom: 11.0,
+            ),
+            styleUri: mb.MapboxStyles.OUTDOORS,
+            onMapCreated: (controller) async {
+              _mapController = controller;
+              await _refreshMapOverlays();
+            },
+            onTapListener: (gestureContext) {
+              _onMapTap(gestureContext);
+              if (ctx.mounted) Navigator.pop(ctx);
+            },
+          ),
+        ),
+      ),
+    );
+    if (mounted) setState(() {});
+  }
 
   @override
   void dispose() {
     _searchController.dispose();
     _latController.dispose();
     _lngController.dispose();
+    for (final c in _nameControllers.values) {
+      c.dispose();
+    }
+    for (final c in _descControllers.values) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -1201,11 +956,7 @@ class _StepMapActivitiesState extends ConsumerState<_StepMapActivities> {
     try {
       final token = dotenv.env['MAPBOX_ACCESS_TOKEN'] ?? '';
       final draft = ref.read(tripDraftProvider);
-      // Use proximity of current map center if available, fallback to Cairo
-      final prox = _StepBasicInfoState.egyptGovernorates.firstWhere(
-        (g) => g['name'] == draft.destination,
-        orElse: () => _StepBasicInfoState.egyptGovernorates[0],
-      );
+      final prox = governorateByName(draft.destination.isNotEmpty ? draft.destination : null);
       final url = 'https://api.mapbox.com/geocoding/v5/mapbox.places/'
           '${Uri.encodeComponent(query)}.json'
           '?proximity=${prox["lng"]},${prox["lat"]}'
@@ -1369,10 +1120,7 @@ class _StepMapActivitiesState extends ConsumerState<_StepMapActivities> {
     _polylineManager = await controller.annotations.createPolylineAnnotationManager();
 
     final draft = ref.read(tripDraftProvider);
-    final gov = _StepBasicInfoState.egyptGovernorates.firstWhere(
-      (g) => g['name'] == draft.destination,
-      orElse: () => _StepBasicInfoState.egyptGovernorates[0],
-    );
+    final gov = governorateByName(draft.destination.isNotEmpty ? draft.destination : null);
     _moveToLocation(gov['lat'], gov['lng']);
 
     _refreshMapOverlays();
@@ -1662,6 +1410,7 @@ class _StepMapActivitiesState extends ConsumerState<_StepMapActivities> {
   Widget build(BuildContext context) {
     final draft = ref.watch(tripDraftProvider);
     final notifier = ref.read(tripDraftProvider.notifier);
+    _syncActivityControllers(draft.activities);
 
     ref.listen<TripDraft>(tripDraftProvider, (previous, next) {
       if (previous?.activities != next.activities || previous?.route != next.route) {
@@ -1669,11 +1418,13 @@ class _StepMapActivitiesState extends ConsumerState<_StepMapActivities> {
       }
     });
 
+    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
+    final mapHeight = keyboardOpen ? 200.0 : 280.0;
+
     return Column(
       children: [
-        // Map Area
         SizedBox(
-          height: 400,
+          height: mapHeight,
           child: Stack(
             children: [
               mb.MapWidget(
@@ -1685,6 +1436,16 @@ class _StepMapActivitiesState extends ConsumerState<_StepMapActivities> {
                 styleUri: mb.MapboxStyles.OUTDOORS,
                 onMapCreated: _onMapCreated,
                 onTapListener: _onMapTap,
+              ),
+              Positioned(
+                top: 10,
+                left: 10,
+                child: FloatingActionButton.small(
+                  heroTag: 'expand_map',
+                  backgroundColor: Colors.white,
+                  onPressed: _openFullscreenMap,
+                  child: const Icon(Icons.fullscreen, color: Colors.orange),
+                ),
               ),
               Positioned(
                 top: 15,
@@ -1859,7 +1620,8 @@ class _StepMapActivitiesState extends ConsumerState<_StepMapActivities> {
                   ),
                 )
               : ListView.builder(
-                  padding: const EdgeInsets.all(16),
+                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                  padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + MediaQuery.viewInsetsOf(context).bottom),
                   itemCount: draft.activities.length + 1,
                   itemBuilder: (context, i) {
                     if (i == draft.activities.length) {
@@ -1905,8 +1667,7 @@ class _StepMapActivitiesState extends ConsumerState<_StepMapActivities> {
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: TextField(
-                                    controller: TextEditingController(text: activity.name)
-                                      ..selection = TextSelection.collapsed(offset: activity.name.length),
+                                    controller: _nameControllers[i],
                                     onTap: () {
                                       setState(() {
                                         _selectedActivityIndex = i;
@@ -1977,14 +1738,13 @@ class _StepMapActivitiesState extends ConsumerState<_StepMapActivities> {
                                   ),
                             const SizedBox(height: 8),
                             TextField(
-                              controller: TextEditingController(text: activity.description)
-                                ..selection = TextSelection.collapsed(offset: activity.description.length),
+                              controller: _descControllers[i],
                               onChanged: (v) {
                                 final items = List<DraftActivity>.from(draft.activities);
                                 items[i] = items[i].copyWith(description: v);
                                 notifier.setActivities(items);
                               },
-                              maxLines: 2,
+                              maxLines: 3,
                               style: const TextStyle(fontSize: 12),
                               decoration: InputDecoration(
                                 hintText: 'وصف المكان (اختياري)',
@@ -2016,6 +1776,30 @@ class _StepOrganizeDays extends ConsumerStatefulWidget {
 
 class _StepOrganizeDaysState extends ConsumerState<_StepOrganizeDays> {
   int _selectedDayIndex = 0;
+
+  String _activityDayLabels(TripDraft draft, int activityIndex) {
+    final labels = <String>[];
+    for (var d = 0; d < draft.days.length; d++) {
+      if (draft.days[d].activityIndices.contains(activityIndex)) {
+        labels.add(draft.days[d].title);
+      }
+    }
+    return labels.isEmpty ? '' : labels.join('، ');
+  }
+
+  void _copyFromPreviousDay(TripDraft draft, TripDraftNotifier notifier) {
+    if (_selectedDayIndex == 0) return;
+    final newDays = List<DraftDay>.from(draft.days);
+    final prev = newDays[_selectedDayIndex - 1].activityIndices;
+    newDays[_selectedDayIndex] = DraftDay(
+      title: newDays[_selectedDayIndex].title,
+      activityIndices: List<int>.from(prev),
+    );
+    notifier.setDays(newDays);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('تم نسخ أنشطة ${newDays[_selectedDayIndex - 1].title}')),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -2109,7 +1893,18 @@ class _StepOrganizeDaysState extends ConsumerState<_StepOrganizeDays> {
             children: [
               const Icon(Icons.touch_app, size: 16, color: Colors.grey),
               const SizedBox(width: 6),
-              Text('اضغط على نشاط لإضافته لـ ${selectedDay.title}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+              Expanded(
+                child: Text(
+                  'اضغط على نشاط لإضافته لـ ${selectedDay.title}',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ),
+              if (_selectedDayIndex > 0)
+                TextButton.icon(
+                  onPressed: () => _copyFromPreviousDay(draft, notifier),
+                  icon: const Icon(Icons.copy, size: 14),
+                  label: const Text('نسخ من اليوم السابق', style: TextStyle(fontSize: 11)),
+                ),
             ],
           ),
         ),
@@ -2122,6 +1917,7 @@ class _StepOrganizeDaysState extends ConsumerState<_StepOrganizeDays> {
                   itemBuilder: (context, i) {
                     final activity = draft.activities[i];
                     final isAssigned = assignedIndices.contains(i);
+                    final otherDays = _activityDayLabels(draft, i);
                     return Card(
                       margin: const EdgeInsets.only(bottom: 10),
                       shape: RoundedRectangleBorder(
@@ -2150,9 +1946,15 @@ class _StepOrganizeDaysState extends ConsumerState<_StepOrganizeDays> {
                                 child: Icon(Icons.place, color: isAssigned ? Colors.orange : Colors.grey, size: 20),
                               ),
                         title: Text(activity.name, style: TextStyle(fontWeight: isAssigned ? FontWeight.bold : FontWeight.normal)),
-                        subtitle: activity.lat != null
-                            ? Text('${activity.lat!.toStringAsFixed(3)}, ${activity.lng!.toStringAsFixed(3)}', style: const TextStyle(fontSize: 10))
-                            : null,
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (activity.lat != null)
+                              Text('${activity.lat!.toStringAsFixed(3)}, ${activity.lng!.toStringAsFixed(3)}', style: const TextStyle(fontSize: 10)),
+                            if (otherDays.isNotEmpty && !isAssigned)
+                              Text('مُضاف في: $otherDays', style: TextStyle(fontSize: 10, color: Colors.blue[700])),
+                          ],
+                        ),
                         trailing: isAssigned
                             ? const Icon(Icons.check_circle, color: Colors.orange)
                             : const Icon(Icons.add_circle_outline, color: Colors.grey),
@@ -2172,70 +1974,135 @@ class _StepFinalReview extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final draft = ref.watch(tripDraftProvider);
+    final cover = draft.coverImageUrl.isNotEmpty
+        ? (draft.coverImageUrl.startsWith('http')
+            ? NetworkImage(draft.coverImageUrl)
+            : FileImage(File(draft.coverImageUrl)) as ImageProvider)
+        : null;
 
     return ListView(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(0),
       children: [
-        const Text('المراجعة النهائية', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 24),
-        _buildInfoRow('العنوان', draft.title),
-        _buildInfoRow('الوجهة', draft.destination),
-        _buildInfoRow('المدة', draft.duration),
-        _buildInfoRow('الميزانية', draft.budget),
-        const SizedBox(height: 16),
-        const Text('الأنشطة المضافة:', style: TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        for (var act in draft.activities)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8.0),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Icon(Icons.check_circle, color: Colors.green, size: 14),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(act.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                      if (act.lat != null)
-                        Text(
-                          '${act.lat!.toStringAsFixed(4)}, ${act.lng!.toStringAsFixed(4)}',
-                          style: TextStyle(fontSize: 10, color: Colors.grey[600]),
-                        ),
-                      if (act.description.isNotEmpty)
-                        Text(act.description, style: TextStyle(fontSize: 11, color: Colors.grey[700])),
-                      if (act.images.isNotEmpty || act.videos.isNotEmpty || act.imagePath != null)
-                        Text(
-                          '${act.images.length + (act.imagePath != null ? 1 : 0)} صورة • ${act.videos.length} فيديو',
-                          style: TextStyle(fontSize: 10, color: Colors.indigo[400]),
-                        ),
-                    ],
+        if (cover != null)
+          Stack(
+            children: [
+              SizedBox(
+                height: 220,
+                width: double.infinity,
+                child: Image(image: cover, fit: BoxFit.cover),
+              ),
+              Container(
+                height: 220,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.transparent, Colors.black.withValues(alpha: 0.75)],
                   ),
                 ),
-              ],
-            ),
+              ),
+              Positioned(
+                bottom: 16,
+                right: 16,
+                left: 16,
+                child: Text(
+                  draft.title.isNotEmpty ? draft.title : 'رحلتك الجديدة',
+                  style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
           ),
-        const SizedBox(height: 32),
-        const Text(
-          'بضغطك على "نشر الرحلة"، سيتم مشاركة تجربتك مع باقي المسافرين. هل أنت مستعد؟',
-          style: TextStyle(color: Colors.grey, fontSize: 12),
-          textAlign: TextAlign.center,
+        Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (cover == null)
+                Text(
+                  draft.title.isNotEmpty ? draft.title : 'رحلتك الجديدة',
+                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  if (draft.destination.isNotEmpty) _chip('📍 ${draft.destination}'),
+                  if (draft.duration.isNotEmpty) _chip('⏱ ${draft.duration}'),
+                  if (draft.budget.isNotEmpty) _chip('💰 ${draft.budget}'),
+                ],
+              ),
+              if (draft.description.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                const Text('نظرة عامة', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFFF59E0B))),
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(draft.description, style: const TextStyle(height: 1.7, fontSize: 15)),
+                ),
+              ],
+              const SizedBox(height: 24),
+              const Text('الأنشطة والمواقع', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+              ...draft.activities.asMap().entries.map((e) {
+                final act = e.value;
+                final dayNum = draft.days.indexWhere((d) => d.activityIndices.contains(e.key));
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: Colors.orange.shade100,
+                      child: Text('${e.key + 1}', style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
+                    ),
+                    title: Text(act.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text(
+                      [
+                        if (dayNum >= 0) draft.days[dayNum].title,
+                        if (act.description.isNotEmpty) act.description,
+                      ].join(' • '),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                );
+              }),
+              if (draft.hotels.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                const Text('الإقامة', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                ...draft.hotels.map((h) => ListTile(
+                      leading: const Icon(Icons.hotel, color: Colors.blue),
+                      title: Text(h.name),
+                      subtitle: Text(h.stayDays > 1 ? '${h.description} (${h.stayDays} ليالي)' : h.description),
+                    )),
+              ],
+              const SizedBox(height: 24),
+              const Text(
+                'بضغطك على "نشر الرحلة"، سيتم مشاركة تجربتك مع باقي المسافرين.',
+                style: TextStyle(color: Colors.grey, fontSize: 12),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: const TextStyle(color: Colors.grey)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
-        ],
+  Widget _chip(String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        borderRadius: BorderRadius.circular(20),
       ),
+      child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
     );
   }
 }
@@ -2387,6 +2254,7 @@ class _StepHotelsState extends ConsumerState<_StepHotels> {
     final descCtrl = TextEditingController();
     File? selectedImage;
     String? base64Img;
+    int stayDays = 1;
 
     showDialog(
       context: context,
@@ -2400,6 +2268,20 @@ class _StepHotelsState extends ConsumerState<_StepHotels> {
                 TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'اسم الفندق')),
                 const SizedBox(height: 8),
                 TextField(controller: descCtrl, decoration: const InputDecoration(labelText: 'وصف الفندق')),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    const Text('مدة الإقامة:', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(width: 12),
+                    DropdownButton<int>(
+                      value: stayDays,
+                      items: List.generate(14, (i) => i + 1)
+                          .map((d) => DropdownMenuItem(value: d, child: Text('$d ${d == 1 ? 'ليلة' : 'ليالي'}')))
+                          .toList(),
+                      onChanged: (v) => setDialogState(() => stayDays = v ?? 1),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 12),
                 GestureDetector(
                   onTap: () async {
@@ -2436,7 +2318,7 @@ class _StepHotelsState extends ConsumerState<_StepHotels> {
             ElevatedButton(
               onPressed: () {
                 ref.read(tripDraftProvider.notifier).addHotel(
-                  DraftHotel(name: nameCtrl.text, description: descCtrl.text, image: base64Img),
+                  DraftHotel(name: nameCtrl.text, description: descCtrl.text, image: base64Img, stayDays: stayDays),
                 );
                 Navigator.pop(context);
               },
@@ -2482,7 +2364,11 @@ class _StepHotelsState extends ConsumerState<_StepHotels> {
                       child: ListTile(
                         leading: _draftImageLeading(hotel.image, Icons.hotel, Colors.blue),
                         title: Text(hotel.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text(hotel.description),
+                        subtitle: Text(
+                          hotel.stayDays > 1
+                              ? '${hotel.description}\n🛏️ ${hotel.stayDays} ليالي'
+                              : hotel.description,
+                        ),
                         trailing: IconButton(
                           icon: const Icon(Icons.delete, color: Colors.red),
                           onPressed: () => ref.read(tripDraftProvider.notifier).removeHotel(i),
