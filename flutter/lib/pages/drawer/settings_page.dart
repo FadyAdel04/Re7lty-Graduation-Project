@@ -9,6 +9,7 @@ import '../../core/env_config.dart';
 import '../../services/api_service.dart';
 import '../../providers/trip_wizard_provider.dart';
 import '../../providers/theme_provider.dart';
+import '../../providers/api_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../providers/auth_bootstrap_provider.dart';
 
@@ -185,6 +186,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     if (saved == true && controller.text.trim().isNotEmpty) {
       await EnvConfig.setApiBaseUrlOverride(controller.text.trim());
       ref.invalidate(apiServiceProvider);
+      ref.invalidate(userServiceProvider);
+      ref.invalidate(currentUserProvider);
+      ref.invalidate(authBootstrapProvider);
       ref.invalidate(tripPlanServiceProvider);
       if (mounted) {
         setState(() {});
@@ -197,6 +201,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       }
     } else if (saved == true) {
       ref.invalidate(apiServiceProvider);
+      ref.invalidate(userServiceProvider);
+      ref.invalidate(currentUserProvider);
+      ref.invalidate(authBootstrapProvider);
       ref.invalidate(tripPlanServiceProvider);
       if (mounted) setState(() {});
     }

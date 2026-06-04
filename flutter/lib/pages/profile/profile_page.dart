@@ -67,6 +67,49 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage> with TickerPr
     super.dispose();
   }
 
+  Widget _buildProfileLoadError(BuildContext context, Object error) {
+    final isAuth = error is AuthException;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              isAuth ? Icons.lock_outline : Icons.cloud_off_outlined,
+              size: 48,
+              color: isAuth ? Colors.orange : Colors.red.shade300,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'خطأ في تحميل البيانات',
+              style: GoogleFonts.cairo(fontSize: 18, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              isAuth
+                  ? 'تعذّر التحقق من حسابك. تأكد أنك مسجّل الدخول وأن عنوان السيرفر في الإعدادات يطابق مشروع Clerk والـ Backend.'
+                  : error.toString(),
+              style: GoogleFonts.cairo(fontSize: 14, color: Colors.grey),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            FilledButton.icon(
+              onPressed: () {
+                ref.read(apiServiceProvider).invalidateTokenCache();
+                ref.invalidate(userProfileProvider(widget.userId));
+              },
+              icon: const Icon(Icons.refresh_rounded),
+              label: Text('إعادة المحاولة', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+              style: FilledButton.styleFrom(backgroundColor: AppColors.primaryOrange),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _pickAndCropImage(bool isCover) async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
     if (image == null) return;
@@ -148,7 +191,7 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage> with TickerPr
           return _buildProfileBody(context, user, isDark);
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, s) => Center(child: Text('خطأ في تحميل البيانات: $e')),
+        error: (e, s) => _buildProfileLoadError(context, e),
       ),
     );
   }

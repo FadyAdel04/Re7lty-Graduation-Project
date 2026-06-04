@@ -4,6 +4,8 @@
 
 import 'dart:convert';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../core/env_config.dart';
 import '../models/trip_wizard_state.dart';
 import '../constants/egypt_data.dart';

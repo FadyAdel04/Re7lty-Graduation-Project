@@ -1,8 +1,12 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/env_config.dart';
 import '../core/exceptions.dart';
+
+const _retryAfter401Key = 'retry_after_401';
 
 class ApiService {
   late Dio _dio;
@@ -15,7 +19,7 @@ class ApiService {
   // Token cache to avoid fetching a new token on every request
   String? _cachedToken;
   DateTime? _tokenCachedAt;
-  static const _tokenCacheDuration = Duration(seconds: 55); // Clerk tokens expire in 60s
+  static const _tokenCacheDuration = Duration(seconds: 45);
 
   ApiService() {
     baseUrl = EnvConfig.apiBaseUrl;
@@ -44,7 +48,22 @@ class ApiService {
       onResponse: (response, handler) {
         return handler.next(response);
       },
-      onError: (DioException e, handler) {
+      onError: (DioException e, handler) async {
+        if (e.response?.statusCode == 401 &&
+            e.requestOptions.extra[_retryAfter401Key] != true) {
+          invalidateTokenCache();
+          try {
+            final token = await _getToken();
+            if (token != null && token.isNotEmpty) {
+              final opts = e.requestOptions;
+              opts.extra[_retryAfter401Key] = true;
+              opts.headers['Authorization'] = 'Bearer $token';
+              final response = await _dio.fetch(opts);
+              return handler.resolve(response);
+            }
+          } catch (_) {}
+        }
+
         final appException = handleDioError(e);
         print('❌ ApiService Error: ${appException.message}');
         return handler.next(e);
@@ -57,7 +76,7 @@ class ApiService {
     // 1. Use cached token if still valid
     if (_cachedToken != null && _tokenCachedAt != null) {
       final age = DateTime.now().difference(_tokenCachedAt!);
-      if (age < _tokenCacheDuration) {
+      if (age < _tokenCacheDuration && !_isJwtExpired(_cachedToken!)) {
         return _cachedToken;
       }
     }
@@ -66,11 +85,14 @@ class ApiService {
     if (tokenGetter != null) {
       try {
         final freshToken = await tokenGetter!();
-        if (freshToken != null) {
+        if (freshToken != null && freshToken.isNotEmpty && !_isJwtExpired(freshToken)) {
           print('🔑 ApiService: Fresh token fetched and cached');
           _cachedToken = freshToken;
           _tokenCachedAt = DateTime.now();
           return freshToken;
+        }
+        if (freshToken != null && freshToken.isNotEmpty) {
+          invalidateTokenCache();
         }
       } catch (e) {
         print('⚠️ ApiService: tokenGetter error: $e');
@@ -98,6 +120,21 @@ class ApiService {
   void invalidateTokenCache() {
     _cachedToken = null;
     _tokenCachedAt = null;
+  }
+
+  static bool _isJwtExpired(String jwt) {
+    try {
+      final parts = jwt.split('.');
+      if (parts.length != 3) return true;
+      final normalized = base64Url.normalize(parts[1]);
+      final payload = json.decode(utf8.decode(base64Url.decode(normalized)));
+      final exp = payload['exp'];
+      if (exp is! num) return false;
+      final expiryMs = exp.toInt() * 1000;
+      return DateTime.now().millisecondsSinceEpoch >= expiryMs - 10000;
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<Response> get(String path, {Map<String, dynamic>? queryParameters}) async {

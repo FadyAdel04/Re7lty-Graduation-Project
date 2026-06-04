@@ -284,7 +284,7 @@ class _CorporateTripsPageState extends ConsumerState<CorporateTripsPage> {
     final destination = trip['destination'] ?? 'وجهة مميزة';
     final company = trip['companyId'] as Map?;
     final companyName = company?['name'] ?? 'شركة سياحة';
-    final companyLogo = company?['logo'] ?? 'https://via.placeholder.com/150';
+    final companyLogo = company?['logo'] as String?;
     final imgUrl = (trip['images'] as List?)?.isNotEmpty == true ? trip['images'][0] : 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=400';
 
     return Container(
@@ -345,7 +345,13 @@ class _CorporateTripsPageState extends ConsumerState<CorporateTripsPage> {
                   backgroundColor: AppColors.primaryOrange,
                   child: CircleAvatar(
                     radius: 20,
-                    backgroundImage: NetworkImage(companyLogo),
+                    backgroundColor: Colors.white,
+                    backgroundImage: companyLogo != null && companyLogo.isNotEmpty
+                        ? NetworkImage(companyLogo)
+                        : null,
+                    child: companyLogo == null || companyLogo.isEmpty
+                        ? const Icon(Icons.business, color: AppColors.primaryOrange, size: 22)
+                        : null,
                   ),
                 ),
               ),
@@ -456,7 +462,16 @@ class _CorporateTripsPageState extends ConsumerState<CorporateTripsPage> {
                     const SizedBox(width: 8),
                     Text('بواسطة', style: GoogleFonts.cairo(fontSize: 11, color: Colors.grey)),
                     const SizedBox(width: 8),
-                    CircleAvatar(radius: 12, backgroundImage: NetworkImage(companyLogo)),
+                    CircleAvatar(
+                      radius: 12,
+                      backgroundColor: AppColors.primaryOrange.withValues(alpha: 0.15),
+                      backgroundImage: companyLogo != null && companyLogo.isNotEmpty
+                          ? NetworkImage(companyLogo)
+                          : null,
+                      child: companyLogo == null || companyLogo.isEmpty
+                          ? const Icon(Icons.business, size: 14, color: AppColors.primaryOrange)
+                          : null,
+                    ),
                   ],
                 ),
               ],

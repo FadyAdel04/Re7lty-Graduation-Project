@@ -409,39 +409,46 @@ class _AuthTokenSyncState extends State<_AuthTokenSync> {
   @override
   void initState() {
     super.initState();
-    // Set a dynamic token getter that fetches fresh token from Clerk
-    widget.ref.read(apiServiceProvider).tokenGetter = () async {
-      if (!mounted) return null;
-      
-      try {
-        final auth = ClerkAuth.of(context);
-        if (auth.session == null) {
-          print('⏳ tokenGetter: No session available');
-          return null;
-        }
-        
-        print('⏳ tokenGetter: Fetching session token...');
-        final token = await auth.sessionToken();
-        return token?.jwt;
-      } catch (e) {
-        print('❌ tokenGetter Error: $e');
-        return null;
-      }
-    };
+    _bindTokenGetter();
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _bindTokenGetter();
     _syncToken();
   }
 
+  /// Re-attach after [apiServiceProvider] invalidation (e.g. server URL change).
+  void _bindTokenGetter() {
+    widget.ref.read(apiServiceProvider).tokenGetter = () async {
+      if (!mounted) return null;
+
+      try {
+        final auth = ClerkAuth.of(context, listen: false);
+        if (auth.session == null) {
+          debugPrint('⏳ tokenGetter: No session available');
+          return null;
+        }
+
+        final token = await auth.sessionToken();
+        final jwt = token.jwt;
+        if (jwt.isEmpty) return null;
+        return jwt;
+      } catch (e) {
+        debugPrint('❌ tokenGetter Error: $e');
+        return null;
+      }
+    };
+  }
+
   Future<void> _syncToken() async {
-    final auth = ClerkAuth.of(context);
+    final auth = ClerkAuth.of(context, listen: false);
     final sessionId = auth.session?.id;
 
     if (sessionId != _lastSessionId) {
       _lastSessionId = sessionId;
+      widget.ref.read(apiServiceProvider).invalidateTokenCache();
       if (sessionId == null) {
         widget.ref.read(apiServiceProvider).setToken(null);
       }
@@ -449,7 +456,10 @@ class _AuthTokenSyncState extends State<_AuthTokenSync> {
   }
 
   @override
-  Widget build(BuildContext context) => widget.child;
+  Widget build(BuildContext context) {
+    _bindTokenGetter();
+    return widget.child;
+  }
 }
 
 class SplashPage extends ConsumerStatefulWidget {
