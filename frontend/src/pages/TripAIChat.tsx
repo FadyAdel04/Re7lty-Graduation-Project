@@ -55,12 +55,13 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { sendMessageToAI, generateItinerary, type AIResponse, type ItineraryDay, type GeneratedItineraryResponse } from "@/lib/openrouter-client";
 import { buildSmartItinerary, normalizePlaces, calculateTransportOptions } from "@/lib/itinerary-engine";
 import CityWeatherAdvisor from "@/components/CityWeatherAdvisor";
+import TourGuideChat from "@/components/TourGuideChat";
 
 /* ─────────────────────────────────────────────
    TYPES
    ───────────────────────────────────────────── */
 
-type WizardMode = "idle" | "smart" | "custom";
+type WizardMode = "idle" | "smart" | "custom" | "chat";
 
 type TransportOption = {
   type: string;
@@ -1700,6 +1701,40 @@ const TripAIChat = () => {
                 </div>
               </motion.button>
 
+              {/* AI Tour Guide Chat Card */}
+              <motion.button
+                whileHover={{ scale: 1.02, y: -8 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setMode("chat")}
+                className="group relative bg-card border border-border rounded-[2.5rem] p-10 text-right hover:border-emerald-200 hover:shadow-[0_40px_80px_-20px_rgba(16,185,129,0.15)] transition-all duration-500 overflow-hidden flex items-center gap-8"
+              >
+                <div className="absolute top-0 left-0 w-2 h-full bg-gradient-to-b from-emerald-500 to-teal-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                
+                {/* Animated glow */}
+                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/[0.03] to-teal-500/[0.05] opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-emerald-50 to-teal-100 flex items-center justify-center shrink-0 group-hover:rotate-6 transition-transform duration-500 shadow-inner relative">
+                  <span className="text-4xl">🗺️</span>
+                  <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
+                    <MessageCircle className="w-2.5 h-2.5 text-white" />
+                  </div>
+                </div>
+                
+                <div className="flex-1">
+                  <h3 className="text-2xl font-black text-foreground mb-2 flex items-center justify-end gap-3">
+                    <span>دردش مع المرشد</span>
+                    <Badge className="bg-emerald-600 text-white border-0 font-black text-[10px]">جديد ✨</Badge>
+                  </h3>
+                  <p className="text-sm text-muted-foreground font-medium leading-relaxed">
+                    تحدث مع مرشد سياحي خبير يعرف كل الوجهات، المطاعم، الفنادق ومعلومات Re7lty.
+                  </p>
+                  <div className="flex items-center justify-end gap-2 mt-6 text-emerald-600 font-black text-sm">
+                    <span>ابدأ المحادثة</span>
+                    <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+                  </div>
+                </div>
+              </motion.button>
+
               {!isSignedIn && (
                 <motion.div 
                   initial={{ opacity: 0 }} 
@@ -1725,6 +1760,51 @@ const TripAIChat = () => {
             </motion.div>
           </div>
         </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  // ─── CHAT MODE ───
+  if (mode === "chat") {
+    return (
+      <div className="min-h-screen flex flex-col bg-background transition-colors duration-500 font-cairo overflow-x-hidden" dir="rtl">
+        <Header />
+
+        {/* Background layers */}
+        <div className="fixed inset-0 pointer-events-none z-0">
+          <div className="absolute top-[-10%] right-[-10%] w-[700px] h-[700px] bg-emerald-50/30 dark:bg-emerald-950/20 rounded-full blur-[150px] animate-pulse" />
+          <div className="absolute bottom-[-10%] left-[-10%] w-[700px] h-[700px] bg-teal-50/30 dark:bg-teal-950/20 rounded-full blur-[150px] animate-pulse delay-1000" />
+        </div>
+
+        <main className="flex-1 flex flex-col relative z-10 overflow-hidden" style={{ height: 'calc(100vh - 64px)' }}>
+          {/* Title bar */}
+          <div className="flex items-center gap-4 px-6 py-4 border-b border-border bg-card/80 backdrop-blur-xl shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-lg shadow-lg">
+                🗺️
+              </div>
+              <div>
+                <h2 className="font-black text-foreground text-lg leading-none">رحّال - المرشد السياحي الذكي</h2>
+                <p className="text-[11px] text-emerald-600 font-bold mt-0.5">اسأله عن أي وجهة أو مدينة في العالم</p>
+              </div>
+            </div>
+            <div className="mr-auto flex items-center gap-2">
+              <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-100 font-black text-[10px] gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse" />
+                متصل الآن
+              </Badge>
+            </div>
+          </div>
+
+          {/* Chat panel */}
+          <div className="flex-1 min-h-0 max-w-4xl w-full mx-auto px-3 sm:px-4 md:px-6 pt-2 pb-0 flex flex-col">
+            <div className="flex-1 min-h-0 bg-card/80 backdrop-blur-xl rounded-t-[2rem] border border-border border-b-0 shadow-2xl overflow-hidden flex flex-col">
+              <TourGuideChat onBack={() => setMode('idle')} />
+            </div>
+          </div>
+        </main>
+
         <Footer />
       </div>
     );
