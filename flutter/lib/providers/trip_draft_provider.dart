@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../models/trip.dart';
+
+enum TripPostType { detailed, quick, ask }
 
 class TripDraft {
   String title;
@@ -17,6 +18,8 @@ class TripDraft {
   List<DraftFood> foodPlaces;
   List<DraftHotel> hotels;
   List<Map<String, String>> taggedUsers;
+  /// Manual route points drawn on map: each item is [lat, lng].
+  List<List<double>> route;
 
   TripDraft({
     this.title = '',
@@ -34,6 +37,7 @@ class TripDraft {
     this.foodPlaces = const [],
     this.hotels = const [],
     this.taggedUsers = const [],
+    this.route = const [],
   });
 
   TripDraft copyWith({
@@ -52,6 +56,7 @@ class TripDraft {
     List<DraftFood>? foodPlaces,
     List<DraftHotel>? hotels,
     List<Map<String, String>>? taggedUsers,
+    List<List<double>>? route,
   }) {
     return TripDraft(
       title: title ?? this.title,
@@ -69,6 +74,7 @@ class TripDraft {
       foodPlaces: foodPlaces ?? this.foodPlaces,
       hotels: hotels ?? this.hotels,
       taggedUsers: taggedUsers ?? this.taggedUsers,
+      route: route ?? this.route,
     );
   }
 }
@@ -91,6 +97,26 @@ class DraftActivity {
     this.images = const [],
     this.videos = const [],
   });
+
+  DraftActivity copyWith({
+    String? name,
+    String? description,
+    double? lat,
+    double? lng,
+    String? imagePath,
+    List<dynamic>? images,
+    List<dynamic>? videos,
+  }) {
+    return DraftActivity(
+      name: name ?? this.name,
+      description: description ?? this.description,
+      lat: lat ?? this.lat,
+      lng: lng ?? this.lng,
+      imagePath: imagePath ?? this.imagePath,
+      images: images ?? this.images,
+      videos: videos ?? this.videos,
+    );
+  }
 }
 
 class DraftDay {
@@ -122,6 +148,7 @@ class DraftHotel {
   String location;
   String bookingUrl;
   dynamic image;
+  int stayDays;
 
   DraftHotel({
     this.name = '',
@@ -129,6 +156,7 @@ class DraftHotel {
     this.location = '',
     this.bookingUrl = '',
     this.image,
+    this.stayDays = 1,
   });
 }
 
@@ -175,8 +203,45 @@ class TripDraftNotifier extends StateNotifier<TripDraft> {
     state = state.copyWith(hotels: [...state.hotels, hotel]);
   }
 
+  void removeFoodPlace(int index) {
+    final list = List<DraftFood>.from(state.foodPlaces)..removeAt(index);
+    state = state.copyWith(foodPlaces: list);
+  }
+
+  void removeHotel(int index) {
+    final list = List<DraftHotel>.from(state.hotels)..removeAt(index);
+    state = state.copyWith(hotels: list);
+  }
+
+  void addTaggedUser(Map<String, String> user) {
+    if (state.taggedUsers.any((t) => t['userId'] == user['userId'])) return;
+    state = state.copyWith(taggedUsers: [...state.taggedUsers, user]);
+  }
+
+  void removeTaggedUser(String userId) {
+    state = state.copyWith(
+      taggedUsers: state.taggedUsers.where((t) => t['userId'] != userId).toList(),
+    );
+  }
+
+  void setRoute(List<List<double>> route) {
+    state = state.copyWith(route: route);
+  }
+
+  void addRoutePoint(double lat, double lng) {
+    state = state.copyWith(route: [...state.route, [lat, lng]]);
+  }
+
+  void clearRoute() {
+    state = state.copyWith(route: const []);
+  }
+
   void reset() {
     state = TripDraft();
+  }
+
+  void loadDraft(TripDraft draft) {
+    state = draft;
   }
 }
 

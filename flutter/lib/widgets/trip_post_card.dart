@@ -13,9 +13,12 @@ import '../providers/theme_provider.dart';
 import '../services/trip_service.dart';
 import '../providers/trip_provider.dart';
 import '../providers/api_provider.dart';
+import '../pages/home/home_page.dart';
 
+import '../utils/navigation_utils.dart';
 import '../theme/app_colors.dart';
 import 'package:clerk_flutter/clerk_flutter.dart';
+import 'report_trip_dialog.dart';
 
 class TripPostCard extends ConsumerStatefulWidget {
   final Trip trip;
@@ -48,21 +51,35 @@ class _TripPostCardState extends ConsumerState<TripPostCard> {
 
   void _handleLike() async {
     final previouslyLiked = _isLiked;
+    final previousCount = _likeCount;
     setState(() {
       _isLiked = !_isLiked;
-      if (_isLiked) _likeCount++;
-      else _likeCount = (_likeCount > 0) ? _likeCount - 1 : 0;
+      if (_isLiked) {
+        _likeCount++;
+      } else {
+        _likeCount = (_likeCount > 0) ? _likeCount - 1 : 0;
+      }
     });
 
-    final success = await ref.read(tripServiceProvider).toggleLike(widget.trip.id);
-    
-    if (mounted && !success) {
-      // Revert if API fails
-      setState(() {
-        _isLiked = previouslyLiked;
-        if (_isLiked) _likeCount++;
-        else _likeCount = (_likeCount > 0) ? _likeCount - 1 : 0;
-      });
+    try {
+      final loved = await ref.read(tripServiceProvider).toggleLike(widget.trip.id);
+      if (mounted) {
+        setState(() {
+          _isLiked = loved;
+          if (loved && !previouslyLiked) {
+            _likeCount = previousCount + 1;
+          } else if (!loved && previouslyLiked) {
+            _likeCount = (previousCount > 0) ? previousCount - 1 : 0;
+          }
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _isLiked = previouslyLiked;
+          _likeCount = previousCount;
+        });
+      }
     }
   }
 
@@ -70,12 +87,24 @@ class _TripPostCardState extends ConsumerState<TripPostCard> {
     final content = _commentController.text.trim();
     if (content.isEmpty) return;
 
-    final success = await ref.read(tripServiceProvider).addComment(widget.trip.id, content);
-    if (success) {
-      _commentController.clear();
-      if (mounted) {
+    try {
+      final success = await ref.read(tripServiceProvider).addComment(widget.trip.id, content);
+      if (!mounted) return;
+      if (success) {
+        _commentController.clear();
+        ref.invalidate(feedProvider(ref.read(homeFilterProvider)));
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('تم إرسال تعليقك بنجاح!')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('فشل إرسال التعليق'), backgroundColor: Colors.red),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('فشل إرسال التعليق'), backgroundColor: Colors.red),
         );
       }
     }
@@ -174,7 +203,7 @@ class _TripPostCardState extends ConsumerState<TripPostCard> {
       child: Row(
         children: [
           GestureDetector(
-             onTap: () => context.push('/profile/${widget.trip.ownerId}'),
+             onTap: () => pushUserProfile(context, widget.trip.ownerId),
              child: CircleAvatar(
                radius: 24,
                backgroundImage: NetworkImage(widget.trip.authorImage ?? 'https://images.unsplash.com/photo-1519046904884-53103b34b206'),
@@ -216,27 +245,48 @@ class _TripPostCardState extends ConsumerState<TripPostCard> {
             ),
           ),
           _buildPostTypeBadge(widget.trip.postType, isDark),
-          if (ClerkAuth.of(context).user?.id == widget.trip.ownerId)
-            PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert, size: 20),
-              onSelected: (value) {
-                if (value == 'delete') {
-                  _showDeleteConfirmation(context);
-                }
-              },
-              itemBuilder: (context) => [
-                const PopupMenuItem(
-                  value: 'delete',
-                  child: Row(
-                    children: [
-                      Icon(Icons.delete_outline, color: Colors.red, size: 20),
-                      SizedBox(width: 8),
-                      Text('حذف المنشور', style: TextStyle(color: Colors.red)),
-                    ],
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert, size: 20),
+            onSelected: (value) {
+              if (value == 'delete') {
+                _showDeleteConfirmation(context);
+              } else if (value == 'report') {
+                ReportTripDialog.show(
+                  context,
+                  tripId: widget.trip.id,
+                  tripTitle: widget.trip.title,
+                );
+              }
+            },
+            itemBuilder: (context) {
+              final isOwner =
+                  ClerkAuth.of(context).user?.id == widget.trip.ownerId;
+              return [
+                if (!isOwner)
+                  const PopupMenuItem(
+                    value: 'report',
+                    child: Row(
+                      children: [
+                        Icon(Icons.flag_outlined, color: Colors.orange, size: 20),
+                        SizedBox(width: 8),
+                        Text('إبلاغ عن المحتوى'),
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
+                if (isOwner)
+                  const PopupMenuItem(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                        SizedBox(width: 8),
+                        Text('حذف المنشور', style: TextStyle(color: Colors.red)),
+                      ],
+                    ),
+                  ),
+              ];
+            },
+          ),
         ],
       ),
     );
@@ -393,7 +443,7 @@ class _TripPostCardState extends ConsumerState<TripPostCard> {
           right: 25,
           child: _floatingBadge(
             icon: Icons.calendar_today,
-            text: widget.trip.season ?? 'ربيع',
+            text: translateSeason(widget.trip.season),
             color: AppColors.primaryOrange,
           ),
         ),

@@ -62,6 +62,10 @@ import {
 
 const router = express.Router();
 
+/** Heavy fields excluded from list endpoints (keeps mobile payloads small). */
+const TRIP_LIST_PROJECTION =
+    '-transportationImages -seatBookings -comments -stayDetails';
+
 /**
  * @swagger
  * /corporate/trips:
@@ -132,10 +136,12 @@ router.get('/', async (req, res) => {
         if (minRating) query.rating = { $gte: Number(minRating) };
 
         const trips = await CorporateTrip.find(query)
-            .populate('companyId')
+            .select(TRIP_LIST_PROJECTION)
+            .populate('companyId', 'name logo slug')
             .sort({ createdAt: -1 })
             .limit(Number(limit))
-            .skip(Number(skip));
+            .skip(Number(skip))
+            .lean();
 
         const total = await CorporateTrip.countDocuments(query);
 
@@ -257,7 +263,11 @@ router.get('/company/:companyId', async (req, res) => {
 
         // Ensure we're fetching only active trips for public view
         query.isActive = true;
-        const trips = await CorporateTrip.find(query).sort({ rating: -1 });
+        const trips = await CorporateTrip.find(query)
+            .select(TRIP_LIST_PROJECTION)
+            .populate('companyId', 'name logo slug')
+            .sort({ rating: -1 })
+            .lean();
 
         res.json(trips);
     } catch (error) {

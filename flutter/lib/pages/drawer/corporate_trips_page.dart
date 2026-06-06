@@ -7,9 +7,11 @@ import '../../theme/app_colors.dart';
 import '../corporate/corporate_trip_details_page.dart';
 import 'dart:async';
 
-final corporateTripsProvider = FutureProvider.family<List<dynamic>, String>((ref, destination) async {
-  final tripService = ref.watch(tripServiceProvider);
-  final trips = await tripService.getCorporateTrips(destination: destination.isEmpty ? null : destination);
+final corporateTripsPageProvider = FutureProvider.family<List<dynamic>, String>((ref, destination) async {
+  final tripService = ref.read(tripServiceProvider);
+  final trips = await tripService.getCorporateTrips(
+    destination: destination.isEmpty ? null : destination,
+  );
   return trips.map((e) => e.toJson()).toList();
 });
 
@@ -44,7 +46,7 @@ class _CorporateTripsPageState extends ConsumerState<CorporateTripsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final tripsAsync = ref.watch(corporateTripsProvider(_selectedDestination));
+    final tripsAsync = ref.watch(corporateTripsPageProvider(_selectedDestination));
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
@@ -72,7 +74,19 @@ class _CorporateTripsPageState extends ConsumerState<CorporateTripsPage> {
                   },
                 );
               },
-              loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primaryOrange)),
+              loading: () => Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const CircularProgressIndicator(color: AppColors.primaryOrange),
+                    const SizedBox(height: 16),
+                    Text(
+                      'جاري تحميل الرحلات...',
+                      style: GoogleFonts.cairo(color: isDark ? Colors.white70 : Colors.grey),
+                    ),
+                  ],
+                ),
+              ),
               error: (e, st) => _buildErrorState(),
             ),
           ),
@@ -270,7 +284,7 @@ class _CorporateTripsPageState extends ConsumerState<CorporateTripsPage> {
     final destination = trip['destination'] ?? 'وجهة مميزة';
     final company = trip['companyId'] as Map?;
     final companyName = company?['name'] ?? 'شركة سياحة';
-    final companyLogo = company?['logo'] ?? 'https://via.placeholder.com/150';
+    final companyLogo = company?['logo'] as String?;
     final imgUrl = (trip['images'] as List?)?.isNotEmpty == true ? trip['images'][0] : 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=400';
 
     return Container(
@@ -331,7 +345,13 @@ class _CorporateTripsPageState extends ConsumerState<CorporateTripsPage> {
                   backgroundColor: AppColors.primaryOrange,
                   child: CircleAvatar(
                     radius: 20,
-                    backgroundImage: NetworkImage(companyLogo),
+                    backgroundColor: Colors.white,
+                    backgroundImage: companyLogo != null && companyLogo.isNotEmpty
+                        ? NetworkImage(companyLogo)
+                        : null,
+                    child: companyLogo == null || companyLogo.isEmpty
+                        ? const Icon(Icons.business, color: AppColors.primaryOrange, size: 22)
+                        : null,
                   ),
                 ),
               ),
@@ -442,7 +462,16 @@ class _CorporateTripsPageState extends ConsumerState<CorporateTripsPage> {
                     const SizedBox(width: 8),
                     Text('بواسطة', style: GoogleFonts.cairo(fontSize: 11, color: Colors.grey)),
                     const SizedBox(width: 8),
-                    CircleAvatar(radius: 12, backgroundImage: NetworkImage(companyLogo)),
+                    CircleAvatar(
+                      radius: 12,
+                      backgroundColor: AppColors.primaryOrange.withValues(alpha: 0.15),
+                      backgroundImage: companyLogo != null && companyLogo.isNotEmpty
+                          ? NetworkImage(companyLogo)
+                          : null,
+                      child: companyLogo == null || companyLogo.isEmpty
+                          ? const Icon(Icons.business, size: 14, color: AppColors.primaryOrange)
+                          : null,
+                    ),
                   ],
                 ),
               ],
@@ -484,7 +513,10 @@ class _CorporateTripsPageState extends ConsumerState<CorporateTripsPage> {
           const Icon(Icons.wifi_off, size: 60, color: Colors.red),
           const SizedBox(height: 16),
           Text('حدث خطأ في الاتصال', style: GoogleFonts.cairo()),
-          TextButton(onPressed: () => ref.invalidate(corporateTripsProvider), child: const Text('إعادة المحاولة')),
+          TextButton(
+            onPressed: () => ref.invalidate(corporateTripsPageProvider(_selectedDestination)),
+            child: const Text('إعادة المحاولة'),
+          ),
         ],
       ),
     );

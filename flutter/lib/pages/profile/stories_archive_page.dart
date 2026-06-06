@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:clerk_flutter/clerk_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../providers/api_provider.dart';
@@ -6,6 +7,9 @@ import '../../services/api_service.dart';
 import '../../theme/app_colors.dart';
 import 'package:dio/dio.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../models/story.dart';
+import '../story/story_viewer_page.dart';
+import '../../utils/media_url.dart';
 
 class StoriesArchivePage extends ConsumerWidget {
   const StoriesArchivePage({super.key});
@@ -69,15 +73,32 @@ class StoriesArchivePage extends ConsumerWidget {
                     itemCount: stories.length,
                     itemBuilder: (context, sIndex) {
                       final story = stories[sIndex];
-                      return ClipRRect(
+                      return GestureDetector(
+                        onTap: () {
+                          final clerk = ClerkAuth.of(context).user;
+                          final s = Story.fromJson(Map<String, dynamic>.from(story as Map));
+                          final group = UserStoriesGroup(
+                            userId: clerk?.id ?? '',
+                            fullName: clerk?.name ?? 'أنت',
+                            imageUrl: clerk?.imageUrl,
+                            hasUnseen: false,
+                            stories: [s],
+                          );
+                          openStoryViewer(context, group: group, isOwnStories: true);
+                        },
+                        child: ClipRRect(
                         borderRadius: BorderRadius.circular(12),
                         child: Stack(
                           fit: StackFit.expand,
                           children: [
                             CachedNetworkImage(
-                              imageUrl: story['mediaUrl'],
+                              imageUrl: normalizeMediaUrl(story['mediaUrl']?.toString()),
                               fit: BoxFit.cover,
                               placeholder: (context, url) => Container(color: Colors.grey[200]),
+                              errorWidget: (_, __, ___) => Container(
+                                color: Colors.grey[300],
+                                child: const Icon(Icons.broken_image_outlined),
+                              ),
                             ),
                             if (story['mediaType'] == 'video')
                               const Center(child: Icon(Icons.play_circle_fill, color: Colors.white, size: 30)),
@@ -97,6 +118,7 @@ class StoriesArchivePage extends ConsumerWidget {
                             ),
                           ],
                         ),
+                      ),
                       );
                     },
                   ),
@@ -126,7 +148,21 @@ class StoriesArchivePage extends ConsumerWidget {
 }
 
 final storiesArchiveProvider = FutureProvider<Map<String, List<dynamic>>>((ref) async {
-  final api = ref.watch(apiServiceProvider);
-  final response = await api.get('/stories/archive');
-  return Map<String, List<dynamic>>.from(response.data);
+  try {
+    final api = ref.watch(apiServiceProvider);
+    final response = await api.get('/stories/archive');
+    if (response.statusCode != 200) return {};
+    final data = response.data;
+    if (data is! Map) return {};
+    return Map<String, List<dynamic>>.from(
+      data.map((key, value) {
+        if (value is List) {
+          return MapEntry(key.toString(), value);
+        }
+        return MapEntry(key.toString(), <dynamic>[]);
+      }),
+    );
+  } catch (_) {
+    return {};
+  }
 });

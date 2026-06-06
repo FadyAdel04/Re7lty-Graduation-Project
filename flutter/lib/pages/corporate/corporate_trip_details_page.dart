@@ -6,7 +6,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../theme/app_colors.dart';
 import '../../services/api_service.dart';
-import 'corporate_booking_page.dart'; // We will create this
+import '../../providers/api_provider.dart';
+import 'corporate_booking_page.dart';
+import '../../widgets/report_trip_dialog.dart';
 
 class CorporateTripDetailsPage extends ConsumerWidget {
   final Map<String, dynamic> trip;
@@ -25,7 +27,7 @@ class CorporateTripDetailsPage extends ConsumerWidget {
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          _buildSliverAppBar(context, images),
+          _buildSliverAppBar(context, trip, images),
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(20),
@@ -65,7 +67,11 @@ class CorporateTripDetailsPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildSliverAppBar(BuildContext context, List<String> images) {
+  Widget _buildSliverAppBar(
+    BuildContext context,
+    Map<String, dynamic> trip,
+    List<String> images,
+  ) {
     return SliverAppBar(
       expandedHeight: 350,
       pinned: true,
@@ -87,6 +93,21 @@ class CorporateTripDetailsPage extends ConsumerWidget {
           ),
         ),
       ),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.flag_outlined, color: Colors.white),
+          onPressed: () {
+            final id = trip['_id']?.toString() ?? '';
+            final title = trip['title']?.toString() ?? 'رحلة شركة';
+            ReportTripDialog.show(
+              context,
+              tripId: id,
+              tripTitle: title,
+              tripModel: 'CorporateTrip',
+            );
+          },
+        ),
+      ],
     );
   }
 
@@ -456,7 +477,13 @@ class CorporateTripDetailsPage extends ConsumerWidget {
           Text('سيتم إرسال الموقع الدقيق عبر الواتساب فور الحجز', style: GoogleFonts.cairo(color: Colors.white60, fontSize: 11)),
           const SizedBox(height: 16),
           ElevatedButton.icon(
-             onPressed: () {},
+             onPressed: () async {
+               final query = Uri.encodeComponent(loc ?? trip['destination']?.toString() ?? '');
+               final uri = Uri.parse('https://www.google.com/maps/search/?api=1&query=$query');
+               if (await canLaunchUrl(uri)) {
+                 await launchUrl(uri, mode: LaunchMode.externalApplication);
+               }
+             },
              icon: const Icon(Icons.map_outlined),
              label: Text('فتح في خرائط جوجل', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
              style: ElevatedButton.styleFrom(
@@ -503,5 +530,57 @@ class CorporateTripDetailsPage extends ConsumerWidget {
         ],
       ),
     );
+  }
+}
+
+class CorporateTripLoader extends ConsumerStatefulWidget {
+  final String tripId;
+  const CorporateTripLoader({super.key, required this.tripId});
+
+  @override
+  ConsumerState<CorporateTripLoader> createState() => _CorporateTripLoaderState();
+}
+
+class _CorporateTripLoaderState extends ConsumerState<CorporateTripLoader> {
+  Map<String, dynamic>? _trip;
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final api = ref.read(apiServiceProvider);
+      final response = await api.get('/corporate/trips/${widget.tripId}');
+      if (!mounted) return;
+      setState(() {
+        _trip = Map<String, dynamic>.from(response.data as Map);
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (_error != null || _trip == null) {
+      return Scaffold(
+        appBar: AppBar(),
+        body: Center(child: Text('تعذّر تحميل الرحلة', style: GoogleFonts.cairo())),
+      );
+    }
+    return CorporateTripDetailsPage(trip: _trip!);
   }
 }

@@ -3,9 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../models/user.dart';
 import '../../providers/trip_provider.dart';
 import '../../providers/theme_provider.dart';
+import '../../services/api_service.dart';
 import '../../widgets/trip_post_card.dart';
 import '../../pages/profile/profile_page.dart'; // To reuse some logic if needed
 
@@ -24,7 +27,7 @@ class CompanyPage extends ConsumerWidget {
         body: CustomScrollView(
           slivers: [
             _buildSliverAppBar(context, company, isDark),
-            SliverToBoxAdapter(child: _buildCompanyInfo(company)),
+            SliverToBoxAdapter(child: _buildCompanyInfo(context, ref, company)),
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
@@ -62,12 +65,15 @@ class CompanyPage extends ConsumerWidget {
         onPressed: () => context.pop(),
       ),
       actions: [
-        IconButton(icon: const Icon(Icons.share_outlined), onPressed: () {}),
+        IconButton(
+          icon: const Icon(Icons.share_outlined),
+          onPressed: () => Share.share('تعرّف على ${company.fullName ?? 'الشركة'} على Re7lty'),
+        ),
       ],
     );
   }
 
-  Widget _buildCompanyInfo(User company) {
+  Widget _buildCompanyInfo(BuildContext context, WidgetRef ref, User company) {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -122,7 +128,7 @@ class CompanyPage extends ConsumerWidget {
             children: [
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: () {},
+                  onPressed: () => context.push('/messages'),
                   icon: const Icon(Icons.chat_outlined),
                   label: const Text('تواصل معنا'),
                   style: ElevatedButton.styleFrom(
@@ -136,7 +142,7 @@ class CompanyPage extends ConsumerWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () {},
+                  onPressed: () => _openCompanyWebsite(ref, company),
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: AppColors.primaryOrange),
                     foregroundColor: AppColors.primaryOrange,
@@ -151,6 +157,22 @@ class CompanyPage extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _openCompanyWebsite(WidgetRef ref, User company) async {
+    final mongoId = company.companyId;
+    if (mongoId == null || mongoId.isEmpty) return;
+
+    try {
+      final api = ref.read(apiServiceProvider);
+      final res = await api.get('/corporate/companies/$mongoId');
+      final website = res.data['contactInfo']?['website']?.toString() ?? '';
+      if (website.isEmpty) return;
+      final uri = Uri.parse(website.startsWith('http') ? website : 'https://$website');
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+    } catch (_) {}
   }
 
   Widget _buildTripsList(WidgetRef ref, String companyId) {

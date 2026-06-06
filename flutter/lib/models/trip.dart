@@ -63,7 +63,7 @@ class Trip {
 
   factory Trip.fromJson(Map<String, dynamic> json) {
     return Trip(
-      id: json['_id'] ?? '',
+      id: json['_id']?.toString() ?? json['id']?.toString() ?? '',
       title: json['title'] ?? '',
       destination: json['destination'],
       city: json['city'],
@@ -80,24 +80,29 @@ class Trip {
       budget: json['budget'],
       season: json['season'],
       activities: (json['activities'] as List? ?? [])
-          .map((i) => Activity.fromJson(i))
+          .whereType<Map>()
+          .map((i) => Activity.fromJson(Map<String, dynamic>.from(i)))
           .toList(),
       days: (json['days'] as List? ?? [])
-          .map((i) => DayPlan.fromJson(i))
+          .whereType<Map>()
+          .map((i) => DayPlan.fromJson(Map<String, dynamic>.from(i)))
           .toList(),
       foodAndRestaurants: (json['foodAndRestaurants'] as List? ?? [])
-          .map((i) => Food.fromJson(i))
+          .whereType<Map>()
+          .map((i) => Food.fromJson(Map<String, dynamic>.from(i)))
           .toList(),
       hotels: (json['hotels'] as List? ?? [])
-          .map((i) => Hotel.fromJson(i))
+          .whereType<Map>()
+          .map((i) => Hotel.fromJson(Map<String, dynamic>.from(i)))
           .toList(),
       comments: (json['comments'] as List? ?? [])
-          .map((i) => Comment.fromJson(i))
+          .whereType<Map>()
+          .map((i) => Comment.fromJson(Map<String, dynamic>.from(i)))
           .toList(),
       postedAt: json['postedAt'] != null 
           ? DateTime.parse(json['postedAt']) 
           : DateTime.now(),
-      ownerId: json['ownerId'],
+      ownerId: json['ownerId']?.toString(),
       isAIGenerated: json['isAIGenerated'] ?? false,
       postType: json['postType'] ?? 'detailed',
       isLoved: json['viewerLoved'] ?? false,

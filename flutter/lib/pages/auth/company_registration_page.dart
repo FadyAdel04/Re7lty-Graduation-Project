@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../theme/app_colors.dart';
 import '../../services/user_service.dart';
 import '../../providers/api_provider.dart';
+import '../../providers/user_provider.dart';
+import '../../providers/auth_bootstrap_provider.dart';
 
 class CompanyRegistrationPage extends ConsumerStatefulWidget {
   const CompanyRegistrationPage({super.key});
@@ -51,6 +53,12 @@ class _CompanyRegistrationPageState extends ConsumerState<CompanyRegistrationPag
       });
 
       if (success && mounted) {
+        // Mark as onboarded with 'user' role so they don't see onboarding again
+        // They will be a regular user until admin approves them
+        await ref.read(userServiceProvider).completeOnboarding('user');
+        ref.invalidate(currentUserProvider);
+        ref.read(authBootstrapProvider.notifier).markOnboarded();
+
         showDialog(
           context: context,
           barrierDismissible: false,
@@ -58,16 +66,16 @@ class _CompanyRegistrationPageState extends ConsumerState<CompanyRegistrationPag
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             title: Text('تم إرسال طلبك', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
             content: Text(
-              'شكراً لك! تم استلام طلب انضمام كشركة بنجاح. سنقوم بالرد عليك عبر البريد الإلكتروني قريباً.',
+              'شكراً لك! تم استلام طلب انضمام كشركة بنجاح. سنقوم بالرد عليك عبر البريد الإلكتروني قريباً، وحتى ذلك الحين يمكنك استخدام التطبيق كمسافر.',
               style: GoogleFonts.cairo(),
             ),
             actions: [
               TextButton(
                 onPressed: () {
                   Navigator.of(context).pop();
-                  Navigator.of(context).pop();
+                  context.go('/');
                 },
-                child: const Text('إغلاق'),
+                child: const Text('حسناً، الذهاب للرئيسية'),
               ),
             ],
           ),
@@ -83,147 +91,222 @@ class _CompanyRegistrationPageState extends ConsumerState<CompanyRegistrationPag
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF101828), // Dark section like website
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: Text('انضم كشريك', style: GoogleFonts.cairo(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text('العودة لاختيار نوع الحساب', style: GoogleFonts.cairo(color: Colors.black87, fontSize: 14, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
+        iconTheme: const IconThemeData(color: Colors.black87),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
+          onPressed: () => context.pop(),
+        ),
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-          child: Column(
-            children: [
-              _buildWebsiteHeader(),
-              const SizedBox(height: 30),
-              _buildFormCard(),
-              const SizedBox(height: 40),
-            ],
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isWide = constraints.maxWidth > 800;
+                return Container(
+                  constraints: const BoxConstraints(maxWidth: 1000),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 30,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: isWide 
+                      ? Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Expanded(flex: 4, child: _buildOrangePanel()),
+                            Expanded(flex: 6, child: _buildFormPanel()),
+                          ],
+                        )
+                      : Column(
+                          children: [
+                            _buildOrangePanel(),
+                            _buildFormPanel(),
+                          ],
+                        ),
+                ).animate().fadeIn().scale(delay: 100.ms);
+              },
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildWebsiteHeader() {
-    return Column(
-      children: [
-        Text(
-          'اضاعف حجوزات شركتك اليوم',
-          style: GoogleFonts.cairo(
-            fontSize: 28,
-            fontWeight: FontWeight.w900,
-            color: const Color(0xFF14B8A6), // Teal color from screenshot
+  Widget _buildOrangePanel() {
+    return Container(
+      color: const Color(0xFFF97316),
+      padding: const EdgeInsets.all(40),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.business_center_outlined, color: Colors.white, size: 32),
           ),
-          textAlign: TextAlign.center,
-        ).animate().fadeIn().slideY(begin: 0.2),
-        const SizedBox(height: 12),
+          const SizedBox(height: 24),
+          Text(
+            'هل أنت شركة\nسياحية؟',
+            style: GoogleFonts.cairo(
+              color: Colors.white,
+              fontSize: 32,
+              fontWeight: FontWeight.w900,
+              height: 1.2,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'انضم إلينا اليوم واعرض رحلاتك لآلاف المسافرين الباحثين عن تجارب مميزة.',
+            style: GoogleFonts.cairo(
+              color: Colors.white.withOpacity(0.9),
+              fontSize: 16,
+              height: 1.6,
+            ),
+          ),
+          const Spacer(),
+          const SizedBox(height: 40),
+          _buildBenefitItem('زيادة مبيعاتك'),
+          const SizedBox(height: 16),
+          _buildBenefitItem('سهولة التسجيل'),
+          const SizedBox(height: 16),
+          _buildBenefitItem('دعم فني متواصل'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBenefitItem(String text) {
+    return Row(
+      children: [
+        const Icon(Icons.check_circle_outline, color: Colors.white, size: 24),
+        const SizedBox(width: 12),
         Text(
-          'انضم إلى أكبر تجمع للشركات السياحية في مصر. نحن نوفر لك الأدوات اللازمة للوصول لعملائك المستهدفين.',
-          style: GoogleFonts.cairo(color: Colors.white70, fontSize: 13, height: 1.6),
-          textAlign: TextAlign.center,
+          text,
+          style: GoogleFonts.cairo(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildFormCard() {
+  Widget _buildFormPanel() {
     return Container(
-      padding: const EdgeInsets.all(28),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 40, offset: const Offset(0, 20)),
-        ],
-      ),
+      color: Colors.white,
+      padding: const EdgeInsets.all(40),
       child: Form(
         key: _formKey,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Text(
               'سجل اهتمامك الآن',
-              style: GoogleFonts.cairo(fontSize: 20, fontWeight: FontWeight.bold, color: const Color(0xFF14B8A6)),
+              style: GoogleFonts.cairo(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF0F172A),
+              ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Text(
-              'خطوات بسيطة وسنتواصل معك لتفعيل حسابك',
-              style: GoogleFonts.cairo(color: Colors.grey, fontSize: 12),
+              'املأ النموذج وسنتواصل معك في أقرب وقت لتوثيق حسابك.',
+              style: GoogleFonts.cairo(color: Colors.grey[600], fontSize: 14),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 30),
+            const SizedBox(height: 32),
             
             Row(
               children: [
-                Expanded(child: _buildInputLabelField('اسم شركتك المعتمد', _nameController, 'مثال: شركة المسافر الدولي')),
+                Expanded(child: _buildInputLabelField('البريد الإلكتروني', _emailController, 'yousefelkhyoty255@gmail.com')),
                 const SizedBox(width: 16),
-                Expanded(child: _buildInputLabelField('البريد الإلكتروني للعمل', _emailController, 'business@company.com')),
+                Expanded(child: _buildInputLabelField('اسم الشركة', _nameController, 'مثال: شركة المسافر')),
               ],
             ),
             const SizedBox(height: 16),
             Row(
               children: [
-                Expanded(child: _buildInputLabelField('رقم هاتف التواصل', _phoneController, '01xxxxxxxxx')),
+                Expanded(child: _buildInputLabelField('رقم الواتساب', _whatsappController, '01x xxxx xxxx')),
                 const SizedBox(width: 16),
-                Expanded(child: _buildInputLabelField('واتساب الشركة', _whatsappController, '01xxxxxxxxx')),
+                Expanded(child: _buildInputLabelField('رقم الهاتف', _phoneController, '01x xxxx xxxx')),
               ],
             ),
             const SizedBox(height: 16),
-            _buildInputLabelField('تخصصات الرحلات', _categoriesController, 'سفاري، رحلات بحرية، السياحة الدينية...'),
+            _buildInputLabelField('نوع الرحلات التي تقدمها', _categoriesController, 'مثال: رحلات بحرية، سفاري، تاريخية...'),
             const SizedBox(height: 16),
-            _buildInputLabelField('ملاحظات إضافية (اختياري)', _messageController, 'أخبرنا المزيد عن خدماتك أو عدد الفروع...', maxLines: 3),
+            _buildInputLabelField('رسالة قصيرة (اختياري)', _messageController, 'أضف أي تفاصيل أخرى تود إخبارنا بها...', maxLines: 4),
             
             const SizedBox(height: 32),
-            ElevatedButton(
-              onPressed: _isLoading ? null : _handleSubmit,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFF97316), // Orange from screenshot
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 18),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                elevation: 0,
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _isLoading ? null : _handleSubmit,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFF97316),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 0,
+                ),
+                child: _isLoading 
+                  ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.send_rounded, size: 18),
+                        const SizedBox(width: 12),
+                        Text('إرسال الطلب', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 16)),
+                      ],
+                    ),
               ),
-              child: _isLoading 
-                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                : Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.send_rounded, size: 18),
-                      const SizedBox(width: 10),
-                      Text('إرسال طلب الانضمام', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 16)),
-                    ],
-                  ),
             ),
           ],
         ),
       ),
-    ).animate().scale(delay: 200.ms, duration: 500.ms);
+    );
   }
 
   Widget _buildInputLabelField(String label, TextEditingController controller, String hint, {int maxLines = 1}) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        Text(label, style: GoogleFonts.cairo(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black87)),
-        const SizedBox(height: 6),
+        Text(label, style: GoogleFonts.cairo(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey[700])),
+        const SizedBox(height: 8),
         TextFormField(
           controller: controller,
           maxLines: maxLines,
-          style: GoogleFonts.cairo(fontSize: 13, color: Colors.black),
+          textAlign: TextAlign.right,
+          style: GoogleFonts.cairo(fontSize: 14, color: Colors.black87),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: GoogleFonts.cairo(color: Colors.grey[400], fontSize: 12),
+            hintStyle: GoogleFonts.cairo(color: Colors.grey[400], fontSize: 13),
             filled: true,
-            fillColor: Colors.grey[50],
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[200]!)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[200]!)),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF14B8A6))),
+            fillColor: Colors.white,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[300]!)),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[300]!)),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFF97316))),
           ),
-          validator: (v) => v!.isEmpty && label.contains('اختياري') == false ? 'مطلوب' : null,
+          validator: (v) => v!.isEmpty && label.contains('اختياري') == false ? 'هذا الحقل مطلوب' : null,
         ),
       ],
     );

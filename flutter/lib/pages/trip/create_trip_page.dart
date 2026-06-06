@@ -2,18 +2,61 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'dart:async';
 import 'dart:io';
 import 'dart:convert';
 import 'package:image_picker/image_picker.dart' as picker;
+import 'package:file_picker/file_picker.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mb hide ImageSource;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:dio/dio.dart';
 import '../../providers/trip_draft_provider.dart';
-import '../../providers/trip_provider.dart';
-import '../../providers/theme_provider.dart';
+import '../../providers/trip_publish_provider.dart';
+import '../../providers/api_provider.dart';
+import '../../models/user.dart';
+import '../../constants/egypt_data.dart';
+import '../../services/trip_draft_storage.dart';
+import '../../widgets/trip/video_preview_dialog.dart';
 import '../../theme/app_colors.dart';
 
-enum TripPostType { detailed, quick, ask }
+/// Indigo marker — matches web Mapbox `color: '#indigo'`.
+const int _kMapMarkerIndigo = 0xFF4F46E5;
+
+Widget _draftImageLeading(dynamic image, IconData icon, Color color) {
+  if (image == null) {
+    return CircleAvatar(backgroundColor: color, child: Icon(icon, color: Colors.white, size: 22));
+  }
+  final path = image.toString();
+  if (path.startsWith('http')) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: Image.network(path, width: 50, height: 50, fit: BoxFit.cover),
+    );
+  }
+  if (path.startsWith('data:')) {
+    try {
+      final bytes = base64Decode(path.split(',').last);
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Image.memory(bytes, width: 50, height: 50, fit: BoxFit.cover),
+      );
+    } catch (_) {}
+  }
+  final file = File(path);
+  if (file.existsSync()) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: Image.file(file, width: 50, height: 50, fit: BoxFit.cover),
+    );
+  }
+  return CircleAvatar(backgroundColor: color, child: Icon(icon, color: Colors.white, size: 22));
+}
+
+bool _isVideoPath(String path) {
+  final ext = path.split('.').last.toLowerCase();
+  return {'mp4', 'mov', 'webm', 'mkv', 'avi', '3gp'}.contains(ext);
+}
+
 class CreateTripPage extends ConsumerStatefulWidget {
   CreateTripPage({super.key});
 
@@ -22,92 +65,161 @@ class CreateTripPage extends ConsumerStatefulWidget {
 }
 
 class _CreateTripPageState extends ConsumerState<CreateTripPage> {
-  int _currentStep = 1; // 1-indexed
-  bool _isPublishing = false;
+  int _currentStep = 1;
+  bool _termsAccepted = false;
+  Timer? _draftSaveDebounce;
 
-  Future<void> _publishTrip(TripPostType type, [Map<String, dynamic>? extraData]) async {
-    if (_isPublishing) return;
-    setState(() => _isPublishing = true);
-
-    try {
-      final tripService = ref.read(tripServiceProvider);
-      Map<String, dynamic> payload = {};
-
-      if (type == TripPostType.detailed) {
-        final draft = ref.read(tripDraftProvider);
-        String? base64Image;
-        if (draft.coverImageUrl.isNotEmpty) {
-          try {
-            final file = File(draft.coverImageUrl);
-            if (await file.exists()) {
-              final bytes = await file.readAsBytes();
-              final ext = draft.coverImageUrl.split('.').last.toLowerCase();
-              final mimeType = ext == 'png' ? 'image/png' : 'image/jpeg';
-              base64Image = 'data:$mimeType;base64,${base64Encode(bytes)}';
-            }
-          } catch (e) {
-            print('Error reading image: $e');
-          }
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.listen<TripDraft>(tripDraftProvider, (_, next) {
+        if (ref.read(tripCreationTypeProvider) == TripPostType.detailed) {
+          _scheduleDraftSave(next);
         }
-        
-        payload = {
-          'title': draft.title.isNotEmpty ? draft.title : 'رحلة مفصلة',
-          'destination': draft.destination,
-          'duration': draft.duration,
-          'budget': draft.budget,
-          'season': draft.season,
-          'description': draft.description,
-          'postType': 'detailed',
-          'activities': draft.activities.map((a) => {
-            'name': a.name,
-            'coordinates': {'lat': a.lat, 'lng': a.lng},
-          }).toList(),
-          'days': draft.days.map((d) => {
-            'title': d.title,
-            'activities': d.activityIndices,
-          }).toList(),
-          'image': base64Image ?? 'https://images.unsplash.com/photo-1503220317375-aaad61436b1b?w=500',
-        };
-      } else if (type == TripPostType.quick) {
-        payload = {
-           'title': extraData?['title'] ?? 'لحظات سريعة',
-           'description': extraData?['description'] ?? '',
-           'destination': extraData?['destination'] ?? '',
-           'postType': 'quick',
-           'image': extraData?['image'] ?? 'https://images.unsplash.com/photo-1527631746610-bca00a040d60?w=500',
-        };
-      } else if (type == TripPostType.ask) {
-        payload = {
-           'title': extraData?['title'] ?? 'سؤال',
-           'description': extraData?['description'] ?? '',
-           'destination': extraData?['destination'] ?? '',
-           'postType': 'ask',
-        };
-      }
+      });
+    });
+  }
 
-      await tripService.createTrip(payload);
-      
-      // Refresh feed
-      ref.invalidate(feedProvider);
+  @override
+  void dispose() {
+    _draftSaveDebounce?.cancel();
+    super.dispose();
+  }
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم النشر بنجاح!'), backgroundColor: Colors.green),
-        );
-        ref.read(tripCreationTypeProvider.notifier).state = null;
-        context.pop();
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('حدث خطأ أثناء النشر: $e'), backgroundColor: Colors.red),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isPublishing = false);
+  void _scheduleDraftSave(TripDraft draft) {
+    _draftSaveDebounce?.cancel();
+    _draftSaveDebounce = Timer(const Duration(milliseconds: 900), () {
+      TripDraftStorage.save(draft);
+    });
+  }
+
+  Future<void> _onSelectDetailedTrip() async {
+    final saved = await TripDraftStorage.load();
+    if (saved != null && mounted) {
+      final restore = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('مسودة محفوظة'),
+          content: const Text('هل تريد استكمال الرحلة التي بدأتها سابقاً؟'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('بدء جديد')),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+              child: const Text('استكمال', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      );
+      if (restore == true) {
+        ref.read(tripDraftProvider.notifier).loadDraft(saved);
+      } else {
+        await TripDraftStorage.clear();
+        ref.read(tripDraftProvider.notifier).reset();
       }
     }
+    ref.read(tripCreationTypeProvider.notifier).state = TripPostType.detailed;
+  }
+
+  bool _validateDetailedDraft(TripDraft draft, {required bool earlyShare}) {
+    if (draft.title.trim().isEmpty) {
+      _showValidation('العنوان مطلوب');
+      return false;
+    }
+    if (draft.destination.trim().isEmpty) {
+      _showValidation('الوجهة مطلوبة');
+      return false;
+    }
+    if (draft.duration.trim().isEmpty) {
+      _showValidation('المدة مطلوبة');
+      return false;
+    }
+    if (draft.budget.trim().isEmpty) {
+      _showValidation('الميزانية مطلوبة');
+      return false;
+    }
+    if (draft.description.trim().isEmpty) {
+      _showValidation('الوصف مطلوب');
+      return false;
+    }
+    if (!earlyShare && !draft.activities.any((a) => a.lat != null && a.lng != null)) {
+      _showValidation('أضف موقعاً واحداً على الأقل في خطوة الأنشطة');
+      return false;
+    }
+    return true;
+  }
+
+  void _showValidation(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: Colors.red),
+    );
+  }
+
+  Future<void> _publishTrip(TripPostType type, [Map<String, dynamic>? extraData]) async {
+    if (!_termsAccepted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('يجب الموافقة على الشروط وسياسة الخصوصية لمشاركة رحلتك'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (type == TripPostType.detailed) {
+      final draft = ref.read(tripDraftProvider);
+      final earlyShare = extraData?['earlyShare'] == true;
+      if (!_validateDetailedDraft(draft, earlyShare: earlyShare)) return;
+    }
+
+    TripDraft? draftSnapshot;
+    if (type == TripPostType.detailed) {
+      final d = ref.read(tripDraftProvider);
+      draftSnapshot = TripDraft(
+        title: d.title,
+        destination: d.destination,
+        city: d.city,
+        duration: d.duration,
+        budget: d.budget,
+        season: d.season,
+        description: d.description,
+        rating: d.rating,
+        coverImage: d.coverImage,
+        coverImageUrl: d.coverImageUrl,
+        activities: List.from(d.activities),
+        days: List.from(d.days),
+        foodPlaces: List.from(d.foodPlaces),
+        hotels: List.from(d.hotels),
+        taggedUsers: List.from(d.taggedUsers),
+        route: List.from(d.route),
+      );
+    }
+
+    final extraSnapshot = extraData != null ? Map<String, dynamic>.from(extraData) : null;
+    final early = extraData?['earlyShare'] == true;
+
+    ref.read(tripCreationTypeProvider.notifier).state = null;
+    ref.read(tripDraftProvider.notifier).reset();
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(early
+              ? 'جاري النشر في الخلفية... يمكنك متابعة التصفح'
+              : 'جاري نشر رحلتك...'),
+          backgroundColor: AppColors.primaryOrange,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      context.pop();
+    }
+
+    ref.read(tripPublishProvider.notifier).publish(
+      type: type,
+      draft: draftSnapshot,
+      extraData: extraSnapshot,
+    );
   }
 
   @override
@@ -135,11 +247,19 @@ class _CreateTripPageState extends ConsumerState<CreateTripPage> {
           },
         ),
       ),
-      body: postType == null
+      body: Stack(
+        children: [
+          postType == null
           ? _PostTypeSelection(onSelect: (type) {
-              ref.read(tripCreationTypeProvider.notifier).state = type;
+              if (type == TripPostType.detailed) {
+                _onSelectDetailedTrip();
+              } else {
+                ref.read(tripCreationTypeProvider.notifier).state = type;
+              }
             })
-          : _buildWorkflow(postType),
+              : _buildWorkflow(postType),
+        ],
+      ),
     );
   }
 
@@ -159,8 +279,22 @@ class _CreateTripPageState extends ConsumerState<CreateTripPage> {
       case TripPostType.detailed:
         return _DetailedTripWorkflow(
           step: _currentStep,
-          isPublishing: _isPublishing,
+          isPublishing: false,
+          termsAccepted: _termsAccepted,
+          onTermsChanged: (v) => setState(() => _termsAccepted = v),
+          onEarlyPublish: _termsAccepted
+              ? () => _publishTrip(TripPostType.detailed, const {'earlyShare': true})
+              : null,
           onNext: () {
+            if (_currentStep == 1 && !_termsAccepted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('يجب الموافقة على الشروط وسياسة الخصوصية'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+              return;
+            }
             if (_currentStep == 6) {
               _publishTrip(TripPostType.detailed);
             } else {
@@ -171,12 +305,16 @@ class _CreateTripPageState extends ConsumerState<CreateTripPage> {
         );
       case TripPostType.quick:
         return _QuickPostForm(
-          isPublishing: _isPublishing,
+          isPublishing: false,
+          termsAccepted: _termsAccepted,
+          onTermsChanged: (v) => setState(() => _termsAccepted = v),
           onPublish: (data) => _publishTrip(TripPostType.quick, data),
         );
       case TripPostType.ask:
         return _AskPostForm(
-          isPublishing: _isPublishing,
+          isPublishing: false,
+          termsAccepted: _termsAccepted,
+          onTermsChanged: (v) => setState(() => _termsAccepted = v),
           onPublish: (data) => _publishTrip(TripPostType.ask, data),
         );
     }
@@ -190,18 +328,22 @@ class _DetailedTripWorkflow extends ConsumerWidget {
   final VoidCallback onNext;
   final VoidCallback onPrev;
   final bool isPublishing;
+  final bool termsAccepted;
+  final ValueChanged<bool> onTermsChanged;
+  final VoidCallback? onEarlyPublish;
 
   const _DetailedTripWorkflow({
     required this.step,
     required this.onNext,
     required this.onPrev,
     required this.isPublishing,
+    required this.termsAccepted,
+    required this.onTermsChanged,
+    this.onEarlyPublish,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final draft = ref.watch(tripDraftProvider);
-
     return Column(
       children: [
         // Stepper Header
@@ -215,6 +357,7 @@ class _DetailedTripWorkflow extends ConsumerWidget {
           onNext: onNext,
           onPrev: onPrev,
           isPublishing: isPublishing,
+          onEarlyPublish: step == 1 ? onEarlyPublish : null,
         ),
       ],
     );
@@ -223,7 +366,10 @@ class _DetailedTripWorkflow extends ConsumerWidget {
   Widget _buildStepContent(int step, WidgetRef ref) {
     switch (step) {
       case 1:
-        return const _StepBasicInfo();
+        return _StepBasicInfo(
+          termsAccepted: termsAccepted,
+          onTermsChanged: onTermsChanged,
+        );
       case 2:
         return const _StepMapActivities();
       case 3:
@@ -296,24 +442,50 @@ class _WorkflowStepper extends StatelessWidget {
   }
 }
 
-class _StepBasicInfo extends ConsumerWidget {
-  const _StepBasicInfo();
+class _StepBasicInfo extends ConsumerStatefulWidget {
+  final bool termsAccepted;
+  final ValueChanged<bool> onTermsChanged;
 
-  static final List<Map<String, dynamic>> egyptGovernorates = [
-    {'name': 'القاهرة', 'lat': 30.0444, 'lng': 31.2357},
-    {'name': 'الإسكندرية', 'lat': 31.2001, 'lng': 29.9187},
-    {'name': 'الجيزة', 'lat': 30.0131, 'lng': 31.2089},
-    {'name': 'الأقصر', 'lat': 25.6872, 'lng': 32.6396},
-    {'name': 'أسوان', 'lat': 24.0889, 'lng': 32.8998},
-    {'name': 'شرم الشيخ', 'lat': 27.9158, 'lng': 34.3299},
-    {'name': 'الغردقة', 'lat': 27.2579, 'lng': 33.8116},
-    {'name': 'دهب', 'lat': 28.5064, 'lng': 34.5126},
-    {'name': 'سيوه', 'lat': 29.2032, 'lng': 25.5195},
-    {'name': 'الساحل الشمالي', 'lat': 30.9328, 'lng': 28.9322},
-  ];
+  const _StepBasicInfo({
+    required this.termsAccepted,
+    required this.onTermsChanged,
+  });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_StepBasicInfo> createState() => _StepBasicInfoState();
+}
+
+class _StepBasicInfoState extends ConsumerState<_StepBasicInfo> {
+  final TextEditingController _userSearchController = TextEditingController();
+  List<User> _userSearchResults = [];
+  bool _isSearchingUsers = false;
+
+  static List<Map<String, dynamic>> get egyptGovernorates => egyptGovernoratesList;
+
+  @override
+  void dispose() {
+    _userSearchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _searchUsers(String query) async {
+    if (query.trim().length < 2) {
+      setState(() => _userSearchResults = []);
+      return;
+    }
+    setState(() => _isSearchingUsers = true);
+    try {
+      final results = await ref.read(userServiceProvider).searchUsers(query);
+      if (mounted) setState(() => _userSearchResults = results);
+    } catch (_) {
+      if (mounted) setState(() => _userSearchResults = []);
+    } finally {
+      if (mounted) setState(() => _isSearchingUsers = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final draft = ref.watch(tripDraftProvider);
     final notifier = ref.read(tripDraftProvider.notifier);
 
@@ -438,6 +610,99 @@ class _StepBasicInfo extends ConsumerWidget {
           hint: 'احكِ لنا عن تجربتك...',
           maxLines: 5,
         ),
+        const SizedBox(height: 24),
+        const Text('إشارة أصدقاء (اختياري)', style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _userSearchController,
+          decoration: InputDecoration(
+            hintText: 'ابحث باسم المستخدم...',
+            prefixIcon: const Icon(Icons.person_search, color: Colors.indigo),
+            suffixIcon: _isSearchingUsers
+                ? const Padding(
+                    padding: EdgeInsets.all(12),
+                    child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
+                  )
+                : null,
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
+          ),
+          onChanged: _searchUsers,
+        ),
+        if (_userSearchResults.isNotEmpty)
+          Container(
+            margin: const EdgeInsets.only(top: 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[200]!),
+            ),
+            child: Column(
+              children: _userSearchResults.take(5).map((u) {
+                final tagged = draft.taggedUsers.any((t) => t['userId'] == u.clerkId);
+                return ListTile(
+                  dense: true,
+                  leading: CircleAvatar(
+                    backgroundImage: u.imageUrl != null ? NetworkImage(u.imageUrl!) : null,
+                    child: u.imageUrl == null ? const Icon(Icons.person, size: 18) : null,
+                  ),
+                  title: Text(u.fullName ?? u.username ?? 'مستخدم', style: const TextStyle(fontSize: 13)),
+                  trailing: tagged
+                      ? const Icon(Icons.check, color: Colors.green, size: 18)
+                      : const Icon(Icons.add, color: Colors.indigo, size: 18),
+                  onTap: tagged
+                      ? null
+                      : () {
+                          notifier.addTaggedUser({
+                            'userId': u.clerkId,
+                            'fullName': u.fullName ?? u.username ?? 'مستخدم',
+                            'imageUrl': u.imageUrl ?? '',
+                          });
+                          setState(() => _userSearchResults = []);
+                          _userSearchController.clear();
+                        },
+                );
+              }).toList(),
+            ),
+          ),
+        if (draft.taggedUsers.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: draft.taggedUsers.map((u) {
+              return Chip(
+                avatar: u['imageUrl'] != null && (u['imageUrl'] ?? '').isNotEmpty
+                    ? CircleAvatar(backgroundImage: NetworkImage(u['imageUrl']!))
+                    : null,
+                label: Text(u['fullName'] ?? '', style: const TextStyle(fontSize: 12)),
+                onDeleted: () => notifier.removeTaggedUser(u['userId']!),
+                deleteIconColor: Colors.red,
+              );
+            }).toList(),
+          ),
+        ],
+        const SizedBox(height: 24),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Checkbox(
+              value: widget.termsAccepted,
+              onChanged: (v) => widget.onTermsChanged(v ?? false),
+              activeColor: Colors.indigo,
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Text(
+                  'أوافق على شروط الاستخدام وسياسة الخصوصية لمشاركة رحلتي',
+                  style: TextStyle(fontSize: 13, color: Colors.grey[700], height: 1.4),
+                ),
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }
@@ -486,12 +751,14 @@ class _WorkflowNavigation extends StatelessWidget {
   final VoidCallback onNext;
   final VoidCallback onPrev;
   final bool isPublishing;
+  final VoidCallback? onEarlyPublish;
 
   const _WorkflowNavigation({
     required this.step,
     required this.onNext,
     required this.onPrev,
     this.isPublishing = false,
+    this.onEarlyPublish,
   });
 
   @override
@@ -502,34 +769,55 @@ class _WorkflowNavigation extends StatelessWidget {
         color: Colors.white,
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -2))],
       ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          if (step > 1)
-            Expanded(
+          if (onEarlyPublish != null) ...[
+            SizedBox(
+              width: double.infinity,
               child: OutlinedButton(
-                onPressed: isPublishing ? null : onPrev,
+                onPressed: isPublishing ? null : onEarlyPublish,
                 style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  foregroundColor: Colors.green[700],
+                  side: BorderSide(color: Colors.green[300]!),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                 ),
-                child: const Text('السابق'),
+                child: const Text('نشر سريع (بدون مواقع على الخريطة)'),
               ),
             ),
-          if (step > 1) const SizedBox(width: 16),
-          Expanded(
-            flex: 2,
-            child: ElevatedButton(
-              onPressed: isPublishing ? null : onNext,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+            const SizedBox(height: 10),
+          ],
+          Row(
+            children: [
+              if (step > 1)
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: isPublishing ? null : onPrev,
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                    ),
+                    child: const Text('السابق'),
+                  ),
+                ),
+              if (step > 1) const SizedBox(width: 16),
+              Expanded(
+                flex: 2,
+                child: ElevatedButton(
+                  onPressed: isPublishing ? null : onNext,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                  ),
+                  child: isPublishing
+                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      : Text(step == 6 ? 'نشر الرحلة' : 'التالي'),
+                ),
               ),
-              child: isPublishing
-                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : Text(step == 6 ? 'نشر الرحلة' : 'التالي'),
-            ),
+            ],
           ),
         ],
       ),
@@ -549,12 +837,116 @@ class _StepMapActivities extends ConsumerStatefulWidget {
 class _StepMapActivitiesState extends ConsumerState<_StepMapActivities> {
   mb.MapboxMap? _mapController;
   mb.PointAnnotationManager? _pointManager;
+  mb.PolylineAnnotationManager? _polylineManager;
   int? _selectedActivityIndex;
+  bool _isAddingMode = true;
+  bool _isDrawingRoute = false;
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _latController = TextEditingController();
   final TextEditingController _lngController = TextEditingController();
+  final Map<int, TextEditingController> _nameControllers = {};
+  final Map<int, TextEditingController> _descControllers = {};
   bool _isSearching = false;
   List<Map<String, dynamic>> _searchResults = [];
+
+  void _syncActivityControllers(List<DraftActivity> activities) {
+    final keys = _nameControllers.keys.toList();
+    for (final k in keys) {
+      if (k >= activities.length) {
+        _nameControllers.remove(k)?.dispose();
+        _descControllers.remove(k)?.dispose();
+      }
+    }
+    for (var i = 0; i < activities.length; i++) {
+      final nameCtrl = _nameControllers.putIfAbsent(i, () => TextEditingController());
+      final descCtrl = _descControllers.putIfAbsent(i, () => TextEditingController());
+      if (nameCtrl.text != activities[i].name) nameCtrl.text = activities[i].name;
+      if (descCtrl.text != activities[i].description) descCtrl.text = activities[i].description;
+    }
+  }
+
+  Future<void> _openFullscreenMap() async {
+    final draft = ref.read(tripDraftProvider);
+    final gov = governorateByName(draft.destination.isNotEmpty ? draft.destination : null);
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (ctx) => Scaffold(
+          appBar: AppBar(
+            title: const Text('الخريطة — اضغط لإضافة موقع'),
+            backgroundColor: Colors.orange,
+            foregroundColor: Colors.white,
+          ),
+          body: mb.MapWidget(
+            cameraOptions: mb.CameraOptions(
+              center: mb.Point(coordinates: mb.Position(gov['lng'] as double, gov['lat'] as double)),
+              zoom: 11.0,
+            ),
+            styleUri: mb.MapboxStyles.OUTDOORS,
+            onMapCreated: (controller) async {
+              _mapController = controller;
+              await _refreshMapOverlays();
+            },
+            onTapListener: (gestureContext) {
+              _onMapTap(gestureContext);
+              if (ctx.mounted) Navigator.pop(ctx);
+            },
+          ),
+        ),
+      ),
+    );
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _latController.dispose();
+    _lngController.dispose();
+    for (final c in _nameControllers.values) {
+      c.dispose();
+    }
+    for (final c in _descControllers.values) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  void _setMapMode({bool? addingMode, bool? drawingRoute}) {
+    setState(() {
+      if (addingMode != null) {
+        _isAddingMode = addingMode;
+        if (addingMode) _isDrawingRoute = false;
+      }
+      if (drawingRoute != null) {
+        _isDrawingRoute = drawingRoute;
+        if (drawingRoute) _isAddingMode = false;
+      }
+    });
+  }
+
+  DraftActivity _newActivityAt(double lat, double lng, {String? name}) {
+    final draft = ref.read(tripDraftProvider);
+    return DraftActivity(
+      name: name ?? 'موقع ${draft.activities.length + 1}',
+      lat: lat,
+      lng: lng,
+    );
+  }
+
+  void _addActivity(DraftActivity activity, {bool select = true}) {
+    final draft = ref.read(tripDraftProvider);
+    final notifier = ref.read(tripDraftProvider.notifier);
+    final newActivities = List<DraftActivity>.from(draft.activities)..add(activity);
+    notifier.setActivities(newActivities);
+    if (select) {
+      setState(() => _selectedActivityIndex = newActivities.length - 1);
+    }
+    if (activity.lat != null && activity.lng != null) {
+      notifier.addRoutePoint(activity.lat!, activity.lng!);
+    }
+    _refreshMapOverlays();
+  }
 
   // ── Mapbox Geocoding Search ───────────────────────────────────────────────
   Future<void> _searchPlace(String query) async {
@@ -564,11 +956,7 @@ class _StepMapActivitiesState extends ConsumerState<_StepMapActivities> {
     try {
       final token = dotenv.env['MAPBOX_ACCESS_TOKEN'] ?? '';
       final draft = ref.read(tripDraftProvider);
-      // Use proximity of current map center if available, fallback to Cairo
-      final prox = _StepBasicInfo.egyptGovernorates.firstWhere(
-        (g) => g['name'] == draft.destination,
-        orElse: () => _StepBasicInfo.egyptGovernorates[0],
-      );
+      final prox = governorateByName(draft.destination.isNotEmpty ? draft.destination : null);
       final url = 'https://api.mapbox.com/geocoding/v5/mapbox.places/'
           '${Uri.encodeComponent(query)}.json'
           '?proximity=${prox["lng"]},${prox["lat"]}'
@@ -598,22 +986,27 @@ class _StepMapActivitiesState extends ConsumerState<_StepMapActivities> {
   void _selectSearchResult(Map<String, dynamic> result) {
     final lat = result['lat'] as double;
     final lng = result['lng'] as double;
+    final placeName = result['name'].toString().split(',')[0];
     _moveToLocation(lat, lng);
 
-    // If an activity is selected, update its location
-    if (_selectedActivityIndex != null) {
+    if (_selectedActivityIndex != null && !_isAddingMode) {
       final draft = ref.read(tripDraftProvider);
       final notifier = ref.read(tripDraftProvider.notifier);
       final items = List<DraftActivity>.from(draft.activities);
-      items[_selectedActivityIndex!] = DraftActivity(
-        name: items[_selectedActivityIndex!].name,
+      items[_selectedActivityIndex!] = items[_selectedActivityIndex!].copyWith(
         lat: lat,
         lng: lng,
+        name: items[_selectedActivityIndex!].name.isEmpty ? placeName : items[_selectedActivityIndex!].name,
       );
       notifier.setActivities(items);
-      _updateMarkers();
+      _refreshMapOverlays();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('تم تحديد موقع "${result['name'].toString().split(',')[0]}" للنشاط المختار ✅')),
+        SnackBar(content: Text('تم تحديد موقع "$placeName" للنشاط المختار ✅')),
+      );
+    } else {
+      _addActivity(_newActivityAt(lat, lng, name: placeName));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('تمت إضافة "$placeName" على الخريطة ✅')),
       );
     }
 
@@ -644,25 +1037,19 @@ class _StepMapActivitiesState extends ConsumerState<_StepMapActivities> {
     final notifier = ref.read(tripDraftProvider.notifier);
     final newActivities = List<DraftActivity>.from(draft.activities);
 
-    if (_selectedActivityIndex != null) {
-      // Update existing activity
-      newActivities[_selectedActivityIndex!] = DraftActivity(
-        name: newActivities[_selectedActivityIndex!].name,
-        lat: lat,
-        lng: lng,
-      );
+    if (_selectedActivityIndex != null && !_isAddingMode) {
+      newActivities[_selectedActivityIndex!] =
+          newActivities[_selectedActivityIndex!].copyWith(lat: lat, lng: lng);
     } else {
-      // Create new activity with these coordinates
-      newActivities.add(DraftActivity(
-        name: 'نشاط ${newActivities.length + 1}',
-        lat: lat,
-        lng: lng,
-      ));
+      newActivities.add(_newActivityAt(lat, lng));
       setState(() => _selectedActivityIndex = newActivities.length - 1);
     }
 
     notifier.setActivities(newActivities);
-    _updateMarkers();
+    if (newActivities.length > draft.activities.length) {
+      notifier.addRoutePoint(lat, lng);
+    }
+    _refreshMapOverlays();
     _moveToLocation(lat, lng);
     _latController.clear();
     _lngController.clear();
@@ -730,19 +1117,45 @@ class _StepMapActivitiesState extends ConsumerState<_StepMapActivities> {
   void _onMapCreated(mb.MapboxMap controller) async {
     _mapController = controller;
     _pointManager = await controller.annotations.createPointAnnotationManager();
-    
-    // Initial zoom to selected governorate from step 1
+    _polylineManager = await controller.annotations.createPolylineAnnotationManager();
+
     final draft = ref.read(tripDraftProvider);
-    final gov = _StepBasicInfo.egyptGovernorates.firstWhere(
-      (g) => g['name'] == draft.destination,
-      orElse: () => _StepBasicInfo.egyptGovernorates[0],
-    );
+    final gov = governorateByName(draft.destination.isNotEmpty ? draft.destination : null);
     _moveToLocation(gov['lat'], gov['lng']);
-    
-    _updateMarkers();
+
+    _refreshMapOverlays();
   }
 
-  void _updateMarkers() async {
+  List<mb.Position> _routePositions(TripDraft draft) {
+    if (draft.route.isNotEmpty) {
+      return draft.route
+          .where((p) => p.length >= 2)
+          .map((p) => mb.Position(p[1], p[0]))
+          .toList();
+    }
+    return draft.activities
+        .where((a) => a.lat != null && a.lng != null)
+        .map((a) => mb.Position(a.lng!, a.lat!))
+        .toList();
+  }
+
+  Future<void> _updateRouteLine() async {
+    if (_polylineManager == null) return;
+    final draft = ref.read(tripDraftProvider);
+    final positions = _routePositions(draft);
+    await _polylineManager!.deleteAll();
+    if (positions.length >= 2) {
+      await _polylineManager!.create(mb.PolylineAnnotationOptions(
+        geometry: mb.LineString(coordinates: positions),
+        lineColor: AppColors.primaryOrange.value,
+        lineWidth: 4.0,
+        lineJoin: mb.LineJoin.ROUND,
+        lineOpacity: 0.75,
+      ));
+    }
+  }
+
+  Future<void> _updateMarkers() async {
     if (_pointManager == null) return;
     final draft = ref.read(tripDraftProvider);
     final annotations = <mb.PointAnnotationOptions>[];
@@ -750,51 +1163,268 @@ class _StepMapActivitiesState extends ConsumerState<_StepMapActivities> {
     for (int i = 0; i < draft.activities.length; i++) {
       final act = draft.activities[i];
       if (act.lat != null && act.lng != null) {
+        final isSelected = _selectedActivityIndex == i;
+        final markerColor = isSelected ? _kMapMarkerIndigo : AppColors.primaryOrange.value;
+        final label = act.name.trim().isNotEmpty ? '${i + 1}' : '${i + 1}';
         annotations.add(mb.PointAnnotationOptions(
           geometry: mb.Point(coordinates: mb.Position(act.lng!, act.lat!)),
-          textField: act.name,
-          textOffset: [0.0, -2.5],
-          textColor: Colors.black.value,
-          textSize: 12.0,
-          iconImage: "marker",
-          iconSize: 1.5,
+          iconImage: 'marker',
+          iconSize: isSelected ? 1.85 : 1.45,
+          iconColor: markerColor,
+          textField: label,
+          textOffset: [0.0, -2.4],
+          textSize: isSelected ? 14.0 : 12.0,
+          textColor: Colors.white.value,
+          textHaloColor: markerColor,
+          textHaloWidth: 1.8,
         ));
       }
     }
-    _pointManager!.deleteAll();
+    await _pointManager!.deleteAll();
     if (annotations.isNotEmpty) {
-      _pointManager!.createMulti(annotations);
+      await _pointManager!.createMulti(annotations);
     }
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _refreshMapOverlays() async {
+    await _updateMarkers();
+    await _updateRouteLine();
   }
 
   void _onMapTap(mb.MapContentGestureContext context) {
-    if (_selectedActivityIndex == null) return;
-    
-    final point = context.point;
+    final lat = context.point.coordinates.lat.toDouble();
+    final lng = context.point.coordinates.lng.toDouble();
     final draft = ref.read(tripDraftProvider);
     final notifier = ref.read(tripDraftProvider.notifier);
-    
+
+    if (_isDrawingRoute) {
+      notifier.addRoutePoint(lat, lng);
+      _refreshMapOverlays();
+      return;
+    }
+
+    if (_isAddingMode) {
+      _addActivity(_newActivityAt(lat, lng));
+      return;
+    }
+
+    if (_selectedActivityIndex == null) return;
+
     final newActivities = List<DraftActivity>.from(draft.activities);
-    newActivities[_selectedActivityIndex!] = DraftActivity(
-      name: newActivities[_selectedActivityIndex!].name,
-      lat: point.coordinates.lat.toDouble(),
-      lng: point.coordinates.lng.toDouble(),
+    newActivities[_selectedActivityIndex!] = newActivities[_selectedActivityIndex!].copyWith(
+      lat: lat,
+      lng: lng,
     );
-    
+
     notifier.setActivities(newActivities);
-    _updateMarkers();
+    _refreshMapOverlays();
+  }
+
+  Future<void> _pickActivityMedia(int activityIndex) async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['jpg', 'jpeg', 'png', 'webp', 'mp4', 'mov', 'webm'],
+      allowMultiple: true,
+    );
+    if (result == null || result.files.isEmpty) return;
+
+    const maxVideoBytes = 45 * 1024 * 1024;
+    final draft = ref.read(tripDraftProvider);
+    final activity = draft.activities[activityIndex];
+    final images = List<dynamic>.from(activity.images);
+    final videos = List<dynamic>.from(activity.videos);
+    String? coverPath = activity.imagePath;
+
+    for (final file in result.files) {
+      final path = file.path;
+      if (path == null) continue;
+      if (_isVideoPath(path)) {
+        final size = file.size > 0 ? file.size : await File(path).length();
+        if (size > maxVideoBytes) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('حجم الفيديو يجب أن لا يتجاوز 45 ميجابايت'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          continue;
+        }
+        videos.add(path);
+      } else {
+        images.add(path);
+        coverPath ??= path;
+      }
+    }
+
+    final items = List<DraftActivity>.from(draft.activities);
+    items[activityIndex] = items[activityIndex].copyWith(
+      images: images,
+      videos: videos,
+      imagePath: coverPath,
+    );
+    ref.read(tripDraftProvider.notifier).setActivities(items);
+    if (mounted) setState(() {});
+  }
+
+  void _removeActivityMedia(int activityIndex, String path, {required bool isVideo}) {
+    final draft = ref.read(tripDraftProvider);
+    final activity = draft.activities[activityIndex];
+    final items = List<DraftActivity>.from(draft.activities);
+    if (isVideo) {
+      items[activityIndex] = activity.copyWith(
+        videos: activity.videos.where((v) => v != path).toList(),
+      );
+    } else {
+      final newImages = activity.images.where((img) => img != path).toList();
+      final newCover = activity.imagePath == path
+          ? (newImages.isNotEmpty ? newImages.first as String : null)
+          : activity.imagePath;
+      items[activityIndex] = activity.copyWith(
+        images: newImages,
+        imagePath: newCover,
+      );
+    }
+    ref.read(tripDraftProvider.notifier).setActivities(items);
+    setState(() {});
+  }
+
+  Widget _buildMapModeChip({
+    required String label,
+    required IconData icon,
+    required bool active,
+    required Color activeColor,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: active ? activeColor : Colors.white,
+      borderRadius: BorderRadius.circular(20),
+      elevation: active ? 2 : 1,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 16, color: active ? Colors.white : activeColor),
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: active ? Colors.white : Colors.black87,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActivityMediaStrip(DraftActivity activity, int index) {
+    final mediaItems = <({String path, bool isVideo})>[];
+    for (final img in activity.images) {
+      if (img is String) mediaItems.add((path: img, isVideo: false));
+    }
+    for (final vid in activity.videos) {
+      if (vid is String) mediaItems.add((path: vid, isVideo: true));
+    }
+    if (activity.imagePath != null &&
+        activity.imagePath!.isNotEmpty &&
+        !mediaItems.any((m) => m.path == activity.imagePath)) {
+      mediaItems.insert(0, (path: activity.imagePath!, isVideo: _isVideoPath(activity.imagePath!)));
+    }
+
+    return SizedBox(
+      height: 72,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        children: [
+          GestureDetector(
+            onTap: () => _pickActivityMedia(index),
+            child: Container(
+              width: 64,
+              height: 64,
+              margin: const EdgeInsets.only(left: 4),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.indigo.withOpacity(0.4), width: 1.5),
+                color: Colors.indigo.withOpacity(0.05),
+              ),
+              child: const Icon(Icons.add, color: Colors.indigo),
+            ),
+          ),
+          ...mediaItems.map((item) {
+            return Stack(
+              children: [
+                GestureDetector(
+                  onTap: item.isVideo ? () => VideoPreviewDialog.show(context, item.path) : null,
+                  child: Container(
+                    width: 64,
+                    height: 64,
+                    margin: const EdgeInsets.only(left: 8),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      color: Colors.grey[200],
+                      image: !item.isVideo
+                          ? DecorationImage(
+                              image: item.path.startsWith('data:')
+                                  ? MemoryImage(base64Decode(item.path.split(',').last))
+                                  : FileImage(File(item.path)) as ImageProvider,
+                              fit: BoxFit.cover,
+                            )
+                          : null,
+                    ),
+                    child: item.isVideo
+                        ? const Center(child: Icon(Icons.play_circle_fill, color: Colors.indigo, size: 28))
+                        : null,
+                  ),
+                ),
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  child: GestureDetector(
+                    onTap: () => _removeActivityMedia(index, item.path, isVideo: item.isVideo),
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                      child: const Icon(Icons.close, size: 12, color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          }),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final draft = ref.watch(tripDraftProvider);
     final notifier = ref.read(tripDraftProvider.notifier);
+    _syncActivityControllers(draft.activities);
+
+    ref.listen<TripDraft>(tripDraftProvider, (previous, next) {
+      if (previous?.activities != next.activities || previous?.route != next.route) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => _refreshMapOverlays());
+      }
+    });
+
+    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
+    final mapHeight = keyboardOpen ? 200.0 : 280.0;
 
     return Column(
       children: [
-        // Map Area
         SizedBox(
-          height: 400,
+          height: mapHeight,
           child: Stack(
             children: [
               mb.MapWidget(
@@ -806,6 +1436,16 @@ class _StepMapActivitiesState extends ConsumerState<_StepMapActivities> {
                 styleUri: mb.MapboxStyles.OUTDOORS,
                 onMapCreated: _onMapCreated,
                 onTapListener: _onMapTap,
+              ),
+              Positioned(
+                top: 10,
+                left: 10,
+                child: FloatingActionButton.small(
+                  heroTag: 'expand_map',
+                  backgroundColor: Colors.white,
+                  onPressed: _openFullscreenMap,
+                  child: const Icon(Icons.fullscreen, color: Colors.orange),
+                ),
               ),
               Positioned(
                 top: 15,
@@ -855,171 +1495,273 @@ class _StepMapActivitiesState extends ConsumerState<_StepMapActivities> {
                           )).toList(),
                         ),
                       ),
-                    const SizedBox(height: 10),
-                    if (_selectedActivityIndex != null)
+                    const SizedBox(height: 8),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          _buildMapModeChip(
+                            label: _isAddingMode ? 'إيقاف الإضافة' : 'إضافة موقع',
+                            icon: Icons.add_location_alt,
+                            active: _isAddingMode,
+                            activeColor: Colors.green,
+                            onTap: () => _setMapMode(addingMode: !_isAddingMode),
+                          ),
+                          const SizedBox(width: 8),
+                          _buildMapModeChip(
+                            label: _isDrawingRoute ? 'إيقاف الرسم' : 'رسم المسار',
+                            icon: Icons.route,
+                            active: _isDrawingRoute,
+                            activeColor: Colors.indigo,
+                            onTap: () => _setMapMode(drawingRoute: !_isDrawingRoute),
+                          ),
+                          if (draft.route.isNotEmpty) ...[
+                            const SizedBox(width: 8),
+                            _buildMapModeChip(
+                              label: 'مسح المسار',
+                              icon: Icons.delete_outline,
+                              active: false,
+                              activeColor: Colors.red,
+                              onTap: () {
+                                notifier.clearRoute();
+                                _refreshMapOverlays();
+                              },
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.55),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Text(
+                        _isDrawingRoute
+                            ? '✏️ اضغط على الخريطة لرسم نقاط المسار'
+                            : _isAddingMode
+                                ? '📍 اضغط على الخريطة أو ابحث لإضافة موقع'
+                                : _selectedActivityIndex != null
+                                    ? '🎯 حدّد موقع: ${draft.activities[_selectedActivityIndex!].name}'
+                                    : 'اختر نشاطاً من القائمة أو فعّل وضع الإضافة',
+                        style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Positioned(
+                bottom: 16,
+                left: 16,
+                right: 16,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    FloatingActionButton.small(
+                      heroTag: 'manual_coords',
+                      onPressed: _showManualLocationDialog,
+                      backgroundColor: Colors.white,
+                      child: const Icon(Icons.pin_drop, color: Colors.orange),
+                    ),
+                    if (draft.activities.isNotEmpty)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: Colors.orange.withOpacity(0.9),
+                          color: Colors.white,
                           borderRadius: BorderRadius.circular(20),
+                          boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 6)],
                         ),
                         child: Text(
-                          'تحديد موقع: ${draft.activities[_selectedActivityIndex!].name}',
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                          '${draft.activities.length} موقع',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
                         ),
                       ),
                   ],
                 ),
               ),
-              Positioned(
-                bottom: 20,
-                right: 20,
-                child: FloatingActionButton(
-                  onPressed: _showManualLocationDialog,
-                  backgroundColor: Colors.white,
-                  child: const Icon(Icons.pin_drop, color: Colors.orange),
-                ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          child: Row(
+            children: [
+              Text(
+                'المواقع (${draft.activities.length})',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const Spacer(),
+              Text(
+                'صور + فيديو لكل موقع',
+                style: TextStyle(fontSize: 11, color: Colors.grey[500]),
               ),
             ],
           ),
         ),
         // List of activities
         Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: draft.activities.length + 1,
-            itemBuilder: (context, i) {
-              if (i == draft.activities.length) {
-                return Padding(
-                  padding: const EdgeInsets.only(top: 10),
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      final newActivities = List<DraftActivity>.from(draft.activities)
-                        ..add(DraftActivity(name: 'نشاط جديد ${draft.activities.length + 1}'));
-                      notifier.setActivities(newActivities);
-                      setState(() => _selectedActivityIndex = newActivities.length - 1);
-                    },
-                    icon: const Icon(Icons.add),
-                    label: const Text('إضافة نشاط جديد'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue[50],
-                      foregroundColor: Colors.blue,
-                      elevation: 0,
-                    ),
+          child: draft.activities.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.map_outlined, size: 56, color: Colors.grey[300]),
+                      const SizedBox(height: 12),
+                      Text('لا توجد مواقع بعد', style: TextStyle(color: Colors.grey[500], fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 6),
+                      Text(
+                        'فعّل "إضافة موقع" واضغط على الخريطة',
+                        style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                      ),
+                    ],
                   ),
-                );
-              }
-
-              final isSelected = _selectedActivityIndex == i;
-              final activity = draft.activities[i];
-              return Card(
-                key: ValueKey('activity_$i'),
-                margin: const EdgeInsets.only(bottom: 12),
-                elevation: isSelected ? 4 : 1,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                  side: isSelected ? const BorderSide(color: Colors.orange, width: 2) : BorderSide.none,
-                ),
-                child: InkWell(
-                  onTap: () => setState(() => _selectedActivityIndex = i),
-                  borderRadius: BorderRadius.circular(15),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Row(
-                      children: [
-                        // Activity image picker
-                        GestureDetector(
-                          onTap: () async {
-                            final img = await picker.ImagePicker().pickImage(source: picker.ImageSource.gallery);
-                            if (img != null) {
-                              final items = List<DraftActivity>.from(draft.activities);
-                              items[i] = DraftActivity(
-                                name: items[i].name,
-                                lat: items[i].lat,
-                                lng: items[i].lng,
-                                imagePath: img.path,
-                              );
-                              notifier.setActivities(items);
-                            }
-                          },
-                          child: Container(
-                            width: 60,
-                            height: 60,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              color: Colors.grey[100],
-                              image: activity.imagePath != null
-                                  ? DecorationImage(image: FileImage(File(activity.imagePath!)), fit: BoxFit.cover)
-                                  : null,
-                            ),
-                            child: activity.imagePath == null
-                                ? const Icon(Icons.add_a_photo, color: Colors.grey, size: 22)
-                                : null,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              TextField(
-                                controller: TextEditingController(text: activity.name)
-                                  ..selection = TextSelection.collapsed(offset: activity.name.length),
-                                onChanged: (v) {
-                                  final items = List<DraftActivity>.from(draft.activities);
-                                  items[i] = DraftActivity(
-                                    name: v,
-                                    lat: items[i].lat,
-                                    lng: items[i].lng,
-                                    imagePath: items[i].imagePath,
-                                  );
-                                  notifier.setActivities(items);
-                                },
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                                decoration: const InputDecoration(
-                                  hintText: 'اسم النشاط / المعلم',
-                                  border: InputBorder.none,
-                                  isDense: true,
-                                  contentPadding: EdgeInsets.zero,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              activity.lat != null
-                                  ? Row(
-                                      children: [
-                                        const Icon(Icons.location_on, color: Colors.orange, size: 14),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          '${activity.lat!.toStringAsFixed(4)}, ${activity.lng!.toStringAsFixed(4)}',
-                                          style: TextStyle(fontSize: 11, color: Colors.grey[600]),
-                                        ),
-                                      ],
-                                    )
-                                  : Text(
-                                      isSelected ? '👆 اضغط على الخريطة لتحديد الموقع' : 'لم يُحدد موقع بعد',
-                                      style: TextStyle(fontSize: 11, color: isSelected ? Colors.orange : Colors.grey),
-                                    ),
-                            ],
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                )
+              : ListView.builder(
+                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                  padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + MediaQuery.viewInsetsOf(context).bottom),
+                  itemCount: draft.activities.length + 1,
+                  itemBuilder: (context, i) {
+                    if (i == draft.activities.length) {
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: OutlinedButton.icon(
                           onPressed: () {
-                            final items = List<DraftActivity>.from(draft.activities);
-                            items.removeAt(i);
-                            notifier.setActivities(items);
-                            if (_selectedActivityIndex == i) setState(() => _selectedActivityIndex = null);
-                            else if (_selectedActivityIndex != null && _selectedActivityIndex! > i) setState(() => _selectedActivityIndex = _selectedActivityIndex! - 1);
-                            _updateMarkers();
+                            _setMapMode(addingMode: true);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('اضغط على الخريطة لإضافة موقع جديد')),
+                            );
                           },
+                          icon: const Icon(Icons.add),
+                          label: const Text('إضافة موقع من الخريطة'),
                         ),
-                      ],
-                    ),
-                  ),
+                      );
+                    }
+
+                    final isSelected = _selectedActivityIndex == i;
+                    final activity = draft.activities[i];
+                    return Card(
+                      key: ValueKey('activity_$i'),
+                      margin: const EdgeInsets.only(bottom: 12),
+                      elevation: isSelected ? 4 : 1,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                        side: isSelected
+                            ? const BorderSide(color: Color(0xFF4F46E5), width: 2)
+                            : BorderSide.none,
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                CircleAvatar(
+                                  radius: 14,
+                                  backgroundColor: isSelected ? const Color(0xFF4F46E5) : Colors.orange,
+                                  child: Text('${i + 1}', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: TextField(
+                                    controller: _nameControllers[i],
+                                    onTap: () {
+                                      setState(() {
+                                        _selectedActivityIndex = i;
+                                        _setMapMode(addingMode: false, drawingRoute: false);
+                                      });
+                                      _refreshMapOverlays();
+                                    },
+                                    onChanged: (v) {
+                                      final items = List<DraftActivity>.from(draft.activities);
+                                      items[i] = items[i].copyWith(name: v);
+                                      notifier.setActivities(items);
+                                    },
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                    decoration: const InputDecoration(
+                                      hintText: 'اسم الموقع / المعلم',
+                                      border: InputBorder.none,
+                                      isDense: true,
+                                      contentPadding: EdgeInsets.zero,
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                                  onPressed: () {
+                                    final items = List<DraftActivity>.from(draft.activities);
+                                    items.removeAt(i);
+                                    notifier.setActivities(items);
+                                    if (_selectedActivityIndex == i) {
+                                      setState(() => _selectedActivityIndex = null);
+                                    } else if (_selectedActivityIndex != null && _selectedActivityIndex! > i) {
+                                      setState(() => _selectedActivityIndex = _selectedActivityIndex! - 1);
+                                    }
+                                    _refreshMapOverlays();
+                                  },
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            activity.lat != null
+                                ? Row(
+                                    children: [
+                                      const Icon(Icons.location_on, color: Colors.orange, size: 14),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        '${activity.lat!.toStringAsFixed(4)}, ${activity.lng!.toStringAsFixed(4)}',
+                                        style: TextStyle(fontSize: 11, color: Colors.grey[600], fontFamily: 'monospace'),
+                                      ),
+                                      const Spacer(),
+                                      TextButton.icon(
+                                        onPressed: () {
+                                          setState(() {
+                                            _selectedActivityIndex = i;
+                                            _setMapMode(addingMode: false, drawingRoute: false);
+                                          });
+                                          if (activity.lat != null && activity.lng != null) {
+                                            _moveToLocation(activity.lat!, activity.lng!);
+                                          }
+                                          _refreshMapOverlays();
+                                        },
+                                        icon: const Icon(Icons.edit_location_alt, size: 14),
+                                        label: const Text('تحريك', style: TextStyle(fontSize: 11)),
+                                      ),
+                                    ],
+                                  )
+                                : Text(
+                                    'لم يُحدد موقع — اضغط "تحريك" ثم اختر على الخريطة',
+                                    style: TextStyle(fontSize: 11, color: Colors.orange[700]),
+                                  ),
+                            const SizedBox(height: 8),
+                            TextField(
+                              controller: _descControllers[i],
+                              onChanged: (v) {
+                                final items = List<DraftActivity>.from(draft.activities);
+                                items[i] = items[i].copyWith(description: v);
+                                notifier.setActivities(items);
+                              },
+                              maxLines: 3,
+                              style: const TextStyle(fontSize: 12),
+                              decoration: InputDecoration(
+                                hintText: 'وصف المكان (اختياري)',
+                                filled: true,
+                                fillColor: Colors.grey[50],
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            _buildActivityMediaStrip(activity, i),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
                 ),
-              );
-            },
-          ),
         ),
       ],
     );
@@ -1034,6 +1776,30 @@ class _StepOrganizeDays extends ConsumerStatefulWidget {
 
 class _StepOrganizeDaysState extends ConsumerState<_StepOrganizeDays> {
   int _selectedDayIndex = 0;
+
+  String _activityDayLabels(TripDraft draft, int activityIndex) {
+    final labels = <String>[];
+    for (var d = 0; d < draft.days.length; d++) {
+      if (draft.days[d].activityIndices.contains(activityIndex)) {
+        labels.add(draft.days[d].title);
+      }
+    }
+    return labels.isEmpty ? '' : labels.join('، ');
+  }
+
+  void _copyFromPreviousDay(TripDraft draft, TripDraftNotifier notifier) {
+    if (_selectedDayIndex == 0) return;
+    final newDays = List<DraftDay>.from(draft.days);
+    final prev = newDays[_selectedDayIndex - 1].activityIndices;
+    newDays[_selectedDayIndex] = DraftDay(
+      title: newDays[_selectedDayIndex].title,
+      activityIndices: List<int>.from(prev),
+    );
+    notifier.setDays(newDays);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('تم نسخ أنشطة ${newDays[_selectedDayIndex - 1].title}')),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1127,7 +1893,18 @@ class _StepOrganizeDaysState extends ConsumerState<_StepOrganizeDays> {
             children: [
               const Icon(Icons.touch_app, size: 16, color: Colors.grey),
               const SizedBox(width: 6),
-              Text('اضغط على نشاط لإضافته لـ ${selectedDay.title}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+              Expanded(
+                child: Text(
+                  'اضغط على نشاط لإضافته لـ ${selectedDay.title}',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ),
+              if (_selectedDayIndex > 0)
+                TextButton.icon(
+                  onPressed: () => _copyFromPreviousDay(draft, notifier),
+                  icon: const Icon(Icons.copy, size: 14),
+                  label: const Text('نسخ من اليوم السابق', style: TextStyle(fontSize: 11)),
+                ),
             ],
           ),
         ),
@@ -1140,6 +1917,7 @@ class _StepOrganizeDaysState extends ConsumerState<_StepOrganizeDays> {
                   itemBuilder: (context, i) {
                     final activity = draft.activities[i];
                     final isAssigned = assignedIndices.contains(i);
+                    final otherDays = _activityDayLabels(draft, i);
                     return Card(
                       margin: const EdgeInsets.only(bottom: 10),
                       shape: RoundedRectangleBorder(
@@ -1168,9 +1946,15 @@ class _StepOrganizeDaysState extends ConsumerState<_StepOrganizeDays> {
                                 child: Icon(Icons.place, color: isAssigned ? Colors.orange : Colors.grey, size: 20),
                               ),
                         title: Text(activity.name, style: TextStyle(fontWeight: isAssigned ? FontWeight.bold : FontWeight.normal)),
-                        subtitle: activity.lat != null
-                            ? Text('${activity.lat!.toStringAsFixed(3)}, ${activity.lng!.toStringAsFixed(3)}', style: const TextStyle(fontSize: 10))
-                            : null,
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (activity.lat != null)
+                              Text('${activity.lat!.toStringAsFixed(3)}, ${activity.lng!.toStringAsFixed(3)}', style: const TextStyle(fontSize: 10)),
+                            if (otherDays.isNotEmpty && !isAssigned)
+                              Text('مُضاف في: $otherDays', style: TextStyle(fontSize: 10, color: Colors.blue[700])),
+                          ],
+                        ),
                         trailing: isAssigned
                             ? const Icon(Icons.check_circle, color: Colors.orange)
                             : const Icon(Icons.add_circle_outline, color: Colors.grey),
@@ -1190,50 +1974,135 @@ class _StepFinalReview extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final draft = ref.watch(tripDraftProvider);
+    final cover = draft.coverImageUrl.isNotEmpty
+        ? (draft.coverImageUrl.startsWith('http')
+            ? NetworkImage(draft.coverImageUrl)
+            : FileImage(File(draft.coverImageUrl)) as ImageProvider)
+        : null;
 
     return ListView(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(0),
       children: [
-        const Text('المراجعة النهائية', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 24),
-        _buildInfoRow('العنوان', draft.title),
-        _buildInfoRow('الوجهة', draft.destination),
-        _buildInfoRow('المدة', draft.duration),
-        _buildInfoRow('الميزانية', draft.budget),
-        const SizedBox(height: 16),
-        const Text('الأنشطة المضافة:', style: TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        for (var act in draft.activities)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 4.0),
-            child: Row(
-              children: [
-                const Icon(Icons.check_circle, color: Colors.green, size: 14),
-                const SizedBox(width: 8),
-                Text(act.name),
-              ],
-            ),
+        if (cover != null)
+          Stack(
+            children: [
+              SizedBox(
+                height: 220,
+                width: double.infinity,
+                child: Image(image: cover, fit: BoxFit.cover),
+              ),
+              Container(
+                height: 220,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.transparent, Colors.black.withValues(alpha: 0.75)],
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: 16,
+                right: 16,
+                left: 16,
+                child: Text(
+                  draft.title.isNotEmpty ? draft.title : 'رحلتك الجديدة',
+                  style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
           ),
-        const SizedBox(height: 32),
-        const Text(
-          'بضغطك على "نشر الرحلة"، سيتم مشاركة تجربتك مع باقي المسافرين. هل أنت مستعد؟',
-          style: TextStyle(color: Colors.grey, fontSize: 12),
-          textAlign: TextAlign.center,
+        Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (cover == null)
+                Text(
+                  draft.title.isNotEmpty ? draft.title : 'رحلتك الجديدة',
+                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  if (draft.destination.isNotEmpty) _chip('📍 ${draft.destination}'),
+                  if (draft.duration.isNotEmpty) _chip('⏱ ${draft.duration}'),
+                  if (draft.budget.isNotEmpty) _chip('💰 ${draft.budget}'),
+                ],
+              ),
+              if (draft.description.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                const Text('نظرة عامة', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFFF59E0B))),
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(draft.description, style: const TextStyle(height: 1.7, fontSize: 15)),
+                ),
+              ],
+              const SizedBox(height: 24),
+              const Text('الأنشطة والمواقع', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+              ...draft.activities.asMap().entries.map((e) {
+                final act = e.value;
+                final dayNum = draft.days.indexWhere((d) => d.activityIndices.contains(e.key));
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: Colors.orange.shade100,
+                      child: Text('${e.key + 1}', style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
+                    ),
+                    title: Text(act.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text(
+                      [
+                        if (dayNum >= 0) draft.days[dayNum].title,
+                        if (act.description.isNotEmpty) act.description,
+                      ].join(' • '),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                );
+              }),
+              if (draft.hotels.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                const Text('الإقامة', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                ...draft.hotels.map((h) => ListTile(
+                      leading: const Icon(Icons.hotel, color: Colors.blue),
+                      title: Text(h.name),
+                      subtitle: Text(h.stayDays > 1 ? '${h.description} (${h.stayDays} ليالي)' : h.description),
+                    )),
+              ],
+              const SizedBox(height: 24),
+              const Text(
+                'بضغطك على "نشر الرحلة"، سيتم مشاركة تجربتك مع باقي المسافرين.',
+                style: TextStyle(color: Colors.grey, fontSize: 12),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: const TextStyle(color: Colors.grey)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
-        ],
+  Widget _chip(String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        borderRadius: BorderRadius.circular(20),
       ),
+      child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
     );
   }
 }
@@ -1270,11 +2139,9 @@ class _StepFoodPlacesState extends ConsumerState<_StepFoodPlaces> {
                   onTap: () async {
                     final img = await picker.ImagePicker().pickImage(source: picker.ImageSource.gallery);
                     if (img != null) {
-                      final bytes = await img.readAsBytes();
-                      final mime = img.path.endsWith('.png') ? 'image/png' : 'image/jpeg';
                       setDialogState(() {
                         selectedImage = File(img.path);
-                        base64Img = 'data:$mime;base64,${base64Encode(bytes)}';
+                        base64Img = img.path;
                       });
                     }
                   },
@@ -1347,17 +2214,12 @@ class _StepFoodPlacesState extends ConsumerState<_StepFoodPlaces> {
                       margin: const EdgeInsets.only(bottom: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       child: ListTile(
-                        leading: food.image != null
-                            ? ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.file(File((food.image as String).split('base64,').length > 1 ? food.image : ''), width: 50, height: 50, fit: BoxFit.cover))
-                            : const CircleAvatar(backgroundColor: Colors.orange, child: Icon(Icons.restaurant, color: Colors.white)),
+                        leading: _draftImageLeading(food.image, Icons.restaurant, Colors.orange),
                         title: Text(food.name, style: const TextStyle(fontWeight: FontWeight.bold)),
                         subtitle: Text(food.description),
                         trailing: IconButton(
                           icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed: () {
-                            final list = List<DraftFood>.from(draft.foodPlaces)..removeAt(i);
-                            ref.read(tripDraftProvider.notifier).state = draft.copyWith(foodPlaces: list);
-                          },
+                          onPressed: () => ref.read(tripDraftProvider.notifier).removeFoodPlace(i),
                         ),
                       ),
                     );
@@ -1392,6 +2254,7 @@ class _StepHotelsState extends ConsumerState<_StepHotels> {
     final descCtrl = TextEditingController();
     File? selectedImage;
     String? base64Img;
+    int stayDays = 1;
 
     showDialog(
       context: context,
@@ -1406,15 +2269,27 @@ class _StepHotelsState extends ConsumerState<_StepHotels> {
                 const SizedBox(height: 8),
                 TextField(controller: descCtrl, decoration: const InputDecoration(labelText: 'وصف الفندق')),
                 const SizedBox(height: 12),
+                Row(
+                  children: [
+                    const Text('مدة الإقامة:', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(width: 12),
+                    DropdownButton<int>(
+                      value: stayDays,
+                      items: List.generate(14, (i) => i + 1)
+                          .map((d) => DropdownMenuItem(value: d, child: Text('$d ${d == 1 ? 'ليلة' : 'ليالي'}')))
+                          .toList(),
+                      onChanged: (v) => setDialogState(() => stayDays = v ?? 1),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
                 GestureDetector(
                   onTap: () async {
                     final img = await picker.ImagePicker().pickImage(source: picker.ImageSource.gallery);
                     if (img != null) {
-                      final bytes = await img.readAsBytes();
-                      final mime = img.path.endsWith('.png') ? 'image/png' : 'image/jpeg';
                       setDialogState(() {
                         selectedImage = File(img.path);
-                        base64Img = 'data:$mime;base64,${base64Encode(bytes)}';
+                        base64Img = img.path;
                       });
                     }
                   },
@@ -1443,7 +2318,7 @@ class _StepHotelsState extends ConsumerState<_StepHotels> {
             ElevatedButton(
               onPressed: () {
                 ref.read(tripDraftProvider.notifier).addHotel(
-                  DraftHotel(name: nameCtrl.text, description: descCtrl.text, image: base64Img),
+                  DraftHotel(name: nameCtrl.text, description: descCtrl.text, image: base64Img, stayDays: stayDays),
                 );
                 Navigator.pop(context);
               },
@@ -1487,17 +2362,16 @@ class _StepHotelsState extends ConsumerState<_StepHotels> {
                       margin: const EdgeInsets.only(bottom: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       child: ListTile(
-                        leading: hotel.image != null
-                            ? ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.file(File(''), width: 50, height: 50, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const CircleAvatar(backgroundColor: Colors.blue, child: Icon(Icons.hotel, color: Colors.white))))
-                            : const CircleAvatar(backgroundColor: Colors.blue, child: Icon(Icons.hotel, color: Colors.white)),
+                        leading: _draftImageLeading(hotel.image, Icons.hotel, Colors.blue),
                         title: Text(hotel.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text(hotel.description),
+                        subtitle: Text(
+                          hotel.stayDays > 1
+                              ? '${hotel.description}\n🛏️ ${hotel.stayDays} ليالي'
+                              : hotel.description,
+                        ),
                         trailing: IconButton(
                           icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed: () {
-                            final list = List<DraftHotel>.from(draft.hotels)..removeAt(i);
-                            ref.read(tripDraftProvider.notifier).state = draft.copyWith(hotels: list);
-                          },
+                          onPressed: () => ref.read(tripDraftProvider.notifier).removeHotel(i),
                         ),
                       ),
                     );
@@ -1521,29 +2395,45 @@ class _StepHotelsState extends ConsumerState<_StepHotels> {
 class _QuickPostForm extends StatefulWidget {
   final Function(Map<String, dynamic>) onPublish;
   final bool isPublishing;
-  const _QuickPostForm({super.key, required this.onPublish, required this.isPublishing});
+  final bool termsAccepted;
+  final ValueChanged<bool> onTermsChanged;
+
+  const _QuickPostForm({
+    super.key,
+    required this.onPublish,
+    required this.isPublishing,
+    required this.termsAccepted,
+    required this.onTermsChanged,
+  });
 
   @override
   State<_QuickPostForm> createState() => _QuickPostFormState();
 }
 
 class _QuickPostFormState extends State<_QuickPostForm> {
-  String description = '';
-  File? _selectedImage;
-  String? _base64Image;
+  String _title = '';
+  String _destination = '';
+  String _description = '';
+  String? _coverPath;
+  final List<String> _mediaPaths = [];
 
-  Future<void> _pickImage() async {
-    final pickerObj = picker.ImagePicker();
-    final pickedFile = await pickerObj.pickImage(source: picker.ImageSource.gallery);
-    if (pickedFile != null) {
-      final bytes = await pickedFile.readAsBytes();
-      final ext = pickedFile.path.split('.').last.toLowerCase();
-      final mimeType = ext == 'png' ? 'image/png' : 'image/jpeg';
-      setState(() {
-        _selectedImage = File(pickedFile.path);
-        _base64Image = 'data:$mimeType;base64,${base64Encode(bytes)}';
-      });
-    }
+  Future<void> _pickCover() async {
+    final picked = await picker.ImagePicker().pickImage(source: picker.ImageSource.gallery);
+    if (picked != null) setState(() => _coverPath = picked.path);
+  }
+
+  Future<void> _pickMedia() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['jpg', 'jpeg', 'png', 'webp', 'mp4', 'mov'],
+      allowMultiple: true,
+    );
+    if (result == null) return;
+    setState(() {
+      for (final f in result.files) {
+        if (f.path != null) _mediaPaths.add(f.path!);
+      }
+    });
   }
 
   @override
@@ -1554,64 +2444,107 @@ class _QuickPostFormState extends State<_QuickPostForm> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const Text('شارك لحظة سريعة', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 24),
-          TextFormField(
-            maxLines: 5,
-            onChanged: (v) => setState(() => description = v),
-            decoration: InputDecoration(
-              hintText: 'بم تفكر؟ شارك تفاصيل سريعة...',
-              filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: Colors.grey[200]!)),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: Colors.grey[200]!)),
-            ),
-          ),
           const SizedBox(height: 16),
-          if (_selectedImage != null)
-            Stack(
-              children: [
-                Container(
-                  height: 150,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(15),
-                    image: DecorationImage(
-                      image: FileImage(_selectedImage!),
-                      fit: BoxFit.cover,
+          TextFormField(
+            onChanged: (v) => setState(() => _title = v),
+            decoration: _fieldDecoration('عنوان البوست'),
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            onChanged: (v) => setState(() => _destination = v),
+            decoration: _fieldDecoration('الوجهة (مثال: الأقصر)'),
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            maxLines: 4,
+            onChanged: (v) => setState(() => _description = v),
+            decoration: _fieldDecoration('بم تفكر؟ شارك تفاصيل سريعة...'),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _pickCover,
+                  icon: const Icon(Icons.image, size: 18),
+                  label: Text(_coverPath != null ? 'تغيير الغلاف' : 'صورة غلاف'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _pickMedia,
+                  icon: const Icon(Icons.perm_media, size: 18),
+                  label: Text('وسائط (${_mediaPaths.length})'),
+                ),
+              ),
+            ],
+          ),
+          if (_coverPath != null) ...[
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.file(File(_coverPath!), height: 100, width: double.infinity, fit: BoxFit.cover),
+            ),
+          ],
+          if (_mediaPaths.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 72,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: _mediaPaths.length,
+                itemBuilder: (_, i) => Stack(
+                  children: [
+                    Container(
+                      width: 64,
+                      height: 64,
+                      margin: const EdgeInsets.only(left: 8),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        color: Colors.grey[200],
+                        image: !_isVideoPath(_mediaPaths[i])
+                            ? DecorationImage(image: FileImage(File(_mediaPaths[i])), fit: BoxFit.cover)
+                            : null,
+                      ),
+                      child: _isVideoPath(_mediaPaths[i]) ? const Icon(Icons.videocam) : null,
                     ),
-                  ),
+                    Positioned(
+                      top: 0,
+                      right: 0,
+                      child: GestureDetector(
+                        onTap: () => setState(() => _mediaPaths.removeAt(i)),
+                        child: const CircleAvatar(radius: 10, backgroundColor: Colors.red, child: Icon(Icons.close, size: 12, color: Colors.white)),
+                      ),
+                    ),
+                  ],
                 ),
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white),
-                    onPressed: () => setState(() {
-                      _selectedImage = null;
-                      _base64Image = null;
-                    }),
-                    style: IconButton.styleFrom(backgroundColor: Colors.black54),
-                  ),
-                ),
-              ],
-            )
-          else
-            ElevatedButton.icon(
-              onPressed: _pickImage,
-              icon: const Icon(Icons.add_a_photo, color: Colors.orange),
-              label: const Text('إضافة صورة', style: TextStyle(color: Colors.orange)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange[50],
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
               ),
             ),
+          ],
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Checkbox(value: widget.termsAccepted, onChanged: (v) => widget.onTermsChanged(v ?? false), activeColor: Colors.indigo),
+              const Expanded(child: Text('أوافق على الشروط وسياسة الخصوصية', style: TextStyle(fontSize: 12))),
+            ],
+          ),
           const Spacer(),
           ElevatedButton(
-            onPressed: widget.isPublishing || description.trim().isEmpty
+            onPressed: widget.isPublishing ||
+                    !widget.termsAccepted ||
+                    _title.trim().isEmpty ||
+                    _destination.trim().isEmpty ||
+                    _description.trim().isEmpty
                 ? null
-                : () => widget.onPublish({'description': description, 'image': _base64Image}),
+                : () => widget.onPublish({
+                      'title': _title,
+                      'destination': _destination,
+                      'description': _description,
+                      'coverPath': _coverPath,
+                      'mediaPaths': List<String>.from(_mediaPaths),
+                    }),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.orange,
               foregroundColor: Colors.white,
@@ -1620,26 +2553,48 @@ class _QuickPostFormState extends State<_QuickPostForm> {
             ),
             child: widget.isPublishing
                 ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                : const Text('نشر الان'),
+                : const Text('نشر الآن'),
           ),
         ],
       ),
     );
   }
+
+  InputDecoration _fieldDecoration(String hint) => InputDecoration(
+        hintText: hint,
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: Colors.grey[200]!)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: Colors.grey[200]!)),
+      );
 }
 
 class _AskPostForm extends StatefulWidget {
   final Function(Map<String, dynamic>) onPublish;
   final bool isPublishing;
-  const _AskPostForm({super.key, required this.onPublish, required this.isPublishing});
+  final bool termsAccepted;
+  final ValueChanged<bool> onTermsChanged;
+
+  const _AskPostForm({
+    super.key,
+    required this.onPublish,
+    required this.isPublishing,
+    required this.termsAccepted,
+    required this.onTermsChanged,
+  });
 
   @override
   State<_AskPostForm> createState() => _AskPostFormState();
 }
 
 class _AskPostFormState extends State<_AskPostForm> {
-  String description = '';
-  String destination = '';
+  String _description = '';
+  String? _imagePath;
+
+  Future<void> _pickImage() async {
+    final picked = await picker.ImagePicker().pickImage(source: picker.ImageSource.gallery);
+    if (picked != null) setState(() => _imagePath = picked.path);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1651,32 +2606,57 @@ class _AskPostFormState extends State<_AskPostForm> {
           const Text('اسأل المجتمع', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
           const SizedBox(height: 24),
           TextFormField(
-            onChanged: (v) => setState(() => destination = v),
+            maxLines: 6,
+            onChanged: (v) => setState(() => _description = v),
             decoration: InputDecoration(
-              hintText: 'عن أي وجهة تسأل؟',
+              hintText: 'اكتب سؤالك أو استفسارك...',
               filled: true,
               fillColor: Colors.white,
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: Colors.grey[200]!)),
               enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: Colors.grey[200]!)),
             ),
           ),
-          const SizedBox(height: 16),
-          TextFormField(
-            maxLines: 5,
-            onChanged: (v) => setState(() => description = v),
-            decoration: InputDecoration(
-              hintText: 'اكتب سؤالك هنا...',
-              filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: Colors.grey[200]!)),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: Colors.grey[200]!)),
+          const SizedBox(height: 12),
+          if (_imagePath != null)
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.file(File(_imagePath!), height: 120, width: double.infinity, fit: BoxFit.cover),
+                ),
+                Positioned(
+                  top: 4,
+                  right: 4,
+                  child: IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () => setState(() => _imagePath = null),
+                    style: IconButton.styleFrom(backgroundColor: Colors.black54),
+                  ),
+                ),
+              ],
+            )
+          else
+            OutlinedButton.icon(
+              onPressed: _pickImage,
+              icon: const Icon(Icons.add_a_photo),
+              label: const Text('إضافة صورة (اختياري)'),
             ),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Checkbox(value: widget.termsAccepted, onChanged: (v) => widget.onTermsChanged(v ?? false), activeColor: Colors.teal),
+              const Expanded(child: Text('أوافق على الشروط وسياسة الخصوصية', style: TextStyle(fontSize: 12))),
+            ],
           ),
           const Spacer(),
           ElevatedButton(
-            onPressed: widget.isPublishing || description.trim().isEmpty || destination.trim().isEmpty
+            onPressed: widget.isPublishing || !widget.termsAccepted || _description.trim().isEmpty
                 ? null
-                : () => widget.onPublish({'description': description, 'destination': destination}),
+                : () => widget.onPublish({
+                      'description': _description,
+                      if (_imagePath != null) 'imagePath': _imagePath,
+                    }),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.teal,
               foregroundColor: Colors.white,

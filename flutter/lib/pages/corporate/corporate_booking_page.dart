@@ -9,6 +9,7 @@ import '../../core/exceptions.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../services/api_service.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../services/pending_payment_store.dart';
 
 class CorporateBookingPage extends ConsumerStatefulWidget {
   final Map<String, dynamic> trip;
@@ -36,6 +37,14 @@ class _CorporateBookingPageState extends ConsumerState<CorporateBookingPage> {
   
   String _paymentMethod = 'card';
   double _userBalance = 0.0;
+  
+  // Coupon state
+  late TextEditingController _couponController;
+  String? _appliedCouponCode;
+  double _discountAmount = 0.0;
+  bool _isValidatingCoupon = false;
+  String? _couponError;
+  String? _couponSuccess;
 
   @override
   void initState() {
@@ -48,6 +57,7 @@ class _CorporateBookingPageState extends ConsumerState<CorporateBookingPage> {
     _cardNumberController = TextEditingController();
     _expiryController = TextEditingController();
     _cvvController = TextEditingController();
+    _couponController = TextEditingController();
     _fetchUserBalance();
   }
 
@@ -75,6 +85,7 @@ class _CorporateBookingPageState extends ConsumerState<CorporateBookingPage> {
     _cardNumberController.dispose();
     _expiryController.dispose();
     _cvvController.dispose();
+    _couponController.dispose();
     super.dispose();
   }
 
@@ -208,15 +219,15 @@ class _CorporateBookingPageState extends ConsumerState<CorporateBookingPage> {
                 const SizedBox(height: 20),
                 Row(
                   children: [
-                    Expanded(child: _buildTextField('الاسم الأول', _firstNameController, 'Youssef', isDark, textColor)),
+                    Expanded(child: _buildTextField('الاسم الأول', _firstNameController, 'xxxxx', isDark, textColor)),
                     const SizedBox(width: 12),
-                    Expanded(child: _buildTextField('اسم العائلة', _lastNameController, 'Elkhyoty', isDark, textColor)),
+                    Expanded(child: _buildTextField('اسم العائلة', _lastNameController, 'xxxxx', isDark, textColor)),
                   ],
                 ),
                 const SizedBox(height: 16),
-                _buildTextField('رقم الهاتف (11 رقماً)', _phoneController, '01015985881', isDark, textColor),
+                _buildTextField('رقم الهاتف (11 رقماً)', _phoneController, '010xxxxxxxx', isDark, textColor),
                 const SizedBox(height: 16),
-                _buildTextField('البريد الإلكتروني', _emailController, 'youssef@gmail.com', isDark, textColor),
+                _buildTextField('البريد الإلكتروني', _emailController, 'xxxxx@xxx.com', isDark, textColor),
                 const SizedBox(height: 16),
                 _buildTextField('ملاحظات (اختياري)', _notesController, 'هل تود إخبارنا بشيء؟', isDark, textColor, maxLines: 3),
               ],
@@ -473,7 +484,9 @@ class _CorporateBookingPageState extends ConsumerState<CorporateBookingPage> {
                 child: Text('رصيدك غير كافٍ لإتمام العملية', style: GoogleFonts.cairo(color: Colors.red, fontSize: 12)),
               ),
           ],
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
+          _buildCouponSection(isDark, textColor, cardColor),
+          const SizedBox(height: 20),
           _buildPriceSummary(isDark, textColor, cardColor),
         ],
       ),
@@ -519,10 +532,152 @@ class _CorporateBookingPageState extends ConsumerState<CorporateBookingPage> {
     );
   }
 
-  double get _totalPrice {
+  double get _basePrice {
     final priceStr = widget.trip['price']?.toString() ?? '0';
-    final price = double.tryParse(priceStr.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0.0;
-    return price * _passengers;
+    return (double.tryParse(priceStr.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0.0) * _passengers;
+  }
+
+  double get _totalPrice => _basePrice - _discountAmount;
+
+  Future<void> _validateCoupon() async {
+    final code = _couponController.text.trim();
+    if (code.isEmpty) return;
+    setState(() {
+      _isValidatingCoupon = true;
+      _couponError = null;
+      _couponSuccess = null;
+    });
+    try {
+      final api = ref.read(apiServiceProvider);
+      final res = await api.post('/coupons/validate', data: {
+        'code': code,
+        'tripId': widget.trip['_id'],
+        'amount': _basePrice,
+      });
+      if (res.statusCode == 200) {
+        final data = res.data;
+        final discount = (data['discountAmount'] ?? 0).toDouble();
+        setState(() {
+          _appliedCouponCode = code;
+          _discountAmount = discount;
+          _couponSuccess = 'تم تطبيق الخصم بنجاح! وفرت ${discount.toStringAsFixed(0)} ج.م';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _appliedCouponCode = null;
+        _discountAmount = 0;
+        _couponError = 'كود الخصم غير صحيح أو منتهي الصلاحية';
+      });
+    } finally {
+      setState(() => _isValidatingCoupon = false);
+    }
+  }
+
+  Widget _buildCouponSection(bool isDark, Color textColor, Color cardColor) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: _appliedCouponCode != null ? Colors.green.shade300 : (isDark ? Colors.white10 : Colors.grey.shade200),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.local_offer_outlined, color: _appliedCouponCode != null ? Colors.green : const Color(0xFF4F46E5), size: 20),
+              const SizedBox(width: 8),
+              Text('كود الخصم', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: textColor, fontSize: 14)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _couponController,
+                  enabled: _appliedCouponCode == null,
+                  style: GoogleFonts.cairo(fontSize: 13, color: textColor, letterSpacing: 2),
+                  textCapitalization: TextCapitalization.characters,
+                  decoration: InputDecoration(
+                    hintText: 'أدخل كود الخصم',
+                    hintStyle: GoogleFonts.cairo(color: Colors.grey, fontSize: 13),
+                    filled: true,
+                    fillColor: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: isDark ? Colors.white10 : Colors.grey.shade200)),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: isDark ? Colors.white10 : Colors.grey.shade200)),
+                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF4F46E5))),
+                    suffixIcon: _appliedCouponCode != null
+                        ? const Icon(Icons.check_circle, color: Colors.green)
+                        : null,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              _appliedCouponCode != null
+                  ? GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _appliedCouponCode = null;
+                          _discountAmount = 0;
+                          _couponController.clear();
+                          _couponSuccess = null;
+                          _couponError = null;
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.red.withOpacity(0.3)),
+                        ),
+                        child: Text('إلغاء', style: GoogleFonts.cairo(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 13)),
+                      ),
+                    )
+                  : GestureDetector(
+                      onTap: _isValidatingCoupon ? null : _validateCoupon,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF4F46E5),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: _isValidatingCoupon
+                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                            : Text('تطبيق', style: GoogleFonts.cairo(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                      ),
+                    ),
+            ],
+          ),
+          if (_couponError != null) ...[  
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.red, size: 16),
+                const SizedBox(width: 6),
+                Text(_couponError!, style: GoogleFonts.cairo(color: Colors.red, fontSize: 12)),
+              ],
+            ),
+          ],
+          if (_couponSuccess != null) ...[  
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.check_circle_outline, color: Colors.green, size: 16),
+                const SizedBox(width: 6),
+                Text(_couponSuccess!, style: GoogleFonts.cairo(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
   }
 
   Widget _buildPriceSummary(bool isDark, Color textColor, Color cardColor) {
@@ -539,9 +694,25 @@ class _CorporateBookingPageState extends ConsumerState<CorporateBookingPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
                Text('التكلفة (x$_passengers)', style: GoogleFonts.cairo(fontSize: 14, color: textColor)),
-               Text('${(_totalPrice / _passengers).toStringAsFixed(0)} ج.م', style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
+               Text('${(_basePrice / _passengers).toStringAsFixed(0)} ج.م', style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
             ],
           ),
+          if (_discountAmount > 0) ...[  
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.local_offer, color: Colors.green, size: 14),
+                    const SizedBox(width: 6),
+                    Text('خصم كود "$_appliedCouponCode"', style: GoogleFonts.cairo(fontSize: 13, color: Colors.green)),
+                  ],
+                ),
+                Text('- ${_discountAmount.toStringAsFixed(0)} ج.م', style: GoogleFonts.cairo(color: Colors.green, fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ],
           Divider(height: 30, color: isDark ? Colors.white10 : Colors.grey.shade200),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -688,8 +859,21 @@ class _CorporateBookingPageState extends ConsumerState<CorporateBookingPage> {
           final url = Uri.parse('https://accept.paymob.com/api/acceptance/iframes/$iframeId?payment_token=$paymentKey');
           
           if (await canLaunchUrl(url)) {
+            await PendingPaymentStore.set(bookingId);
             await launchUrl(url, mode: LaunchMode.externalApplication);
-            _showSuccess(isPaymentPending: true);
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'أكمل الدفع في المتصفح ثم ارجع للتطبيق — سنتحقق تلقائياً من الحالة.',
+                    style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+                  ),
+                  backgroundColor: Colors.orange.shade800,
+                  behavior: SnackBarBehavior.floating,
+                  duration: const Duration(seconds: 6),
+                ),
+              );
+            }
           } else {
             throw Exception('لا يمكن فتح صفحة الدفع');
           }

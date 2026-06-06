@@ -1,3 +1,5 @@
+import '../utils/media_url.dart';
+
 class Story {
   final String id;
   final String userId;
@@ -21,14 +23,14 @@ class Story {
 
   factory Story.fromJson(Map<String, dynamic> json) {
     return Story(
-      id: json['_id'] ?? '',
-      userId: json['userId'] ?? '',
-      mediaUrl: json['mediaUrl'] ?? '',
-      mediaType: json['mediaType'] ?? 'image',
-      caption: json['caption'],
-      createdAt: DateTime.parse(json['createdAt']),
-      expiresAt: DateTime.parse(json['expiresAt']),
-      seen: json['seen'] ?? false,
+      id: json['_id']?.toString() ?? json['id']?.toString() ?? '',
+      userId: json['userId']?.toString() ?? '',
+      mediaUrl: normalizeMediaUrl(json['mediaUrl']?.toString()),
+      mediaType: json['mediaType']?.toString() ?? 'image',
+      caption: json['caption']?.toString(),
+      createdAt: DateTime.parse(json['createdAt'].toString()),
+      expiresAt: DateTime.parse(json['expiresAt'].toString()),
+      seen: json['seen'] == true,
     );
   }
 }
