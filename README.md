@@ -2,7 +2,6 @@
 
 <div align="center">
 
-![Re7lty Banner](re7lty_sequence_flow.png)
 
 **A full-stack travel social media & SaaS platform with AI trip planning**
 
